@@ -48,10 +48,7 @@ interface SearchCommand {
   template: `
     <div class="flex h-full overflow-hidden">
       <!-- Linke Seite: Tabelle -->
-      <div
-        [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
-        class="overflow-y-auto"
-      >
+      <div [class]="selectedId() ? 'w-72 shrink-0 border-r border-line-soft' : 'flex-1'" class="overflow-y-auto">
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
             <h1 class="text-xl font-bold tracking-tight">{{ 'PRODUCTS.TITLE' | translate }}</h1>
@@ -61,9 +58,9 @@ interface SearchCommand {
                 <button
                   (click)="onExport()"
                   [disabled]="exporting()"
-                  class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
-                         px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                  class="text-ink-muted hover:text-ink text-xs
+                         px-3 py-2 rounded-lg border border-line-soft
+                         hover:bg-surface-elevated transition"
                 >
                   {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
                 </button>
@@ -71,17 +68,17 @@ interface SearchCommand {
                   <button
                     (click)="fileInput()?.nativeElement?.click()"
                     [disabled]="importing()"
-                    class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
-                         px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                    class="text-ink-muted hover:text-ink text-xs
+                         px-3 py-2 rounded-lg border border-line-soft
+                         hover:bg-surface-elevated transition"
                   >
                     {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                   </button>
                   <button
                     (click)="showWizard.set(true)"
-                    class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-xs
-                         px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-800
-                         hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5"
+                    class="text-ink-muted hover:text-ink text-xs
+                         px-3 py-2 rounded-lg border border-line-soft
+                         hover:bg-surface-elevated transition flex items-center gap-1.5"
                   >
                     <svg
                       class="w-3.5 h-3.5"
@@ -104,10 +101,10 @@ interface SearchCommand {
                 <div class="relative">
                   <button
                     (click)="actionsMenuOpen.set(!actionsMenuOpen())"
-                    class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
+                    class="text-ink-muted hover:text-ink
                                  w-8 h-8 flex items-center justify-center rounded-lg
-                                 border border-slate-200 dark:border-gray-800
-                                 hover:bg-slate-50 dark:hover:bg-gray-800 transition text-base leading-none"
+                                 border border-line-soft
+                                 hover:bg-surface-elevated transition text-base leading-none"
                     title="Weitere Aktionen"
                   >
                     ···
@@ -122,14 +119,14 @@ interface SearchCommand {
                     ></div>
                     <div
                       class="absolute right-0 top-full mt-1 z-50 w-44
-                                bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
+                                bg-surface-input border border-line-soft
                                 rounded-xl shadow-xl p-1 flex flex-col gap-0.5"
                     >
                       <button
                         (click)="onExport(); actionsMenuOpen.set(false)"
                         [disabled]="exporting()"
                         class="w-full text-left text-xs px-3 py-2 rounded-lg
-                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
+                               text-ink hover:bg-surface-elevated transition
                                disabled:opacity-50"
                       >
                         {{ exporting() ? ('COMMON.EXPORTING' | translate) : ('COMMON.EXPORT' | translate) }}
@@ -139,16 +136,16 @@ interface SearchCommand {
                           (click)="fileInput()?.nativeElement?.click(); actionsMenuOpen.set(false)"
                           [disabled]="importing()"
                           class="w-full text-left text-xs px-3 py-2 rounded-lg
-                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition
+                               text-ink hover:bg-surface-elevated transition
                                disabled:opacity-50"
                         >
                           {{ importing() ? ('COMMON.IMPORTING' | translate) : ('COMMON.IMPORT' | translate) }}
                         </button>
-                        <div class="h-px bg-slate-100 dark:bg-gray-800 my-0.5"></div>
+                        <div class="h-px bg-line-soft my-0.5"></div>
                         <button
                           (click)="showWizard.set(true); actionsMenuOpen.set(false)"
                           class="w-full text-left text-xs px-3 py-2 rounded-lg flex items-center gap-2
-                               text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                               text-ink hover:bg-surface-elevated transition"
                         >
                           <svg
                             class="w-3.5 h-3.5"
@@ -174,8 +171,8 @@ interface SearchCommand {
               @if (!readOnly()) {
                 <button
                   (click)="selectItem('new')"
-                  class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
-                       hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+                  class="bg-ink text-surface-panel font-bold px-4 py-2 rounded-xl text-xs
+                       hover:bg-ink/90 transition"
                 >
                   + {{ 'COMMON.NEW' | translate }}
                 </button>
@@ -190,11 +187,11 @@ interface SearchCommand {
           <!-- Import-Ergebnis -->
           @if (importResult()) {
             <div
-              class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+              class="bg-surface-elevated dark:bg-surface-bg/50 border border-line-soft rounded-lg p-4
                         text-sm space-y-1"
             >
               <div class="flex items-center justify-between">
-                <p class="font-medium text-slate-900 dark:text-white">{{ 'COMMON.IMPORT_COMPLETE' | translate }}</p>
+                <p class="font-medium text-ink">{{ 'COMMON.IMPORT_COMPLETE' | translate }}</p>
                 <div class="flex items-center gap-2">
                   @if (importResult()!.errors > 0) {
                     <button
@@ -219,18 +216,18 @@ interface SearchCommand {
                   }
                   <button
                     (click)="importResult.set(null); showErrorLog.set(false)"
-                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white text-xs transition"
+                    class="text-ink-faint hover:text-ink text-xs transition"
                   >
                     ✕
                   </button>
                 </div>
               </div>
-              <p class="text-slate-500 dark:text-gray-400">
+              <p class="text-ink-muted">
                 {{ 'PRODUCT_GROUPS.TITLE' | translate }}: {{ importResult()!.groupsCreated }}
                 {{ 'COMMON.CREATED' | translate }}, {{ importResult()!.groupsUpdated }}
                 {{ 'COMMON.UPDATED' | translate }}
               </p>
-              <p class="text-slate-500 dark:text-gray-400">
+              <p class="text-ink-muted">
                 {{ 'PRODUCTS.TITLE' | translate }}: {{ importResult()!.productsCreated }}
                 {{ 'COMMON.CREATED' | translate }}, {{ importResult()!.productsUpdated }}
                 {{ 'COMMON.UPDATED' | translate }}
@@ -253,22 +250,17 @@ interface SearchCommand {
               (keydown.enter)="showErrorLog.set(false)"
             >
               <div
-                class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl
+                class="bg-surface-input border border-line rounded-2xl
                           max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] flex flex-col"
                 role="presentation"
                 (click)="$event.stopPropagation()"
                 (keydown.enter)="$event.stopPropagation()"
               >
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-gray-800">
-                  <p class="text-slate-900 dark:text-white font-medium">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-line-soft">
+                  <p class="text-ink font-medium">
                     {{ 'COMMON.IMPORT_ERRORS' | translate }} ({{ importResult()!.errorLogs.length }})
                   </p>
-                  <button
-                    (click)="showErrorLog.set(false)"
-                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white transition"
-                  >
-                    ✕
-                  </button>
+                  <button (click)="showErrorLog.set(false)" class="text-ink-faint hover:text-ink transition">✕</button>
                 </div>
                 <div class="overflow-y-auto p-5 space-y-2 text-xs font-mono">
                   @for (log of importResult()!.errorLogs; track $index) {
@@ -287,10 +279,8 @@ interface SearchCommand {
           <!-- Suchleiste mit Kommando-System -->
           <div class="relative">
             <div
-              class="flex items-center flex-wrap gap-1.5 bg-white dark:bg-gray-900 border border-slate-200
-                        dark:border-gray-800 rounded-lg px-3 py-2 focus-within:border-slate-900
-                        dark:focus-within:border-white focus-within:ring-1 focus-within:ring-slate-900
-                        dark:focus-within:ring-white transition min-h-[42px]"
+              class="flex items-center flex-wrap gap-1.5 bg-surface-input border border-line-soft
+                        rounded-lg px-3 py-2 focus-within:border-ink focus-within:ring-1 focus-within:ring-ink transition min-h-[42px]"
               role="presentation"
               (click)="searchInput()?.nativeElement?.focus()"
               (keydown.enter)="searchInput()?.nativeElement?.focus()"
@@ -298,15 +288,15 @@ interface SearchCommand {
               <!-- Aktive Filter-Chips -->
               @for (filter of activeFilters(); track filter.key) {
                 <span
-                  class="inline-flex items-center gap-1 bg-slate-100 dark:bg-gray-800 text-slate-700
-                             dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg"
+                  class="inline-flex items-center gap-1 bg-line-soft text-ink
+                             text-xs font-medium px-2.5 py-1 rounded-lg"
                 >
-                  <span class="text-slate-400 dark:text-gray-500">{{ filter.key }}:</span>
+                  <span class="text-ink-faint">{{ filter.key }}:</span>
                   {{ filter.label }}
                   <button
                     type="button"
                     (click)="removeFilter(filter.key); $event.stopPropagation()"
-                    class="text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-white ml-0.5
+                    class="text-ink-faint hover:text-ink ml-0.5
                            transition text-[10px]"
                   >
                     ✕
@@ -323,16 +313,16 @@ interface SearchCommand {
                 (focus)="onSearchFocus()"
                 (blur)="onSearchBlur()"
                 [placeholder]="activeFilters().length > 0 ? 'Weiter filtern...' : 'Suche... (/ für Kommandos)'"
-                class="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-slate-900 dark:text-white
-                       placeholder-slate-400 dark:placeholder-gray-600"
+                class="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-ink
+                       placeholder-ink-faint"
               />
             </div>
 
             <!-- Autocomplete Dropdown -->
             @if (showDropdown()) {
               <div
-                class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-slate-200
-                          dark:border-gray-700 rounded-lg shadow-xl overflow-hidden"
+                class="absolute z-20 mt-1 w-full bg-surface-input border border-line
+                          rounded-lg shadow-xl overflow-hidden"
               >
                 @if (dropdownPhase() === 'command') {
                   @for (cmd of visibleCommands(); track cmd.key; let i = $index) {
@@ -341,17 +331,17 @@ interface SearchCommand {
                       (mousedown)="selectCommand(cmd); $event.preventDefault()"
                       [class]="
                         i === highlightIndex()
-                          ? 'bg-slate-100 dark:bg-gray-800'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'
+                          ? 'bg-line-soft'
+                          : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated/50'
                       "
                       class="w-full px-3 py-2.5 flex items-center gap-3 text-left transition"
                     >
                       <span
-                        class="text-xs font-mono text-slate-500 dark:text-gray-400 bg-slate-100
-                                   dark:bg-gray-800 px-1.5 py-0.5 rounded"
+                        class="text-xs font-mono text-ink-muted bg-line-soft
+                                   px-1.5 py-0.5 rounded"
                         >{{ cmd.label }}</span
                       >
-                      <span class="text-sm text-slate-600 dark:text-gray-300">{{ cmd.description | translate }}</span>
+                      <span class="text-sm text-ink-muted dark:text-ink">{{ cmd.description | translate }}</span>
                     </button>
                   }
                 } @else {
@@ -361,10 +351,10 @@ interface SearchCommand {
                       (mousedown)="selectValue(val); $event.preventDefault()"
                       [class]="
                         i === highlightIndex()
-                          ? 'bg-slate-100 dark:bg-gray-800'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'
+                          ? 'bg-line-soft'
+                          : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated/50'
                       "
-                      class="w-full px-3 py-2.5 text-left text-sm text-slate-700 dark:text-gray-300 transition"
+                      class="w-full px-3 py-2.5 text-left text-sm text-ink transition"
                     >
                       {{ val.label | translate }}
                     </button>
@@ -375,7 +365,7 @@ interface SearchCommand {
           </div>
 
           @if (filteredProducts().length === 0 && !loading()) {
-            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
+            <p class="text-ink-faint text-center py-12 text-sm">
               {{ (products().length === 0 ? 'PRODUCTS.NO_PRODUCTS' : 'COMMON.NO_RESULTS') | translate }}
             </p>
           } @else {
@@ -384,32 +374,32 @@ interface SearchCommand {
                 <thead>
                   <tr>
                     <th
-                      class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                      class="cursor-pointer hover:text-ink-muted dark:hover:text-ink transition-colors"
                       (click)="toggleSort('name')"
                     >
                       {{ 'COMMON.NAME' | translate }}{{ sortIcon('name') }}
                     </th>
                     @if (!selectedId()) {
                       <th
-                        class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        class="cursor-pointer hover:text-ink-muted dark:hover:text-ink transition-colors"
                         (click)="toggleSort('acronym')"
                       >
                         {{ 'PRODUCTS.ACRONYM' | translate }}{{ sortIcon('acronym') }}
                       </th>
                       <th
-                        class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        class="cursor-pointer hover:text-ink-muted dark:hover:text-ink transition-colors"
                         (click)="toggleSort('price')"
                       >
                         {{ 'PRODUCTS.PRICE' | translate }}{{ sortIcon('price') }}
                       </th>
                       <th
-                        class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        class="cursor-pointer hover:text-ink-muted dark:hover:text-ink transition-colors"
                         (click)="toggleSort('productType')"
                       >
                         {{ 'PRODUCTS.TYPE' | translate }}{{ sortIcon('productType') }}
                       </th>
                       <th
-                        class="cursor-pointer hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                        class="cursor-pointer hover:text-ink-muted dark:hover:text-ink transition-colors"
                         (click)="toggleSort('status')"
                       >
                         {{ 'COMMON.STATUS' | translate }}{{ sortIcon('status') }}
@@ -423,8 +413,8 @@ interface SearchCommand {
                       (click)="selectItem(p._id)"
                       [class]="
                         p._id === selectedId()
-                          ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'
+                          ? 'bg-surface-bg dark:bg-white/5 border-l-2 border-l-ink'
+                          : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated/30 border-l-2 border-l-transparent'
                       "
                       class="cursor-pointer transition"
                     >
@@ -438,12 +428,12 @@ interface SearchCommand {
                         </span>
                       </td>
                       @if (!selectedId()) {
-                        <td class="text-slate-500 dark:text-gray-400 font-mono text-xs">{{ p.acronym }}</td>
+                        <td class="text-ink-muted font-mono text-xs">{{ p.acronym }}</td>
                         <td class="font-mono text-xs">{{ p.price || 0 | eur }}</td>
                         <td>
                           <span
-                            class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
-                                       text-slate-600 dark:text-gray-300"
+                            class="text-xs px-2 py-0.5 rounded-full border border-line-strong
+                                       text-ink-muted dark:text-ink"
                           >
                             {{ productTypeLabel(p.productType) | translate }}
                           </span>
@@ -466,20 +456,20 @@ interface SearchCommand {
         <div class="flex-1 flex flex-col overflow-hidden">
           <!-- Panel Header mit Navigation -->
           <div
-            class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
+            class="shrink-0 bg-surface-bg border-b border-line-soft
                       px-4 py-2.5 flex items-center gap-2"
           >
             <button
               (click)="prevItem()"
               [disabled]="currentIndex() <= 0"
-              class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                     disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
+              class="text-ink-muted hover:text-ink
+                     disabled:text-line-strong disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+                     hover:bg-line-soft transition text-sm"
             >
               ◀
             </button>
-            <span class="text-xs text-slate-400 dark:text-gray-500 min-w-12 text-center">
+            <span class="text-xs text-ink-faint min-w-12 text-center">
               @if (selectedId() !== 'new') {
                 {{ currentIndex() + 1 }} / {{ filteredProducts().length }}
               } @else {
@@ -489,19 +479,19 @@ interface SearchCommand {
             <button
               (click)="nextItem()"
               [disabled]="currentIndex() >= filteredProducts().length - 1"
-              class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                     disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
+              class="text-ink-muted hover:text-ink
+                     disabled:text-line-strong disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+                     hover:bg-line-soft transition text-sm"
             >
               ▶
             </button>
             <div class="flex-1"></div>
             <button
               (click)="selectedId.set(null)"
-              class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white w-8 h-8
+              class="text-ink-faint hover:text-ink w-8 h-8
                      flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+                     hover:bg-line-soft transition text-sm"
             >
               ✕
             </button>
@@ -836,9 +826,9 @@ export class ProductListComponent implements OnInit {
       case 'DRAFT':
         return `${base} bg-yellow-500/10 text-yellow-400 border-yellow-500/20`
       case 'ARCHIVED':
-        return `${base} bg-gray-500/10 text-gray-400 border-gray-500/20`
+        return `${base} bg-ink-muted/10 text-ink-faint border-ink-muted/20`
       default:
-        return `${base} bg-gray-500/10 text-gray-400 border-gray-500/20`
+        return `${base} bg-ink-muted/10 text-ink-faint border-ink-muted/20`
     }
   }
 

@@ -23,20 +23,18 @@ interface LogExportResult {
     <div class="p-6 space-y-6">
       <header>
         <h1 class="text-xl font-bold tracking-tight">{{ 'LOGS.TITLE' | translate }}</h1>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1">{{ 'LOGS.DESCRIPTION' | translate }}</p>
+        <p class="text-ink-muted text-sm mt-1">{{ 'LOGS.DESCRIPTION' | translate }}</p>
       </header>
 
-      <section
-        class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4 max-w-2xl"
-      >
-        <p class="text-sm text-slate-600 dark:text-gray-300">{{ 'LOGS.HINT' | translate }}</p>
+      <section class="bg-surface-elevated border border-line rounded-xl p-5 space-y-4 max-w-2xl">
+        <p class="text-sm text-ink-muted dark:text-ink">{{ 'LOGS.HINT' | translate }}</p>
 
         <button
           type="button"
           (click)="exportLogs()"
           [disabled]="exporting()"
-          class="px-4 py-2 rounded-lg bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium
-                 hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed
+          class="px-4 py-2 rounded-lg bg-shell dark:bg-line text-white text-sm font-medium
+                 hover:bg-ink/90 dark:hover:bg-line-strong disabled:opacity-50 disabled:cursor-not-allowed
                  transition-colors"
         >
           {{ (exporting() ? 'LOGS.EXPORTING' : 'LOGS.EXPORT_BUTTON') | translate }}

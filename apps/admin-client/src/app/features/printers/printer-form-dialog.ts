@@ -25,43 +25,35 @@ export interface PrinterFormData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 min-w-[400px]">
-      <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+      <h2 class="text-lg font-semibold text-ink mb-6">
         {{ isEdit ? 'Drucker bearbeiten' : 'Drucker hinzufügen' }}
       </h2>
 
       <form (ngSubmit)="onSave()" class="space-y-4">
         <!-- Name -->
         <div class="space-y-1">
-          <label
-            for="printerName"
-            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >Name *</label
-          >
+          <label for="printerName" class="text-xs font-medium text-ink-muted uppercase tracking-wider">Name *</label>
           <input
             id="printerName"
             [(ngModel)]="form.name"
             name="name"
             type="text"
             required
-            class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                   text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                   focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+            class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                   text-ink focus:border-ink
+                   focus:ring-1 focus:ring-ink outline-none"
           />
         </div>
 
         <!-- Typ -->
         <div class="space-y-1">
-          <label
-            for="printerType"
-            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >Typ</label
-          >
+          <label for="printerType" class="text-xs font-medium text-ink-muted uppercase tracking-wider">Typ</label>
           <select
             id="printerType"
             [(ngModel)]="form.type"
             name="type"
-            class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                   text-slate-900 dark:text-white outline-none"
+            class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                   text-ink outline-none"
           >
             <option value="ip">WLAN / Netzwerk (IP)</option>
             <option value="mqtt">MQTT</option>
@@ -72,9 +64,7 @@ export interface PrinterFormData {
         @if (form.type === 'ip') {
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label
-                for="printerIp"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              <label for="printerIp" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
                 >IP-Adresse *</label
               >
               <input
@@ -85,17 +75,13 @@ export interface PrinterFormData {
                 required
                 placeholder="192.168.1.100"
                 pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                       text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                       focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+                class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                       text-ink focus:border-ink
+                       focus:ring-1 focus:ring-ink outline-none"
               />
             </div>
             <div class="space-y-1">
-              <label
-                for="printerPort"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >Port</label
-              >
+              <label for="printerPort" class="text-xs font-medium text-ink-muted uppercase tracking-wider">Port</label>
               <input
                 id="printerPort"
                 [(ngModel)]="form.port"
@@ -103,9 +89,9 @@ export interface PrinterFormData {
                 type="number"
                 min="1"
                 max="65535"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                       text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                       focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+                class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                       text-ink focus:border-ink
+                       focus:ring-1 focus:ring-ink outline-none"
               />
             </div>
           </div>
@@ -114,9 +100,7 @@ export interface PrinterFormData {
         <!-- MQTT-Drucker Felder -->
         @if (form.type === 'mqtt') {
           <div class="space-y-1">
-            <label
-              for="printerMqttTopic"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            <label for="printerMqttTopic" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
               >MQTT-Topic</label
             >
             <input
@@ -125,9 +109,9 @@ export interface PrinterFormData {
               name="mqttTopic"
               type="text"
               placeholder="/rospos/orders/print"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none"
             />
           </div>
         }
@@ -135,34 +119,30 @@ export interface PrinterFormData {
         <!-- Papierbreite & Encoding -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label
-              for="printerPaperWidth"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            <label for="printerPaperWidth" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
               >Papierbreite</label
             >
             <select
               id="printerPaperWidth"
               [(ngModel)]="form.paperWidth"
               name="paperWidth"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink outline-none"
             >
               <option value="80mm">80mm (Standard)</option>
               <option value="58mm">58mm</option>
             </select>
           </div>
           <div class="space-y-1">
-            <label
-              for="printerEncoding"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            <label for="printerEncoding" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
               >Encoding</label
             >
             <select
               id="printerEncoding"
               [(ngModel)]="form.encoding"
               name="encoding"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink outline-none"
             >
               @for (e of encodings; track e.value) {
                 <option [value]="e.value">{{ e.label }}</option>
@@ -176,23 +156,19 @@ export interface PrinterFormData {
 
         <!-- Rolle -->
         <div class="space-y-1">
-          <label
-            for="printerRole"
-            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >Rolle</label
-          >
+          <label for="printerRole" class="text-xs font-medium text-ink-muted uppercase tracking-wider">Rolle</label>
           <select
             id="printerRole"
             [(ngModel)]="form.role"
             name="role"
-            class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                   text-slate-900 dark:text-white outline-none"
+            class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                   text-ink outline-none"
           >
             <option value="both">Küche & Quittung (Standard)</option>
             <option value="kitchen">Nur Küche — ohne Filialkopf und TSE-Block</option>
             <option value="receipt">Nur Quittung — vollständiger Beleg</option>
           </select>
-          <p class="text-xs text-slate-400 dark:text-gray-500">
+          <p class="text-xs text-ink-faint">
             Küchenbons lassen Filialkopf und TSE-Signatur weg. Positionen, Nachlässe und Gesamtsumme sind auf beiden
             Varianten gleich.
           </p>
@@ -204,10 +180,10 @@ export interface PrinterFormData {
             [(ngModel)]="form.active"
             name="active"
             type="checkbox"
-            class="w-4 h-4 rounded border-slate-300 dark:border-gray-600
-                   text-slate-900 dark:text-white focus:ring-slate-900 dark:focus:ring-white"
+            class="w-4 h-4 rounded border-line-strong
+                   text-ink focus:ring-ink"
           />
-          <span class="text-sm text-slate-700 dark:text-gray-300">Drucker aktiv</span>
+          <span class="text-sm text-ink">Drucker aktiv</span>
         </label>
 
         <!-- Buttons -->
@@ -215,15 +191,15 @@ export interface PrinterFormData {
           <button
             type="button"
             (click)="onCancel()"
-            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-gray-400
-                   hover:bg-slate-100 dark:hover:bg-gray-800 transition"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted
+                   hover:bg-line-soft transition"
           >
             Abbrechen
           </button>
           <button
             type="submit"
-            class="px-6 py-2 rounded-lg text-sm font-medium bg-slate-900 dark:bg-white
-                   text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+            class="px-6 py-2 rounded-lg text-sm font-medium bg-ink
+                   text-surface-panel hover:bg-ink/90 transition"
           >
             Speichern
           </button>

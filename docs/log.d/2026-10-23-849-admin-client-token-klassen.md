@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#849): [Design-Tokens](../architecture/design-tokens.md) — `apps/admin-client` nutzt Token-Klassen statt `gray-*`/`slate-*`; `design-system.json` nennt Inter und IBM Plex Mono statt Switzer.

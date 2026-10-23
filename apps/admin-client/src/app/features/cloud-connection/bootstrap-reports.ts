@@ -61,19 +61,17 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
   imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl flex flex-col">
-      <header
-        class="px-4 py-3 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between flex-none"
-      >
+    <section class="bg-surface-panel dark:bg-surface-bg/50 border border-line-soft rounded-xl flex flex-col">
+      <header class="px-4 py-3 border-b border-line-soft flex items-center justify-between flex-none">
         <div>
           <h2 class="text-sm font-semibold">Bootstrap-Reports</h2>
-          <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+          <p class="text-xs text-ink-muted mt-0.5">
             Diagnose-Persistenz pro Pairing — Pre/Post-State, Restamp-Detail, Konsistenz-Check.
           </p>
         </div>
         <button
           (click)="reload()"
-          class="text-slate-500 dark:text-gray-400 text-xs hover:text-slate-900 dark:hover:text-white px-2 py-1"
+          class="text-ink-muted text-xs hover:text-ink px-2 py-1"
           [disabled]="loading()"
           title="Aktualisieren"
         >
@@ -83,19 +81,17 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
 
       @if (loading() && rows().length === 0) {
         <div class="flex items-center gap-3 py-10 justify-center">
-          <span
-            class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900 dark:border-t-white rounded-full animate-spin"
-          ></span>
-          <span class="text-slate-400 dark:text-gray-500 text-sm">Lade Reports …</span>
+          <span class="w-5 h-5 border-2 border-line-strong border-t-ink rounded-full animate-spin"></span>
+          <span class="text-ink-faint text-sm">Lade Reports …</span>
         </div>
       } @else if (rows().length === 0) {
         <div class="px-4 py-8 text-center">
-          <p class="text-sm text-slate-500 dark:text-gray-400">
+          <p class="text-sm text-ink-muted">
             Keine Bootstrap-Reports vorhanden. Beim naechsten Pairing wird ein Report erzeugt.
           </p>
         </div>
       } @else {
-        <ul class="divide-y divide-slate-100 dark:divide-gray-800">
+        <ul class="divide-y divide-line-soft">
           @for (row of rows(); track row._id) {
             <li class="px-4 py-3">
               <button
@@ -123,13 +119,13 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
                     }
                     @default {
                       <span
-                        class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-slate-400 flex-none animate-pulse"
+                        class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-ink-faint flex-none animate-pulse"
                       ></span>
                     }
                   }
                   <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium truncate">{{ directionLabel(row.direction) }}</p>
-                    <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                    <p class="text-xs text-ink-muted mt-0.5">
                       {{ formatDate(row.startedAt) }} · Status:
                       <span [class.text-red-600]="row.status === 'failed'">{{ row.status }}</span>
                       @if (row.consistencyCheck) {
@@ -145,37 +141,33 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
                     </p>
                   </div>
                 </div>
-                <span class="text-slate-400 text-xs flex-none">{{ expanded() === row._id ? '▴' : '▾' }}</span>
+                <span class="text-ink-faint text-xs flex-none">{{ expanded() === row._id ? '▴' : '▾' }}</span>
               </button>
 
               @if (expanded() === row._id) {
                 <div class="mt-3 space-y-3 text-xs">
                   <!-- Identity -->
-                  <div class="bg-slate-50 dark:bg-gray-800/40 rounded p-3 space-y-1 font-mono">
+                  <div class="bg-surface-elevated dark:bg-surface-elevated/40 rounded p-3 space-y-1 font-mono">
                     <div>
-                      <span class="text-slate-500">edgeTenantIdBefore:</span>
+                      <span class="text-ink-muted">edgeTenantIdBefore:</span>
                       {{ row.identity.edgeTenantIdBefore || '—' }}
                     </div>
-                    <div><span class="text-slate-500">cloudTenantId:</span> {{ row.identity.cloudTenantId }}</div>
+                    <div><span class="text-ink-muted">cloudTenantId:</span> {{ row.identity.cloudTenantId }}</div>
                     <div>
-                      <span class="text-slate-500">edgeLocationIdBefore:</span>
+                      <span class="text-ink-muted">edgeLocationIdBefore:</span>
                       {{ row.identity.edgeLocationIdBefore || '—' }}
                     </div>
                     <div>
-                      <span class="text-slate-500">cloudLocationId:</span> {{ row.identity.cloudLocationId || '—' }}
+                      <span class="text-ink-muted">cloudLocationId:</span> {{ row.identity.cloudLocationId || '—' }}
                     </div>
                   </div>
 
                   <!-- Restamp -->
                   @if (row.restamp; as r) {
-                    <div
-                      class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded p-3 space-y-1"
-                    >
+                    <div class="bg-surface-input border border-line rounded p-3 space-y-1">
                       <p class="font-semibold mb-1">Restamp</p>
                       @if (r.skipped) {
-                        <p class="text-slate-600 dark:text-gray-300">
-                          Uebersprungen — {{ r.reason || 'Grund unbekannt' }}
-                        </p>
+                        <p class="text-ink-muted dark:text-ink">Uebersprungen — {{ r.reason || 'Grund unbekannt' }}</p>
                       } @else {
                         <p>
                           locations-Tabelle umgestempelt:
@@ -201,9 +193,9 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
 
                   <!-- Pre/Post-State -->
                   <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded p-3">
+                    <div class="bg-surface-input border border-line rounded p-3">
                       <p class="font-semibold mb-1">Pre-State</p>
-                      <p class="text-[11px] text-slate-500 mb-1">locations._id</p>
+                      <p class="text-[11px] text-ink-muted mb-1">locations._id</p>
                       <ul class="font-mono text-[11px] mb-2">
                         @for (l of row.preState.locations; track l._id) {
                           <li class="break-all">{{ l._id }}</li>
@@ -217,10 +209,10 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
                         }
                       }
                     </div>
-                    <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded p-3">
+                    <div class="bg-surface-input border border-line rounded p-3">
                       <p class="font-semibold mb-1">Post-State</p>
                       @if (row.postState; as ps) {
-                        <p class="text-[11px] text-slate-500 mb-1">locations._id</p>
+                        <p class="text-[11px] text-ink-muted mb-1">locations._id</p>
                         <ul class="font-mono text-[11px] mb-2">
                           @for (l of ps.locations; track l._id) {
                             <li class="break-all">{{ l._id }}</li>
@@ -234,7 +226,7 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
                           }
                         }
                       } @else {
-                        <p class="text-slate-400">— Bootstrap nicht abgeschlossen</p>
+                        <p class="text-ink-faint">— Bootstrap nicht abgeschlossen</p>
                       }
                     </div>
                   </div>
@@ -275,9 +267,9 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
 
                   <!-- Sync-Runs Korrelation -->
                   @if (row.syncRunIds.length > 0) {
-                    <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded p-3">
+                    <div class="bg-surface-input border border-line rounded p-3">
                       <p class="font-semibold mb-1">Verlinkte Sync-Runs ({{ row.syncRunIds.length }})</p>
-                      <p class="text-[11px] text-slate-500 font-mono break-all">
+                      <p class="text-[11px] text-ink-muted font-mono break-all">
                         {{ row.syncRunIds.join(' · ') }}
                       </p>
                     </div>
@@ -293,11 +285,11 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
                   }
 
                   <div class="flex items-center justify-between pt-1">
-                    <span class="text-[11px] text-slate-400 font-mono">Report-ID: {{ row._id }}</span>
+                    <span class="text-[11px] text-ink-faint font-mono">Report-ID: {{ row._id }}</span>
                     <button
                       type="button"
                       (click)="downloadJson(row)"
-                      class="text-xs text-slate-700 dark:text-gray-200 hover:text-slate-900 dark:hover:text-white underline"
+                      class="text-xs text-ink/80 hover:text-ink underline"
                     >
                       Als JSON herunterladen
                     </button>

@@ -6,7 +6,7 @@ import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
 import { CloudManagedService } from '../../core/cloud-managed.service'
 import { formatApiError, getApiErrorCode } from '../../core/error-helper'
 
-const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider'
+const LABEL = 'text-xs font-medium text-ink-muted uppercase tracking-wider'
 
 @Component({
   selector: 'app-pager-settings',
@@ -19,16 +19,16 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
         <div class="flex items-center justify-between min-h-9">
           <h1 class="text-xl font-bold tracking-tight">{{ 'LOCATION.PAGER_SETTINGS' | translate }}</h1>
         </div>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">
+        <p class="text-ink-muted text-sm mt-1 leading-relaxed">
           {{ 'LOCATION.PAGER_DESCRIPTION' | translate }}
         </p>
       </div>
 
       @if (loading()) {
-        <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
+        <p class="text-ink-faint">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (!locationId()) {
         <div class="text-center py-16">
-          <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
+          <p class="text-ink-faint text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
         </div>
       } @else {
         @if (readOnly()) {
@@ -43,12 +43,12 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
         -->
         <fieldset
           [disabled]="readOnly()"
-          class="min-w-0 m-0 flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4"
+          class="min-w-0 m-0 flex items-center justify-between border border-line-soft rounded-xl p-4"
           [class.opacity-60]="readOnly()"
         >
           <div>
-            <p class="text-sm font-medium text-slate-900 dark:text-white">{{ 'LOCATION.PAGER_ENABLED' | translate }}</p>
-            <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
+            <p class="text-sm font-medium text-ink">{{ 'LOCATION.PAGER_ENABLED' | translate }}</p>
+            <p class="text-xs text-ink-faint mt-0.5">
               {{ 'LOCATION.PAGER_ENABLED_HINT' | translate }}
             </p>
           </div>
@@ -57,15 +57,15 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
             (click)="toggleEnabled()"
             [class]="
               pagerEnabled()
-                ? 'relative w-9 h-5 bg-slate-900 dark:bg-white rounded-full transition'
-                : 'relative w-9 h-5 bg-slate-300 dark:bg-gray-700 rounded-full transition'
+                ? 'relative w-9 h-5 bg-ink rounded-full transition'
+                : 'relative w-9 h-5 bg-line-strong rounded-full transition'
             "
           >
             <span
               [class]="
                 pagerEnabled()
-                  ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
-                  : 'absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
+                  ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-surface-input rounded-full transition-all'
+                  : 'absolute top-0.5 left-0.5 w-4 h-4 bg-surface-input rounded-full transition-all'
               "
             ></span>
           </button>
@@ -74,7 +74,7 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
         <!-- Pager hinzufügen -->
         <fieldset
           [disabled]="readOnly()"
-          class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+          class="min-w-0 m-0 border border-line-soft rounded-xl p-4 space-y-3"
           [class.opacity-60]="readOnly()"
         >
           <span class="${LABEL}">{{ 'LOCATION.PAGER_LIST' | translate }}</span>
@@ -87,16 +87,16 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
               min="1"
               placeholder="{{ 'LOCATION.PAGER_NUMBER' | translate }}"
               (keydown.enter)="addPager(); $event.preventDefault()"
-              class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                     rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none
-                     focus:border-slate-900 dark:focus:border-white font-mono"
+              class="flex-1 bg-surface-input border border-line-soft
+                     rounded-lg px-3 py-2.5 text-sm text-ink outline-none
+                     focus:border-ink font-mono"
             />
             <button
               type="button"
               (click)="addPager()"
               [disabled]="saving()"
-              class="px-4 py-2.5 text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-black
-                     rounded-lg hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50"
+              class="px-4 py-2.5 text-sm font-medium bg-ink text-surface-panel
+                     rounded-lg hover:bg-ink/90 transition disabled:opacity-50"
             >
               + {{ 'LOCATION.PAGER_ADD' | translate }}
             </button>
@@ -116,18 +116,18 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
               max="100"
               placeholder="{{ 'LOCATION.PAGER_BATCH_PLACEHOLDER' | translate }}"
               (keydown.enter)="addBatch(); $event.preventDefault()"
-              class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                     rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none
-                     focus:border-slate-900 dark:focus:border-white font-mono"
+              class="flex-1 bg-surface-input border border-line-soft
+                     rounded-lg px-3 py-2.5 text-sm text-ink outline-none
+                     focus:border-ink font-mono"
             />
             <button
               type="button"
               (click)="addBatch()"
               [disabled]="saving()"
-              class="px-4 py-2.5 text-sm font-medium text-slate-500 dark:text-gray-400
-                     border border-slate-200 dark:border-gray-800 rounded-lg
-                     hover:text-slate-900 dark:hover:text-white hover:border-slate-400
-                     dark:hover:border-gray-600 transition whitespace-nowrap disabled:opacity-50"
+              class="px-4 py-2.5 text-sm font-medium text-ink-muted
+                     border border-line-soft rounded-lg
+                     hover:text-ink hover:border-line-strong
+                     transition whitespace-nowrap disabled:opacity-50"
             >
               {{ 'LOCATION.PAGER_BATCH_ADD' | translate }}
             </button>
@@ -138,15 +138,15 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
           }
 
           @if (pagers().length === 0) {
-            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-6">
+            <p class="text-line-strong text-xs text-center py-6">
               {{ 'LOCATION.NO_PAGERS' | translate }}
             </p>
           } @else {
             <div class="flex flex-wrap gap-2">
               @for (p of pagers(); track p) {
                 <span
-                  class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-gray-800
-                             text-slate-700 dark:text-gray-300 text-sm font-mono
+                  class="inline-flex items-center gap-1.5 bg-line-soft
+                             text-ink text-sm font-mono
                              pl-3.5 pr-1.5 py-2 rounded-lg"
                 >
                   {{ p }}
@@ -155,7 +155,7 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
                     (click)="removePager(p)"
                     [disabled]="saving()"
                     class="w-7 h-7 flex items-center justify-center rounded-md
-                           text-slate-400 dark:text-gray-500 hover:text-red-400
+                           text-ink-faint hover:text-red-400
                            hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50"
                   >
                     ✕
@@ -163,9 +163,7 @@ const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase t
                 </span>
               }
             </div>
-            <p class="text-xs text-slate-400 dark:text-gray-500">
-              {{ pagers().length }} {{ 'LOCATION.PAGER_COUNT' | translate }}
-            </p>
+            <p class="text-xs text-ink-faint">{{ pagers().length }} {{ 'LOCATION.PAGER_COUNT' | translate }}</p>
           }
         </fieldset>
 

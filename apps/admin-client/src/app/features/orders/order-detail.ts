@@ -25,17 +25,15 @@ import { EurPipe } from '@panary/shared/ui-common'
       @if (loading()) {
         <div class="flex-1 flex items-center justify-center">
           <span
-            class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600
-                       border-t-slate-900 dark:border-t-white rounded-full animate-spin"
+            class="w-5 h-5 border-2 border-line-strong
+                       border-t-ink rounded-full animate-spin"
           ></span>
         </div>
       } @else if (order()) {
         <div class="flex-1 overflow-y-auto p-6 space-y-4">
           <!-- Status + Bestellnr. -->
           <div class="flex items-center justify-between">
-            <span class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
-              #{{ order()!.dailySequenceNumber }}
-            </span>
+            <span class="text-2xl font-bold text-ink tabular-nums"> #{{ order()!.dailySequenceNumber }} </span>
             <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold" [class]="statusBadge()">
               {{ statusLabel() }}
             </span>
@@ -45,44 +43,38 @@ import { EurPipe } from '@panary/shared/ui-common'
           <div class="space-y-3">
             @for (row of infoRows(); track row.label) {
               <div class="flex justify-between items-baseline">
-                <span class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{ row.label }}</span>
-                <span class="text-sm font-medium text-slate-900 dark:text-white tabular-nums">{{ row.value }}</span>
+                <span class="text-xs text-ink-faint uppercase tracking-wider">{{ row.label }}</span>
+                <span class="text-sm font-medium text-ink tabular-nums">{{ row.value }}</span>
               </div>
             }
           </div>
 
           <!-- Steuer-Details -->
           @if (order()!.taxSnapshot; as tax) {
-            <div class="border-t border-slate-200 dark:border-gray-800 pt-3 space-y-2">
+            <div class="border-t border-line-soft pt-3 space-y-2">
               <div class="flex justify-between items-baseline">
-                <span class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{
-                  'ORDERS.NET' | translate
-                }}</span>
-                <span class="text-sm font-medium text-slate-900 dark:text-white tabular-nums">{{
-                  tax.netto | eur
-                }}</span>
+                <span class="text-xs text-ink-faint uppercase tracking-wider">{{ 'ORDERS.NET' | translate }}</span>
+                <span class="text-sm font-medium text-ink tabular-nums">{{ tax.netto | eur }}</span>
               </div>
               @for (t of tax.taxes; track t.taxRate) {
                 <div class="flex justify-between items-baseline">
-                  <span class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider"
+                  <span class="text-xs text-ink-faint uppercase tracking-wider"
                     >{{ 'ORDERS.TAX' | translate }} {{ t.taxRate }}%</span
                   >
-                  <span class="text-sm font-medium text-slate-900 dark:text-white tabular-nums">{{ t.tax | eur }}</span>
+                  <span class="text-sm font-medium text-ink tabular-nums">{{ t.tax | eur }}</span>
                 </div>
               }
               <div class="flex justify-between items-baseline font-bold">
-                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{
-                  'ORDERS.GROSS' | translate
-                }}</span>
-                <span class="text-sm text-slate-900 dark:text-white tabular-nums">{{ tax.brutto | eur }}</span>
+                <span class="text-xs text-ink-muted uppercase tracking-wider">{{ 'ORDERS.GROSS' | translate }}</span>
+                <span class="text-sm text-ink tabular-nums">{{ tax.brutto | eur }}</span>
               </div>
             </div>
           }
         </div>
 
         <!-- Status ändern -->
-        <div class="px-6 py-4 border-t border-slate-200 dark:border-gray-800">
-          <p class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+        <div class="px-6 py-4 border-t border-line-soft">
+          <p class="text-xs text-ink-faint uppercase tracking-wider mb-2">
             {{ 'ORDERS.CHANGE_STATUS' | translate }}
           </p>
           <div class="grid grid-cols-2 gap-2">
@@ -94,7 +86,7 @@ import { EurPipe } from '@panary/shared/ui-common'
                 [class]="
                   order()!.status === s
                     ? statusBadgeFor(s) + ' border-transparent'
-                    : 'text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-800'
+                    : 'text-ink-muted dark:text-ink border-line hover:bg-surface-elevated'
                 "
               >
                 {{ statusLabelFor(s) }}
@@ -104,7 +96,7 @@ import { EurPipe } from '@panary/shared/ui-common'
         </div>
 
         <!-- Löschen-Button -->
-        <div class="p-6 border-t border-slate-200 dark:border-gray-800">
+        <div class="p-6 border-t border-line-soft">
           <button
             (click)="showDeleteConfirm.set(true)"
             class="w-full py-2.5 rounded-xl text-sm font-medium
@@ -115,7 +107,7 @@ import { EurPipe } from '@panary/shared/ui-common'
           </button>
         </div>
       } @else {
-        <div class="flex-1 flex items-center justify-center text-slate-400 dark:text-gray-500 text-sm">
+        <div class="flex-1 flex items-center justify-center text-ink-faint text-sm">
           {{ 'COMMON.ERROR' | translate }}
         </div>
       }
@@ -174,7 +166,7 @@ export class OrderDetailComponent {
       case 'aborted':
         return 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
       default:
-        return 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-400'
+        return 'bg-line-soft text-ink-muted'
     }
   }
 

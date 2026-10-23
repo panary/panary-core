@@ -14,21 +14,21 @@ export interface MqttSettingsData {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl p-6">
+    <div class="bg-surface-input border border-line-soft rounded-xl p-6">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">MQTT-Broker</h2>
+        <h2 class="text-lg font-semibold text-ink">MQTT-Broker</h2>
         <button
           (click)="testConnection()"
           [disabled]="testing()"
           class="px-4 py-2 rounded-lg text-sm font-medium transition
-                 border border-slate-200 dark:border-gray-700
-                 text-slate-600 dark:text-gray-400
-                 hover:bg-slate-50 dark:hover:bg-gray-800
+                 border border-line
+                 text-ink-muted
+                 hover:bg-surface-elevated
                  disabled:opacity-50"
         >
           @if (testing()) {
             <span class="flex items-center gap-2">
-              <span class="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
+              <span class="w-3 h-3 border-2 border-ink-faint border-t-transparent rounded-full animate-spin"></span>
               Verbinde...
             </span>
           } @else {
@@ -62,9 +62,7 @@ export interface MqttSettingsData {
       >
         <!-- Protokoll -->
         <div class="space-y-1">
-          <label
-            for="mqttProtocol"
-            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+          <label for="mqttProtocol" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
             >Protokoll</label
           >
           <select
@@ -72,8 +70,8 @@ export interface MqttSettingsData {
             [ngModel]="settings().mqttServerProtocol"
             (ngModelChange)="onFieldChange('mqttServerProtocol', $event)"
             name="mqttServerProtocol"
-            class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                   text-slate-900 dark:text-white outline-none"
+            class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                   text-ink outline-none"
           >
             <option value="ws">ws (WebSocket)</option>
             <option value="wss">wss (WebSocket Secure)</option>
@@ -82,9 +80,7 @@ export interface MqttSettingsData {
 
         <!-- URL -->
         <div class="space-y-1">
-          <label
-            for="mqttServerUrl"
-            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+          <label for="mqttServerUrl" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
             >Server-URL</label
           >
           <input
@@ -94,17 +90,15 @@ export interface MqttSettingsData {
             name="mqttServerUrl"
             type="text"
             placeholder="localhost"
-            class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                   text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                   focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+            class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                   text-ink focus:border-ink
+                   focus:ring-1 focus:ring-ink outline-none"
           />
         </div>
 
         <!-- Port -->
         <div class="space-y-1">
-          <label for="mqttPort" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >Port</label
-          >
+          <label for="mqttPort" class="text-xs font-medium text-ink-muted uppercase tracking-wider">Port</label>
           <input
             id="mqttPort"
             [ngModel]="settings().mqttServerPort"
@@ -114,9 +108,9 @@ export interface MqttSettingsData {
             min="1"
             max="65535"
             placeholder="9001"
-            class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                   text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                   focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+            class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                   text-ink focus:border-ink
+                   focus:ring-1 focus:ring-ink outline-none"
           />
         </div>
       </fieldset>

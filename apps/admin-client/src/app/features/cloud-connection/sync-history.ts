@@ -92,31 +92,27 @@ const SERVICE_LABEL: Record<string, string> = {
   imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl flex flex-col">
-      <header
-        class="px-4 py-3 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between flex-none"
-      >
+    <section class="bg-surface-panel dark:bg-surface-bg/50 border border-line-soft rounded-xl flex flex-col">
+      <header class="px-4 py-3 border-b border-line-soft flex items-center justify-between flex-none">
         <div>
           <h2 class="text-sm font-semibold">Sync-Historie</h2>
           @if (lastRunAt(); as last) {
-            <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">Letzter Vorgang: {{ formatRelative(last) }}</p>
+            <p class="text-xs text-ink-muted mt-0.5">Letzter Vorgang: {{ formatRelative(last) }}</p>
           } @else {
-            <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">Noch keine Sync-Vorgaenge.</p>
+            <p class="text-xs text-ink-faint mt-0.5">Noch keine Sync-Vorgaenge.</p>
           }
         </div>
         <div class="flex items-center gap-2">
-          <div class="flex items-center bg-slate-100 dark:bg-gray-800 rounded-lg p-0.5 text-xs">
+          <div class="flex items-center bg-line-soft rounded-lg p-0.5 text-xs">
             @for (m of filterModes; track m.value) {
               <button
                 type="button"
                 (click)="setFilter(m.value)"
-                [class.bg-white]="filter() === m.value"
-                [class.dark:bg-gray-700]="filter() === m.value"
+                [class.bg-surface-panel]="filter() === m.value"
+                [class.dark:bg-line]="filter() === m.value"
                 [class.shadow-sm]="filter() === m.value"
-                [class.text-slate-900]="filter() === m.value"
-                [class.dark:text-white]="filter() === m.value"
-                [class.text-slate-500]="filter() !== m.value"
-                [class.dark:text-gray-400]="filter() !== m.value"
+                [class.text-ink]="filter() === m.value"
+                [class.text-ink-muted]="filter() !== m.value"
                 class="px-2.5 py-1 rounded-md transition"
               >
                 {{ m.label }}
@@ -125,7 +121,7 @@ const SERVICE_LABEL: Record<string, string> = {
           </div>
           <button
             (click)="reload()"
-            class="text-slate-500 dark:text-gray-400 text-xs hover:text-slate-900 dark:hover:text-white px-2 py-1"
+            class="text-ink-muted text-xs hover:text-ink px-2 py-1"
             [disabled]="loading()"
             title="Aktualisieren"
           >
@@ -136,14 +132,12 @@ const SERVICE_LABEL: Record<string, string> = {
 
       @if (loading() && rows().length === 0) {
         <div class="flex items-center gap-3 py-10 justify-center">
-          <span
-            class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900 dark:border-t-white rounded-full animate-spin"
-          ></span>
-          <span class="text-slate-400 dark:text-gray-500 text-sm">Lade Historie …</span>
+          <span class="w-5 h-5 border-2 border-line-strong border-t-ink rounded-full animate-spin"></span>
+          <span class="text-ink-faint text-sm">Lade Historie …</span>
         </div>
       } @else if (total() === 0) {
         <div class="px-4 py-8 text-center">
-          <p class="text-sm text-slate-500 dark:text-gray-400">
+          <p class="text-sm text-ink-muted">
             @if (filter() === 'all') {
               Noch keine fachlich relevanten Sync-Vorgaenge protokolliert.
             } @else {
@@ -155,7 +149,7 @@ const SERVICE_LABEL: Record<string, string> = {
         <div class="overflow-auto" style="max-height: 480px">
           <table class="admin-table text-xs">
             <thead
-              class="bg-slate-50 dark:bg-gray-900/40 text-slate-500 dark:text-gray-400 uppercase tracking-wider sticky top-0 z-10"
+              class="bg-surface-elevated dark:bg-surface-bg/40 text-ink-muted uppercase tracking-wider sticky top-0 z-10"
             >
               <tr>
                 <th>Zeit</th>
@@ -168,28 +162,28 @@ const SERVICE_LABEL: Record<string, string> = {
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-gray-800">
+            <tbody class="divide-y divide-line-soft">
               @for (row of pagedRows(); track row._id) {
-                <tr class="hover:bg-slate-50 dark:hover:bg-gray-800/40">
-                  <td class="text-slate-700 dark:text-gray-200 whitespace-nowrap">
+                <tr class="hover:bg-surface-elevated dark:hover:bg-surface-elevated/40">
+                  <td class="text-ink whitespace-nowrap">
                     {{ formatDate(row.startedAt) }}
                   </td>
-                  <td class="text-slate-700 dark:text-gray-200">
+                  <td class="text-ink">
                     <span class="font-medium">{{ phaseLabel(row.phase) }}</span>
                   </td>
-                  <td class="text-slate-700 dark:text-gray-200">
+                  <td class="text-ink">
                     {{ serviceSummary(row) }}
                   </td>
-                  <td class="text-slate-500 dark:text-gray-400">{{ triggerLabel(row.triggeredBy) }}</td>
-                  <td class="font-mono text-slate-500 dark:text-gray-400">
+                  <td class="text-ink-muted">{{ triggerLabel(row.triggeredBy) }}</td>
+                  <td class="font-mono text-ink-muted">
                     {{ directionLabel(row.direction) }}
                   </td>
-                  <td class="text-right tabular-nums text-slate-700 dark:text-gray-200">
+                  <td class="text-right tabular-nums text-ink">
                     @if (hasDetails(row)) {
                       <button
                         type="button"
                         (click)="openDetails(row)"
-                        class="tabular-nums underline decoration-dotted underline-offset-2 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                        class="tabular-nums underline decoration-dotted underline-offset-2 hover:text-ink cursor-pointer"
                         title="Synchronisierte Records anzeigen"
                       >
                         {{ row.recordCount }}
@@ -201,7 +195,7 @@ const SERVICE_LABEL: Record<string, string> = {
                       <span class="text-amber-600 dark:text-amber-400 ml-1">({{ row.rejected }} nicht übern.)</span>
                     }
                   </td>
-                  <td class="text-right tabular-nums text-slate-500 dark:text-gray-400">{{ row.durationMs }}ms</td>
+                  <td class="text-right tabular-nums text-ink-muted">{{ row.durationMs }}ms</td>
                   <td>
                     @switch (row.outcome) {
                       @case ('success') {
@@ -267,15 +261,13 @@ const SERVICE_LABEL: Record<string, string> = {
         </div>
 
         <footer
-          class="px-4 py-2 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400 flex-none"
+          class="px-4 py-2 border-t border-line-soft flex items-center justify-between text-xs text-ink-muted flex-none"
         >
           <div>
             {{ rangeLabel() }}
             @if (loading()) {
-              <span class="ml-2 inline-flex items-center gap-1 text-slate-400 dark:text-gray-500">
-                <span
-                  class="w-3 h-3 border border-slate-300 dark:border-gray-600 border-t-slate-700 dark:border-t-white rounded-full animate-spin"
-                ></span>
+              <span class="ml-2 inline-flex items-center gap-1 text-ink-faint">
+                <span class="w-3 h-3 border border-line-strong border-t-ink rounded-full animate-spin"></span>
                 Laden …
               </span>
             }
@@ -285,7 +277,7 @@ const SERVICE_LABEL: Record<string, string> = {
               type="button"
               (click)="goToPage(1)"
               [disabled]="page() === 1 || loading()"
-              class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent"
+              class="px-2 py-1 rounded hover:bg-line-soft disabled:opacity-30 disabled:hover:bg-transparent"
               title="Erste Seite"
             >
               «
@@ -294,7 +286,7 @@ const SERVICE_LABEL: Record<string, string> = {
               type="button"
               (click)="goToPage(page() - 1)"
               [disabled]="page() === 1 || loading()"
-              class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent"
+              class="px-2 py-1 rounded hover:bg-line-soft disabled:opacity-30 disabled:hover:bg-transparent"
               title="Vorige Seite"
             >
               ‹
@@ -304,7 +296,7 @@ const SERVICE_LABEL: Record<string, string> = {
               type="button"
               (click)="goToPage(page() + 1)"
               [disabled]="page() >= totalPages() || loading()"
-              class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent"
+              class="px-2 py-1 rounded hover:bg-line-soft disabled:opacity-30 disabled:hover:bg-transparent"
               title="Naechste Seite"
             >
               ›
@@ -313,7 +305,7 @@ const SERVICE_LABEL: Record<string, string> = {
               type="button"
               (click)="goToPage(totalPages())"
               [disabled]="page() >= totalPages() || loading()"
-              class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:hover:bg-transparent"
+              class="px-2 py-1 rounded hover:bg-line-soft disabled:opacity-30 disabled:hover:bg-transparent"
               title="Letzte Seite"
             >
               »
@@ -332,20 +324,18 @@ const SERVICE_LABEL: Record<string, string> = {
         (keydown.enter)="closeDetails()"
       >
         <div
-          class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+          class="bg-surface-input border border-line-soft rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
           tabindex="0"
           role="button"
           (click)="$event.stopPropagation()"
           (keydown.enter)="$event.stopPropagation()"
         >
-          <header
-            class="px-5 py-3 border-b border-slate-200 dark:border-gray-800 flex items-start justify-between flex-none"
-          >
+          <header class="px-5 py-3 border-b border-line-soft flex items-start justify-between flex-none">
             <div>
-              <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+              <h3 class="text-sm font-semibold text-ink">
                 {{ phaseLabel(dr.phase) }} · {{ directionLabel(dr.direction) }}
               </h3>
-              <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+              <p class="text-xs text-ink-muted mt-0.5">
                 {{ formatDate(dr.startedAt) }} · {{ dr.recordCount }} Records · ausgeloest von
                 {{ triggerLabel(dr.triggeredBy) }}
               </p>
@@ -353,7 +343,7 @@ const SERVICE_LABEL: Record<string, string> = {
             <button
               type="button"
               (click)="closeDetails()"
-              class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white text-lg leading-none px-1"
+              class="text-ink-faint hover:text-ink text-lg leading-none px-1"
               title="Schliessen"
             >
               ✕
@@ -361,15 +351,13 @@ const SERVICE_LABEL: Record<string, string> = {
           </header>
           <div class="overflow-auto px-5 py-3 flex-1 space-y-4">
             @if (!dr.details || dr.details.length === 0) {
-              <p class="text-sm text-slate-500 dark:text-gray-400">
-                Für diesen Vorgang wurden keine Record-Details gespeichert.
-              </p>
+              <p class="text-sm text-ink-muted">Für diesen Vorgang wurden keine Record-Details gespeichert.</p>
             } @else {
               @for (group of groupedDetails(); track group.service) {
                 <div>
-                  <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400 mb-1.5">
+                  <h4 class="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
                     {{ group.label }}
-                    <span class="text-slate-400 dark:text-gray-500 normal-case">({{ group.items.length }})</span>
+                    <span class="text-ink-faint normal-case">({{ group.items.length }})</span>
                   </h4>
                   <ul class="space-y-1">
                     @for (d of group.items; track d.entityId) {
@@ -385,16 +373,13 @@ const SERVICE_LABEL: Record<string, string> = {
                             [class.text-sky-700]="d.op === 'patch'"
                             [class.dark:bg-sky-950/40]="d.op === 'patch'"
                             [class.dark:text-sky-300]="d.op === 'patch'"
-                            [class.bg-slate-100]="d.op === 'remove'"
-                            [class.text-slate-600]="d.op === 'remove'"
-                            [class.dark:bg-gray-800]="d.op === 'remove'"
-                            [class.dark:text-gray-300]="d.op === 'remove'"
+                            [class.bg-line-soft]="d.op === 'remove'"
+                            [class.text-ink-muted]="d.op === 'remove'"
+                            [class.dark:text-ink]="d.op === 'remove'"
                           >
                             {{ opLabel(d.op) }}
                           </span>
-                          <code class="font-mono text-slate-700 dark:text-gray-200 select-all break-all">{{
-                            d.entityId
-                          }}</code>
+                          <code class="font-mono text-ink select-all break-all">{{ d.entityId }}</code>
                           @if (d.status && d.status !== 'accepted') {
                             <span
                               class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] flex-none"
@@ -412,7 +397,7 @@ const SERVICE_LABEL: Record<string, string> = {
                           }
                         </div>
                         @if (d.reason && d.status && d.status !== 'accepted') {
-                          <p class="mt-0.5 ml-1 text-[11px] text-slate-500 dark:text-gray-400 break-words">
+                          <p class="mt-0.5 ml-1 text-[11px] text-ink-muted break-words">
                             {{ d.reason }}
                           </p>
                         }
@@ -422,7 +407,7 @@ const SERVICE_LABEL: Record<string, string> = {
                 </div>
               }
               @if (truncatedCount() > 0) {
-                <p class="text-xs text-slate-400 dark:text-gray-500 italic">
+                <p class="text-xs text-ink-faint italic">
                   … und {{ truncatedCount() }} weitere (Details auf 500 begrenzt).
                 </p>
               }

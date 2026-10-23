@@ -16,8 +16,8 @@ export interface PrintSettingsData {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl p-6">
-      <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-6">Druckeinstellungen</h2>
+    <div class="bg-surface-input border border-line-soft rounded-xl p-6">
+      <h2 class="text-lg font-semibold text-ink mb-6">Druckeinstellungen</h2>
 
       <!--
         fieldset[disabled] sperrt alle Controls nativ und nimmt sie aus der
@@ -32,19 +32,16 @@ export interface PrintSettingsData {
             (ngModelChange)="onFieldChange('printServerEnabled', $event)"
             name="printServerEnabled"
             type="checkbox"
-            class="w-4 h-4 rounded border-slate-300 dark:border-gray-600
-                   text-slate-900 dark:text-white focus:ring-slate-900 dark:focus:ring-white"
+            class="w-4 h-4 rounded border-line-strong
+                   text-ink focus:ring-ink"
           />
-          <span class="text-sm text-slate-700 dark:text-gray-300">Print-Server beim Start automatisch aktivieren</span>
+          <span class="text-sm text-ink">Print-Server beim Start automatisch aktivieren</span>
         </label>
 
         <div class="grid grid-cols-3 gap-4">
           <!-- Max Zeichen Artikelname -->
           <div class="space-y-1">
-            <label
-              for="maxNameCharacters"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >
+            <label for="maxNameCharacters" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
               Max. Zeichen Artikelname
             </label>
             <input
@@ -55,18 +52,15 @@ export interface PrintSettingsData {
               type="number"
               min="10"
               max="80"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none"
             />
           </div>
 
           <!-- Trennzeichen -->
           <div class="space-y-1">
-            <label
-              for="separationCharacter"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >
+            <label for="separationCharacter" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
               Trennzeichen
             </label>
             <select
@@ -74,8 +68,8 @@ export interface PrintSettingsData {
               [ngModel]="settings().separationCharacter"
               (ngModelChange)="onFieldChange('separationCharacter', $event)"
               name="separationCharacter"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink outline-none"
             >
               <option value="_">_ (Unterstrich)</option>
               <option value="-">- (Bindestrich)</option>
@@ -87,10 +81,7 @@ export interface PrintSettingsData {
 
           <!-- Trennzeichen-Anzahl -->
           <div class="space-y-1">
-            <label
-              for="separationCharacterCount"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >
+            <label for="separationCharacterCount" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
               Trennlinien-Länge
             </label>
             <input
@@ -101,9 +92,9 @@ export interface PrintSettingsData {
               type="number"
               min="10"
               max="80"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none"
             />
           </div>
         </div>
@@ -115,10 +106,10 @@ export interface PrintSettingsData {
             (ngModelChange)="onFieldChange('showDialogAfterOrder', $event)"
             name="showDialogAfterOrder"
             type="checkbox"
-            class="w-4 h-4 rounded border-slate-300 dark:border-gray-600
-                   text-slate-900 dark:text-white focus:ring-slate-900 dark:focus:ring-white"
+            class="w-4 h-4 rounded border-line-strong
+                   text-ink focus:ring-ink"
           />
-          <span class="text-sm text-slate-700 dark:text-gray-300">Druckdialog nach Bestellung anzeigen</span>
+          <span class="text-sm text-ink">Druckdialog nach Bestellung anzeigen</span>
         </label>
       </fieldset>
     </div>

@@ -29,8 +29,8 @@ interface StepAnswer {
         <!-- Schritt 0: Begruessung -->
         @if (answers().has('greeting')) {
           <div
-            class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(0)"
@@ -47,9 +47,9 @@ interface StepAnswer {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-600 dark:text-gray-400 flex-1">Begrüßung</span>
+            <span class="text-sm text-ink-muted flex-1">Begrüßung</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -63,17 +63,17 @@ interface StepAnswer {
           </div>
         } @else if (currentStep() === 0) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out] flex flex-col items-center text-center py-8">
-            <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Willkommen</h1>
-            <p class="text-base text-slate-500 dark:text-gray-400 mt-2">Neue Produktgruppe erstellen</p>
-            <p class="text-sm font-light text-slate-400 dark:text-gray-500 mt-4 max-w-sm leading-relaxed">
+            <h1 class="text-3xl font-bold tracking-tight text-ink">Willkommen</h1>
+            <p class="text-base text-ink-muted mt-2">Neue Produktgruppe erstellen</p>
+            <p class="text-sm font-light text-ink-faint mt-4 max-w-sm leading-relaxed">
               Dieser Assistent führt dich durch die Einrichtung. Produktgruppen organisieren deine Produkte — z.B.
               Pizza, Getränke oder Desserts. Du kannst jede Angabe nachträglich ändern.
             </p>
             <button
               type="button"
               (click)="answerStep(0, true, 'Begrüßung')"
-              class="mt-8 bg-slate-900 dark:bg-white text-white dark:text-black font-medium
-                     px-6 py-2.5 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+              class="mt-8 bg-ink text-surface-panel font-medium
+                     px-6 py-2.5 rounded-xl text-sm hover:bg-ink/90 transition"
             >
               Einrichtung starten
             </button>
@@ -83,8 +83,8 @@ interface StepAnswer {
         <!-- Schritt 1: Name -->
         @if (answers().has('name')) {
           <div
-            class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(1)"
@@ -102,11 +102,9 @@ interface StepAnswer {
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
             <span class="w-3.5 h-3.5 rounded-full shrink-0" [style.background-color]="formData().color"></span>
-            <span class="text-sm text-slate-700 dark:text-gray-300 flex-1 font-medium">{{
-              answers().get('name')?.display
-            }}</span>
+            <span class="text-sm text-ink flex-1 font-medium">{{ answers().get('name')?.display }}</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -121,7 +119,7 @@ interface StepAnswer {
         } @else if (currentStep() === 1) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 <strong>Wie soll die Produktgruppe heißen?</strong><br />
                 Der Name wird in der Produktliste und am POS angezeigt.
               </p>
@@ -138,16 +136,15 @@ interface StepAnswer {
                 [(ngModel)]="nameInput"
                 (ngModelChange)="onNameInput($event)"
                 placeholder="z.B. Pizza, Getränke, Desserts..."
-                class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg
-                       px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-slate-900
-                       dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+                class="flex-1 bg-surface-input border border-line-soft rounded-lg
+                       px-3 py-2.5 text-sm text-ink focus:border-ink focus:ring-1 focus:ring-ink outline-none"
               />
               <button
                 type="button"
                 (click)="submitName()"
                 [disabled]="!nameInput.trim()"
-                class="bg-slate-900 dark:bg-white text-white dark:text-black font-medium px-3 py-2.5
-                       rounded-lg text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition
+                class="bg-ink text-surface-panel font-medium px-3 py-2.5
+                       rounded-lg text-sm hover:bg-ink/90 transition
                        disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 →
@@ -159,8 +156,8 @@ interface StepAnswer {
         <!-- Schritt 2: Farbe bestaetigen -->
         @if (answers().has('color')) {
           <div
-            class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(2)"
@@ -177,11 +174,11 @@ interface StepAnswer {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-600 dark:text-gray-400 flex-1">Farbe: </span>
+            <span class="text-sm text-ink-muted flex-1">Farbe: </span>
             <span class="w-4 h-4 rounded-full" [style.background-color]="formData().color"></span>
-            <span class="text-xs font-mono text-slate-400 dark:text-gray-500">{{ formData().color }}</span>
+            <span class="text-xs font-mono text-ink-faint">{{ formData().color }}</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -196,7 +193,7 @@ interface StepAnswer {
         } @else if (currentStep() === 2) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 Ich habe die Farbe
                 <span
                   class="inline-block w-4 h-4 rounded-full align-middle mx-1"
@@ -211,29 +208,29 @@ interface StepAnswer {
                 <button
                   type="button"
                   (click)="answerStep(2, formData().color, 'Farbe übernommen'); showColorPicker.set(false)"
-                  class="bg-slate-900 dark:bg-white text-white dark:text-black font-medium
-                         px-4 py-2 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+                  class="bg-ink text-surface-panel font-medium
+                         px-4 py-2 rounded-xl text-sm hover:bg-ink/90 transition"
                 >
                   Ja, passt 👍
                 </button>
                 <button
                   type="button"
                   (click)="showColorPicker.set(!showColorPicker())"
-                  class="border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300
-                         font-medium px-4 py-2 rounded-xl text-sm hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                  class="border border-line text-ink-muted dark:text-ink
+                         font-medium px-4 py-2 rounded-xl text-sm hover:bg-surface-elevated transition"
                 >
                   Andere Farbe wählen
                 </button>
               </div>
               @if (showColorPicker()) {
-                <div class="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-gray-800/50 rounded-xl">
+                <div class="flex flex-wrap gap-2 p-3 bg-surface-elevated dark:bg-surface-elevated/50 rounded-xl">
                   @for (c of colorPalette; track c) {
                     <button
                       type="button"
                       (click)="pickColor(c)"
                       [class]="
                         formData().color === c
-                          ? 'w-7 h-7 rounded-full ring-2 ring-slate-900 dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-gray-900 scale-110'
+                          ? 'w-7 h-7 rounded-full ring-2 ring-ink ring-offset-2 ring-offset-surface-input scale-110'
                           : isColorUsed(c)
                             ? 'w-7 h-7 rounded-full opacity-40 hover:opacity-70'
                             : 'w-7 h-7 rounded-full hover:scale-110'
@@ -252,8 +249,8 @@ interface StepAnswer {
         <!-- Schritt 3: MwSt. -->
         @if (answers().has('tax')) {
           <div
-            class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="answered-step group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(3)"
@@ -270,11 +267,11 @@ interface StepAnswer {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-600 dark:text-gray-400 flex-1"
+            <span class="text-sm text-ink-muted flex-1"
               >MwSt.: {{ formData().taxInside }}% / {{ formData().taxOutside }}%</span
             >
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -289,7 +286,7 @@ interface StepAnswer {
         } @else if (currentStep() === 3) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 In Deutschland gelten aktuell <strong>19% MwSt.</strong> für den Verzehr im Restaurant und
                 <strong>7%</strong> für Mitnahme/Lieferung.<br />
                 <strong>Möchtest du die Standardsätze übernehmen?</strong>
@@ -300,16 +297,16 @@ interface StepAnswer {
                 <button
                   type="button"
                   (click)="acceptDefaultTax()"
-                  class="bg-slate-900 dark:bg-white text-white dark:text-black font-medium
-                         px-4 py-2 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+                  class="bg-ink text-surface-panel font-medium
+                         px-4 py-2 rounded-xl text-sm hover:bg-ink/90 transition"
                 >
                   Ja, 19% / 7% übernehmen
                 </button>
                 <button
                   type="button"
                   (click)="showCustomTax.set(!showCustomTax())"
-                  class="border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300
-                         font-medium px-4 py-2 rounded-xl text-sm hover:bg-slate-50 dark:hover:bg-gray-800 transition"
+                  class="border border-line text-ink-muted dark:text-ink
+                         font-medium px-4 py-2 rounded-xl text-sm hover:bg-surface-elevated transition"
                 >
                   Eigene Sätze
                 </button>
@@ -317,41 +314,37 @@ interface StepAnswer {
               @if (showCustomTax()) {
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label for="wizardVatIn" class="text-xs text-slate-400 dark:text-gray-500 mb-1 block"
-                      >Inhaus (%)</label
-                    >
+                    <label for="wizardVatIn" class="text-xs text-ink-faint mb-1 block">Inhaus (%)</label>
                     <input
                       id="wizardVatIn"
                       type="number"
                       [(ngModel)]="customTaxInside"
                       step="0.1"
                       min="0"
-                      class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                             rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none
-                             focus:border-slate-900 dark:focus:border-white"
+                      class="w-full bg-surface-input border border-line-soft
+                             rounded-lg px-3 py-2 text-sm text-ink outline-none
+                             focus:border-ink"
                     />
                   </div>
                   <div>
-                    <label for="wizardVatOut" class="text-xs text-slate-400 dark:text-gray-500 mb-1 block"
-                      >Außer Haus (%)</label
-                    >
+                    <label for="wizardVatOut" class="text-xs text-ink-faint mb-1 block">Außer Haus (%)</label>
                     <input
                       id="wizardVatOut"
                       type="number"
                       [(ngModel)]="customTaxOutside"
                       step="0.1"
                       min="0"
-                      class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                             rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none
-                             focus:border-slate-900 dark:focus:border-white"
+                      class="w-full bg-surface-input border border-line-soft
+                             rounded-lg px-3 py-2 text-sm text-ink outline-none
+                             focus:border-ink"
                     />
                   </div>
                 </div>
                 <button
                   type="button"
                   (click)="submitCustomTax()"
-                  class="bg-slate-900 dark:bg-white text-white dark:text-black font-medium
-                         px-4 py-2 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+                  class="bg-ink text-surface-panel font-medium
+                         px-4 py-2 rounded-xl text-sm hover:bg-ink/90 transition"
                 >
                   Übernehmen
                 </button>
@@ -364,28 +357,26 @@ interface StepAnswer {
         @if (currentStep() === 4) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 <strong>Alles klar!</strong> Hier ist die Zusammenfassung deiner neuen Produktgruppe:
               </p>
             </div>
-            <div class=" bg-slate-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-3">
+            <div class=" bg-surface-elevated dark:bg-surface-elevated/50 rounded-xl p-4 space-y-3">
               <div class="flex items-center gap-3">
                 <span class="w-6 h-6 rounded-full" [style.background-color]="formData().color"></span>
                 <div>
-                  <p class="text-base font-bold text-slate-900 dark:text-white">{{ formData().name }}</p>
+                  <p class="text-base font-bold text-ink">{{ formData().name }}</p>
                   @if (formData().acronym) {
-                    <p class="text-xs font-mono text-slate-500 dark:text-gray-400">{{ formData().acronym }}</p>
+                    <p class="text-xs font-mono text-ink-muted">{{ formData().acronym }}</p>
                   }
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-2 text-xs text-slate-500 dark:text-gray-400">
+              <div class="grid grid-cols-2 gap-2 text-xs text-ink-muted">
                 <span
-                  >MwSt. Inhaus:
-                  <strong class="text-slate-900 dark:text-white">{{ formData().taxInside }}%</strong></span
+                  >MwSt. Inhaus: <strong class="text-ink">{{ formData().taxInside }}%</strong></span
                 >
                 <span
-                  >MwSt. Außer Haus:
-                  <strong class="text-slate-900 dark:text-white">{{ formData().taxOutside }}%</strong></span
+                  >MwSt. Außer Haus: <strong class="text-ink">{{ formData().taxOutside }}%</strong></span
                 >
               </div>
             </div>
@@ -403,13 +394,13 @@ interface StepAnswer {
               type="button"
               (click)="onSave()"
               [disabled]="saving()"
-              class="mt-4 bg-slate-900 dark:bg-white text-white dark:text-black font-bold
-                     px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200
+              class="mt-4 bg-ink text-surface-panel font-bold
+                     px-6 py-3 rounded-xl text-sm hover:bg-ink/90
                      transition disabled:opacity-50 min-w-[180px] flex items-center justify-center gap-2"
             >
               @if (saving()) {
                 <span
-                  class="w-4 h-4 border-2 border-white/30 dark:border-black/30
+                  class="w-4 h-4 border-2 border-line-soft/30
                              border-t-white dark:border-t-black rounded-full animate-spin"
                 ></span>
                 Erstelle...

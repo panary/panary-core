@@ -13,7 +13,7 @@ import { ChangeDetectionStrategy, Component, input, output, HostListener } from 
       (keydown.enter)="closed.emit()"
     >
       <div
-        class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl
+        class="bg-surface-input border border-line rounded-2xl
                   max-w-xl w-full mx-4 shadow-2xl animate-[scale-in_0.15s_ease-out]
                   h-[80vh] flex flex-col"
         tabindex="-1"
@@ -22,10 +22,10 @@ import { ChangeDetectionStrategy, Component, input, output, HostListener } from 
         (keydown.enter)="$event.stopPropagation()"
       >
         <!-- Header -->
-        <div class="flex items-center gap-3 px-8 py-4 border-b border-slate-200 dark:border-gray-800">
-          <div class="w-8 h-8 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center shrink-0">
+        <div class="flex items-center gap-3 px-8 py-4 border-b border-line-soft">
+          <div class="w-8 h-8 rounded-full bg-ink flex items-center justify-center shrink-0">
             <svg
-              class="w-4 h-4 text-white dark:text-black"
+              class="w-4 h-4 text-surface-panel"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -39,15 +39,15 @@ import { ChangeDetectionStrategy, Component, input, output, HostListener } from 
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <h2 class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">{{ title() }}</h2>
-            <p class="text-xs text-slate-400 dark:text-gray-500">Erstellungs-Assistent</p>
+            <h2 class="text-sm font-bold tracking-tight text-ink">{{ title() }}</h2>
+            <p class="text-xs text-ink-faint">Erstellungs-Assistent</p>
           </div>
           <button
             type="button"
             (click)="closed.emit()"
-            class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
+            class="text-ink-faint hover:text-ink
                    w-8 h-8 flex items-center justify-center rounded-lg
-                   hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+                   hover:bg-line-soft transition text-sm"
           >
             ✕
           </button>

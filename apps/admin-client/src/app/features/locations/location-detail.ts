@@ -7,10 +7,10 @@ import { CloudManagedService } from '../../core/cloud-managed.service'
 import { formatApiError, getApiErrorCode } from '../../core/error-helper'
 import { LocationStateService } from '../../core/location-state.service'
 
-const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider'
-const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3
-               text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-               focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none text-sm`
+const LABEL = 'text-xs font-medium text-ink-muted uppercase tracking-wider'
+const INPUT = `w-full bg-surface-input border border-line-soft rounded-xl p-3
+               text-ink focus:border-ink
+               focus:ring-1 focus:ring-ink outline-none text-sm`
 
 @Component({
   selector: 'app-location-detail',
@@ -23,22 +23,22 @@ const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:bor
         <div class="flex items-center justify-between min-h-9">
           <h1 class="text-xl font-bold tracking-tight">{{ 'LOCATION.TITLE' | translate }}</h1>
         </div>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">
+        <p class="text-ink-muted text-sm mt-1 leading-relaxed">
           {{ 'LOCATION.DESCRIPTION' | translate }}
         </p>
       </div>
 
       @if (loading()) {
-        <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
+        <p class="text-ink-faint">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (!locationId()) {
         <div class="text-center py-16">
-          <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
+          <p class="text-ink-faint text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
           @if (readOnly()) {
             <!-- #664: Gepairt kommt der Standort aus der Cloud. Fehlt er, hat der Sync ihn verworfen —
                  der Hinweis auf das Setup schickte den Betreiber in die falsche Richtung. -->
-            <p class="text-slate-400 dark:text-gray-500 text-sm mt-1">{{ 'LOCATION.MISSING_PAIRED' | translate }}</p>
+            <p class="text-ink-faint text-sm mt-1">{{ 'LOCATION.MISSING_PAIRED' | translate }}</p>
           } @else {
-            <p class="text-slate-400 dark:text-gray-500 text-sm mt-1">{{ 'LOCATION.AUTO_CREATED' | translate }}</p>
+            <p class="text-ink-faint text-sm mt-1">{{ 'LOCATION.AUTO_CREATED' | translate }}</p>
           }
         </div>
       } @else {
@@ -93,7 +93,7 @@ const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:bor
           <button
             type="submit"
             [disabled]="saving() || readOnly()"
-            class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50"
+            class="bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm hover:bg-ink/90 transition disabled:opacity-50"
           >
             {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
           </button>

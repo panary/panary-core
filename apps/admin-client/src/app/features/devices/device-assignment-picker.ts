@@ -42,9 +42,9 @@ export interface PosUser {
       </div>
 
       @if (mode() === 'shared') {
-        <p class="text-xs text-slate-500 dark:text-gray-400">{{ 'DEVICES.ASSIGNMENT_SHARED_HINT' | translate }}</p>
+        <p class="text-xs text-ink-muted">{{ 'DEVICES.ASSIGNMENT_SHARED_HINT' | translate }}</p>
       } @else {
-        <p class="text-xs text-slate-500 dark:text-gray-400">
+        <p class="text-xs text-ink-muted">
           {{ 'DEVICES.ASSIGNMENT_ASSIGNED_HINT' | translate: { max: maxUsers } }}
         </p>
 
@@ -54,32 +54,32 @@ export interface PosUser {
           </p>
         } @else {
           <div
-            class="max-h-56 overflow-y-auto rounded-lg border border-slate-200 dark:border-gray-800 divide-y
-                      divide-slate-100 dark:divide-gray-800"
+            class="max-h-56 overflow-y-auto rounded-lg border border-line-soft divide-y
+                      divide-line-soft"
           >
             @for (user of users(); track user._id) {
               <label
                 class="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer
-                       hover:bg-slate-50 dark:hover:bg-gray-800/40 transition"
+                       hover:bg-surface-elevated dark:hover:bg-surface-elevated/40 transition"
                 [class.opacity-40]="!isSelected(user._id) && limitReached()"
               >
                 <input
                   type="checkbox"
-                  class="accent-slate-900 dark:accent-white"
+                  class="accent-ink"
                   [checked]="isSelected(user._id)"
                   [disabled]="!isSelected(user._id) && limitReached()"
                   (change)="toggle(user._id)"
                 />
                 <span class="truncate">{{ displayName(user) }}</span>
                 @if (user.staffRole) {
-                  <span class="ml-auto text-xs text-slate-400 dark:text-gray-500 shrink-0">{{ user.staffRole }}</span>
+                  <span class="ml-auto text-xs text-ink-faint shrink-0">{{ user.staffRole }}</span>
                 }
               </label>
             }
           </div>
 
           @if (limitReached()) {
-            <p class="text-xs text-slate-400 dark:text-gray-500">
+            <p class="text-xs text-ink-faint">
               {{ 'DEVICES.ASSIGNMENT_LIMIT' | translate: { max: maxUsers } }}
             </p>
           }
@@ -104,11 +104,9 @@ export class DeviceAssignmentPickerComponent {
   protected readonly maxUsers = MAX_ASSIGNED_USER_IDS
   protected limitReached = computed(() => this.selected().length >= MAX_ASSIGNED_USER_IDS)
 
-  protected readonly activeTabClass =
-    'flex-1 py-2 rounded-lg text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-black transition'
+  protected readonly activeTabClass = 'flex-1 py-2 rounded-lg text-sm font-medium bg-ink text-surface-panel transition'
   protected readonly inactiveTabClass =
-    'flex-1 py-2 rounded-lg text-sm font-medium bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-200 ' +
-    'hover:bg-slate-200 dark:hover:bg-gray-700 transition'
+    'flex-1 py-2 rounded-lg text-sm font-medium bg-line-soft text-ink ' + 'hover:bg-line transition'
 
   protected isSelected(id: string): boolean {
     return this.selected().includes(id)

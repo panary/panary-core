@@ -48,14 +48,14 @@ interface Device {
           @if (deviceStatus.online() !== null && deviceStatus.total() !== null) {
             <span
               class="text-xs font-semibold px-2.5 py-1 rounded-full
-                         bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300"
+                         bg-line-soft text-ink-muted dark:text-ink"
             >
               {{ deviceStatus.online() }} / {{ deviceStatus.total() }} {{ 'DEVICES.CONNECTED' | translate }}
             </span>
           }
           <button
             (click)="openPairing()"
-            class="text-sm font-semibold px-3.5 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-black
+            class="text-sm font-semibold px-3.5 py-2 rounded-lg bg-ink text-surface-panel
                    hover:opacity-90 active:scale-[0.98] transition flex items-center gap-1.5"
           >
             <span class="text-base leading-none">+</span>
@@ -71,9 +71,9 @@ interface Device {
       }
 
       @if (loading()) {
-        <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
+        <p class="text-ink-faint text-sm">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (devices().length === 0) {
-        <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
+        <p class="text-ink-faint text-center py-12 text-sm">
           {{ 'DEVICES.NO_DEVICES' | translate }}
         </p>
       } @else {
@@ -93,20 +93,18 @@ interface Device {
             </thead>
             <tbody>
               @for (device of devices(); track device._id) {
-                <tr class="hover:bg-slate-50 dark:hover:bg-gray-800/30 transition">
+                <tr class="hover:bg-surface-elevated dark:hover:bg-surface-elevated/30 transition">
                   <td class="font-medium truncate max-w-48">{{ device.name }}</td>
                   <td>
                     <span
-                      class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
-                                 text-slate-600 dark:text-gray-300"
+                      class="text-xs px-2 py-0.5 rounded-full border border-line-strong
+                                 text-ink-muted dark:text-ink"
                     >
                       {{ device.type }}
                     </span>
                   </td>
-                  <td class="text-slate-500 dark:text-gray-400 font-mono text-xs">
-                    {{ device.deviceId.slice(0, 8) }}…
-                  </td>
-                  <td class="text-slate-500 dark:text-gray-400 text-xs">
+                  <td class="text-ink-muted font-mono text-xs">{{ device.deviceId.slice(0, 8) }}…</td>
+                  <td class="text-ink-muted text-xs">
                     {{ device.lastSeen ? formatDate(device.lastSeen) : '—' }}
                   </td>
                   <td>
@@ -122,10 +120,10 @@ interface Device {
                     } @else {
                       <span
                         class="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full
-                                   ring-1 ring-inset bg-slate-100 text-slate-600 ring-slate-500/20
-                                   dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-500/30"
+                                   ring-1 ring-inset bg-line-soft text-ink-muted dark:text-ink ring-ink-muted/20
+                                   dark:ring-ink-muted/30"
                       >
-                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-ink-faint"></span>
                         {{ 'DEVICES.OFFLINE' | translate }}
                       </span>
                     }
@@ -142,7 +140,7 @@ interface Device {
                         {{ assignedLabel(device) }}
                       </span>
                     } @else {
-                      <span class="text-xs text-slate-400 dark:text-gray-500">
+                      <span class="text-xs text-ink-faint">
                         {{ 'DEVICES.ASSIGNMENT_SHARED' | translate }}
                       </span>
                     }
@@ -154,15 +152,15 @@ interface Device {
                         [title]="'COMMON.STATUS_ACTIVE' | translate"
                       ></span>
                     } @else {
-                      <span class="inline-block w-2 h-2 rounded-full bg-slate-300 dark:bg-gray-600"></span>
+                      <span class="inline-block w-2 h-2 rounded-full bg-line-strong"></span>
                     }
                   </td>
                   <td class="text-right whitespace-nowrap">
                     <button
                       type="button"
                       (click)="openAssignment(device)"
-                      class="text-xs px-2.5 py-1 rounded-lg text-slate-500 dark:text-gray-400
-                             hover:bg-slate-100 dark:hover:bg-gray-800 transition"
+                      class="text-xs px-2.5 py-1 rounded-lg text-ink-muted
+                             hover:bg-line-soft transition"
                     >
                       {{ 'DEVICES.ASSIGNMENT_EDIT' | translate }}
                     </button>
@@ -192,14 +190,14 @@ interface Device {
                visuell, kein eigenes Tastatur-Target noetig. -->
           <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
           <div
-            class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-8 w-full max-w-sm shadow-xl text-center"
+            class="bg-surface-input border border-line-soft rounded-2xl p-8 w-full max-w-sm shadow-xl text-center"
             (click)="$event.stopPropagation()"
           >
             <h2 class="text-lg font-bold mb-1">{{ 'DEVICES.PAIRING_TITLE' | translate }}</h2>
-            <p class="text-sm text-slate-500 dark:text-gray-400 mb-6">{{ 'DEVICES.PAIRING_HINT' | translate }}</p>
+            <p class="text-sm text-ink-muted mb-6">{{ 'DEVICES.PAIRING_HINT' | translate }}</p>
 
             @if (pairingLoading()) {
-              <p class="text-slate-400 dark:text-gray-500 text-sm py-12">
+              <p class="text-ink-faint text-sm py-12">
                 {{ 'DEVICES.PAIRING_GENERATING' | translate }}
               </p>
             } @else if (pairingError()) {
@@ -214,7 +212,7 @@ interface Device {
                   [class]="
                     codeCopied()
                       ? 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-green-600 dark:text-green-400 transition'
-                      : 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition'
+                      : 'shrink-0 flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-line-soft transition'
                   "
                 >
                   @if (codeCopied()) {
@@ -236,13 +234,13 @@ interface Device {
                   </div>
                 </div>
               }
-              <p class="text-xs text-slate-400 dark:text-gray-500 mb-6">{{ 'DEVICES.PAIRING_EXPIRES' | translate }}</p>
+              <p class="text-xs text-ink-faint mb-6">{{ 'DEVICES.PAIRING_EXPIRES' | translate }}</p>
 
               <!-- Zuweisung VOR dem Code festlegen: Sie reist im Code-Record,
                    nicht im Redeem-Body. Eine Aenderung erzeugt deshalb einen
                    neuen Code — der alte traegt noch die alte Zuweisung. -->
               @if (pairingSupportsAssignment()) {
-                <div class="border-t border-slate-200 dark:border-gray-800 pt-5 mb-2">
+                <div class="border-t border-line-soft pt-5 mb-2">
                   <app-device-assignment-picker
                     [users]="posUsers()"
                     [mode]="pairingMode()"
@@ -268,14 +266,14 @@ interface Device {
             <div class="flex gap-3">
               <button
                 (click)="closePairing()"
-                class="flex-1 py-2.5 rounded-lg bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-200 font-medium hover:bg-slate-200 dark:hover:bg-gray-700 transition text-sm"
+                class="flex-1 py-2.5 rounded-lg bg-line-soft text-ink font-medium hover:bg-line transition text-sm"
               >
                 {{ 'COMMON.CLOSE' | translate }}
               </button>
               <button
                 (click)="regeneratePairing()"
                 [disabled]="pairingLoading()"
-                class="flex-1 py-2.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-black font-medium hover:opacity-90 transition disabled:opacity-50 text-sm"
+                class="flex-1 py-2.5 rounded-lg bg-ink text-surface-panel font-medium hover:opacity-90 transition disabled:opacity-50 text-sm"
               >
                 {{ 'DEVICES.PAIRING_REGENERATE' | translate }}
               </button>
@@ -291,11 +289,11 @@ interface Device {
         <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6" (click)="closeAssignment()">
           <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
           <div
-            class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-8 w-full max-w-md shadow-xl"
+            class="bg-surface-input border border-line-soft rounded-2xl p-8 w-full max-w-md shadow-xl"
             (click)="$event.stopPropagation()"
           >
             <h2 class="text-lg font-bold mb-1">{{ 'DEVICES.ASSIGNMENT_TITLE' | translate }}</h2>
-            <p class="text-sm text-slate-500 dark:text-gray-400 mb-6">{{ device.name }}</p>
+            <p class="text-sm text-ink-muted mb-6">{{ device.name }}</p>
 
             <app-device-assignment-picker
               [users]="posUsers()"
@@ -325,14 +323,14 @@ interface Device {
             <div class="flex gap-3 mt-6">
               <button
                 (click)="closeAssignment()"
-                class="flex-1 py-2.5 rounded-lg bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-200 font-medium hover:bg-slate-200 dark:hover:bg-gray-700 transition text-sm"
+                class="flex-1 py-2.5 rounded-lg bg-line-soft text-ink font-medium hover:bg-line transition text-sm"
               >
                 {{ 'COMMON.CANCEL' | translate }}
               </button>
               <button
                 (click)="saveAssignment()"
                 [disabled]="assignSaving() || !assignSelectionValid()"
-                class="flex-1 py-2.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-black font-medium hover:opacity-90 transition disabled:opacity-50 text-sm"
+                class="flex-1 py-2.5 rounded-lg bg-ink text-surface-panel font-medium hover:opacity-90 transition disabled:opacity-50 text-sm"
               >
                 {{ 'COMMON.SAVE' | translate }}
               </button>

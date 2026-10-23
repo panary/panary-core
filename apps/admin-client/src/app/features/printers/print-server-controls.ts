@@ -6,10 +6,10 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl p-6">
+    <div class="bg-surface-input border border-line-soft rounded-xl p-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Print-Server</h2>
+          <h2 class="text-lg font-semibold text-ink">Print-Server</h2>
 
           <!-- Status-Badge -->
           @switch (status()?.status) {
@@ -25,9 +25,9 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
             @case ('stopped') {
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
-                           bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400"
+                           bg-line-soft text-ink-muted"
               >
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-gray-500"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-line-strong"></span>
                 Gestoppt
               </span>
             }
@@ -44,7 +44,7 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
 
           @if (status(); as s) {
             @if (s.printerCount !== undefined) {
-              <span class="text-xs text-slate-400 dark:text-gray-500"> {{ s.printerCount }} Drucker </span>
+              <span class="text-xs text-ink-faint"> {{ s.printerCount }} Drucker </span>
             }
           }
         </div>
@@ -64,8 +64,8 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
             <button
               (click)="onStop()"
               [disabled]="actionInProgress()"
-              class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-200 dark:bg-gray-800
-                     text-slate-700 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-700
+              class="px-4 py-2 rounded-lg text-sm font-medium bg-line-soft
+                     text-ink hover:bg-line-strong
                      transition disabled:opacity-50"
             >
               Stoppen
@@ -73,8 +73,8 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
             <button
               (click)="onRestart()"
               [disabled]="actionInProgress()"
-              class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 dark:bg-white
-                     text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200
+              class="px-4 py-2 rounded-lg text-sm font-medium bg-ink
+                     text-surface-panel hover:bg-ink/90
                      transition disabled:opacity-50"
             >
               Neustarten
@@ -88,7 +88,7 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
       }
 
       @if (status()?.startedAt) {
-        <p class="mt-2 text-xs text-slate-400 dark:text-gray-600">Gestartet: {{ status()!.startedAt }}</p>
+        <p class="mt-2 text-xs text-ink-faint dark:text-line-strong">Gestartet: {{ status()!.startedAt }}</p>
       }
     </div>
   `,

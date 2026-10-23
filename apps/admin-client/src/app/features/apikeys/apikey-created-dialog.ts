@@ -8,7 +8,7 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm">
       <div
-        class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-6
+        class="bg-surface-input border border-line rounded-2xl p-6
                   max-w-md w-full mx-4 shadow-2xl animate-[scale-in_0.15s_ease-out]"
         tabindex="0"
         role="button"
@@ -20,13 +20,13 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
             <span class="text-green-600 dark:text-green-400 text-lg">⚿</span>
           </div>
           <div>
-            <p class="text-slate-900 dark:text-white text-sm font-bold">API-Schlüssel erstellt</p>
-            <p class="text-slate-500 dark:text-gray-400 text-xs">Kopieren Sie den Schlüssel jetzt.</p>
+            <p class="text-ink text-sm font-bold">API-Schlüssel erstellt</p>
+            <p class="text-ink-muted text-xs">Kopieren Sie den Schlüssel jetzt.</p>
           </div>
         </div>
 
-        <div class="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-3 mb-3">
-          <code class="text-slate-900 dark:text-white text-sm font-mono break-all select-all">{{ apikey() }}</code>
+        <div class="bg-surface-elevated border border-line rounded-lg p-3 mb-3">
+          <code class="text-ink text-sm font-mono break-all select-all">{{ apikey() }}</code>
         </div>
 
         @if (copyFailed()) {
@@ -47,7 +47,7 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
             [class]="
               copied()
                 ? 'flex-1 bg-green-600 text-white font-bold py-2.5 rounded-xl text-sm transition'
-                : 'flex-1 bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-2.5 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition'
+                : 'flex-1 bg-ink text-surface-panel font-bold py-2.5 rounded-xl text-sm hover:bg-ink/90 transition'
             "
           >
             @if (copied()) {
@@ -58,8 +58,8 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
           </button>
           <button
             (click)="closed.emit()"
-            class="bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 font-medium py-2.5 px-5
-                   rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-700 transition"
+            class="bg-line-soft text-ink-muted dark:text-ink font-medium py-2.5 px-5
+                   rounded-xl text-sm hover:bg-line transition"
           >
             Schließen
           </button>

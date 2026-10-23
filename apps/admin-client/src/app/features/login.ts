@@ -17,15 +17,12 @@ import { AuthService } from '../core/auth.service'
         <div class="text-center">
           <lib-panary-logo class="mb-6" [size]="2.5" />
           <h1 class="text-2xl font-bold tracking-tight">{{ 'NAV.ADMIN_PANEL' | translate }}</h1>
-          <p class="text-slate-400 dark:text-gray-500 mt-1 text-sm">{{ 'LOGIN.SUBTITLE' | translate }}</p>
+          <p class="text-ink-faint mt-1 text-sm">{{ 'LOGIN.SUBTITLE' | translate }}</p>
         </div>
 
         <form (ngSubmit)="onLogin()" class="space-y-4">
           <div class="space-y-1">
-            <label
-              for="login-email"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >
+            <label for="login-email" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
               {{ 'USERS.EMAIL' | translate }}
             </label>
             <input
@@ -34,19 +31,16 @@ import { AuthService } from '../core/auth.service'
               name="email"
               type="email"
               autocomplete="username"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
-                     placeholder-slate-400 dark:placeholder-gray-600"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none
+                     placeholder-ink-faint"
               placeholder="name@firma.de"
             />
           </div>
 
           <div class="space-y-1">
-            <label
-              for="login-password"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >
+            <label for="login-password" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
               {{ 'USERS.PASSWORD' | translate }}
             </label>
             <input
@@ -54,10 +48,10 @@ import { AuthService } from '../core/auth.service'
               [(ngModel)]="password"
               name="password"
               type="password"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
-                     placeholder-slate-400 dark:placeholder-gray-600"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none
+                     placeholder-ink-faint"
               placeholder="••••••••"
             />
           </div>
@@ -69,14 +63,12 @@ import { AuthService } from '../core/auth.service'
           <button
             type="submit"
             [disabled]="loading()"
-            class="w-full bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl text-base
-                   hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full bg-ink text-surface-panel font-bold py-3 rounded-xl text-base
+                   hover:bg-ink/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             @if (loading()) {
               <span class="flex items-center justify-center gap-2">
-                <span
-                  class="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"
-                ></span>
+                <span class="w-4 h-4 border-2 border-line-soft border-t-transparent rounded-full animate-spin"></span>
                 {{ 'LOGIN.LOGGING_IN' | translate }}
               </span>
             } @else {

@@ -44,8 +44,8 @@ interface ExistingProduct {
         <!-- 0: Begruessung -->
         @if (isAnswered('greeting')) {
           <div
-            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(0)"
@@ -62,21 +62,21 @@ interface ExistingProduct {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-600 dark:text-gray-400 flex-1">Begrüßung</span>
+            <span class="text-sm text-ink-muted flex-1">Begrüßung</span>
           </div>
         } @else if (currentStep() === 0) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out] flex flex-col items-center text-center py-8">
-            <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Willkommen</h1>
-            <p class="text-base text-slate-500 dark:text-gray-400 mt-2">Neues Produkt erstellen</p>
-            <p class="text-sm font-light text-slate-400 dark:text-gray-500 mt-4 max-w-sm leading-relaxed">
+            <h1 class="text-3xl font-bold tracking-tight text-ink">Willkommen</h1>
+            <p class="text-base text-ink-muted mt-2">Neues Produkt erstellen</p>
+            <p class="text-sm font-light text-ink-faint mt-4 max-w-sm leading-relaxed">
               Dieser Assistent führt dich durch die Einrichtung. Du wählst den Produkttyp, legst einen Namen und Preis
               fest und ordnest es einer Kategorie zu. Jede Angabe lässt sich nachträglich ändern.
             </p>
             <button
               type="button"
               (click)="answer('greeting', 0, true, 'Begrüßung')"
-              class="mt-8 bg-slate-900 dark:bg-white text-white dark:text-black font-medium
-                     px-6 py-2.5 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+              class="mt-8 bg-ink text-surface-panel font-medium
+                     px-6 py-2.5 rounded-xl text-sm hover:bg-ink/90 transition"
             >
               Einrichtung starten
             </button>
@@ -86,8 +86,8 @@ interface ExistingProduct {
         <!-- 1: Produkttyp -->
         @if (isAnswered('type')) {
           <div
-            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(1)"
@@ -107,9 +107,9 @@ interface ExistingProduct {
             <span [class]="typeBadge(form().productType)" class="px-2 py-0.5 rounded-full text-xs font-medium">
               {{ typeLabel(form().productType) }}
             </span>
-            <span class="text-sm text-slate-600 dark:text-gray-400 flex-1">{{ answers().get('type')?.display }}</span>
+            <span class="text-sm text-ink-muted flex-1">{{ answers().get('type')?.display }}</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -124,32 +124,32 @@ interface ExistingProduct {
         } @else if (currentStep() === 1) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <div class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <div class="text-sm text-ink-muted leading-relaxed">
                 <p class="mb-2">Unser System kennt <strong>drei Produkttypen</strong>:</p>
-                <ul class="space-y-1.5 text-xs text-slate-500 dark:text-gray-400">
+                <ul class="space-y-1.5 text-xs text-ink-muted">
                   <li class="flex items-center gap-1.5">
                     <img src="assets/icons/icon-product.svg" alt="" class="w-4 h-4 inline-block" /><strong
-                      class="text-slate-700 dark:text-gray-300"
+                      class="text-ink"
                       >Produkt</strong
                     >
                     — Regulärer Artikel (Pizza, Cola, Salat)
                   </li>
                   <li class="flex items-center gap-1.5">
                     <img src="assets/icons/icon-modifier.svg" alt="" class="w-4 h-4 inline-block" /><strong
-                      class="text-slate-700 dark:text-gray-300"
+                      class="text-ink"
                       >Modifier</strong
                     >
                     — Zusatz/Extra (Extra Käse, Soße)
                   </li>
                   <li class="flex items-center gap-1.5">
                     <img src="assets/icons/icon-bundle.svg" alt="" class="w-4 h-4 inline-block" /><strong
-                      class="text-slate-700 dark:text-gray-300"
+                      class="text-ink"
                       >Menü</strong
                     >
                     — Bundle aus mehreren Produkten
                   </li>
                 </ul>
-                <p class="mt-2 font-medium text-slate-900 dark:text-white">Welchen Typ möchtest du anlegen?</p>
+                <p class="mt-2 font-medium text-ink">Welchen Typ möchtest du anlegen?</p>
               </div>
             </div>
             <div class="grid grid-cols-3 gap-2">
@@ -157,12 +157,12 @@ interface ExistingProduct {
                 <button
                   type="button"
                   (click)="selectType(t.value)"
-                  class="border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-center
-                         hover:border-slate-900 dark:hover:border-white hover:bg-slate-50 dark:hover:bg-gray-800
+                  class="border border-line rounded-xl p-3 text-center
+                         hover:border-ink hover:bg-surface-elevated
                          transition-all duration-200"
                 >
-                  <img [src]="t.icon" [alt]="t.label" class="w-6 h-6 mx-auto mb-1 text-slate-700 dark:text-gray-300" />
-                  <span class="text-xs font-medium text-slate-900 dark:text-white">{{ t.label }}</span>
+                  <img [src]="t.icon" [alt]="t.label" class="w-6 h-6 mx-auto mb-1 text-ink" />
+                  <span class="text-xs font-medium text-ink">{{ t.label }}</span>
                 </button>
               }
             </div>
@@ -172,8 +172,8 @@ interface ExistingProduct {
         <!-- 2: Name -->
         @if (isAnswered('name')) {
           <div
-            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(2)"
@@ -190,9 +190,9 @@ interface ExistingProduct {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-700 dark:text-gray-300 flex-1 font-medium">{{ form().name }}</span>
+            <span class="text-sm text-ink flex-1 font-medium">{{ form().name }}</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -207,7 +207,7 @@ interface ExistingProduct {
         } @else if (currentStep() === 2) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 <strong>Wie soll dein {{ typeLabel(form().productType) }} heißen?</strong><br />
                 Der Name erscheint in der Produktliste und auf Bons.
               </p>
@@ -218,9 +218,8 @@ interface ExistingProduct {
                 [(ngModel)]="nameInput"
                 (keydown.enter)="submitName()"
                 [placeholder]="'z.B. ' + namePlaceholder()"
-                class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg
-                       px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-slate-900
-                       dark:focus:border-white focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+                class="flex-1 bg-surface-input border border-line-soft rounded-lg
+                       px-3 py-2.5 text-sm text-ink focus:border-ink focus:ring-1 focus:ring-ink outline-none"
               />
               <button type="button" (click)="submitName()" [disabled]="!nameInput.trim()" [class]="cls.btnArrow">
                 →
@@ -232,8 +231,8 @@ interface ExistingProduct {
         <!-- 3: Preis -->
         @if (isAnswered('price')) {
           <div
-            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(3)"
@@ -250,10 +249,10 @@ interface ExistingProduct {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-600 dark:text-gray-400">Preis:</span>
-            <span class="text-sm font-mono font-bold text-slate-900 dark:text-white">{{ form().price | eur }}</span>
+            <span class="text-sm text-ink-muted">Preis:</span>
+            <span class="text-sm font-mono font-bold text-ink">{{ form().price | eur }}</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition ml-auto"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition ml-auto"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -268,7 +267,7 @@ interface ExistingProduct {
         } @else if (currentStep() === 3) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 <strong>Was kostet dein {{ typeLabel(form().productType) }}?</strong><br />
                 Gib den Bruttopreis inkl. MwSt. ein.
               </p>
@@ -281,11 +280,11 @@ interface ExistingProduct {
                 min="0"
                 placeholder="0.00"
                 (keydown.enter)="submitPrice()"
-                class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg
-                       px-3 py-2.5 text-lg font-mono text-slate-900 dark:text-white outline-none
-                       focus:border-slate-900 dark:focus:border-white"
+                class="flex-1 bg-surface-input border border-line-soft rounded-lg
+                       px-3 py-2.5 text-lg font-mono text-ink outline-none
+                       focus:border-ink"
               />
-              <span class="text-sm font-medium text-slate-500 dark:text-gray-400">€</span>
+              <span class="text-sm font-medium text-ink-muted">€</span>
               <button type="button" (click)="submitPrice()" [class]="cls.btnArrow">→</button>
             </div>
           </div>
@@ -294,8 +293,8 @@ interface ExistingProduct {
         <!-- 4: MwSt. -->
         @if (isAnswered('tax')) {
           <div
-            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(4)"
@@ -312,11 +311,9 @@ interface ExistingProduct {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-600 dark:text-gray-400 flex-1"
-              >MwSt.: {{ form().taxInside }}% / {{ form().taxOutside }}%</span
-            >
+            <span class="text-sm text-ink-muted flex-1">MwSt.: {{ form().taxInside }}% / {{ form().taxOutside }}%</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -331,7 +328,7 @@ interface ExistingProduct {
         } @else if (currentStep() === 4) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 In Deutschland gelten aktuell <strong>19% MwSt.</strong> (Inhaus) und <strong>7%</strong> (Außer
                 Haus).<br />
                 <strong>Möchtest du die Standardsätze übernehmen?</strong>
@@ -349,9 +346,7 @@ interface ExistingProduct {
               @if (showCustomTax()) {
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label for="productWizardVatIn" class="text-xs text-slate-400 dark:text-gray-500 mb-1 block"
-                      >Inhaus (%)</label
-                    >
+                    <label for="productWizardVatIn" class="text-xs text-ink-faint mb-1 block">Inhaus (%)</label>
                     <input
                       id="productWizardVatIn"
                       type="number"
@@ -362,9 +357,7 @@ interface ExistingProduct {
                     />
                   </div>
                   <div>
-                    <label for="productWizardVatOut" class="text-xs text-slate-400 dark:text-gray-500 mb-1 block"
-                      >Außer Haus (%)</label
-                    >
+                    <label for="productWizardVatOut" class="text-xs text-ink-faint mb-1 block">Außer Haus (%)</label>
                     <input
                       id="productWizardVatOut"
                       type="number"
@@ -384,8 +377,8 @@ interface ExistingProduct {
         <!-- 5: Kategorie -->
         @if (isAnswered('category')) {
           <div
-            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(5)"
@@ -402,11 +395,9 @@ interface ExistingProduct {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-600 dark:text-gray-400 flex-1">{{
-              answers().get('category')?.display
-            }}</span>
+            <span class="text-sm text-ink-muted flex-1">{{ answers().get('category')?.display }}</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -421,16 +412,14 @@ interface ExistingProduct {
         } @else if (currentStep() === 5) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 <strong>Möchtest du das Produkt einer Produktgruppe zuordnen?</strong><br />
-                <span class="text-slate-500 dark:text-gray-400"
-                  >Du kannst mehrere auswählen oder diesen Schritt überspringen.</span
-                >
+                <span class="text-ink-muted">Du kannst mehrere auswählen oder diesen Schritt überspringen.</span>
               </p>
             </div>
             <div class="space-y-2">
               @if (productGroups().length === 0) {
-                <p class="text-xs text-slate-400 dark:text-gray-500">Noch keine Produktgruppen vorhanden.</p>
+                <p class="text-xs text-ink-faint">Noch keine Produktgruppen vorhanden.</p>
               } @else {
                 <div class="flex flex-wrap gap-2">
                   @for (g of productGroups(); track g._id) {
@@ -439,13 +428,13 @@ interface ExistingProduct {
                       (click)="toggleCategory(g._id)"
                       [class]="
                         selectedCategories().includes(g._id)
-                          ? 'border-slate-900 dark:border-white ring-1 ring-slate-900 dark:ring-white bg-slate-50 dark:bg-gray-800'
-                          : 'border-slate-200 dark:border-gray-700 hover:border-slate-400 dark:hover:border-gray-600'
+                          ? 'border-ink ring-1 ring-ink bg-surface-elevated'
+                          : 'border-line hover:border-line-strong'
                       "
                       class="inline-flex items-center gap-1.5 border rounded-lg px-3 py-1.5 text-sm transition"
                     >
                       <span class="w-3 h-3 rounded-full" [style.background-color]="g.color"></span>
-                      <span class="text-slate-700 dark:text-gray-300">{{ g.name }}</span>
+                      <span class="text-ink">{{ g.name }}</span>
                     </button>
                   }
                 </div>
@@ -460,8 +449,8 @@ interface ExistingProduct {
         <!-- 6: Kuerzel (nach Kategorie, basierend auf Produktanzahl in Gruppe) -->
         @if (isAnswered('acronym')) {
           <div
-            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-gray-800/50
-                      hover:bg-slate-100 dark:hover:bg-gray-800 transition cursor-pointer"
+            class="group flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-elevated dark:bg-surface-elevated/50
+                      hover:bg-line-soft dark:hover:bg-line-soft transition cursor-pointer"
             role="button"
             tabindex="0"
             (click)="editStep(6)"
@@ -478,10 +467,10 @@ interface ExistingProduct {
             >
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span class="text-sm text-slate-600 dark:text-gray-400">Kürzel:</span>
-            <span class="text-sm font-mono font-medium text-slate-900 dark:text-white">{{ form().acronym }}</span>
+            <span class="text-sm text-ink-muted">Kürzel:</span>
+            <span class="text-sm font-mono font-medium text-ink">{{ form().acronym }}</span>
             <svg
-              class="w-3.5 h-3.5 text-slate-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition ml-auto"
+              class="w-3.5 h-3.5 text-line-strong opacity-0 group-hover:opacity-100 transition ml-auto"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -496,7 +485,7 @@ interface ExistingProduct {
         } @else if (currentStep() === 6) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 {{ acronymExplanation() }}
                 Als Kürzel schlage ich <strong class="font-mono">{{ suggestedAcronym() }}</strong> vor.
                 <strong>Passt das?</strong>
@@ -517,9 +506,9 @@ interface ExistingProduct {
                     maxlength="10"
                     (keydown.enter)="submitCustomAcronym()"
                     placeholder="z.B. 1, K32, P12"
-                    class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg
-                           px-3 py-2.5 text-sm font-mono text-slate-900 dark:text-white outline-none
-                           focus:border-slate-900 dark:focus:border-white"
+                    class="flex-1 bg-surface-input border border-line-soft rounded-lg
+                           px-3 py-2.5 text-sm font-mono text-ink outline-none
+                           focus:border-ink"
                   />
                   <button
                     type="button"
@@ -539,36 +528,35 @@ interface ExistingProduct {
         @if (currentStep() === summaryStep()) {
           <div #stepEl class="animate-[fade-in-up_0.3s_ease-out]">
             <div class="mb-4">
-              <p class="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
+              <p class="text-sm text-ink-muted leading-relaxed">
                 <strong>Perfekt!</strong> Hier ist die Zusammenfassung:
               </p>
             </div>
-            <div class="bg-slate-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-2">
-              <p class="text-base font-bold text-slate-900 dark:text-white">{{ form().name }}</p>
-              <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-gray-400">
+            <div class="bg-surface-elevated dark:bg-surface-elevated/50 rounded-xl p-4 space-y-2">
+              <p class="text-base font-bold text-ink">{{ form().name }}</p>
+              <div class="flex items-center gap-3 text-xs text-ink-muted">
                 <span class="font-mono">{{ form().acronym }}</span>
                 <span [class]="typeBadge(form().productType)" class="px-2 py-0.5 rounded-full text-xs font-medium">{{
                   typeLabel(form().productType)
                 }}</span>
               </div>
-              <div class="grid grid-cols-3 gap-2 text-xs text-slate-500 dark:text-gray-400 pt-1">
+              <div class="grid grid-cols-3 gap-2 text-xs text-ink-muted pt-1">
                 <span
-                  >Preis:
-                  <strong class="text-slate-900 dark:text-white font-mono">{{ form().price | eur }}</strong></span
+                  >Preis: <strong class="text-ink font-mono">{{ form().price | eur }}</strong></span
                 >
                 <span
-                  >Inhaus: <strong class="text-slate-900 dark:text-white">{{ form().taxInside }}%</strong></span
+                  >Inhaus: <strong class="text-ink">{{ form().taxInside }}%</strong></span
                 >
                 <span
-                  >Außer Haus: <strong class="text-slate-900 dark:text-white">{{ form().taxOutside }}%</strong></span
+                  >Außer Haus: <strong class="text-ink">{{ form().taxOutside }}%</strong></span
                 >
               </div>
               @if (selectedGroupNames().length > 0) {
                 <div class="flex flex-wrap gap-1.5 pt-1">
                   @for (name of selectedGroupNames(); track name) {
                     <span
-                      class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700
-                                 rounded px-2 py-0.5 text-xs text-slate-600 dark:text-gray-400"
+                      class="bg-surface-input border border-line
+                                 rounded px-2 py-0.5 text-xs text-ink-muted"
                       >{{ name }}</span
                     >
                   }
@@ -589,13 +577,13 @@ interface ExistingProduct {
               type="button"
               (click)="onSave()"
               [disabled]="saving()"
-              class="mt-4 bg-slate-900 dark:bg-white text-white dark:text-black font-bold
-                     px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200
+              class="mt-4 bg-ink text-surface-panel font-bold
+                     px-6 py-3 rounded-xl text-sm hover:bg-ink/90
                      transition disabled:opacity-50 min-w-[180px] flex items-center justify-center gap-2"
             >
               @if (saving()) {
                 <span
-                  class="w-4 h-4 border-2 border-white/30 dark:border-black/30
+                  class="w-4 h-4 border-2 border-line-soft/30
                              border-t-white dark:border-t-black rounded-full animate-spin"
                 ></span>
                 Erstelle...
@@ -669,14 +657,13 @@ export class ProductWizardComponent implements OnInit {
   ]
 
   readonly cls = {
-    btnPrimary:
-      'bg-slate-900 dark:bg-white text-white dark:text-black font-medium px-4 py-2 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition',
+    btnPrimary: 'bg-ink text-surface-panel font-medium px-4 py-2 rounded-xl text-sm hover:bg-ink/90 transition',
     btnSecondary:
-      'border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-medium px-4 py-2 rounded-xl text-sm hover:bg-slate-50 dark:hover:bg-gray-800 transition',
+      'border border-line text-ink-muted dark:text-ink font-medium px-4 py-2 rounded-xl text-sm hover:bg-surface-elevated transition',
     btnArrow:
-      'bg-slate-900 dark:bg-white text-white dark:text-black font-medium px-3 py-2.5 rounded-lg text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-30 disabled:cursor-not-allowed',
+      'bg-ink text-surface-panel font-medium px-3 py-2.5 rounded-lg text-sm hover:bg-ink/90 transition disabled:opacity-30 disabled:cursor-not-allowed',
     inputSm:
-      'w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white',
+      'w-full bg-surface-input border border-line-soft rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ink',
   }
 
   // Neue Reihenfolge: greeting → type → name → price → tax → category → acronym
@@ -902,7 +889,7 @@ export class ProductWizardComponent implements OnInit {
       case 'BUNDLE':
         return 'bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400'
       default:
-        return 'bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-400'
+        return 'bg-ink-muted/10 border border-ink-muted/20 text-ink-muted'
     }
   }
 

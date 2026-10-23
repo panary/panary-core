@@ -90,9 +90,7 @@ type DeviceLookup =
 
         <form #f="ngForm" (ngSubmit)="onCreate(f)" class="space-y-5">
           <div class="space-y-1">
-            <label
-              for="apikeyName"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            <label for="apikeyName" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
               >{{ 'COMMON.NAME' | translate }} *</label
             >
             <input
@@ -119,37 +117,33 @@ type DeviceLookup =
           </div>
 
           <div class="space-y-1">
-            <label
-              for="apikeyDescription"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'APIKEYS.DESCRIPTION' | translate }}</label
-            >
+            <label for="apikeyDescription" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+              'APIKEYS.DESCRIPTION' | translate
+            }}</label>
             <textarea
               id="apikeyDescription"
               [(ngModel)]="form.description"
               name="description"
               rows="2"
               placeholder="Optionale Beschreibung des Verwendungszwecks"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none resize-none
-                     placeholder-slate-400 dark:placeholder-gray-600"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none resize-none
+                     placeholder-ink-faint"
             ></textarea>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label
-                for="apikeyRole"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              <label for="apikeyRole" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
                 >{{ 'USERS.ROLE' | translate }} *</label
               >
               <select
                 id="apikeyRole"
                 [(ngModel)]="form.role"
                 name="role"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                       text-slate-900 dark:text-white outline-none"
+                class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                       text-ink outline-none"
               >
                 @for (option of roleOptions; track option.value) {
                   <option [value]="option.value">{{ option.labelKey | translate }}</option>
@@ -157,19 +151,17 @@ type DeviceLookup =
               </select>
             </div>
             <div class="space-y-1">
-              <label
-                for="apikeyValidUntil"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >{{ 'APIKEYS.VALID_UNTIL' | translate }}</label
-              >
+              <label for="apikeyValidUntil" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+                'APIKEYS.VALID_UNTIL' | translate
+              }}</label>
               <input
                 id="apikeyValidUntil"
                 [(ngModel)]="form.validUntil"
                 name="validUntil"
                 type="date"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                       text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                       focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+                class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                       text-ink focus:border-ink
+                       focus:ring-1 focus:ring-ink outline-none"
               />
             </div>
           </div>
@@ -191,8 +183,8 @@ type DeviceLookup =
             <button
               type="submit"
               [disabled]="saving() || f.invalid"
-              class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm
-                     hover:bg-slate-800 dark:hover:bg-gray-200 transition
+              class="bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm
+                     hover:bg-ink/90 transition
                      disabled:opacity-50 disabled:cursor-not-allowed"
             >
               @if (saving()) {
@@ -204,8 +196,8 @@ type DeviceLookup =
             <button
               type="button"
               (click)="onCancel()"
-              class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
-                     dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition"
+              class="bg-surface-bg border border-line-soft text-ink-muted dark:text-ink
+                     px-6 py-3 rounded-xl text-sm hover:bg-line transition"
             >
               {{ 'COMMON.CANCEL' | translate }}
             </button>
@@ -220,11 +212,11 @@ type DeviceLookup =
         @if (detail(); as key) {
           <h1 class="text-2xl font-bold tracking-tight truncate" [title]="key.name">{{ key.name }}</h1>
         } @else if (errors().length > 0) {
-          <h1 class="text-2xl font-bold tracking-tight text-slate-400 dark:text-gray-600">
+          <h1 class="text-2xl font-bold tracking-tight text-ink-faint dark:text-line-strong">
             {{ 'APIKEYS.TITLE' | translate }}
           </h1>
         } @else {
-          <div class="h-8 w-48 rounded-lg bg-slate-100 dark:bg-gray-800 animate-pulse"></div>
+          <div class="h-8 w-48 rounded-lg bg-line-soft animate-pulse"></div>
         }
 
         @if (detail()) {
@@ -234,16 +226,13 @@ type DeviceLookup =
             [class]="
               detail()!.active
                 ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/50'
-                : 'bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800'
+                : 'bg-surface-bg border border-line-soft'
             "
           >
-            <div
-              class="w-2.5 h-2.5 rounded-full"
-              [class]="detail()!.active ? 'bg-green-400' : 'bg-slate-300 dark:bg-gray-600'"
-            ></div>
+            <div class="w-2.5 h-2.5 rounded-full" [class]="detail()!.active ? 'bg-green-400' : 'bg-line-strong'"></div>
             <span
               class="text-sm font-medium"
-              [class]="detail()!.active ? 'text-green-700 dark:text-green-400' : 'text-slate-500 dark:text-gray-400'"
+              [class]="detail()!.active ? 'text-green-700 dark:text-green-400' : 'text-ink-muted'"
             >
               {{ (detail()!.active ? 'COMMON.STATUS_ACTIVE' : 'APIKEYS.DEACTIVATED') | translate }}
             </span>
@@ -251,68 +240,64 @@ type DeviceLookup =
 
           <!-- Detail-Tabelle -->
           <div
-            class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800
-                      rounded-xl divide-y divide-slate-200 dark:divide-gray-800"
+            class="bg-surface-panel dark:bg-surface-bg/50 border border-line-soft
+                      rounded-xl divide-y divide-line-soft"
           >
             @if (detail()!.description) {
               <div class="flex items-center justify-between px-4 py-3">
-                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{
+                <span class="text-xs text-ink-muted uppercase tracking-wider">{{
                   'APIKEYS.DESCRIPTION' | translate
                 }}</span>
-                <span class="text-sm text-slate-900 dark:text-white">{{ detail()!.description }}</span>
+                <span class="text-sm text-ink">{{ detail()!.description }}</span>
               </div>
             }
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{
-                'USERS.ROLE' | translate
-              }}</span>
+              <span class="text-xs text-ink-muted uppercase tracking-wider">{{ 'USERS.ROLE' | translate }}</span>
               <span
-                class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
-                           text-slate-600 dark:text-gray-300"
+                class="text-xs px-2 py-0.5 rounded-full border border-line-strong
+                           text-ink-muted dark:text-ink"
               >
                 {{ formatRole(detail()!.role) }}
               </span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{
+              <span class="text-xs text-ink-muted uppercase tracking-wider">{{
                 'APIKEYS.VALID_UNTIL' | translate
               }}</span>
-              <span class="text-sm text-slate-900 dark:text-white">
+              <span class="text-sm text-ink">
                 {{ detail()!.validUntil ? formatDate(detail()!.validUntil!) : ('APIKEYS.UNLIMITED' | translate) }}
               </span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{
+              <span class="text-xs text-ink-muted uppercase tracking-wider">{{
                 'APIKEYS.CREATED_AT' | translate
               }}</span>
-              <span class="text-sm text-slate-900 dark:text-white">{{ formatDate(detail()!.createdAt!) }}</span>
+              <span class="text-sm text-ink">{{ formatDate(detail()!.createdAt!) }}</span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{
+              <span class="text-xs text-ink-muted uppercase tracking-wider">{{
                 'APIKEYS.CREATED_BY' | translate
               }}</span>
-              <span class="text-sm text-slate-900 dark:text-white">{{ detail()!.createdBy || '—' }}</span>
+              <span class="text-sm text-ink">{{ detail()!.createdBy || '—' }}</span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">{{
-                'APIKEYS.LAST_USED' | translate
-              }}</span>
-              <span class="text-sm text-slate-900 dark:text-white">
+              <span class="text-xs text-ink-muted uppercase tracking-wider">{{ 'APIKEYS.LAST_USED' | translate }}</span>
+              <span class="text-sm text-ink">
                 {{ detail()!.lastUsedAt ? formatDateTime(detail()!.lastUsedAt!) : ('APIKEYS.NEVER_USED' | translate) }}
               </span>
             </div>
             @if (detail()!.deviceId) {
               <div class="flex items-start justify-between gap-3 px-4 py-3">
-                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider shrink-0 mt-0.5">
+                <span class="text-xs text-ink-muted uppercase tracking-wider shrink-0 mt-0.5">
                   {{ 'APIKEYS.DEVICE' | translate }}
                 </span>
                 <div class="text-right min-w-0">
                   @switch (deviceLookup().state) {
                     @case ('loading') {
-                      <span class="text-sm text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</span>
+                      <span class="text-sm text-ink-faint">{{ 'COMMON.LOADING' | translate }}</span>
                     }
                     @case ('found') {
-                      <span class="text-sm text-slate-900 dark:text-white font-medium block truncate">
+                      <span class="text-sm text-ink font-medium block truncate">
                         {{ deviceLabel() }}
                       </span>
                     }
@@ -327,16 +312,14 @@ type DeviceLookup =
                       </span>
                     }
                     @case ('unknown') {
-                      <span
-                        class="text-sm text-slate-400 dark:text-gray-500"
-                        [title]="'APIKEYS.DEVICE_UNKNOWN_HINT' | translate"
+                      <span class="text-sm text-ink-faint" [title]="'APIKEYS.DEVICE_UNKNOWN_HINT' | translate"
                         >&mdash;</span
                       >
                     }
                   }
                   <!-- Rohe ID bleibt sichtbar und markierbar — im Support-Fall
                        ist sie der Schluessel zum Log. -->
-                  <span class="text-slate-400 dark:text-gray-600 font-mono text-[11px] block mt-0.5 select-all">
+                  <span class="text-ink-faint dark:text-line-strong font-mono text-[11px] block mt-0.5 select-all">
                     {{ detail()!.deviceId }}
                   </span>
                 </div>
@@ -364,8 +347,8 @@ type DeviceLookup =
               [disabled]="saving()"
               [class]="
                 detail()!.active
-                  ? 'bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition disabled:opacity-50'
-                  : 'bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50'
+                  ? 'bg-surface-bg border border-line-soft text-ink-muted dark:text-ink px-6 py-3 rounded-xl text-sm hover:bg-line transition disabled:opacity-50'
+                  : 'bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm hover:bg-ink/90 transition disabled:opacity-50'
               "
             >
               {{ (detail()!.active ? 'APIKEYS.DEACTIVATE' : 'APIKEYS.ACTIVATE') | translate }}
@@ -377,10 +360,7 @@ type DeviceLookup =
               {{ 'COMMON.DELETE' | translate }}
             </button>
             <div class="flex-1"></div>
-            <button
-              (click)="onCancel()"
-              class="text-slate-400 dark:text-gray-500 text-sm hover:text-slate-900 dark:hover:text-white transition px-4 py-3"
-            >
+            <button (click)="onCancel()" class="text-ink-faint text-sm hover:text-ink transition px-4 py-3">
               {{ 'COMMON.CLOSE' | translate }}
             </button>
           </div>
@@ -538,12 +518,10 @@ export class ApikeyFormComponent {
     }
   }
 
-  private readonly baseInputClass =
-    'w-full bg-white dark:bg-gray-900 border rounded-lg p-3 text-slate-900 dark:text-white focus:ring-1 outline-none'
+  private readonly baseInputClass = 'w-full bg-surface-input border rounded-lg p-3 text-ink focus:ring-1 outline-none'
 
   inputClass(ctrl: any): string {
-    if (!ctrl || ctrl.pristine)
-      return `${this.baseInputClass} border-slate-200 dark:border-gray-800 focus:border-slate-900 dark:focus:border-white focus:ring-slate-900 dark:focus:ring-white`
+    if (!ctrl || ctrl.pristine) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
     if (ctrl.invalid) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
     return `${this.baseInputClass} border-green-500/30 focus:border-green-400 focus:ring-green-400`
   }

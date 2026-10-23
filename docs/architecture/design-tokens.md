@@ -82,6 +82,11 @@ beide Rampen auf warme Werte; die dunklen Stufen entsprechen den Flächen-Tokens
 dunkel). Damit ist das dunkle Theme ohne Einzelmigration nie reines Schwarz. Die Datei entfällt je Bereich, wenn
 die Klassen auf Token-Klassen umgestellt sind; neue Oberflächen nutzen sie nicht.
 
+Umstellung (panary/panary-core#849, je Bereich ein PR): Hell/Dunkel-Paare wie `border-gray-200 dark:border-gray-700`
+werden zu **einer** Token-Klasse (`border-line`), wenn deren Werte in beiden Themes höchstens 30 RGB-Einheiten
+abweichen, sonst bleiben zwei Token-Klassen. Reihenfolge: orders, users, businessdays, admin-client, Rest, zuletzt
+die Datei selbst. Umgestellt: `libs/domains/orders`.
+
 ## Angular Material (POS)
 
 `apps/pos-client/src/styles.scss` setzt die Material-Systemfarben (`--mat-sys-primary`, `-surface*`, `-outline*`,

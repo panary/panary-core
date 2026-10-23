@@ -53,18 +53,18 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
     <div class="p-6 min-w-[22.5rem] max-w-[26.25rem]">
       <!-- Step 1: Grund auswählen -->
       @if (step() === 'reason') {
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2 class="text-xl font-bold text-ink mb-2">
           {{ 'CANCEL_ORDER.SELECT_REASON' | translate }}
         </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">#{{ order.dailySequenceNumber }}</p>
+        <p class="text-sm text-ink-muted mb-5">#{{ order.dailySequenceNumber }}</p>
 
         <div class="flex flex-col gap-2">
           @for (reason of reasons; track reason) {
             <button
               (click)="selectReason(reason)"
-              class="w-full text-left px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700
-                     bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium text-sm
-                     hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600
+              class="w-full text-left px-4 py-3 rounded-xl border border-line
+                     bg-surface-elevated text-ink font-medium text-sm
+                     hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong
                      active:scale-[0.98] transition-all"
             >
               {{ reason | translate }}
@@ -75,8 +75,8 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
         <div class="flex justify-end pt-4">
           <button
             (click)="close()"
-            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2 rounded-lg
-                   hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            class="text-sm font-medium text-ink-faint hover:text-ink px-4 py-2 rounded-lg
+                   hover:bg-surface-elevated transition"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>
@@ -85,13 +85,13 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
 
       <!-- Step 2: Freigebende Person wählen -->
       @if (step() === 'select-user') {
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
+        <h2 class="text-xl font-bold text-ink mb-1">
           {{ 'CANCEL_ORDER.SELECT_MANAGER' | translate }}
         </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">{{ 'CANCEL_ORDER.PIN_HINT' | translate }}</p>
+        <p class="text-sm text-ink-muted mb-5">{{ 'CANCEL_ORDER.PIN_HINT' | translate }}</p>
 
         @if (managersLoading()) {
-          <p class="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+          <p class="text-sm text-ink-muted py-8 text-center">
             {{ 'CANCEL_ORDER.LOADING_MANAGERS' | translate }}
           </p>
         } @else if (managers().length) {
@@ -99,9 +99,9 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
             @for (manager of managers(); track manager._id) {
               <button
                 (click)="selectManager(manager)"
-                class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700
-                       bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700
-                       hover:border-gray-300 dark:hover:border-gray-600 active:scale-[0.98] transition-all text-left"
+                class="flex items-center gap-3 p-3 rounded-xl border border-line
+                       bg-surface-elevated hover:bg-surface-bg dark:hover:bg-line
+                       hover:border-line-strong active:scale-[0.98] transition-all text-left"
               >
                 <div
                   class="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300
@@ -110,8 +110,8 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
                   {{ manager.initials || '??' }}
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="font-semibold text-gray-800 dark:text-white truncate">{{ manager.fullName }}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  <p class="font-semibold text-ink truncate">{{ manager.fullName }}</p>
+                  <p class="text-xs text-ink-muted truncate">
                     {{ manager.staffRole || manager.role }}
                   </p>
                 </div>
@@ -119,7 +119,7 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
             }
           </div>
         } @else {
-          <p class="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+          <p class="text-sm text-ink-muted py-8 text-center">
             {{ 'CANCEL_ORDER.NO_MANAGERS' | translate }}
           </p>
         }
@@ -127,15 +127,15 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
         <div class="flex justify-between items-center pt-5">
           <button
             (click)="step.set('reason')"
-            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2 rounded-lg
-                   hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            class="text-sm font-medium text-ink-faint hover:text-ink px-4 py-2 rounded-lg
+                   hover:bg-surface-elevated transition"
           >
             {{ 'COMMON.BACK' | translate }}
           </button>
           <button
             (click)="close()"
-            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2 rounded-lg
-                   hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            class="text-sm font-medium text-ink-faint hover:text-ink px-4 py-2 rounded-lg
+                   hover:bg-surface-elevated transition"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>
@@ -145,10 +145,10 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
       <!-- Step 3: PIN der freigebenden Person -->
       @if (step() === 'pin') {
         @if (selectedManager(); as manager) {
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
+          <h2 class="text-xl font-bold text-ink mb-1">
             {{ 'CANCEL_ORDER.ENTER_PIN' | translate }}
           </h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">{{ manager.fullName }}</p>
+          <p class="text-sm text-ink-muted mb-5">{{ manager.fullName }}</p>
         }
 
         <!-- PIN Dots -->
@@ -156,8 +156,7 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
           @for (i of pinSlots; track i) {
             <div
               class="w-4 h-4 rounded-full transition-all duration-150"
-              [class.bg-gray-200]="pin().length <= i && !pinError()"
-              [class.dark:bg-gray-700]="pin().length <= i && !pinError()"
+              [class.bg-line]="pin().length <= i && !pinError()"
               [class.bg-red-500]="pinError()"
               [class.bg-amber-500]="pin().length > i && !pinError()"
             ></div>
@@ -174,8 +173,8 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
             <button
               (click)="appendDigit(digit)"
               [disabled]="verifying()"
-              class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
-                     active:bg-gray-300 dark:active:bg-gray-600 text-xl font-semibold text-gray-800 dark:text-white
+              class="h-14 rounded-xl bg-line-soft hover:bg-line
+                     active:bg-line-strong text-xl font-semibold text-ink
                      transition-all active:scale-95 disabled:opacity-40"
             >
               {{ digit }}
@@ -185,8 +184,8 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
           <button
             (click)="appendDigit('0')"
             [disabled]="verifying()"
-            class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
-                   active:bg-gray-300 dark:active:bg-gray-600 text-xl font-semibold text-gray-800 dark:text-white
+            class="h-14 rounded-xl bg-line-soft hover:bg-line
+                   active:bg-line-strong text-xl font-semibold text-ink
                    transition-all active:scale-95 disabled:opacity-40"
           >
             0
@@ -194,11 +193,11 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
           <button
             (click)="deleteDigit()"
             [disabled]="verifying()"
-            class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
+            class="h-14 rounded-xl bg-line-soft hover:bg-line
                    flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
             [attr.aria-label]="'COMMON.DELETE' | translate"
           >
-            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-ink-muted dark:text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -210,23 +209,23 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
         </div>
 
         @if (verifying()) {
-          <p class="text-center text-xs text-gray-500 dark:text-gray-400 pt-4">{{ 'COMMON.VERIFYING' | translate }}</p>
+          <p class="text-center text-xs text-ink-muted pt-4">{{ 'COMMON.VERIFYING' | translate }}</p>
         }
 
         <div class="flex justify-between items-center pt-5">
           <button
             (click)="backToManagers()"
             [disabled]="verifying()"
-            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2 rounded-lg
-                   hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-40"
+            class="text-sm font-medium text-ink-faint hover:text-ink px-4 py-2 rounded-lg
+                   hover:bg-surface-elevated transition disabled:opacity-40"
           >
             {{ 'COMMON.BACK' | translate }}
           </button>
           <button
             (click)="close()"
             [disabled]="verifying()"
-            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2 rounded-lg
-                   hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-40"
+            class="text-sm font-medium text-ink-faint hover:text-ink px-4 py-2 rounded-lg
+                   hover:bg-surface-elevated transition disabled:opacity-40"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>

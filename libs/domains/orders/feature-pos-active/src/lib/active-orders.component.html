@@ -1,12 +1,12 @@
 <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
-<div class="h-full w-full bg-gray-50 dark:bg-black flex flex-col overflow-hidden" (click)="zoomOpen.set(false)">
+<div class="h-full w-full bg-surface-bg flex flex-col overflow-hidden" (click)="zoomOpen.set(false)">
   <!-- Floating Toolbar -->
   <div
-    class="fixed bottom-6 right-6 z-30 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3"
+    class="fixed bottom-6 right-6 z-30 bg-surface-input rounded-2xl shadow-xl border border-line px-4 py-3 flex items-center gap-3"
   >
     <button
       (click)="goBack()"
-      class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      class="flex items-center justify-center w-10 h-10 bg-surface-elevated border border-line text-ink-muted dark:text-ink rounded-xl hover:bg-line-soft transition-colors"
     >
       <lib-icon name="arrow-left" class="text-[1.25rem]" />
     </button>
@@ -20,9 +20,8 @@
     <div class="relative md:hidden">
       <button
         (click)="zoomOpen.set(!zoomOpen()); $event.stopPropagation()"
-        class="flex items-center justify-center w-10 h-10 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        [class.bg-gray-100]="zoomOpen()"
-        [class.dark:bg-gray-800]="zoomOpen()"
+        class="flex items-center justify-center w-10 h-10 rounded-xl text-ink-muted hover:bg-line-soft transition-colors"
+        [class.bg-line-soft]="zoomOpen()"
       >
         <lib-icon name="frame-corners" class="text-[1.25rem]" />
       </button>
@@ -31,21 +30,21 @@
         <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <div
           (click)="$event.stopPropagation()"
-          class="absolute right-0 bottom-full mb-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl dark:shadow-black/40 p-3 z-50 animate-[fadeIn_0.15s_ease-out]"
+          class="absolute right-0 bottom-full mb-2 bg-surface-input border border-line rounded-2xl shadow-xl dark:shadow-black/40 p-3 z-50 animate-[fadeIn_0.15s_ease-out]"
         >
           <div class="flex items-center gap-2">
             <button
               (click)="decreaseZoom()"
-              class="flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+              class="flex items-center justify-center w-12 h-12 rounded-xl bg-line-soft text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
             >
               <lib-icon name="minus" class="text-[1.375rem]" />
             </button>
-            <span class="text-sm font-bold text-gray-700 dark:text-gray-200 w-14 text-center select-none"
+            <span class="text-sm font-bold text-ink w-14 text-center select-none"
               >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
             >
             <button
               (click)="increaseZoom()"
-              class="flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+              class="flex items-center justify-center w-12 h-12 rounded-xl bg-line-soft text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
             >
               <lib-icon name="plus" class="text-[1.375rem]" />
             </button>
@@ -58,16 +57,16 @@
     <div class="hidden md:flex items-center gap-1.5">
       <button
         (click)="decreaseZoom()"
-        class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
+        class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line-soft active:scale-95 transition-all"
       >
         <lib-icon name="minus" class="text-[1.125rem]" />
       </button>
-      <span class="text-xs font-bold text-gray-500 dark:text-gray-400 w-10 text-center select-none tabular-nums"
+      <span class="text-xs font-bold text-ink-muted w-10 text-center select-none tabular-nums"
         >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
       >
       <button
         (click)="increaseZoom()"
-        class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all"
+        class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line-soft active:scale-95 transition-all"
       >
         <lib-icon name="plus" class="text-[1.125rem]" />
       </button>
@@ -93,13 +92,13 @@
   <main class="flex-1 overflow-x-auto overflow-y-hidden p-6 relative">
     @if (sortedOrders().length === 0) {
       <div
-        class="absolute inset-0 flex flex-col items-center justify-center text-gray-300 select-none pointer-events-none"
+        class="absolute inset-0 flex flex-col items-center justify-center text-line-strong select-none pointer-events-none"
       >
         <lib-icon name="check-circle" class="text-[8rem] opacity-20 mb-4" />
-        <h2 class="text-3xl font-bold text-gray-400 dark:text-gray-500 opacity-60">
+        <h2 class="text-3xl font-bold text-ink-faint opacity-60">
           {{ 'ACTIVE_ORDERS.ALL_DONE' | translate }}
         </h2>
-        <p class="text-lg text-gray-400 dark:text-gray-500 opacity-50 mt-2">
+        <p class="text-lg text-ink-faint opacity-50 mt-2">
           {{ 'ACTIVE_ORDERS.NO_OPEN_ORDERS' | translate }}
         </p>
       </div>
@@ -112,7 +111,7 @@
             <!-- ── Aktions-Schaltflächen (über der Karte, schwebend) ── -->
             <div class="flex-none flex items-center gap-2 px-4">
               <button
-                class="pnry-touch hover-morph-btn flex items-center justify-center bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 w-12 h-12 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                class="pnry-touch hover-morph-btn flex items-center justify-center bg-surface-elevated text-ink-muted dark:text-ink w-12 h-12 rounded-xl border border-line hover:bg-line-soft transition-colors shadow-sm"
                 (click)="printOrder($event, order)"
               >
                 <lib-icon name="printer" class="text-[1.25rem]" />
@@ -136,39 +135,39 @@
               (keydown.enter)="toggleSelection(order._id)"
               tabindex="0"
               role="button"
-              class="flex flex-col w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden relative transition-colors hover:border-gray-300 dark:hover:border-gray-700 cursor-pointer"
+              class="flex flex-col w-full bg-surface-input border border-line-soft rounded-2xl overflow-hidden relative transition-colors hover:border-line-strong cursor-pointer"
               [class.split-highlight]="isHighlighted(order._id)"
               [style.max-height]="cardMaxHeight()"
             >
               <!-- Selection Overlay -->
               @if (selectedOrderId() === order._id) {
                 <div
-                  class="absolute inset-0 bg-white dark:bg-gray-900 z-20 flex flex-col items-center justify-center fade-in px-5 py-4 gap-3 overflow-y-auto"
+                  class="absolute inset-0 bg-surface-input z-20 flex flex-col items-center justify-center fade-in px-5 py-4 gap-3 overflow-y-auto"
                 >
                   @if (overlayView() === 'actions') {
                     <!-- ── Aktions-Ansicht ─────────────────────── -->
 
                     <!-- Close button — rund, Icon only -->
                     <button
-                      class="w-13 h-13 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                      class="w-13 h-13 rounded-full bg-line-soft text-ink-muted border border-line flex items-center justify-center hover:bg-line hover:text-ink transition-colors"
                       (click)="toggleSelection(order._id); $event.stopPropagation()"
                     >
                       <lib-icon name="x" class="text-[1.375rem]" />
                     </button>
 
                     <!-- Separator -->
-                    <div class="w-3/5 h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+                    <div class="w-3/5 h-px bg-line my-1"></div>
 
                     <!-- Action buttons -->
                     <button
-                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex items-center gap-3 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                       (click)="openStaffMealView(); $event.stopPropagation()"
                     >
-                      <lib-icon name="hamburger" class="text-[1.375rem] text-gray-800 dark:text-gray-200" />
+                      <lib-icon name="hamburger" class="text-[1.375rem] text-ink" />
                       <span class="text-sm font-bold">{{ 'ACTIVE_ORDERS.STAFF_MEAL' | translate }}</span>
                     </button>
                     <button
-                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex items-center gap-3 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                       (click)="cancelOrder(order); $event.stopPropagation()"
                     >
                       <lib-icon name="x-circle" class="text-[1.375rem] text-red-400" />
@@ -176,26 +175,26 @@
                     </button>
                     @if (splitEnabled()) {
                       <button
-                        class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex items-center gap-3 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                        class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                         data-testid="split-order"
                         (click)="openSplit(order); $event.stopPropagation()"
                       >
-                        <lib-icon name="arrows-split" class="text-[1.375rem] text-gray-800 dark:text-gray-200" />
+                        <lib-icon name="arrows-split" class="text-[1.375rem] text-ink" />
                         <span class="text-sm font-bold">{{ 'ACTIVE_ORDERS.SPLIT' | translate }}</span>
                       </button>
                     }
                     <button
-                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex items-center gap-3 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                       (click)="enterDiscount(); $event.stopPropagation()"
                     >
-                      <lib-icon name="percent" class="text-[1.375rem] text-gray-800 dark:text-gray-200" />
+                      <lib-icon name="percent" class="text-[1.375rem] text-ink" />
                       <span class="text-sm font-bold">{{ 'ACTIVE_ORDERS.DISCOUNT' | translate }}</span>
                     </button>
                     <button
-                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex items-center gap-3 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                       (click)="recordCorporateOrder(); $event.stopPropagation()"
                     >
-                      <lib-icon name="buildings" class="text-[1.375rem] text-gray-800 dark:text-gray-200" />
+                      <lib-icon name="buildings" class="text-[1.375rem] text-ink" />
                       <span class="text-sm font-bold">{{ 'ACTIVE_ORDERS.COMPANY' | translate }}</span>
                     </button>
                   } @else if (overlayView() === 'staff-meal') {
@@ -210,18 +209,16 @@
                       (keydown.enter)="$event.stopPropagation()"
                     >
                       <button
-                        class="w-13 h-13 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0"
+                        class="w-13 h-13 rounded-full bg-line-soft text-ink-muted border border-line flex items-center justify-center hover:bg-line hover:text-ink transition-colors shrink-0"
                         (click)="backToActions(); $event.stopPropagation()"
                       >
                         <lib-icon name="arrow-left" class="text-[1.375rem]" />
                       </button>
-                      <span class="text-sm font-bold text-gray-700 dark:text-gray-200">{{
-                        'ACTIVE_ORDERS.STAFF_MEAL' | translate
-                      }}</span>
+                      <span class="text-sm font-bold text-ink">{{ 'ACTIVE_ORDERS.STAFF_MEAL' | translate }}</span>
                     </div>
 
                     <!-- Separator -->
-                    <div class="w-3/5 h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+                    <div class="w-3/5 h-px bg-line my-1"></div>
 
                     <!-- Ladezustand -->
                     @if (staffUsersLoading()) {
@@ -237,7 +234,7 @@
                     } @else if (staffEligibleUsers().length === 0) {
                       <!-- Leerzustand -->
                       <div
-                        class="flex flex-col items-center gap-1 py-3 text-gray-400"
+                        class="flex flex-col items-center gap-1 py-3 text-ink-faint"
                         tabindex="0"
                         role="button"
                         (click)="$event.stopPropagation()"
@@ -250,7 +247,7 @@
                       <!-- Mitarbeiterliste -->
                       @for (user of staffEligibleUsers(); track user._id) {
                         <button
-                          class="w-4/5 min-h-14 px-3 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex items-center gap-3 border border-gray-200 dark:border-gray-700 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors"
+                          class="w-4/5 min-h-14 px-3 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors"
                           (click)="applyStaffMeal(order, user); $event.stopPropagation()"
                         >
                           <!-- Initialen-Avatar -->
@@ -275,17 +272,15 @@
                       (keydown.enter)="$event.stopPropagation()"
                     >
                       <button
-                        class="w-13 h-13 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0"
+                        class="w-13 h-13 rounded-full bg-line-soft text-ink-muted border border-line flex items-center justify-center hover:bg-line hover:text-ink transition-colors shrink-0"
                         (click)="backToActions(); $event.stopPropagation()"
                       >
                         <lib-icon name="arrow-left" class="text-[1.375rem]" />
                       </button>
-                      <span class="text-sm font-bold text-gray-700 dark:text-gray-200">{{
-                        'ACTIVE_ORDERS.DISCOUNT' | translate
-                      }}</span>
+                      <span class="text-sm font-bold text-ink">{{ 'ACTIVE_ORDERS.DISCOUNT' | translate }}</span>
                     </div>
 
-                    <div class="w-3/5 h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+                    <div class="w-3/5 h-px bg-line my-1"></div>
 
                     <div
                       class="grid grid-cols-2 gap-2 w-4/5"
@@ -296,14 +291,14 @@
                     >
                       @for (discount of selectableDiscounts(); track discount._id) {
                         <button
-                          class="min-h-14 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex flex-col items-center justify-center border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                          class="min-h-14 rounded-xl bg-surface-elevated text-ink flex flex-col items-center justify-center border border-line hover:bg-line-soft hover:border-line-strong transition-colors"
                           (click)="applyDiscount(order, discount)"
                         >
                           <span class="text-sm font-bold truncate max-w-full px-2">{{ discount.name }}</span>
                           <span class="text-lg font-black">{{ formatDiscountValue(discount) }}</span>
                         </button>
                       } @empty {
-                        <p class="col-span-2 text-center text-sm text-gray-500 dark:text-gray-400 py-4">
+                        <p class="col-span-2 text-center text-sm text-ink-muted py-4">
                           {{ 'ACTIVE_ORDERS.NO_DISCOUNTS' | translate }}
                         </p>
                       }
@@ -319,17 +314,15 @@
                       (keydown.enter)="$event.stopPropagation()"
                     >
                       <button
-                        class="w-13 h-13 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0"
+                        class="w-13 h-13 rounded-full bg-line-soft text-ink-muted border border-line flex items-center justify-center hover:bg-line hover:text-ink transition-colors shrink-0"
                         (click)="backToActions(); $event.stopPropagation()"
                       >
                         <lib-icon name="arrow-left" class="text-[1.375rem]" />
                       </button>
-                      <span class="text-sm font-bold text-gray-700 dark:text-gray-200">{{
-                        'ACTIVE_ORDERS.COMPANY' | translate
-                      }}</span>
+                      <span class="text-sm font-bold text-ink">{{ 'ACTIVE_ORDERS.COMPANY' | translate }}</span>
                     </div>
 
-                    <div class="w-3/5 h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+                    <div class="w-3/5 h-px bg-line my-1"></div>
 
                     @if (corporateCustomersLoading()) {
                       <div
@@ -343,7 +336,7 @@
                       </div>
                     } @else if (corporateCustomers().length === 0) {
                       <div
-                        class="flex flex-col items-center gap-1 py-3 text-gray-400"
+                        class="flex flex-col items-center gap-1 py-3 text-ink-faint"
                         tabindex="0"
                         role="button"
                         (click)="$event.stopPropagation()"
@@ -357,7 +350,7 @@
                     } @else {
                       @for (customer of corporateCustomers(); track customer._id) {
                         <button
-                          class="w-4/5 min-h-14 px-3 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex items-center gap-3 border border-gray-200 dark:border-gray-700 hover:bg-orange-50 dark:hover:bg-orange-950 hover:border-orange-200 dark:hover:border-orange-800 transition-colors"
+                          class="w-4/5 min-h-14 px-3 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-orange-50 dark:hover:bg-orange-950 hover:border-orange-200 dark:hover:border-orange-800 transition-colors"
                           (click)="applyCorporateCustomer(order, customer); $event.stopPropagation()"
                         >
                           <div
@@ -368,7 +361,9 @@
                           <div class="flex flex-col items-start truncate">
                             <span class="text-sm font-bold truncate">{{ customer.name1 }}</span>
                             @if (customer.discountDetails) {
-                              <span class="text-[0.625rem] text-gray-400">{{ formatCorporateDiscount(customer) }}</span>
+                              <span class="text-[0.625rem] text-ink-faint">{{
+                                formatCorporateDiscount(customer)
+                              }}</span>
                             }
                           </div>
                         </button>
@@ -404,20 +399,16 @@
                 }
 
                 <!-- ── Receipt Header ───────── -->
-                <div class="px-6 pt-4 pb-3 text-center bg-white dark:bg-gray-950">
+                <div class="px-6 pt-4 pb-3 text-center bg-surface-input">
                   <div class="flex justify-between items-start mb-1">
-                    <span class="text-xs font-bold text-gray-400 dark:text-gray-500">#{{ order._id.slice(-4) }}</span>
+                    <span class="text-xs font-bold text-ink-faint">#{{ order._id.slice(-4) }}</span>
                     <div class="flex flex-col items-end">
-                      <span class="text-xs font-bold text-gray-500 dark:text-gray-400">{{
-                        order.recordingDate | date: 'HH:mm'
-                      }}</span>
-                      <span class="text-[0.625rem] text-gray-400 dark:text-gray-500">{{
-                        'COMMON.CLOCK' | translate
-                      }}</span>
+                      <span class="text-xs font-bold text-ink-muted">{{ order.recordingDate | date: 'HH:mm' }}</span>
+                      <span class="text-[0.625rem] text-ink-faint">{{ 'COMMON.CLOCK' | translate }}</span>
                     </div>
                   </div>
 
-                  <h2 class="text-4xl font-black text-gray-800 dark:text-white my-1">
+                  <h2 class="text-4xl font-black text-ink my-1">
                     {{ order.dailySequenceNumber }}
                   </h2>
 
@@ -438,9 +429,7 @@
                       </span>
                     }
                     @if (order.table) {
-                      <span
-                        class="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded text-xs font-bold"
-                      >
+                      <span class="bg-line-soft text-ink-muted dark:text-ink px-2 py-0.5 rounded text-xs font-bold">
                         T{{ order.table }}
                       </span>
                     } @else if (order.settlementScope) {
@@ -452,7 +441,7 @@
                         auch eine Thekenbestellung einen Wert traegt.
                       -->
                       <span
-                        class="max-w-[9rem] truncate bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded text-xs font-mono"
+                        class="max-w-[9rem] truncate bg-line-soft text-ink-muted px-2 py-0.5 rounded text-xs font-mono"
                         [title]="('ACTIVE_ORDERS.SETTLEMENT_SCOPE' | translate) + ': ' + order.settlementScope"
                       >
                         {{ order.settlementScope }}
@@ -509,14 +498,12 @@
                         <div class="flex gap-2">
                           <span class="font-bold w-8 shrink-0">{{ item.amount }}x</span>
                           <div class="flex flex-col">
-                            <span class="text-gray-700 dark:text-gray-200">{{ item.name }}</span>
+                            <span class="text-ink">{{ item.name }}</span>
 
                             <!-- Extras -->
                             @if (line.modifiers.length > 0) {
                               @for (extra of line.modifiers; track extra.id) {
-                                <div
-                                  class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5"
-                                >
+                                <div class="text-xs text-ink-muted pl-2 flex items-center justify-between gap-2 mt-0.5">
                                   <span class="flex items-center gap-1"
                                     >+ {{ extra.name }}
                                     @if (extra.icon) {
@@ -543,8 +530,8 @@
 
                     <!-- Combinations (Grouped Items) -->
                     @if (vm.combinations.length > 0) {
-                      <div class="border-t border-dashed border-gray-200 dark:border-gray-700 my-1 pt-2">
-                        <span class="text-[0.625rem] font-bold text-gray-400 uppercase tracking-wider mb-2 block">{{
+                      <div class="border-t border-dashed border-line my-1 pt-2">
+                        <span class="text-[0.625rem] font-bold text-ink-faint uppercase tracking-wider mb-2 block">{{
                           'ACTIVE_ORDERS.COMBINATIONS' | translate
                         }}</span>
                         @for (combo of vm.combinations; track $index) {
@@ -561,11 +548,11 @@
                                   <div class="flex gap-2">
                                     <span class="font-bold w-4 text-xs">{{ item.amount }}x</span>
                                     <div class="flex flex-col">
-                                      <span class="text-gray-700 dark:text-gray-200 text-sm">{{ item.name }}</span>
+                                      <span class="text-ink text-sm">{{ item.name }}</span>
                                       @if (line.modifiers.length > 0) {
                                         @for (extra of line.modifiers; track extra.id) {
                                           <div
-                                            class="text-[0.625rem] text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2"
+                                            class="text-[0.625rem] text-ink-muted pl-2 flex items-center justify-between gap-2"
                                           >
                                             <span
                                               >+ {{ extra.name }}
@@ -617,24 +604,22 @@
                 <div class="receipt-tear-line"></div>
 
                 <!-- ── BOTTOM: Nur Gesamtbetrag ───────────────────── -->
-                <div class="bg-white dark:bg-gray-950 px-6 py-4 rounded-b-2xl">
+                <div class="bg-surface-input px-6 py-4 rounded-b-2xl">
                   <div class="flex justify-between items-center">
                     @if (order.staffPaymentInfo) {
                       <!-- Personalessen: bewusst KEIN Betrag. Die Rabattsätze sind pro
                        Mitarbeiter unterschiedlich und sollen am Terminal nicht
                        ablesbar/vergleichbar sein. Der Betrag steht im Admin und
                        beim Abschluss. -->
-                      <span class="font-bold text-gray-500 dark:text-gray-400 uppercase text-xs">{{
+                      <span class="font-bold text-ink-muted uppercase text-xs">{{
                         'ACTIVE_ORDERS.STAFF_MEAL' | translate
                       }}</span>
                       <span class="text-sm font-bold text-purple-600 dark:text-purple-400">{{
                         'ACTIVE_ORDERS.STAFF_MEAL_DISCOUNT_NOTE' | translate
                       }}</span>
                     } @else {
-                      <span class="font-bold text-gray-500 dark:text-gray-400 uppercase text-xs">{{
-                        'COMMON.TOTAL' | translate
-                      }}</span>
-                      <span class="text-xl font-black text-gray-800 dark:text-white">{{ vm.totalFormatted }}</span>
+                      <span class="font-bold text-ink-muted uppercase text-xs">{{ 'COMMON.TOTAL' | translate }}</span>
+                      <span class="text-xl font-black text-ink">{{ vm.totalFormatted }}</span>
                     }
                   </div>
                 </div>
@@ -654,7 +639,7 @@
 <ng-template #menuParts let-line>
   @if (line.item.isMenu) {
     @if (line.item.menuSideDish) {
-      <div class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5">
+      <div class="text-xs text-ink-muted pl-2 flex items-center justify-between gap-2 mt-0.5">
         <div class="flex items-center gap-1">
           <lib-icon name="fork-knife" class="text-[0.75rem] -ml-1" />
           <span>{{ line.item.menuSideDish.name }}</span>
@@ -665,7 +650,7 @@
       </div>
     }
     @if (line.item.menuDrink) {
-      <div class="text-xs text-gray-500 dark:text-gray-400 pl-2 flex items-center justify-between gap-2 mt-0.5">
+      <div class="text-xs text-ink-muted pl-2 flex items-center justify-between gap-2 mt-0.5">
         <div class="flex items-center gap-1">
           <lib-icon name="coffee" class="text-[0.75rem] -ml-1" />
           <span>{{ line.item.menuDrink.name }}</span>

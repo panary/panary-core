@@ -13,24 +13,24 @@ import { IconComponent } from '@panary/shared/ui-common'
     }
   `,
   template: `
-    <div class="flex flex-col h-full bg-white dark:bg-gray-950 select-none">
+    <div class="flex flex-col h-full bg-surface-input select-none">
       <div class="flex items-center justify-between p-2 mb-2">
         <button
           (click)="prevMonth()"
-          class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-line-soft transition-colors"
         >
           <lib-icon name="caret-left" />
         </button>
-        <span class="text-lg font-bold text-gray-800 dark:text-white">{{ monthLabel() }}</span>
+        <span class="text-lg font-bold text-ink">{{ monthLabel() }}</span>
         <button
           (click)="nextMonth()"
-          class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          class="w-12 h-12 rounded-xl flex items-center justify-center hover:bg-line-soft transition-colors"
         >
           <lib-icon name="caret-right" />
         </button>
       </div>
 
-      <div class="grid grid-cols-7 mb-2 text-center text-gray-500 dark:text-gray-400 font-bold text-sm">
+      <div class="grid grid-cols-7 mb-2 text-center text-ink-muted font-bold text-sm">
         @for (day of weekDays; track day) {
           <div class="py-1">{{ day }}</div>
         }
@@ -41,20 +41,13 @@ import { IconComponent } from '@panary/shared/ui-common'
           @if (date) {
             <button
               class="w-10 h-10 flex items-center justify-center rounded-full font-medium text-sm transition-all active:scale-90 mx-auto"
-              [class.bg-gray-800]="isSelected(date)"
-              [class.dark:bg-white]="isSelected(date)"
-              [class.text-white]="isSelected(date)"
-              [class.dark:text-gray-900]="isSelected(date)"
-              [class.bg-gray-100]="!isSelected(date) && !isDisabled(date)"
-              [class.dark:bg-gray-800]="!isSelected(date) && !isDisabled(date)"
-              [class.text-gray-700]="!isSelected(date) && !isDisabled(date)"
-              [class.dark:text-gray-200]="!isSelected(date) && !isDisabled(date)"
-              [class.hover:bg-gray-200]="!isSelected(date) && !isDisabled(date)"
-              [class.dark:hover:bg-gray-700]="!isSelected(date) && !isDisabled(date)"
-              [class.text-gray-300]="isDisabled(date)"
-              [class.dark:text-gray-600]="isDisabled(date)"
-              [class.bg-gray-50]="isDisabled(date)"
-              [class.dark:bg-gray-900]="isDisabled(date)"
+              [class.bg-ink]="isSelected(date)"
+              [class.text-surface-panel]="isSelected(date)"
+              [class.bg-line-soft]="!isSelected(date) && !isDisabled(date)"
+              [class.text-ink]="!isSelected(date) && !isDisabled(date)"
+              [class.hover:bg-line]="!isSelected(date) && !isDisabled(date)"
+              [class.text-line-strong]="isDisabled(date)"
+              [class.bg-surface-bg]="isDisabled(date)"
               [class.cursor-not-allowed]="isDisabled(date)"
               [disabled]="isDisabled(date)"
               (click)="selectDate(date)"

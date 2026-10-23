@@ -8,12 +8,12 @@ import { IconComponent } from '@panary/shared/ui-common'
   imports: [IconComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-gray-50 dark:bg-gray-950 p-2 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
+    <div class="bg-surface-bg p-2 rounded-xl shadow-xl border border-line">
       @if (layout() === 'numeric') {
         <div class="grid grid-cols-3 gap-2">
           @for (key of numericKeys; track key) {
             <button
-              class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-gray-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-gray-50 dark:active:bg-gray-700 dark:text-white transition-all"
+              class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-bg dark:active:bg-line dark:text-white transition-all"
               (click)="onKey(key)"
             >
               {{ key }}
@@ -26,7 +26,7 @@ import { IconComponent } from '@panary/shared/ui-common'
             <lib-icon name="backspace" />
           </button>
           <button
-            class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-gray-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-gray-50 dark:active:bg-gray-700 dark:text-white transition-all"
+            class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-bg dark:active:bg-line dark:text-white transition-all"
             (click)="onKey('0')"
           >
             0
@@ -44,7 +44,7 @@ import { IconComponent } from '@panary/shared/ui-common'
             <div class="flex justify-center gap-1">
               @for (key of row; track key) {
                 <button
-                  class="pnry-touch key w-12 h-14 text-xl rounded-lg bg-white dark:bg-gray-800 shadow-sm border-b-2 border-gray-200 dark:border-gray-600 font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-gray-50 dark:active:bg-gray-700 dark:text-white transition-all"
+                  class="pnry-touch key w-12 h-14 text-xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-bg dark:active:bg-line dark:text-white transition-all"
                   (click)="onKey(key)"
                 >
                   {{ key }}
@@ -54,7 +54,7 @@ import { IconComponent } from '@panary/shared/ui-common'
           }
           <div class="flex justify-center gap-2 mt-1">
             <button
-              class="pnry-touch key w-32 h-12 text-xl rounded-lg shadow-sm border-b-2 border-gray-200 font-bold active:border-b-0 active:translate-y-[0.125rem] transition-all bg-gray-100 dark:bg-gray-700 dark:text-white"
+              class="pnry-touch key w-32 h-12 text-xl rounded-lg shadow-sm border-b-2 border-line font-bold active:border-b-0 active:translate-y-[0.125rem] transition-all bg-line-soft dark:text-white"
               (click)="onKey(' ')"
             >
               SPACE

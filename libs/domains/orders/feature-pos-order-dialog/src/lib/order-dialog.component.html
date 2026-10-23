@@ -134,9 +134,7 @@
       }
 
       @for (combination of combinations; track combination[0].bundleNumber; let i = $index) {
-        <div
-          class="rounded-xl mt-2 border border-gray-200 dark:border-gray-700 mx-1 overflow-hidden transition-colors duration-200"
-        >
+        <div class="rounded-xl mt-2 border border-line mx-1 overflow-hidden transition-colors duration-200">
           <!-- Kombinations-Header: reines Klickziel für die ganze Kombination (ADR 0034 P1). Menge,
                    Lösen und Löschen sitzen in der Steuerleiste darunter (core#829). -->
           <div
@@ -144,15 +142,13 @@
             [ngClass]="
               selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === null
                 ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-200'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                : 'bg-line text-ink-muted dark:text-ink hover:bg-line-strong'
             "
             (click)="toggleCombinationSelection(i)"
           >
             <span>{{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }} {{ i + 1 }}</span>
             <span class="flex-1"></span>
-            <span class="font-bold text-gray-700 dark:text-gray-200 text-base">{{
-              calculateCombinationPrice(combination) | eur
-            }}</span>
+            <span class="font-bold text-ink text-base">{{ calculateCombinationPrice(combination) | eur }}</span>
           </div>
           @if (selectedCombinationIndex[0] === i && selectedCombinationIndex[1] === null) {
             <ng-container [ngTemplateOutlet]="steuerleiste" />
@@ -174,21 +170,19 @@
                 <div class="flex items-center gap-2 w-full" [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'">
                   <!-- Menge nur als Text — die Zeile ist ein einziges Klickziel (ADR 0034) -->
                   <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
-                  <span class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-sm shrink-0">
+                  <span class="font-bold text-ink min-w-[2rem] text-right text-sm shrink-0">
                     @if (lineItem.amount > 1) {
                       {{ lineItem.amount }}×
                     }
                   </span>
 
-                  <span
-                    class="text-[0.9375rem] font-medium text-gray-800 dark:text-gray-200 flex-1 truncate leading-tight"
-                  >
+                  <span class="text-[0.9375rem] font-medium text-ink flex-1 truncate leading-tight">
                     {{ lineItem.name }}
                   </span>
 
-                  <span class="text-[0.9375rem] font-bold text-gray-900 dark:text-white shrink-0">
+                  <span class="text-[0.9375rem] font-bold text-ink shrink-0">
                     @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
-                      <span class="text-xs text-gray-400 line-through mr-1">{{
+                      <span class="text-xs text-ink-faint line-through mr-1">{{
                         calculateArticlePriceWithoutExtras(lineItem) | eur
                       }}</span>
                     }
@@ -204,7 +198,7 @@
 
                 @if (lineItem.isMenu) {
                   <div
-                    class="flex flex-col gap-0.5 text-xs text-gray-500 ml-[2.5rem] mt-0.5"
+                    class="flex flex-col gap-0.5 text-xs text-ink-muted ml-[2.5rem] mt-0.5"
                     [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
                   >
                     <div class="flex justify-between">
@@ -228,7 +222,7 @@
 
                 @for (extra of lineItem.modifiers; track extra._id) {
                   <div
-                    class="flex justify-between text-xs text-gray-500 ml-[2.5rem]"
+                    class="flex justify-between text-xs text-ink-muted ml-[2.5rem]"
                     [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
                   >
                     @if (isRemovedIngredient(extra)) {
@@ -243,7 +237,7 @@
                           {{ comboExtraAmount }}x
                         }
                         @if (extra.amount < 0) {
-                          <span class="italic text-gray-400">ohne</span>
+                          <span class="italic text-ink-faint">ohne</span>
                         }
                         {{ extra.name }}
                       </span>
@@ -282,9 +276,7 @@
                        Steuerleiste darunter — ein Fehlklick beim Auswählen kann die Menge nicht
                        verändern (ADR 0034 P1, core#829). -->
               <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
-              <span
-                class="font-bold text-gray-700 dark:text-gray-300 min-w-[2rem] text-right text-[0.9375rem] shrink-0 leading-tight"
-              >
+              <span class="font-bold text-ink min-w-[2rem] text-right text-[0.9375rem] shrink-0 leading-tight">
                 @if (lineItem.amount > 1) {
                   {{ lineItem.amount }}×
                 }
@@ -293,7 +285,7 @@
               <!-- Item Details -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline justify-between gap-2">
-                  <div class="font-medium text-gray-800 dark:text-gray-200 text-[0.9375rem] leading-tight">
+                  <div class="font-medium text-ink text-[0.9375rem] leading-tight">
                     {{ lineItem.name }}
                     @if (isCustomizeLine(lineItem)) {
                       <span class="block text-xs font-semibold text-accent-ink" data-testid="line-customizing">{{
@@ -301,9 +293,9 @@
                       }}</span>
                     }
                   </div>
-                  <div class="text-[0.9375rem] font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                  <div class="text-[0.9375rem] font-bold text-ink whitespace-nowrap">
                     @if (calculateArticlePriceWithoutExtras(lineItem) !== calculateArticlePrice(lineItem)) {
-                      <span class="text-xs text-gray-400 line-through mr-1">{{
+                      <span class="text-xs text-ink-faint line-through mr-1">{{
                         calculateArticlePriceWithoutExtras(lineItem) | eur
                       }}</span>
                     }
@@ -336,7 +328,7 @@
 
                 @if (lineItem.isMenu) {
                   <div
-                    class="mt-1 flex flex-col gap-0.5 text-xs text-gray-500"
+                    class="mt-1 flex flex-col gap-0.5 text-xs text-ink-muted"
                     [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
                   >
                     <div class="flex justify-between">
@@ -359,28 +351,26 @@
                 }
 
                 @if (lineItem.modifiers.length > 0) {
-                  <div
-                    class="mt-1.5 pt-1.5 border-t border-dashed border-gray-200 dark:border-gray-700 flex flex-col gap-0.5"
-                  >
+                  <div class="mt-1.5 pt-1.5 border-t border-dashed border-line flex flex-col gap-0.5">
                     @for (extra of lineItem.modifiers; track extra._id) {
-                      <div class="flex justify-between items-center text-xs text-gray-500">
+                      <div class="flex justify-between items-center text-xs text-ink-muted">
                         <span class="flex items-center gap-1">
                           @if (isRemovedIngredient(extra)) {
                             <span
                               class="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
                               >ohne</span
                             >
-                            <span class="line-through text-gray-400">{{ removedIngredientName(extra) }}</span>
+                            <span class="line-through text-ink-faint">{{ removedIngredientName(extra) }}</span>
                           } @else if (extra.amount < 0) {
                             <span
-                              class="bg-gray-800 text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
+                              class="bg-shell text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
                               >ohne</span
                             >
                           } @else if (modifierDisplayAmount(lineItem, extra) > 1) {
-                            <span class="text-gray-400">{{ modifierDisplayAmount(lineItem, extra) }}x</span>
+                            <span class="text-ink-faint">{{ modifierDisplayAmount(lineItem, extra) }}x</span>
                           }
                           @if (!isRemovedIngredient(extra)) {
-                            <span [class.line-through]="extra.amount < 0" [class.text-gray-400]="extra.amount < 0">{{
+                            <span [class.line-through]="extra.amount < 0" [class.text-ink-faint]="extra.amount < 0">{{
                               extra.name
                             }}</span>
                           }
@@ -389,9 +379,9 @@
                           }
                         </span>
                         @if (isRemovedIngredient(extra) && extra.price !== 0) {
-                          <span class="text-gray-500 font-medium">{{ modifierAmount(lineItem, extra) | eur }}</span>
+                          <span class="text-ink-muted font-medium">{{ modifierAmount(lineItem, extra) | eur }}</span>
                         } @else if (extra.amount > 0 && extra.price > 0) {
-                          <span class="text-gray-500 font-medium">+{{ modifierAmount(lineItem, extra) | eur }}</span>
+                          <span class="text-ink-muted font-medium">+{{ modifierAmount(lineItem, extra) | eur }}</span>
                         }
                       </div>
                     }
@@ -407,12 +397,12 @@
       }
 
       @if (lineItems.length === 0 && combinations.length === 0) {
-        <div class="h-full flex flex-col justify-center items-center text-gray-300">
+        <div class="h-full flex flex-col justify-center items-center text-line-strong">
           <lib-icon name="shopping-cart" class="mb-4" style="font-size: 4rem; color: #cbd5e1" />
-          <h3 class="font-medium text-lg text-gray-400 dark:text-gray-500">
+          <h3 class="font-medium text-lg text-ink-faint">
             {{ 'ORDER_DIALOG.EMPTY_ORDER' | translate }}
           </h3>
-          <p class="text-sm text-gray-400 dark:text-gray-500">{{ 'ORDER_DIALOG.ADD_ITEMS' | translate }}</p>
+          <p class="text-sm text-ink-faint">{{ 'ORDER_DIALOG.ADD_ITEMS' | translate }}</p>
         </div>
       }
     </div>
@@ -422,16 +412,16 @@
       @if (selectedManualDiscount(); as md) {
         <div class="flex items-center gap-2 px-4 pt-2">
           <lib-icon name="tag" class="text-[1rem] text-amber-600 dark:text-amber-400" />
-          <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
+          <span class="text-xs font-semibold text-ink truncate flex-1">
             {{ md.name }}
-            <span class="text-gray-400 dark:text-gray-500"
+            <span class="text-ink-faint"
               >· {{ md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100 | eur) }}</span
             >
           </span>
           <button
             type="button"
             (click)="clearManualDiscount()"
-            class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-ink-faint hover:bg-line-soft active:scale-95"
           >
             <lib-icon name="x" class="text-[1rem]" />
           </button>
@@ -440,10 +430,10 @@
       @if (appliedCodeDiscount(); as cd) {
         <div class="flex items-center gap-2 px-4 pt-2">
           <lib-icon name="ticket" class="text-[1rem] text-amber-600 dark:text-amber-400" />
-          <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate flex-1">
+          <span class="text-xs font-semibold text-ink truncate flex-1">
             {{ cd.code }}
             @if (cd.discount; as d) {
-              <span class="text-gray-400 dark:text-gray-500"
+              <span class="text-ink-faint"
                 >· {{ d.name }} ·
                 {{
                   d.valueType === 'percent' || d.valueType === 'PERCENT'
@@ -457,7 +447,7 @@
             type="button"
             (click)="clearCodeDiscount()"
             aria-label="Rabattcode entfernen"
-            class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-ink-faint hover:bg-line-soft active:scale-95"
           >
             <lib-icon name="x" class="text-[1rem]" />
           </button>
@@ -575,25 +565,22 @@
             </button>
           }
           @if (functionBlockLabel) {
-            <div class="w-px self-stretch bg-gray-200 dark:bg-gray-700 mx-1"></div>
-            <span
-              class="self-center text-[0.625rem] tracking-widest uppercase font-semibold text-gray-400 dark:text-gray-500"
-              >{{ functionBlockLabel }}</span
-            >
+            <div class="w-px self-stretch bg-line mx-1"></div>
+            <span class="self-center text-[0.625rem] tracking-widest uppercase font-semibold text-ink-faint">{{
+              functionBlockLabel
+            }}</span>
           }
         </div>
-        <div class="h-px bg-gray-200 dark:bg-gray-700 mx-3 shrink-0"></div>
+        <div class="h-px bg-line mx-3 shrink-0"></div>
       }
 
       <!-- Firmenkunden-Auswahl -->
       @if (corporateCustomers.length > 0) {
-        <div
-          class="pt-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-t-2xl p-4 shadow-lg mx-2"
-        >
+        <div class="pt-2 border-t border-line bg-surface-input rounded-t-2xl p-4 shadow-lg mx-2">
           <div class="flex gap-2 overflow-x-auto pb-2 noscroll">
             @for (character of characters; track character) {
               <button
-                class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold shrink-0"
+                class="w-8 h-8 rounded-full bg-line-soft hover:bg-line text-ink text-xs font-bold shrink-0"
                 (click)="applyCharacterFilter(character)"
               >
                 {{ character }}
@@ -608,7 +595,7 @@
           <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 mt-2 max-h-48 overflow-y-auto">
             @for (customer of corporateCustomers; track customer) {
               <button
-                class="h-12 px-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium text-left truncate hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm"
+                class="h-12 px-4 bg-surface-elevated border border-line text-ink rounded-lg text-sm font-medium text-left truncate hover:bg-surface-bg dark:hover:bg-line hover:shadow-sm"
                 (click)="setCustomer(customer)"
               >
                 {{ customer.name1 }}
@@ -617,13 +604,13 @@
           </div>
           <div class="flex items-center justify-center gap-2 mt-2">
             <button
-              class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors"
+              class="w-8 h-8 rounded-lg bg-line-soft hover:bg-line text-ink-muted dark:text-ink flex items-center justify-center text-sm font-bold transition-colors"
             >
               ←
             </button>
-            <span class="text-xs text-gray-500">Seite 1 / 1</span>
+            <span class="text-xs text-ink-muted">Seite 1 / 1</span>
             <button
-              class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-sm font-bold transition-colors"
+              class="w-8 h-8 rounded-lg bg-line-soft hover:bg-line text-ink-muted dark:text-ink flex items-center justify-center text-sm font-bold transition-colors"
             >
               →
             </button>
@@ -842,15 +829,15 @@
       <!-- Backdrop -->
       <div class="fixed inset-0 z-40" (click)="showNumpadPopup = false"></div>
       <div class="kasse__numpad-popup absolute z-50 w-[12.25rem] bottom-[calc(100%-0.25rem)]">
-        <div class="bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-700 p-2.5 relative">
+        <div class="bg-surface-input rounded-2xl border border-line p-2.5 relative">
           <!-- Pfeil nach unten -->
           <div
-            class="kasse__numpad-arrow absolute -bottom-[0.4375rem] w-3.5 h-3.5 bg-white dark:bg-gray-950 border-r border-b border-gray-200 dark:border-gray-700 rotate-45"
+            class="kasse__numpad-arrow absolute -bottom-[0.4375rem] w-3.5 h-3.5 bg-surface-input border-r border-b border-line rotate-45"
           ></div>
           <div class="grid grid-cols-3 gap-1.5">
             @for (number of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track number) {
               <button
-                class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+                class="pnry-touch w-14 h-14 rounded-xl bg-line-soft font-bold text-lg text-ink hover:bg-line active:scale-95 transition-colors flex items-center justify-center"
                 (click)="numpadAction(number)"
                 [disabled]="sheetOpen()"
               >
@@ -858,21 +845,21 @@
               </button>
             }
             <button
-              class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
+              class="pnry-touch w-14 h-14 rounded-xl bg-line-soft font-bold text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-colors flex items-center justify-center"
               (click)="numpadReset()"
               [disabled]="sheetOpen()"
             >
               C
             </button>
             <button
-              class="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-lg text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+              class="w-14 h-14 rounded-xl bg-line-soft font-bold text-lg text-ink hover:bg-line active:scale-95 transition-colors flex items-center justify-center"
               (click)="numpadAction(0)"
               [disabled]="sheetOpen()"
             >
               0
             </button>
             <button
-              class="pnry-touch w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-black dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-colors flex items-center justify-center"
+              class="pnry-touch w-14 h-14 rounded-xl bg-line-soft font-bold text-ink hover:bg-line active:scale-95 transition-colors flex items-center justify-center"
               (click)="showNumpadPopup = false"
             >
               <lib-icon name="check" class="!text-[1.25rem]" />
@@ -946,53 +933,46 @@
   <!-- Blocking Overlay -->
   @if (showDineLocationSelection) {
     <div
-      class="absolute inset-0 z-[60] bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-8"
+      class="absolute inset-0 z-[60] bg-shell/50 backdrop-blur-sm flex items-center justify-center p-8"
       (click)="showDineLocationSelection = false"
     >
       <div
         (click)="$event.stopPropagation()"
-        class="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-row gap-4 items-center justify-center"
+        class="bg-surface-input rounded-xl border border-line p-6 flex flex-row gap-4 items-center justify-center"
       >
         <button
           (click)="selectDineLocation('INSIDE')"
-          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
+          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-surface-elevated border border-line hover:border-ink dark:hover:border-ink-faint hover:bg-line-soft active:scale-95 transition-all group"
         >
           <lib-icon
             name="fork-knife"
-            class="mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+            class="mb-1.5 text-ink-faint group-hover:text-ink transition-colors text-[2rem]"
           />
-          <span
-            class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
-            >Im Haus</span
-          >
+          <span class="text-sm font-semibold text-ink-muted dark:text-ink group-hover:text-ink">Im Haus</span>
         </button>
 
         <button
           (click)="selectDineLocation('OUTSIDE')"
-          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
+          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-surface-elevated border border-line hover:border-ink dark:hover:border-ink-faint hover:bg-line-soft active:scale-95 transition-all group"
         >
           <lib-icon
             name="shopping-bag"
-            class="mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+            class="mb-1.5 text-ink-faint group-hover:text-ink transition-colors text-[2rem]"
           />
-          <span
-            class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
-            >Außer Haus</span
-          >
+          <span class="text-sm font-semibold text-ink-muted dark:text-ink group-hover:text-ink">Außer Haus</span>
         </button>
 
         <button
           (click)="openPreOrderDialog()"
-          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-800 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-700 active:scale-95 transition-all group"
+          class="flex flex-col items-center justify-center w-32 h-24 rounded-xl bg-surface-elevated border border-line hover:border-ink dark:hover:border-ink-faint hover:bg-line-soft active:scale-95 transition-all group"
         >
           <lib-icon
             name="calendar-dots"
-            class="mb-1.5 text-gray-400 group-hover:text-gray-900 transition-colors text-[2rem]"
+            class="mb-1.5 text-ink-faint group-hover:text-ink transition-colors text-[2rem]"
           />
-          <span
-            class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
-            >{{ 'PRE_ORDERS.TITLE' | translate }}</span
-          >
+          <span class="text-sm font-semibold text-ink-muted dark:text-ink group-hover:text-ink">{{
+            'PRE_ORDERS.TITLE' | translate
+          }}</span>
         </button>
       </div>
     </div>
@@ -1000,15 +980,15 @@
 
   @if (blockingReason(); as reason) {
     <!-- Default POS Mode Overlay -->
-    <div class="absolute inset-0 z-50 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-8">
-      <div class="bg-white dark:bg-gray-950 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
+    <div class="absolute inset-0 z-50 bg-shell/80 backdrop-blur-sm flex items-center justify-center p-8">
+      <div class="bg-surface-input rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
         <div class="h-20 w-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <lib-icon name="prohibit" class="text-red-500" style="font-size: 2.5rem" />
         </div>
-        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+        <h2 class="text-2xl font-bold text-ink mb-2">
           {{ 'ORDER_DIALOG.ORDER_NOT_POSSIBLE' | translate }}
         </h2>
-        <p class="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+        <p class="text-ink-muted mb-8 leading-relaxed">
           {{ reason }}
         </p>
         <button

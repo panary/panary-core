@@ -38,15 +38,15 @@ import { IconComponent } from '@panary/shared/ui-common'
       role="dialog"
       aria-modal="true"
       aria-labelledby="pre-order-title"
-      class="flex flex-col w-full h-[38.75rem] bg-white dark:bg-gray-950 rounded-2xl overflow-hidden"
+      class="flex flex-col w-full h-[38.75rem] bg-surface-input rounded-2xl overflow-hidden"
     >
       <!-- HEADER (h-20) -->
       <div class="h-20 shrink-0 px-6 py-5 flex justify-between items-start">
         <div>
-          <h2 id="pre-order-title" class="text-lg font-bold text-gray-900 dark:text-white">
+          <h2 id="pre-order-title" class="text-lg font-bold text-ink">
             {{ stepLabels[currentStep()].label | translate }}
           </h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p class="text-sm text-ink-muted mt-0.5">
             @if (formattedDate()) {
               Vorbestellung für {{ formattedDate() }}
               @if (formattedTime()) {
@@ -60,8 +60,8 @@ import { IconComponent } from '@panary/shared/ui-common'
         <button
           (click)="close()"
           type="button"
-          class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
-                 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+          class="w-10 h-10 rounded-lg flex items-center justify-center text-ink-faint
+                 hover:bg-line-soft active:scale-95 transition-all"
         >
           <lib-icon name="x" class="text-[1.25rem]" />
         </button>
@@ -80,9 +80,7 @@ import { IconComponent } from '@panary/shared/ui-common'
               <!-- STEP 1: Zeitpunkt -->
               <div class="grid grid-cols-2 gap-4">
                 <!-- Kalender -->
-                <div
-                  class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden p-3"
-                >
+                <div class="bg-surface-elevated rounded-xl border border-line overflow-hidden p-3">
                   <app-touch-calendar
                     [selectedDate]="selectedDate()"
                     [closedDates]="closedDatesSet()"
@@ -91,17 +89,17 @@ import { IconComponent } from '@panary/shared/ui-common'
                 </div>
                 <!-- Scroll-Wheel-Zeitwahl -->
                 <div
-                  class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700
+                  class="bg-surface-elevated rounded-xl border border-line
                             flex flex-col items-center justify-center p-3"
                 >
-                  <span class="text-xs text-gray-400 dark:text-gray-500 mb-2">Uhrzeit wählen</span>
+                  <span class="text-xs text-ink-faint mb-2">Uhrzeit wählen</span>
                   <div class="flex items-center gap-3">
                     <app-scroll-wheel
                       [values]="availableHours()"
                       [selected]="selectedHour()"
                       (valueChange)="onHourChange($event)"
                     />
-                    <span class="text-2xl font-bold text-gray-800 dark:text-white">:</span>
+                    <span class="text-2xl font-bold text-ink">:</span>
                     <app-scroll-wheel
                       [values]="allMinutes"
                       [selected]="selectedMinute()"
@@ -115,27 +113,23 @@ import { IconComponent } from '@panary/shared/ui-common'
             @case (1) {
               <!-- STEP 2: Vor Ort / Abholung -->
               <div class="flex flex-col gap-4">
-                <p class="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Wo wird die Bestellung konsumiert?
-                </p>
+                <p class="text-base font-medium text-ink mb-2">Wo wird die Bestellung konsumiert?</p>
                 <!-- Im Haus -->
                 <button
                   type="button"
                   (click)="dineFormGroup.patchValue({ dineLocation: 'dine-in' })"
                   [class]="
                     dineFormGroup.get('dineLocation')?.value === 'dine-in'
-                      ? 'h-28 rounded-xl border-2 border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
-                      : 'h-28 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
+                      ? 'h-28 rounded-xl border-2 border-ink bg-surface-bg dark:bg-surface-elevated/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
+                      : 'h-28 rounded-xl border-2 border-line bg-surface-input hover:bg-surface-elevated dark:hover:bg-surface-elevated/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
                   "
                 >
-                  <div
-                    class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"
-                  >
-                    <lib-icon name="fork-knife" class="text-[1.75rem] text-gray-500 dark:text-gray-400" />
+                  <div class="h-16 w-16 rounded-lg bg-line-soft flex items-center justify-center shrink-0">
+                    <lib-icon name="fork-knife" class="text-[1.75rem] text-ink-muted" />
                   </div>
                   <div>
-                    <span class="text-lg font-semibold text-gray-900 dark:text-white block">Im Haus</span>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">Gast isst vor Ort am Tisch</span>
+                    <span class="text-lg font-semibold text-ink block">Im Haus</span>
+                    <span class="text-sm text-ink-muted">Gast isst vor Ort am Tisch</span>
                   </div>
                 </button>
                 <!-- Außer Haus -->
@@ -144,18 +138,16 @@ import { IconComponent } from '@panary/shared/ui-common'
                   (click)="dineFormGroup.patchValue({ dineLocation: 'take-out' })"
                   [class]="
                     dineFormGroup.get('dineLocation')?.value === 'take-out'
-                      ? 'h-28 rounded-xl border-2 border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
-                      : 'h-28 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
+                      ? 'h-28 rounded-xl border-2 border-ink bg-surface-bg dark:bg-surface-elevated/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
+                      : 'h-28 rounded-xl border-2 border-line bg-surface-input hover:bg-surface-elevated dark:hover:bg-surface-elevated/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
                   "
                 >
-                  <div
-                    class="h-16 w-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"
-                  >
-                    <lib-icon name="shopping-bag" class="text-[1.75rem] text-gray-500 dark:text-gray-400" />
+                  <div class="h-16 w-16 rounded-lg bg-line-soft flex items-center justify-center shrink-0">
+                    <lib-icon name="shopping-bag" class="text-[1.75rem] text-ink-muted" />
                   </div>
                   <div>
-                    <span class="text-lg font-semibold text-gray-900 dark:text-white block">Außer Haus</span>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">Kunde holt die Bestellung ab</span>
+                    <span class="text-lg font-semibold text-ink block">Außer Haus</span>
+                    <span class="text-sm text-ink-muted">Kunde holt die Bestellung ab</span>
                   </div>
                 </button>
               </div>
@@ -168,66 +160,52 @@ import { IconComponent } from '@panary/shared/ui-common'
                 <div class="grid grid-cols-2 gap-4">
                   <!-- Kundenname -->
                   <div>
-                    <label
-                      for="preorder-name"
-                      class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block"
-                    >
+                    <label for="preorder-name" class="text-sm font-medium text-ink mb-1.5 block">
                       {{ 'PRE_ORDERS.CUSTOMER_NAME' | translate }}
                     </label>
                     <div
                       id="preorder-name"
-                      class="h-12 px-3 bg-white dark:bg-gray-800 border rounded-lg flex items-center text-base
+                      class="h-12 px-3 bg-surface-elevated border rounded-lg flex items-center text-base
                              cursor-pointer dark:text-white transition-colors"
-                      [class.border-gray-900]="activeField() === 'name'"
-                      [class.dark:border-white]="activeField() === 'name'"
-                      [class.border-gray-200]="activeField() !== 'name'"
-                      [class.dark:border-gray-700]="activeField() !== 'name'"
+                      [class.border-ink]="activeField() === 'name'"
+                      [class.border-line]="activeField() !== 'name'"
                       [attr.aria-describedby]="'name-help'"
                       (click)="setActiveField('name')"
                     >
-                      <lib-icon name="user" class="text-gray-400 mr-2 text-[1.125rem]" />
-                      <span [class.text-gray-400]="!contactFormGroup.get('name')?.value">
+                      <lib-icon name="user" class="text-ink-faint mr-2 text-[1.125rem]" />
+                      <span [class.text-ink-faint]="!contactFormGroup.get('name')?.value">
                         {{ contactFormGroup.get('name')?.value || ('PRE_ORDER_DIALOG.ENTER_NAME' | translate) }}
                       </span>
                       @if (activeField() === 'name') {
-                        <div class="w-0.5 h-5 bg-gray-800 dark:bg-white animate-pulse ml-0.5"></div>
+                        <div class="w-0.5 h-5 bg-ink animate-pulse ml-0.5"></div>
                       }
                     </div>
-                    <p id="name-help" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Name für die Bestellabholung
-                    </p>
+                    <p id="name-help" class="text-xs text-ink-faint mt-1">Name für die Bestellabholung</p>
                   </div>
 
                   <!-- Telefonnummer -->
                   <div>
-                    <label
-                      for="preorder-phone"
-                      class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block"
-                    >
+                    <label for="preorder-phone" class="text-sm font-medium text-ink mb-1.5 block">
                       {{ 'PRE_ORDER_DIALOG.PHONE_NUMBER' | translate }}
                     </label>
                     <div
                       id="preorder-phone"
-                      class="h-12 px-3 bg-white dark:bg-gray-800 border rounded-lg flex items-center text-base
+                      class="h-12 px-3 bg-surface-elevated border rounded-lg flex items-center text-base
                              cursor-pointer dark:text-white transition-colors"
-                      [class.border-gray-900]="activeField() === 'phone'"
-                      [class.dark:border-white]="activeField() === 'phone'"
-                      [class.border-gray-200]="activeField() !== 'phone'"
-                      [class.dark:border-gray-700]="activeField() !== 'phone'"
+                      [class.border-ink]="activeField() === 'phone'"
+                      [class.border-line]="activeField() !== 'phone'"
                       [attr.aria-describedby]="'phone-help'"
                       (click)="setActiveField('phone')"
                     >
-                      <lib-icon name="phone" class="text-gray-400 mr-2 text-[1.125rem]" />
-                      <span [class.text-gray-400]="!contactFormGroup.get('phone')?.value">
+                      <lib-icon name="phone" class="text-ink-faint mr-2 text-[1.125rem]" />
+                      <span [class.text-ink-faint]="!contactFormGroup.get('phone')?.value">
                         {{ contactFormGroup.get('phone')?.value || ('PRE_ORDER_DIALOG.ENTER_PHONE' | translate) }}
                       </span>
                       @if (activeField() === 'phone') {
-                        <div class="w-0.5 h-5 bg-gray-800 dark:bg-white animate-pulse ml-0.5"></div>
+                        <div class="w-0.5 h-5 bg-ink animate-pulse ml-0.5"></div>
                       }
                     </div>
-                    <p id="phone-help" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Für Rückfragen bei der Bestellung
-                    </p>
+                    <p id="phone-help" class="text-xs text-ink-faint mt-1">Für Rückfragen bei der Bestellung</p>
                   </div>
                 </div>
 
@@ -259,15 +237,13 @@ import { IconComponent } from '@panary/shared/ui-common'
       </div>
 
       <!-- FOOTER (h-[4.5rem]) -->
-      <div
-        class="h-[4.5rem] shrink-0 border-t border-gray-200 dark:border-gray-700 px-6 flex items-center justify-between"
-      >
+      <div class="h-[4.5rem] shrink-0 border-t border-line px-6 flex items-center justify-between">
         @if (currentStep() > 0) {
           <button
             type="button"
             (click)="prevStep()"
-            class="h-11 px-5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300
-                   hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+            class="h-11 px-5 rounded-lg text-sm font-medium text-ink-muted dark:text-ink
+                   hover:bg-line-soft active:scale-95 transition-all"
           >
             Zurück
           </button>
@@ -275,7 +251,7 @@ import { IconComponent } from '@panary/shared/ui-common'
           <button
             type="button"
             disabled
-            class="h-11 px-5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300
+            class="h-11 px-5 rounded-lg text-sm font-medium text-ink-muted dark:text-ink
                    opacity-50 pointer-events-none"
           >
             Zurück
@@ -287,8 +263,8 @@ import { IconComponent } from '@panary/shared/ui-common'
             type="button"
             (click)="nextStep()"
             [disabled]="currentStep() === 0 ? dateFormGroup.invalid : dineFormGroup.invalid"
-            class="h-11 px-6 rounded-lg text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-black
-                   disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-200
+            class="h-11 px-6 rounded-lg text-sm font-bold bg-ink text-surface-panel
+                   disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ink/90
                    active:scale-95 transition-all"
           >
             Weiter
@@ -298,8 +274,8 @@ import { IconComponent } from '@panary/shared/ui-common'
             type="button"
             (click)="submit()"
             [disabled]="contactFormGroup.invalid"
-            class="h-11 px-6 rounded-lg text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-black
-                   disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 dark:hover:bg-gray-200
+            class="h-11 px-6 rounded-lg text-sm font-bold bg-ink text-surface-panel
+                   disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ink/90
                    active:scale-95 transition-all"
           >
             Abschließen

@@ -1061,14 +1061,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // Border + Schatten gehören auf das ÄUSSERE Panel (nicht aufs innere Root-Div):
       // dessen `overflow-hidden` würde sonst die Border-/Schatten-Ecken des Kindes
       // wegschneiden. Auf dem Panel selbst werden Rand + Schatten voll gerendert.
-      panelClass: [
-        '!rounded-2xl',
-        'overflow-hidden',
-        'border',
-        'border-gray-200',
-        'dark:border-gray-700',
-        'shadow-2xl',
-      ],
+      panelClass: ['!rounded-2xl', 'overflow-hidden', 'border', 'border-line', 'shadow-2xl'],
       // Backdrop weichzeichnen + abdunkeln (Light + Dark), damit sich die neue
       // Dialog-Ebene klar vom darunterliegenden Bestelldialog abhebt.
       backdropClass: 'pre-order-blur-backdrop',
@@ -3526,7 +3519,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'confirm':
         return 'bg-accent-soft border-accent-line text-accent-ink hover:brightness-95 active:brightness-90'
       default:
-        return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700'
+        return 'bg-surface-elevated border-line text-ink hover:bg-line-soft'
     }
   }
 

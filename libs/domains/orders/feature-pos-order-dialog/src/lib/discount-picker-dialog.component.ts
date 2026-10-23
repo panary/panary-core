@@ -35,15 +35,15 @@ export interface DiscountPickerData {
       role="dialog"
       aria-modal="true"
       aria-labelledby="discount-picker-title"
-      class="flex flex-col w-full h-[35rem] bg-white dark:bg-gray-950 rounded-2xl shadow-xl overflow-hidden"
+      class="flex flex-col w-full h-[35rem] bg-surface-input rounded-2xl shadow-xl overflow-hidden"
     >
       <!-- HEADER -->
       <div class="h-20 shrink-0 px-6 py-5 flex justify-between items-start">
         <div>
-          <h2 id="discount-picker-title" class="text-lg font-bold text-gray-900 dark:text-white">
+          <h2 id="discount-picker-title" class="text-lg font-bold text-ink">
             {{ isLineScope ? 'Positionsrabatt wählen' : 'Rabatt wählen' }}
           </h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p class="text-sm text-ink-muted mt-0.5">
             @if (isLineScope) {
               Nachlass auf <span class="font-semibold">{{ data.lineItemName || 'die markierte Position' }}</span>
             } @else {
@@ -54,8 +54,8 @@ export interface DiscountPickerData {
         <button
           (click)="close()"
           type="button"
-          class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
-                 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+          class="w-10 h-10 rounded-lg flex items-center justify-center text-ink-faint
+                 hover:bg-line-soft active:scale-95 transition-all"
         >
           <lib-icon name="x" class="text-[1.25rem]" />
         </button>
@@ -64,14 +64,14 @@ export interface DiscountPickerData {
       <!-- CONTENT -->
       <div class="flex-1 overflow-y-auto px-6 pb-4 min-h-0">
         @if (loading()) {
-          <div class="h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+          <div class="h-full flex items-center justify-center text-ink-faint">
             <span class="text-sm">Lade Rabatte…</span>
           </div>
         } @else if (discounts().length === 0) {
           <div class="h-full flex flex-col items-center justify-center gap-2 text-center">
-            <lib-icon name="tag" class="text-[2.5rem] text-gray-300 dark:text-gray-600" />
-            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Keine Rabatte verfügbar</span>
-            <span class="text-xs text-gray-400 dark:text-gray-500 max-w-xs">
+            <lib-icon name="tag" class="text-[2.5rem] text-line-strong" />
+            <span class="text-sm font-medium text-ink-muted dark:text-ink">Keine Rabatte verfügbar</span>
+            <span class="text-xs text-ink-faint max-w-xs">
               Aktive manuelle Rabatte für den Kassen-Kanal werden in der Cloud verwaltet und synchronisiert.
             </span>
           </div>
@@ -81,12 +81,12 @@ export interface DiscountPickerData {
               <button
                 type="button"
                 (click)="select(d)"
-                class="pnry-touch h-[5.25rem] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900
-                       hover:bg-gray-50 dark:hover:bg-gray-800/50 active:scale-[0.98] transition-all
+                class="pnry-touch h-[5.25rem] rounded-xl border border-line bg-surface-input
+                       hover:bg-surface-elevated dark:hover:bg-surface-elevated/50 active:scale-[0.98] transition-all
                        p-3 flex flex-col items-start justify-between text-left"
               >
                 <div class="flex items-center gap-1.5 w-full min-w-0">
-                  <span class="text-sm font-semibold text-gray-900 dark:text-white truncate flex-1">{{ d.name }}</span>
+                  <span class="text-sm font-semibold text-ink truncate flex-1">{{ d.name }}</span>
                   @if (d.isStaffMeal) {
                     <span
                       class="shrink-0 text-[0.5625rem] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded
@@ -95,7 +95,7 @@ export interface DiscountPickerData {
                     >
                   }
                 </div>
-                <span class="text-lg font-black text-gray-800 dark:text-gray-100">{{ valueLabel(d) }}</span>
+                <span class="text-lg font-black text-ink">{{ valueLabel(d) }}</span>
               </button>
             }
           </div>

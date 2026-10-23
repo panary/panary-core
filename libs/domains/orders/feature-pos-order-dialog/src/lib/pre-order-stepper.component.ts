@@ -41,11 +41,7 @@ export interface StepDef {
         @if (i < steps().length - 1) {
           <div class="flex-1 mt-5">
             <div
-              [class]="
-                i < currentStep()
-                  ? 'h-0.5 w-full bg-green-400 rounded'
-                  : 'h-0.5 w-full bg-gray-200 dark:bg-gray-700 rounded'
-              "
+              [class]="i < currentStep() ? 'h-0.5 w-full bg-green-400 rounded' : 'h-0.5 w-full bg-line rounded'"
             ></div>
           </div>
         }
@@ -60,13 +56,13 @@ export class PreOrderStepperComponent {
   circleClass(i: number): string {
     const base = 'w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors'
     if (i < this.currentStep()) return `${base} bg-green-500 text-white`
-    if (i === this.currentStep()) return `${base} bg-gray-900 dark:bg-white text-white dark:text-black`
-    return `${base} bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500`
+    if (i === this.currentStep()) return `${base} bg-ink text-surface-panel`
+    return `${base} bg-line text-ink-faint`
   }
 
   labelClass(i: number): string {
-    if (i === this.currentStep()) return 'text-xs font-medium text-gray-900 dark:text-white'
-    if (i < this.currentStep()) return 'text-xs text-gray-700 dark:text-gray-300'
-    return 'text-xs text-gray-400 dark:text-gray-500'
+    if (i === this.currentStep()) return 'text-xs font-medium text-ink'
+    if (i < this.currentStep()) return 'text-xs text-ink'
+    return 'text-xs text-ink-faint'
   }
 }

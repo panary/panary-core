@@ -32,9 +32,9 @@ export const touchKeyboardRows = (layout: TouchKeyboardLayout): readonly (readon
                 type="button"
                 (click)="keyPress.emit(key)"
                 [attr.aria-label]="key"
-                class="h-11 w-11 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                       text-base font-semibold text-gray-800 dark:text-gray-200 shadow-sm
-                       active:scale-95 active:bg-gray-100 dark:active:bg-gray-700 transition-all
+                class="h-11 w-11 rounded-lg bg-surface-elevated border border-line
+                       text-base font-semibold text-ink shadow-sm
+                       active:scale-95 active:bg-line-soft transition-all
                        flex items-center justify-center"
               >
                 {{ key }}
@@ -48,9 +48,9 @@ export const touchKeyboardRows = (layout: TouchKeyboardLayout): readonly (readon
             type="button"
             (click)="keyPress.emit(' ')"
             aria-label="Leerzeichen"
-            class="h-11 px-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                   text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm
-                   active:scale-95 active:bg-gray-100 transition-all flex items-center justify-center"
+            class="h-11 px-6 rounded-lg bg-surface-elevated border border-line
+                   text-sm font-semibold text-ink-muted dark:text-ink shadow-sm
+                   active:scale-95 active:bg-surface-bg transition-all flex items-center justify-center"
           >
             SPACE
           </button>
@@ -84,9 +84,9 @@ export const touchKeyboardRows = (layout: TouchKeyboardLayout): readonly (readon
             type="button"
             (click)="keyPress.emit(key)"
             [attr.aria-label]="key"
-            class="pnry-touch h-12 w-14 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                   text-xl font-bold text-gray-800 dark:text-gray-200 shadow-sm
-                   active:scale-95 active:bg-gray-100 dark:active:bg-gray-700 transition-all
+            class="pnry-touch h-12 w-14 rounded-lg bg-surface-elevated border border-line
+                   text-xl font-bold text-ink shadow-sm
+                   active:scale-95 active:bg-line-soft transition-all
                    flex items-center justify-center"
           >
             {{ key }}
@@ -107,9 +107,9 @@ export const touchKeyboardRows = (layout: TouchKeyboardLayout): readonly (readon
           type="button"
           (click)="keyPress.emit('0')"
           aria-label="0"
-          class="pnry-touch h-12 w-14 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                 text-xl font-bold text-gray-800 dark:text-gray-200 shadow-sm
-                 active:scale-95 active:bg-gray-100 transition-all flex items-center justify-center"
+          class="pnry-touch h-12 w-14 rounded-lg bg-surface-elevated border border-line
+                 text-xl font-bold text-ink shadow-sm
+                 active:scale-95 active:bg-surface-bg transition-all flex items-center justify-center"
         >
           0
         </button>

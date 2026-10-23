@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#849): [Design-Tokens](../architecture/design-tokens.md) — `libs/domains/orders` nutzt Token-Klassen statt `gray-*`; die toten Bestands-Klassen aus `order-dialog.component.scss` (Komponenten-Budget) sind entfernt.

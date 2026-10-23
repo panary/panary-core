@@ -32,20 +32,20 @@ import { IconComponent } from '@panary/shared/ui-common'
       role="dialog"
       aria-modal="true"
       aria-labelledby="promo-code-title"
-      class="flex flex-col w-full bg-white dark:bg-gray-950 rounded-2xl shadow-xl overflow-hidden"
+      class="flex flex-col w-full bg-surface-input rounded-2xl shadow-xl overflow-hidden"
     >
       <!-- HEADER -->
       <div class="h-20 shrink-0 px-6 py-5 flex justify-between items-start">
         <div>
-          <h2 id="promo-code-title" class="text-lg font-bold text-gray-900 dark:text-white">Rabattcode</h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Code eingeben und prüfen</p>
+          <h2 id="promo-code-title" class="text-lg font-bold text-ink">Rabattcode</h2>
+          <p class="text-sm text-ink-muted mt-0.5">Code eingeben und prüfen</p>
         </div>
         <button
           (click)="close()"
           type="button"
           aria-label="Schließen"
-          class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500
-                 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+          class="w-10 h-10 rounded-lg flex items-center justify-center text-ink-faint
+                 hover:bg-line-soft active:scale-95 transition-all"
         >
           <lib-icon name="x" class="text-[1.25rem]" />
         </button>
@@ -56,12 +56,12 @@ import { IconComponent } from '@panary/shared/ui-common'
         <!-- Eingabefeld -->
         <div
           class="h-16 rounded-xl border-2 px-4 flex items-center gap-1
-                 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
+                 border-line bg-surface-bg"
         >
-          <span class="text-2xl font-black tracking-widest text-gray-900 dark:text-white uppercase">
+          <span class="text-2xl font-black tracking-widest text-ink uppercase">
             {{ code() || 'CODE' }}
           </span>
-          <div class="w-0.5 h-7 bg-gray-800 dark:bg-white animate-pulse ml-0.5"></div>
+          <div class="w-0.5 h-7 bg-ink animate-pulse ml-0.5"></div>
         </div>
 
         <!-- Rückmeldung -->
@@ -83,7 +83,7 @@ import { IconComponent } from '@panary/shared/ui-common'
             </div>
           </div>
         } @else if (checking()) {
-          <div class="rounded-xl px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+          <div class="rounded-xl px-4 py-3 bg-surface-bg text-ink-muted">
             <p class="text-sm">Code wird geprüft…</p>
           </div>
         }
@@ -98,9 +98,7 @@ import { IconComponent } from '@panary/shared/ui-common'
       </div>
 
       <!-- FOOTER -->
-      <div
-        class="h-[4.5rem] shrink-0 border-t border-gray-200 dark:border-gray-700 px-6 flex items-center justify-between gap-3"
-      >
+      <div class="h-[4.5rem] shrink-0 border-t border-line px-6 flex items-center justify-between gap-3">
         <button
           type="button"
           (click)="close()"
@@ -124,8 +122,8 @@ import { IconComponent } from '@panary/shared/ui-common'
             type="button"
             (click)="check()"
             [disabled]="code().length === 0 || checking()"
-            class="pnry-touch h-12 px-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900
-                   text-sm font-bold text-gray-800 dark:text-gray-100 active:scale-[0.98] transition-all
+            class="pnry-touch h-12 px-6 rounded-xl border-2 border-line bg-surface-input
+                   text-sm font-bold text-ink active:scale-[0.98] transition-all
                    disabled:opacity-40 disabled:active:scale-100"
           >
             Prüfen

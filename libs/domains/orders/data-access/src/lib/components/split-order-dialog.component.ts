@@ -88,8 +88,8 @@ function errorKey(code: unknown): string {
   template: `
     <div class="flex flex-col w-[min(40rem,94vw)] max-h-[90dvh] p-6 gap-4">
       <div class="flex-none">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ 'SPLIT_ORDER.TITLE' | translate }}</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <h2 class="text-xl font-bold text-ink">{{ 'SPLIT_ORDER.TITLE' | translate }}</h2>
+        <p class="text-sm text-ink-muted">
           #{{ order().dailySequenceNumber }}
           @if (order().settlementScope) {
             · {{ order().settlementScope }}
@@ -105,7 +105,7 @@ function errorKey(code: unknown): string {
           {{ key | translate }}
         </div>
       } @else {
-        <p class="flex-none text-sm text-gray-600 dark:text-gray-300">{{ 'SPLIT_ORDER.HINT' | translate }}</p>
+        <p class="flex-none text-sm text-ink-muted dark:text-ink">{{ 'SPLIT_ORDER.HINT' | translate }}</p>
 
         <ul class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pr-1" data-testid="split-units">
           @for (unit of units(); track unit.key) {
@@ -113,39 +113,35 @@ function errorKey(code: unknown): string {
             <li
               class="flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors"
               [ngClass]="
-                qty > 0
-                  ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950'
-                  : 'border-gray-200 dark:border-gray-700'
+                qty > 0 ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950' : 'border-line'
               "
               [attr.data-unit]="unit.key"
             >
               <div class="flex-1 min-w-0">
                 @if (unit.kind === 'bundle') {
-                  <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
                     {{ 'SPLIT_ORDER.COMBINATION' | translate }}
                   </p>
                 }
                 @for (line of unit.lines; track line._id) {
-                  <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                    {{ line.amount }} × {{ line.name }}
-                  </p>
+                  <p class="text-sm font-semibold text-ink truncate">{{ line.amount }} × {{ line.name }}</p>
                   @for (mod of line.modifiers ?? []; track $index) {
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">+ {{ mod.name }}</p>
+                    <p class="text-xs text-ink-muted truncate">+ {{ mod.name }}</p>
                   }
                 }
                 @if (!unit.partial && unit.max > 1 && unit.kind === 'line') {
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  <p class="text-xs text-ink-muted mt-0.5">
                     {{ 'SPLIT_ORDER.WHOLE_ONLY' | translate }}
                   </p>
                 }
               </div>
-              <span class="text-sm tabular-nums text-gray-700 dark:text-gray-200">{{ unit.grossFormatted }}</span>
+              <span class="text-sm tabular-nums text-ink">{{ unit.grossFormatted }}</span>
 
               @if (unit.partial && unit.max > 1) {
                 <div class="flex items-center gap-1">
                   <button
                     type="button"
-                    class="pnry-touch w-11 h-11 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center justify-center disabled:opacity-40"
+                    class="pnry-touch w-11 h-11 rounded-lg border border-line bg-surface-elevated text-ink flex items-center justify-center disabled:opacity-40"
                     [disabled]="qty === 0 || submitting()"
                     (click)="setQuantity(unit, qty - 1)"
                     [attr.aria-label]="'SPLIT_ORDER.LESS' | translate"
@@ -158,12 +154,12 @@ function errorKey(code: unknown): string {
                       <path [attr.d]="icon('minus')" />
                     </svg>
                   </button>
-                  <span class="w-12 text-center text-sm font-bold tabular-nums text-gray-900 dark:text-white">
+                  <span class="w-12 text-center text-sm font-bold tabular-nums text-ink">
                     {{ qty }} / {{ unit.max }}
                   </span>
                   <button
                     type="button"
-                    class="pnry-touch w-11 h-11 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center justify-center disabled:opacity-40"
+                    class="pnry-touch w-11 h-11 rounded-lg border border-line bg-surface-elevated text-ink flex items-center justify-center disabled:opacity-40"
                     [disabled]="qty >= unit.max || submitting()"
                     (click)="setQuantity(unit, qty + 1)"
                     [attr.aria-label]="'SPLIT_ORDER.MORE' | translate"
@@ -184,7 +180,7 @@ function errorKey(code: unknown): string {
                   [ngClass]="
                     qty > 0
                       ? 'bg-emerald-600 border-emerald-600 text-white'
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500'
+                      : 'bg-surface-elevated border-line text-ink-muted'
                   "
                   [disabled]="submitting()"
                   (click)="setQuantity(unit, qty > 0 ? 0 : unit.max)"
@@ -204,19 +200,16 @@ function errorKey(code: unknown): string {
           }
         </ul>
 
-        <div
-          class="flex-none grid grid-cols-2 gap-3 rounded-xl bg-gray-50 dark:bg-gray-900 px-4 py-3"
-          data-testid="split-preview"
-        >
+        <div class="flex-none grid grid-cols-2 gap-3 rounded-xl bg-surface-bg px-4 py-3" data-testid="split-preview">
           @let p = preview();
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ 'SPLIT_ORDER.REMAINS' | translate }}</p>
-            <p class="text-lg font-bold tabular-nums text-gray-900 dark:text-white" data-testid="split-source-total">
+            <p class="text-xs text-ink-muted">{{ 'SPLIT_ORDER.REMAINS' | translate }}</p>
+            <p class="text-lg font-bold tabular-nums text-ink" data-testid="split-source-total">
               {{ p.state === 'ok' ? p.sourceFormatted : '–' }}
             </p>
           </div>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ 'SPLIT_ORDER.NEW_ORDER' | translate }}</p>
+            <p class="text-xs text-ink-muted">{{ 'SPLIT_ORDER.NEW_ORDER' | translate }}</p>
             <p
               class="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-300"
               data-testid="split-target-total"
@@ -238,7 +231,7 @@ function errorKey(code: unknown): string {
           type="button"
           (click)="close()"
           [disabled]="submitting()"
-          class="pnry-touch min-h-12 text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-40"
+          class="pnry-touch min-h-12 text-sm font-medium text-ink-muted hover:text-ink px-4 py-3 rounded-xl hover:bg-surface-elevated transition disabled:opacity-40"
         >
           {{ 'COMMON.CANCEL' | translate }}
         </button>

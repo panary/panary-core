@@ -4,7 +4,7 @@ title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
 description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-22T14:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-23T04:40:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -78,23 +78,25 @@ Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-s
 | --- | --- |
 | Auswählen, Abwählen | Tipp auf die Zeile, zweiter Tipp hebt auf |
 | −, Menge, +, Anpassen bzw. Kombi lösen, Löschen | Steuerleiste direkt unter der markierten Zeile, Position oder Kombination, je 3,5rem; − bei Menge 1 aus, Menge und Löschen mit Rückgängig |
-| Rabatt, Pos.-Rab., Code | Tasten unter der Summe; Pos.-Rab. nur mit Auswahl |
-| Personalessen, Firmenkunde, Kombination, Preise ein/aus, Weitere Aktionen | „Optionen" unter der Summe; „Weitere Aktionen" öffnet „Bestellung leeren" und „Kunde entfernen" |
+| Rabatt, Pos.-Rab. | Tasten unter der Summe; Pos.-Rab. nur mit Auswahl |
+| Personalessen, Firmenkunde, Rabattcode, Preise ein/aus, Weitere Aktionen | „Optionen" unter der Summe; „Weitere Aktionen" öffnet „Bestellung leeren" und „Kunde entfernen"; ein geprüfter Code steht am Eintrag ([core#908](https://github.com/panary/panary-core/issues/908)) |
+| Kombination | Mint-Funktionstaste über dem Raster, solange keine Ansicht eigene Tasten setzt (`boardFunctionButtons`, core#908) |
+| Meldungen | Hinweis über dem unteren Rasterrand, 4 s, Fehler 6 s, nimmt keine Tipps an; ohne Leerlauf-Text und ohne Echo von Gruppe oder Funktionsblock (`notice`, core#908) |
 | Kanal Kasse/Telefon | Schalter im Warenkorbkopf, Zustand ohne Antippen ablesbar |
 
 ## Layout
 
 | Bereich | Regel |
 | --- | --- |
-| Zonen | Grid aus Kopf, Gruppenleiste, Warenkorb, Raster, Primärtaste, Ziffernleiste; `data-hand` aus `posHandedness` spiegelt Warenkorb ↔ Raster und Primärtaste ↔ Ziffernleiste, ohne Wahl links ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-spiegelung.md)) |
+| Zonen | Grid aus Gruppenleiste, Warenkorb, Raster, Primärtaste, Ziffernleiste; `data-hand` aus `posHandedness` spiegelt Warenkorb ↔ Raster und Primärtaste ↔ Ziffernleiste, ohne Wahl links ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-spiegelung.md)) |
 | Warenkorb | fest 25rem |
-| Gruppenleiste | volle Breite, `minmax(9rem, 1fr)`, höchstens zwei Zeilen, danach „Weitere (n)" mit allen Gruppen. Die Aufteilung rechnet `group-bar.ts` mit derselben Mindestbreite, beide zusammen ändern. Umbruch nur an Wortgrenzen, keine Silbentrennung ([core#853](https://github.com/panary/panary-core/issues/853)) |
+| Gruppenleiste | eine Zeile, Gruppen in Inhaltsbreite (4,5–13rem, Name einzeilig gekürzt) mit Farbpunkt; der Rest hinter dem Burger am Zeilenende. `group-bar.ts` teilt nach den Breiten einer unsichtbaren Messzeile auf; Abstand (`gap-2`) und Burger-Breite (`w-12`) stehen dort mit, beide zusammen ändern ([core#908](https://github.com/panary/panary-core/issues/908)) |
 | Produkt-/Funktionskacheln | Mindestbreite 12,5rem (`--pnry-tile-min` an `.kasse`), 6,5rem hoch, Namen bis drei Zeilen, ohne Silbentrennung; der Treffer der Ziffernleiste trägt ein Mint-Abzeichen |
 | Panel-Kopf | Umschalter „1 Stück · alle n" neben dem Titel, Zusammenfassung einzeilig |
 | Extras im Panel | Spalten wie die Listenansicht im Explorer (`columns-[16rem]`, `column-fill: auto`): erst untereinander, dann rechts weiter, waagrecht scrollbar |
 | Panel-Fuß | Container-Query: unter 42rem Panelbreite werden Abbrechen, Modifier und „n lösen" zu 64-px-Tasten, „Fertig" füllt den Rest |
-| Ziffernleiste | unter dem Raster; Container-Query auf der Leiste selbst: Multiplier-Feld, 0–9 und `C` inline ab 53,25rem Inhaltsbreite (Summe der festen Breiten 53,125rem), darunter `C` und das Ziffern-Popup. Die Schwelle wächst über rem mit der Dichte. Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
-| Primärtaste | unter dem Warenkorb, 4rem hoch, Mint mit Navy-Schrift, mit Gesamtbetrag; „Bestellen" in beiden Betriebsarten bis [core#830](https://github.com/panary/panary-core/issues/830) |
+| Ziffernleiste | unter dem Raster, am Rand gegenüber dem Warenkorb (`.kasse__keys-row`, spiegelt mit `data-hand`, die Folge nie); Container-Query auf der Leiste selbst: Multiplier-Feld, 0–9 und `C` inline ab 53,25rem Inhaltsbreite (Summe der festen Breiten 53,125rem), darunter `C` und das Ziffern-Popup. Die Schwelle wächst über rem mit der Dichte. Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
+| Primärtaste | unter dem Warenkorb, 3,5rem hoch wie die Ziffern, Mint mit Navy-Schrift, mit Gesamtbetrag; „Bestellen" in beiden Betriebsarten bis [core#830](https://github.com/panary/panary-core/issues/830) |
 
 ## Nicht abgedeckt
 

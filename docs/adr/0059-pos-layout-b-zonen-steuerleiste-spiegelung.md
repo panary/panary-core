@@ -1,11 +1,11 @@
 ---
 type: ADR
 title: POS-Layout B — Gruppenleiste, Warenkorbspalte, Steuerleiste, Spiegelung
-description: Warum der Kassenbildschirm seit core#829 ein Zonen-Grid mit voller Gruppenleiste, fester Warenkorbspalte und einer Steuerleiste unter der markierten Zeile ist und je Mitarbeiter gespiegelt wird — ersetzt Punkt 2 von ADR 0034.
+description: Warum der Kassenbildschirm seit core#829 ein Zonen-Grid mit einzeiliger Gruppenleiste, fester Warenkorbspalte und einer Steuerleiste unter der markierten Zeile ist und je Mitarbeiter gespiegelt wird — ersetzt Punkt 2 von ADR 0034; core#908 hat Gruppenleiste, Infozeile und Ziffernleiste nachgeschärft.
 tags: [orders, pos, ux, design-system]
 status: stable
 decision: accepted
-generated: { by: claude-code/opus-5.5, at: 2026-10-22T13:45:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-23T04:40:00Z }
 ---
 
 # POS-Layout B — Gruppenleiste, Warenkorbspalte, Steuerleiste, Spiegelung
@@ -27,8 +27,9 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
 
 ## Entscheidung
 
-1. **Benannte Zonen in einem Grid:** Kopf, Gruppenleiste (volle Breite), Warenkorb (fest 25rem),
-   Raster (Rest), Primärtaste unter dem Warenkorb, Ziffernleiste unter dem Raster.
+1. **Benannte Zonen in einem Grid:** Gruppenleiste (volle Breite), Warenkorb (fest 25rem),
+   Raster (Rest), Primärtaste unter dem Warenkorb, Ziffernleiste unter dem Raster. Die Kopfzeile mit der
+   Infozeile ist mit [core#908](https://github.com/panary/panary-core/issues/908) entfallen (Punkt 8).
 2. **Ersetzt ADR 0034 Punkt 2.** Die mutierenden Aktionen sitzen nicht mehr in einer Spalte,
    sondern in einer **Steuerleiste direkt unter der markierten Zeile**: −, Menge, +, Anpassen,
    Löschen, je 3,5rem. Bei einer ganzen Kombination wird „Anpassen" zu „Kombi lösen". Punkt 1
@@ -37,20 +38,34 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
 3. **Der Zeilentipp wählt nur aus**, der zweite Tipp hebt die Auswahl auf (ersetzt „Abwählen").
    Angepasst wird über die Steuerleiste. Bis dahin öffnete der Tipp das Panel sofort und nahm das
    Raster weg, auch wenn nur die Menge zu ändern war.
-4. **Gruppenleiste ohne Wischen:** `repeat(auto-fill, minmax(9rem, 1fr))`, höchstens zwei Zeilen,
-   danach wird das letzte Feld zu „Weitere (n)" und zeigt alle Gruppen. Die Aufteilung rechnet
-   `group-bar.ts` mit derselben Formel wie `auto-fill`.
+4. **Gruppenleiste ohne Wischen, eine Zeile** (seit [core#908](https://github.com/panary/panary-core/issues/908)):
+   Jede Gruppe ist so breit wie ihr Name, die Gruppenfarbe ist ein Punkt davor. Was nicht passt, liegt
+   hinter einem Burger-Button am Zeilenende. `group-bar.ts` teilt nach den Breiten auf, die eine unsichtbare
+   Messzeile mit allen Gruppen liefert; die Reihenfolge bleibt, keine Gruppe rückt in eine Lücke vor.
+   *Vorher (core#829):* `minmax(9rem, 1fr)` in höchstens zwei Zeilen, danach „Weitere (n)". Auf dem
+   MacBook brachen die breiten Felder lange Namen um, und die zweite Zeile kostete eine Rasterzeile.
 5. **Spiegelung je Mitarbeiter** über `grid-template-areas` und `data-hand` aus `posHandedness`
    ([core#827](https://github.com/panary/panary-core/issues/827)). Gespiegelt werden Zonen
    (Warenkorb ↔ Raster, Primärtaste ↔ Ziffernleiste), nie Inhalte: Die Ziffern laufen 0–9 von links
    nach rechts, − steht vor +. Fehlt das Feld, gilt links, also die Position wie bisher. Keine
    `dir="rtl"`-Tricks.
-6. **Spalte 2 entfällt.** Rabatt, Positionsrabatt und Code sind Tasten unter der Summe. Personalessen,
-   Firmenkunde, Kombination, Preise ein/aus und „Weitere Aktionen" liegen unter „Optionen". Der
-   Kanal Kasse/Telefon ist ein Schalter im Warenkorbkopf, sein Zustand ist ohne Antippen ablesbar.
+6. **Spalte 2 entfällt.** Rabatt und Positionsrabatt sind Tasten unter der Summe. Personalessen,
+   Firmenkunde, Rabattcode, Preise ein/aus und „Weitere Aktionen" liegen unter „Optionen". Die
+   Kombination ist eine Mint-Funktionstaste über dem Raster, solange keine Ansicht eigene Tasten setzt
+   (core#908; unter „Optionen" kostete sie zwei Tipps). Der Kanal Kasse/Telefon ist ein Schalter im
+   Warenkorbkopf, sein Zustand ist ohne Antippen ablesbar.
 7. **Farbcode der Funktionstasten:** `confirm` ist Mint (`accent-*`) statt Teal, die Primärtaste Mint
    mit Navy-Schrift (`bg-action`/`text-on-action`). Amber bleibt „überspringt", Rot „verwirft"
    (code-style.md §9.1).
+8. **Hinweis statt Infozeile** (core#908): Meldungen aus `setInfoBoxText` erscheinen als Hinweis über dem
+   unteren Rasterrand, 4 s (Fehler 6 s), ohne Tipps anzunehmen und ohne eine Kachel zu verschieben. Stumm
+   bleiben der Leerlauf-Text und das Echo dessen, was Gruppenleiste oder Funktionsblock schon zeigen.
+   *Verworfen:* die Meldungen ganz streichen (rund 50 Aufrufe tragen Fehler und Sperrgründe) und eine
+   schmale feste Zeile (sie hätte wieder Platz gekostet, und ein erscheinender Hinweis verschöbe das Raster
+   unter dem Finger).
+9. **Primärtaste und Ziffern gleich hoch** (3,5rem), die Ziffernleiste liegt am Rand **gegenüber** dem
+   Warenkorb: bei links rechtsbündig, bei rechts linksbündig. Gespiegelt wird nur die Ausrichtung, die
+   Folge Feld, 0–9, C bleibt (core#908).
 
 ## Konsequenzen
 
@@ -61,12 +76,14 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
   (`increaseSelectedQuantity`, `decreaseSelectedQuantity`, `deleteSelection`). Multiplier und
   `product.ui.index` bleiben wie gehabt (Konzept §5), neu ist nur, dass die Kachel des Treffers ein
   Mint-Abzeichen trägt.
-- Die Kombinations-Funktionstasten über dem Raster (#795) sind weg. Das Raster bleibt bei markierter
-  Kombination stehen, ein Kacheltap legt dort weiter ab ([#271](https://github.com/panary/panary-core/issues/271)).
+- Die Kombinations-Funktionstasten über dem Raster (#795) waren mit core#829 weg; seit core#908 steht dort
+  wieder der Einstieg „Kombination". Das Raster bleibt bei markierter Kombination stehen, ein Kacheltap legt
+  dort weiter ab ([#271](https://github.com/panary/panary-core/issues/271)).
 - Die Primärtaste heißt in beiden Betriebsarten „Bestellen", bis die Bezahlansicht
   ([core#830](https://github.com/panary/panary-core/issues/830)) wirklich kassiert.
 - Geprüft im Browser der Sandbox. Die Maße auf dem Sunmi D3 sind weiter ungemessen.
 
-Umsetzung: [core#829](https://github.com/panary/panary-core/issues/829) —
+Umsetzung: [core#829](https://github.com/panary/panary-core/issues/829), Feinschliff
+[core#908](https://github.com/panary/panary-core/issues/908) —
 `libs/domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.{html,scss,ts}`, `group-bar.ts`.
 Bedienung im Detail: [POS-Bestelldialog — Bedienung](../domains/pos-bestelldialog-bedienung.md).

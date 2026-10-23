@@ -16,7 +16,7 @@ import { UpdateService } from '@panary/shared/data-access-updater'
 import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
 import { TranslateModule } from '@ngx-translate/core'
 import { TranslateService } from '@ngx-translate/core'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PanaryLogoComponent } from '@panary/shared/ui-common'
 
 interface PosUser {
   _id: string
@@ -59,6 +59,7 @@ type ChangePinPhase = 'new' | 'confirm'
   selector: 'lib-login',
   imports: [
     IconComponent,
+    PanaryLogoComponent,
     CommonModule,
     TimeClockPanelComponent,
     TranslateModule,

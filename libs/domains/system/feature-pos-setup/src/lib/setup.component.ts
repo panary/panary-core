@@ -26,7 +26,7 @@ import {
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PanaryLogoComponent } from '@panary/shared/ui-common'
 
 /**
  * Zulaessiger Hostname einer Hub-Adresse: DNS-Label-Kette (IPv4 faellt darunter)
@@ -69,7 +69,7 @@ type PairingMode = 'cloud' | 'local'
 
 @Component({
   selector: 'lib-setup',
-  imports: [IconComponent, CommonModule, FormsModule, TranslateModule],
+  imports: [IconComponent, PanaryLogoComponent, CommonModule, FormsModule, TranslateModule],
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',
   standalone: true,

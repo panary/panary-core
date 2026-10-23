@@ -52,10 +52,7 @@
     class="hidden lg:flex lg:w-[30.25rem] lg:flex-none flex-col gap-4 overflow-y-auto border-r border-line bg-surface-panel p-6"
     data-testid="login-side"
   >
-    <div>
-      <img src="/assets/logos/panary_logo_color.svg" alt="Panary Logo" class="h-8 w-auto block dark:hidden" />
-      <img src="/assets/logos/panary_logo_mono.svg" alt="Panary Logo" class="h-8 w-auto hidden dark:block invert" />
-    </div>
+    <lib-panary-logo class="text-ink" [size]="2.25" />
     <p class="font-mono text-sm text-ink-muted">{{ deviceName() || 'POS Terminal' }} &middot; v{{ appVersion }}</p>
     <div class="self-start">
       <ng-container [ngTemplateOutlet]="connection" />
@@ -109,8 +106,7 @@
     <!-- Mobile Header: Logo + Terminal-Name links, Sprache rechts -->
     <div class="absolute top-6 left-6 right-6 z-10 lg:hidden flex items-start justify-between">
       <div class="flex flex-col items-start">
-        <img src="/assets/logos/panary_logo_color.svg" alt="Panary Logo" class="h-7 w-auto block dark:hidden" />
-        <img src="/assets/logos/panary_logo_mono.svg" alt="Panary Logo" class="h-7 w-auto hidden dark:block invert" />
+        <lib-panary-logo class="text-ink" [size]="2" />
         <span class="text-xs text-gray-400 dark:text-ink-muted font-medium mt-1">{{ deviceName() }}</span>
       </div>
       <button

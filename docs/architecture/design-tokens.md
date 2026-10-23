@@ -118,3 +118,12 @@ Listen nutzen den gemeinsamen Tabellenstil `.admin-table-wrap` / `.admin-table` 
 Er liegt in `@layer components`, damit Spaltenklassen wie `text-right` oder `font-mono` an der Zelle gewinnen; Kopf,
 Abstände und Zeilenlinien setzt eine Liste nicht mehr selbst. Der Hinweis „In der Cloud verwaltet“ ist Info-Blau
 (`bg-info-soft text-info-ink`), der Notfall-Modus der Drucker bleibt orange.
+
+## Panary-Logo
+
+Ein Logo für alle Oberflächen: `<lib-panary-logo [size]="2" [wordmark]="true" />` aus `@panary/shared/ui-common`
+(core#910). Es zeichnet dasselbe Zeichen wie der Auth-Shell der Cloud — dunkles Quadrat (`--brand-navy`) mit zwei
+Mint-Stäben (`--primary`), beide Themes gleich — als Inline-SVG, dazu die Wortmarke in `currentColor`. Dadurch ist es auf
+hellem und dunklem Grund lesbar, ohne `dark:`-Varianten oder zwei Bilddateien. Eingesetzt in Core-Admin (Login,
+Kopfzeile), Edge-Setup (Landing, Wizard), POS-Geräte-Setup und POS-Login. Die Rail des POS folgt mit core#907. Die
+früheren SVG-Dateien (`panary_logo_*.svg`) in `admin-client` und `pos-client` sind entfallen.

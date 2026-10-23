@@ -20,6 +20,7 @@ import { SyncProblemCountService } from '../core/sync-problem-count.service'
 import { DeviceStatusService } from '../core/device-status.service'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { LocationStateService } from '../core/location-state.service'
+import { PanaryLogoComponent } from '@panary/shared/ui-common'
 import { AdminIconComponent } from '../shared/icon/icon'
 import type { AdminIconName } from '../shared/icon/icons.generated'
 import { LanguagePickerComponent } from '../shared/language-picker'
@@ -75,6 +76,7 @@ interface NavItem {
     LanguagePickerComponent,
     AdminIconComponent,
     EdgeStatusBarComponent,
+    PanaryLogoComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'closeMobileNav()' },
@@ -99,8 +101,7 @@ interface NavItem {
           </button>
         }
         <a routerLink="/dashboard" class="flex items-center gap-2 mr-auto font-bold text-[15px]">
-          <span class="size-3.5 rounded-[3px] bg-action" aria-hidden="true"></span>
-          Panary
+          <lib-panary-logo [size]="1.5" />
           <span class="text-xs font-medium text-shell-muted">{{ 'NAV.EDGE_ADMIN' | translate }}</span>
         </a>
         <!-- Unter md nicht gerendert statt versteckt: sonst pollt die Zeile weiter, ohne sichtbar zu sein. -->

@@ -2,19 +2,20 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import { PanaryLogoComponent } from '@panary/shared/ui-common'
 import { AuthService } from '../core/auth.service'
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, PanaryLogoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative min-h-screen overflow-hidden bg-surface-bg text-ink flex items-center justify-center p-6">
       <div class="auth-dots absolute inset-0" aria-hidden="true"></div>
       <div class="relative w-full max-w-sm space-y-8">
         <div class="text-center">
-          <img src="assets/panary_logo_mono.svg" alt="Panary" class="h-8 mx-auto mb-6 opacity-60" />
+          <lib-panary-logo class="mb-6" [size]="2.5" />
           <h1 class="text-2xl font-bold tracking-tight">{{ 'NAV.ADMIN_PANEL' | translate }}</h1>
           <p class="text-slate-400 dark:text-gray-500 mt-1 text-sm">{{ 'LOGIN.SUBTITLE' | translate }}</p>
         </div>

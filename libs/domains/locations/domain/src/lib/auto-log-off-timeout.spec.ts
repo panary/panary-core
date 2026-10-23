@@ -9,6 +9,11 @@ const FALLBACK_MS = AUTO_LOG_OFF_FALLBACK_SECONDS * 1000
 const MIN_MS = AUTO_LOG_OFF_MIN_SECONDS * 1000
 
 describe('resolveAutoLogOffTimeoutMs', () => {
+  // core#941: Standardfrist 5 Minuten, solange die Filiale nichts einstellt.
+  it('fällt ohne Einstellung auf 5 Minuten zurück', () => {
+    expect(resolveAutoLogOffTimeoutMs(undefined)).toBe(300_000)
+  })
+
   it('rechnet Minuten um', () => {
     expect(resolveAutoLogOffTimeoutMs({ autoLogOffTime: 2, autoLogOffTimeUnit: 'min' })).toBe(120_000)
     expect(resolveAutoLogOffTimeoutMs({ autoLogOffTime: 10, autoLogOffTimeUnit: 'min' })).toBe(600_000)

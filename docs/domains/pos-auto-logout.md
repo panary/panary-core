@@ -99,7 +99,7 @@ folgenden Minuten ohne Aufsicht.
 | Konstante | Wert | Ort |
 |---|---|---|
 | `AUTO_LOG_OFF_MIN_SECONDS` | 60 s | `locations/domain` |
-| `AUTO_LOG_OFF_FALLBACK_SECONDS` | 120 s | `locations/domain` |
+| `AUTO_LOG_OFF_FALLBACK_SECONDS` | 300 s | `locations/domain` |
 | `POS_IDLE_WARNING_MS` | 20 s | `shell/services/idle-evaluator.ts` |
 
 Die Vorwarnzeit wird auf die halbe Frist gedeckelt, damit nicht der gesamte
@@ -108,7 +108,7 @@ Zeitraum aus einem laufenden Countdown besteht.
 Die Untergrenze ist Betriebsschutz: der alte Schema-Default lag bei **30
 Sekunden** und meldet mitten im Kundengespräch ab. Er war nie wirksam, weil das
 Feld keinen Leser hatte — Bestandsfilialen tragen ihn trotzdem in der DB. Der
-Schema-Default steht jetzt auf 2 Minuten; die Bestandskorrektur leistet
+Schema-Default steht auf 5 Minuten (vorher 2, core#941); die Bestandskorrektur leistet
 Migration 007 in `panary-cloud`.
 
 ## Logout-Pfad

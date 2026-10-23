@@ -46,6 +46,14 @@ ins Avatar-Menü.
 | Rail und Menüs | `…/shell/pos-rail.{ts,html,css}`, `pos-menu.css`, `pos-account-panel.ts` |
 | Übersicht-Kennzahlen | `libs/domains/orders/feature-pos-dashboard/src/lib/dashboard-kpis.ts` |
 
+**Angemeldeter Mitarbeiter.** `PosStaffService` ist ein Root-Dienst und überlebt den Bedienerwechsel. Er liest
+`pos_current_user` aus dem `localStorage`, und der ist kein Signal. Damit `currentUser()` und `displayName()` beim
+Wechsel A→B neu rechnen, lesen beide `posOperatorSession()` mit (`@panary/shared/data-access`). Das Signal zählt
+`storePosOperatorToken`/`clearPosOperatorToken` hoch, die bei jeder Anmeldung und Abmeldung laufen. Bis
+[core#902](https://github.com/panary/panary-core/issues/902) hielt der Dienst den vorigen Bediener fest, bis zufällig
+`users()` neu emittierte. In diesem Fenster stempelten Kommen, Pause und Gehen die falsche Person. Dass der Server die
+Zeiterfassung selbst an das Bediener-Token bindet, ist [core#903](https://github.com/panary/panary-core/issues/903).
+
 Die Menüs sind `@angular/cdk/menu` (Tastatur, Fokus, Schließen bei Klick daneben). Zwei Eigenheiten
 der CDK sind im Code begründet: Ein Untermenü öffnet mit der Maus schon beim Überfahren, und der
 anschließende Klick schaltete es wieder zu — `PosRail.keepOpen()` öffnet es danach erneut.

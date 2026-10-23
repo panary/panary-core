@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: Zweistufiger POS-Login mit Mitarbeiterwahl
-description: Wie sich Mitarbeiter am POS anmelden — helles Seitenpanel nach Konzept 2.5, Schritt 1 Mitarbeiterliste, Schritt 2 PIN; was unverändert bleibt.
+description: Wie sich Mitarbeiter am POS anmelden — Seitenpanel nach Konzept 2.5, Schritt 1 Mitarbeiterliste, Schritt 2 PIN; was unverändert bleibt.
 tags: [pos-client, users, security]
 status: stable
 generated: { by: claude-code/sonnet-5.5, at: 2026-10-23T00:00:00.000Z }

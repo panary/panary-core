@@ -826,9 +826,6 @@ export class LoginComponent implements OnInit {
     this.languageService.setLanguage(next)
   }
 
-  currentLanguageLabel(): string {
-    return this.languages.find(l => l.code === this.languageService.currentLanguage())?.label ?? 'DE'
-  }
   //#endregion
 
   //#region Time Clock

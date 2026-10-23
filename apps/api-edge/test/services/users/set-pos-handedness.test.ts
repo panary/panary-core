@@ -180,9 +180,10 @@ describe('users.setPosHandedness — Bediener-Token bestimmt die Person', () => 
   it('ohne Bediener-Token: abgelehnt, nichts geschrieben', async () => {
     const anna = await createStaff('Anna')
 
-    await expect(setPosHandedness({ posHandedness: 'right' }, await deviceConnection())).rejects.toBeInstanceOf(
-      NotAuthenticated,
-    )
+    await expect(setPosHandedness({ posHandedness: 'right' }, await deviceConnection())).rejects.toMatchObject({
+      name: 'NotAuthenticated',
+      data: { reason: 'POS_OPERATOR_REQUIRED' },
+    })
     expect((await stored(anna._id)).posHandedness ?? null).toBeNull()
   })
 

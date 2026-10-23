@@ -23,13 +23,17 @@ export class PosHandednessNoOperatorError extends Error {
   }
 }
 
+/** Kennung der Token-Ablehnung von `users.setPosHandedness` (Gegenstück in `apps/api-edge/.../users.ts`). */
+export const POS_OPERATOR_REQUIRED = 'POS_OPERATOR_REQUIRED'
+
 /**
- * Nur Verbindungsfehler werden später erneut versucht. Eine Antwort des Edge mit 4xx (Token
- * abgelaufen, Wert abgelehnt) wird auch beim zweiten Mal nicht anders — die Wahl verfällt dann.
+ * Endgültig verloren ist eine Wahl nur, wenn der Edge sie selbst verwirft: `400` (Wert oder Body
+ * abgelehnt) oder die gekennzeichnete Token-Ablehnung (Token der Sitzung abgelaufen). Alles andere —
+ * Verbindungsfehler, aber auch ein `401` der abgelaufenen Geräte-Sitzung — wird später erneut versucht.
  */
-export const isTransientHandednessError = (error: unknown): boolean => {
-  const code = (error as { code?: unknown } | null)?.code
-  return typeof code !== 'number' || code === 408 || code >= 500
+export const isFinalHandednessRejection = (error: unknown): boolean => {
+  const { code, data } = (error ?? {}) as { code?: unknown; data?: { reason?: unknown } }
+  return code === 400 || (code === 401 && data?.reason === POS_OPERATOR_REQUIRED)
 }
 
 const readPending = (): PendingPosHandedness[] => {
@@ -81,7 +85,8 @@ export class PosHandednessService {
     return status === 'connected' || status === 'authenticated'
   })
 
-  #flushing = false
+  /** Laufendes Nachsenden. Eine neue Wahl wartet darauf, sonst käme der ältere Wert zuletzt an. */
+  #flushRun: Promise<void> | null = null
 
   /** Wirksame Bedienhand eines Mitarbeiters: eigene Wahl dieser Sitzung, sonst Datensatz, sonst links. */
   effective(user: { _id?: string; posHandedness?: unknown } | null | undefined): PosHandedness {
@@ -95,6 +100,7 @@ export class PosHandednessService {
 
     const previous = this.#chosen()[userId]
     this.#setChosen(userId, posHandedness)
+    await this.#flushRun
 
     const pending: PendingPosHandedness = { userId, posHandedness, operatorToken }
     if (!this.online()) {
@@ -107,7 +113,7 @@ export class PosHandednessService {
       this.#forget(userId)
       return 'saved'
     } catch (error) {
-      if (isTransientHandednessError(error)) {
+      if (!isFinalHandednessRejection(error)) {
         this.#remember(pending)
         return 'pending'
       }
@@ -117,22 +123,21 @@ export class PosHandednessService {
   }
 
   /** Sendet gemerkte Wahlen nach. Endgültig abgelehnte verfallen, Verbindungsfehler bleiben gemerkt. */
-  async flush(): Promise<void> {
-    if (this.#flushing) return
-    this.#flushing = true
-    try {
-      for (const entry of readPending()) {
-        try {
-          await this.#send(entry)
-          this.#forget(entry.userId)
-        } catch (error) {
-          if (isTransientHandednessError(error)) return
-          this.#forget(entry.userId)
-          this.#setChosen(entry.userId, undefined)
-        }
+  flush(): Promise<void> {
+    this.#flushRun ??= this.#sendPending().finally(() => (this.#flushRun = null))
+    return this.#flushRun
+  }
+
+  async #sendPending(): Promise<void> {
+    for (const entry of readPending()) {
+      try {
+        await this.#send(entry)
+        this.#forget(entry.userId)
+      } catch (error) {
+        if (!isFinalHandednessRejection(error)) return
+        this.#forget(entry.userId)
+        this.#setChosen(entry.userId, undefined)
       }
-    } finally {
-      this.#flushing = false
     }
   }
 

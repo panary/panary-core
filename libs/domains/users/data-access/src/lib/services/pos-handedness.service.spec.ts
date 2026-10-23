@@ -100,9 +100,9 @@ describe('PosHandednessService (core#833)', () => {
 
   it('Ablehnung durch den Edge: zurückgedreht, nicht gemerkt, Fehler geht weiter', async () => {
     const { service, send, pending } = setup()
-    send.mockRejectedValue(Object.assign(new Error('NotAuthenticated'), { code: 401 }))
+    send.mockRejectedValue(Object.assign(new Error('BadRequest'), { code: 400 }))
 
-    await expect(service.choose(anna._id, 'right')).rejects.toMatchObject({ code: 401 })
+    await expect(service.choose(anna._id, 'right')).rejects.toMatchObject({ code: 400 })
 
     expect(service.effective({ ...anna, posHandedness: 'left' })).toBe('left')
     expect(pending()).toEqual([])
@@ -143,7 +143,9 @@ describe('PosHandednessService (core#833)', () => {
       ],
     })
     send
-      .mockRejectedValueOnce(Object.assign(new Error('abgelaufen'), { code: 401 }))
+      .mockRejectedValueOnce(
+        Object.assign(new Error('abgelaufen'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } }),
+      )
       .mockRejectedValueOnce(Object.assign(new Error('weg'), { code: 503 }))
 
     await service.flush()
@@ -151,5 +153,33 @@ describe('PosHandednessService (core#833)', () => {
     expect(service.effective({ _id: 'u-anna' })).toBe('left')
     expect(service.effective({ _id: 'u-bruno' })).toBe('right')
     expect(pending().map(entry => entry.userId)).toEqual(['u-bruno'])
+  })
+
+  it('ein 401 ohne Token-Kennung (abgelaufene Geräte-Sitzung) verwirft die Wahl nicht', async () => {
+    const { service, send, pending } = setup()
+    send.mockRejectedValue(Object.assign(new Error('NotAuthenticated'), { code: 401 }))
+
+    await expect(service.choose(anna._id, 'right')).resolves.toBe('pending')
+
+    expect(service.effective(anna)).toBe('right')
+    expect(pending().map(entry => entry.userId)).toEqual(['u-anna'])
+  })
+
+  it('eine neue Wahl wartet auf ein laufendes Nachsenden — der neuere Wert kommt zuletzt an', async () => {
+    const { service, send } = setup({
+      pending: [{ userId: 'u-anna', posHandedness: 'left', operatorToken: 'tok-anna' }],
+    })
+    let releaseFlush: () => void = () => undefined
+    send.mockImplementationOnce(() => new Promise(resolve => (releaseFlush = () => resolve({}))))
+
+    const flushing = service.flush()
+    const choosing = service.choose(anna._id, 'right')
+    await Promise.resolve()
+    expect(send.mock.calls.map(call => call[0])).toEqual([{ posHandedness: 'left' }])
+
+    releaseFlush()
+    await Promise.all([flushing, choosing])
+
+    expect(send.mock.calls.map(call => call[0])).toEqual([{ posHandedness: 'left' }, { posHandedness: 'right' }])
   })
 })

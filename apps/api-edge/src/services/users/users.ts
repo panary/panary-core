@@ -43,6 +43,9 @@ type VerifyPinParams = UserParams & { user?: { _id?: string; role?: string; tena
 /** Params-Ausschnitt von `setPosHandedness`: Geraete-User plus das per Token belegte Gegenueber. */
 type SetPosHandednessParams = UserParams & { user?: OwnershipActor }
 
+/** Gegenstueck zu `POS_OPERATOR_REQUIRED` im POS-Client (`pos-handedness.service.ts`). */
+const POS_OPERATOR_REQUIRED = 'POS_OPERATOR_REQUIRED'
+
 const POS_HANDEDNESS_VALUES: ReadonlySet<unknown> = new Set<unknown>(Object.values(PosHandedness))
 
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
@@ -402,7 +405,9 @@ export const users = (app: Application) => {
   service.setPosHandedness = async (data: unknown, params?: SetPosHandednessParams) => {
     const operator = params?.posOperator
     if (!operator || params?.posOperatorRejected) {
-      throw new NotAuthenticated('Bediener-Token fehlt oder ist ungueltig')
+      // Kennung, damit der POS diese Ablehnung von einer abgelaufenen Geraete-Sitzung
+      // unterscheidet: nur hier ist die gemerkte Wahl endgueltig verloren.
+      throw new NotAuthenticated('Bediener-Token fehlt oder ist ungueltig', { reason: POS_OPERATOR_REQUIRED })
     }
 
     const body = (data ?? {}) as Record<string, unknown>

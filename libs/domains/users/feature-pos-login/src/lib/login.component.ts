@@ -10,7 +10,6 @@ import { POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
 import { StaffPickerComponent, type StaffPickerPerson } from './staff-picker/staff-picker.component'
-import { pushRecentStaffId, readRecentStaffIds } from './staff-picker/staff-picker.logic'
 import { DeviceReverifyComponent } from './device-reverify/device-reverify.component'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
@@ -91,8 +90,6 @@ export class LoginComponent implements OnInit {
   readonly posUsers: WritableSignal<PosUser[]> = signal([])
   readonly selectedUser: WritableSignal<PosUser | null> = signal(null)
 
-  /** „Zuletzt hier": nur Mitarbeiter-IDs, gerätelokal (#835). Wird beim erfolgreichen Login nachgezogen. */
-  readonly recentStaffIds: WritableSignal<string[]> = signal(readRecentStaffIds())
   readonly pinInput: WritableSignal<string> = signal('')
   readonly pinError: WritableSignal<boolean> = signal(false)
   readonly isLoading: WritableSignal<boolean> = signal(false)
@@ -587,9 +584,6 @@ export class LoginComponent implements OnInit {
     // Bediener-Token aus `verifyPin` (#619, ADR 0053) — auch nach dem
     // erzwungenen PIN-Wechsel, denn `#pendingUser` traegt es aus demselben Aufruf.
     storePosOperatorToken(user)
-
-    // Erst nach erfolgreicher Verifikation — eine falsche PIN soll die Liste nicht umsortieren.
-    this.recentStaffIds.set(pushRecentStaffId(user['_id']))
 
     this.#verifiedPin = null
     this.#pendingUser = null

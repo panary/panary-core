@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#906): [Zweistufiger POS-Login](../domains/pos-login-mitarbeiterwahl.md) — Seitenpanel auf App-Tokens nach Konzept 2.5 (hell/dunkel), Suche, Buchstabengruppen und „Zuletzt hier“ aus `lib-staff-picker` entfernt; Schritt 1 ist wieder die reine Mitarbeiterliste. Logik von `verifyPin`/`changePin`/Re-Verifikation unverändert.

@@ -1,90 +1,26 @@
 @if (users().length === 0) {
   <div class="text-center py-12">
-    <p class="text-gray-500 dark:text-gray-400 text-sm">{{ 'LOGIN.NO_POS_USERS' | translate }}</p>
-    <p class="text-gray-400 text-xs mt-1">{{ 'LOGIN.CREATE_POS_USERS' | translate }}</p>
+    <p class="text-ink-muted text-sm">{{ 'LOGIN.NO_POS_USERS' | translate }}</p>
+    <p class="text-ink-faint text-xs mt-1">{{ 'LOGIN.CREATE_POS_USERS' | translate }}</p>
   </div>
 } @else {
-  <div class="flex flex-col gap-4">
-    @if (showRecent()) {
-      <section [attr.aria-label]="'LOGIN.RECENT_HERE' | translate">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-          {{ 'LOGIN.RECENT_HERE' | translate }}
-        </h2>
-        <div class="grid grid-cols-3 gap-2" data-testid="staff-recent">
-          @for (user of recent(); track user._id) {
-            <button
-              type="button"
-              class="pnry-touch-primary flex items-center gap-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 text-left active:scale-95 transition-transform"
-              (click)="picked.emit(user)"
-            >
-              <span
-                class="size-10 shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                [style.background-color]="user.color"
-                >{{ user.initials }}</span
-              >
-              <span class="min-w-0 truncate text-sm font-semibold text-gray-800 dark:text-gray-100">{{
-                user.firstName
-              }}</span>
-            </button>
-          }
-        </div>
-      </section>
-    }
-
-    <input
-      type="search"
-      class="pnry-touch-primary w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 text-base text-gray-900 dark:text-white placeholder:text-gray-400"
-      [value]="query()"
-      (input)="onQuery($event)"
-      [placeholder]="'LOGIN.SEARCH_PLACEHOLDER' | translate"
-      [attr.aria-label]="'LOGIN.SEARCH_PLACEHOLDER' | translate"
-      autocomplete="off"
-      data-testid="staff-search"
-    />
-
-    <div class="grid grid-cols-4 gap-2" role="group" [attr.aria-label]="'LOGIN.LETTER_GROUPS' | translate">
-      @for (group of groups(); track group.index) {
+  <div class="max-h-[32rem] overflow-y-auto -mx-1 px-1">
+    <div class="grid grid-cols-3 gap-2" data-testid="staff-grid">
+      @for (user of sorted(); track user._id) {
         <button
           type="button"
-          class="pnry-touch h-12 min-w-[4.5rem] rounded-xl text-sm font-bold transition-colors disabled:opacity-40"
-          [class]="
-            groupIndex() === group.index
-              ? 'bg-[#00B8D4] text-white'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
-          "
-          [disabled]="group.empty"
-          [attr.aria-pressed]="groupIndex() === group.index"
-          (click)="selectGroup(group.index)"
+          class="pnry-touch flex flex-col items-center justify-center gap-1 rounded-card p-2 min-h-[5.5rem] hover:bg-surface-panel active:bg-surface-elevated transition-colors"
+          (click)="picked.emit(user)"
         >
-          {{ group.label }}
+          <span
+            class="size-12 rounded-full flex items-center justify-center text-white text-base font-bold shadow-md"
+            [style.background-color]="user.color"
+            >{{ user.initials }}</span
+          >
+          <span class="w-full truncate text-center text-xs font-medium text-ink">
+            {{ user.firstName }} {{ user.lastName }}
+          </span>
         </button>
-      }
-    </div>
-
-    <div class="max-h-[22rem] overflow-y-auto -mx-1 px-1">
-      @if (visible().length === 0) {
-        <p class="text-center text-sm text-gray-500 dark:text-gray-400 py-8">
-          {{ 'LOGIN.NO_SEARCH_RESULTS' | translate }}
-        </p>
-      } @else {
-        <div class="grid grid-cols-3 gap-2" data-testid="staff-grid">
-          @for (user of visible(); track user._id) {
-            <button
-              type="button"
-              class="pnry-touch flex flex-col items-center justify-center gap-1 rounded-xl p-2 min-h-[5.5rem] hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors"
-              (click)="picked.emit(user)"
-            >
-              <span
-                class="size-12 rounded-full flex items-center justify-center text-white text-base font-bold shadow-md"
-                [style.background-color]="user.color"
-                >{{ user.initials }}</span
-              >
-              <span class="w-full truncate text-center text-xs font-medium text-gray-700 dark:text-gray-200">
-                {{ user.firstName }} {{ user.lastName }}
-              </span>
-            </button>
-          }
-        </div>
       }
     </div>
   </div>

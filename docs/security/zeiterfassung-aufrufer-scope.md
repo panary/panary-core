@@ -179,7 +179,9 @@ er nur prüfte, ob das Gerät stempeln darf, nicht wer an der Kasse steht.
 - **Reihenfolge:** nach der Mandantengrenze, vor der Zustandsprüfung. Die Antwort verrät nichts
   über den Stempelstand eines Kollegen.
 - **Ohne Token** bleibt es beim Stand von #189. Darüber läuft das Personalnummer-Panel am
-  Login-Bildschirm, das ohne PIN stempelt. Wirksam wird die Bindung erst, wenn der Client das
+  Login-Bildschirm, das ohne PIN stempelt. Wie dieser Weg abgesichert wird (PIN-Pflicht oder
+  serverseitige Prüfung der Personalnummer), entscheidet
+  [#915](https://github.com/panary/panary-core/issues/915). Wirksam wird die Bindung erst, wenn der Client das
   Token mitschickt (Rail-Zeiterfassung, [#907](https://github.com/panary/panary-core/issues/907)).
 
 Getestet in `time-clock-scope.spec.ts` (Entscheidung), `time-clock-wiring.spec.ts` (alle vier

@@ -53,7 +53,8 @@ export interface TimeClockTarget {
 }
 
 export interface TimeClockViolation {
-  reason: 'FOREIGN_TENANT' | 'OPERATOR_REJECTED' | 'NOT_OPERATOR' | 'FOREIGN_RECORD' | 'NOT_ASSIGNED' | 'INACTIVE_ACCOUNT'
+  reason:
+    'FOREIGN_TENANT' | 'OPERATOR_REJECTED' | 'NOT_OPERATOR' | 'FOREIGN_RECORD' | 'NOT_ASSIGNED' | 'INACTIVE_ACCOUNT'
   /** Client-stabile Meldung — der Adapter wirft sie unveraendert (Forbidden, bei `OPERATOR_REJECTED` NotAuthenticated). */
   message: string
 }

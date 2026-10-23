@@ -153,6 +153,7 @@ describe('Bediener-Token am Geraet (panary/panary-core#903)', () => {
 
   it('wirkt nur fuer Geraete-Sitzungen — ein Inhaber am Admin traegt kein Bediener-Token', () => {
     expect(checkTimeClockRequest(owner, victim, { posOperator: { userId: 'u-anderer' } })).toBeNull()
+    expect(checkTimeClockRequest(owner, victim, { posOperatorRejected: true })).toBeNull()
   })
 
   it('assertTimeClockAccess: abgelehntes Token → 401 mit Kennung, fremder Bediener → 403', () => {

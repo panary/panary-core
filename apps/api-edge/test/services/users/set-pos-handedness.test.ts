@@ -4,7 +4,7 @@
 // deshalb allein das Bediener-Token aus `verifyPin` bestimmen (ADR 0053) — nie
 // eine ID im Body. Ueber die echte Hook-Kette mit Geraete-Verbindung; jeder Test
 // legt seine Konten selbst an und raeumt sie ab (testing.md §10.2).
-import { BadRequest, NotAuthenticated } from '@feathersjs/errors'
+import { BadRequest, Forbidden, NotAuthenticated } from '@feathersjs/errors'
 import { uuidv7 } from 'uuidv7'
 import { afterAll, beforeAll, describe, expect, it, onTestFinished, vi } from 'vitest'
 
@@ -235,6 +235,36 @@ describe('users.setPosHandedness — Bediener-Token bestimmt die Person', () => 
       NotAuthenticated,
     )
     vi.useRealTimers()
+    expect((await stored(anna._id)).posHandedness ?? null).toBeNull()
+  })
+
+  // Die beiden folgenden Zustaende stellt die Hook-Kette selbst nie her (der Resolver setzt bei
+  // abgelehntem Token keinen Bediener; Geraet und Token scheitern vorher am fremden Mandanten).
+  // Die Pruefungen in der Methode gelten trotzdem — direkt aufgerufen, damit sie nicht nur
+  // im Code stehen.
+  const callDirect = (params: Record<string, unknown>) =>
+    (
+      app.service('users') as unknown as {
+        setPosHandedness: (data: unknown, params: unknown) => Promise<unknown>
+      }
+    ).setPosHandedness({ posHandedness: 'right' }, { provider: undefined, ...params })
+
+  it('ein als abgelehnt gekennzeichneter Aufruf schreibt nicht, auch wenn ein Bediener daneben steht', async () => {
+    const anna = await createStaff('Anna')
+
+    await expect(
+      callDirect({ posOperator: { userId: anna._id, role: 'tenant:staff', tenantId }, posOperatorRejected: true }),
+    ).rejects.toBeInstanceOf(NotAuthenticated)
+    expect((await stored(anna._id)).posHandedness ?? null).toBeNull()
+  })
+
+  it('der Bediener eines fremden Mandanten wird an der Methode abgelehnt', async () => {
+    const anna = await createStaff('Anna')
+    const deviceOfOtherTenant = { _id: `device:${uuidv7()}`, role: 'device:pos-client', tenantId: uuidv7() }
+
+    await expect(
+      callDirect({ user: deviceOfOtherTenant, posOperator: { userId: anna._id, role: 'tenant:staff', tenantId } }),
+    ).rejects.toBeInstanceOf(Forbidden)
     expect((await stored(anna._id)).posHandedness ?? null).toBeNull()
   })
 })

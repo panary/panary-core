@@ -165,8 +165,14 @@ export class PosStaffService {
       if (isPosOperatorRejection(error)) {
         // Erst abmelden, dann der Hinweis: `AuthService.logout()` öffnet eine eigene Snackbar
         // („Benutzer erfolgreich abgemeldet“), die ihn sonst sofort ersetzt (panary/panary-core#937).
-        await this.#session.endSession('button')
-        this.#notify('POS_NAV.OPERATOR_PIN_REQUIRED', 8000)
+        // `finally`: Auch wenn das Abmelden scheitert, erscheint der Hinweis, und `#run` wirft nicht.
+        try {
+          await this.#session.endSession('button')
+        } catch (logoutError) {
+          console.error('End session after operator rejection failed:', logoutError)
+        } finally {
+          this.#notify('POS_NAV.OPERATOR_PIN_REQUIRED', 8000)
+        }
       }
       return false
     }

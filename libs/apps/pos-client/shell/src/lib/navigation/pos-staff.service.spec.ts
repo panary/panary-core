@@ -153,6 +153,17 @@ describe('PosStaffService (core#832)', () => {
     expect(order).toEqual(['endSession', 'logout-done', 'hint'])
   })
 
+  it('scheitert das Abmelden, erscheint der Hinweis trotzdem und Stempeln wirft nicht (core#937)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const rejection = Object.assign(new Error('abgelehnt'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    const { service, users, session, snackBar } = setup()
+    session.endSession.mockRejectedValue(new Error('Navigation fehlgeschlagen'))
+    users.checkin.mockRejectedValue(rejection)
+    await expect(service.timeClock('clock-in')).resolves.toBeUndefined()
+    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.OPERATOR_PIN_REQUIRED'])
+    expect(service.timeClockBusy()).toBe(false)
+  })
+
   it('anderer Fehler beim Stempeln: keine PIN-Abfrage, kein Hinweis (core#923)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const { service, users, session, snackBar } = setup()

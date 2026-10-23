@@ -25,7 +25,12 @@
     "ACCOUNT": "Konto und Arbeitszeit",
     "GROUP_WORKING_TIME": "Arbeitszeit",
     "SINCE": "seit {{time}}",
-    "CLOCK_OUT_LOGS_OUT": "Meldet dich danach ab"
+    "CLOCK_OUT_LOGS_OUT": "Meldet dich danach ab",
+    "CART_SIDE": "Warenkorb-Seite",
+    "CART_SIDE_LEFT": "links — tippen für rechts",
+    "CART_SIDE_RIGHT": "rechts — tippen für links",
+    "CART_SIDE_PENDING": "Offline gespeichert — wird bei Verbindung übertragen.",
+    "CART_SIDE_FAILED": "Warenkorb-Seite konnte nicht gespeichert werden."
   },
   "ENTITY": {
     "DOCUMENT": "Dokument",

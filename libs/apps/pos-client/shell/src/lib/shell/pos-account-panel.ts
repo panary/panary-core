@@ -102,6 +102,17 @@ import { PosStaffService } from '../navigation/pos-staff.service'
       <p class="px-3 pb-1 text-xs text-ink-muted">{{ hint | translate }}</p>
     }
 
+    <div class="pos-menu__label">{{ 'POS_NAV.KASSE' | translate }}</div>
+    <button cdkMenuItem type="button" class="pos-menu__item" (cdkMenuItemTriggered)="staff.toggleCartSide()">
+      <lib-icon [name]="staff.cartSide() === 'right' ? 'arrow-right' : 'arrow-left'" class="text-[1.375rem]" />
+      <span class="flex flex-col">
+        {{ 'POS_NAV.CART_SIDE' | translate }}
+        <em class="text-xs font-medium not-italic text-ink-muted">{{
+          (staff.cartSide() === 'right' ? 'POS_NAV.CART_SIDE_RIGHT' : 'POS_NAV.CART_SIDE_LEFT') | translate
+        }}</em>
+      </span>
+    </button>
+
     <div class="my-1 h-px bg-line"></div>
     <button
       cdkMenuItem

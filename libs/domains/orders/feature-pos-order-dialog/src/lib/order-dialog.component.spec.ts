@@ -24,7 +24,8 @@ import type { ProductSchema } from '@panary/products/domain'
 import { DiscountCodeService, DiscountService } from '@panary/discounts/data-access'
 import type { Discount as ManagedDiscount } from '@panary/discounts/domain'
 import { AuthService } from '@panary/auth/data-access'
-import { UserService } from '@panary/users/data-access'
+import { PosHandednessService, UserService } from '@panary/users/data-access'
+import { resolvePosHandedness } from '@panary/users/domain'
 import { LocationService } from '@panary/locations/data-access'
 import { PreOrderService } from '@panary/pre-orders/data-access'
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
@@ -137,6 +138,9 @@ function setup(options: SetupOptions = {}) {
 
   /** Mandantensperre der Cloud (core#489) — pro Test per `suspended.set(true)` gesetzt. */
   const suspended = signal(false)
+
+  /** Wahl im Avatar-Menü (core#833) — pro Test per `chosenHandedness.set('right')` gesetzt. */
+  const chosenHandedness = signal<'left' | 'right' | undefined>(undefined)
 
   const currentUser = {
     _id: CURRENT_USER_ID,
@@ -278,6 +282,10 @@ function setup(options: SetupOptions = {}) {
         useValue: { systemMode: () => 'connected', tier: () => options.tier ?? 'edge-with-cloud' },
       },
       { provide: TenantSuspensionService, useValue: { suspended } },
+      {
+        provide: PosHandednessService,
+        useValue: { effective: (user: unknown) => chosenHandedness() ?? resolvePosHandedness(user as never) },
+      },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       // Ausserhalb einer gerenderten Komponente gibt es keinen echten
       // ChangeDetectorRef — markForCheck ist hier ohne Wirkung und ohne Belang.
@@ -317,6 +325,7 @@ function setup(options: SetupOptions = {}) {
     snackBarDismissAll,
     dialogResult,
     suspended,
+    chosenHandedness,
   }
 }
 
@@ -2695,6 +2704,14 @@ describe('Kasse — Seite des Warenkorbs je Mitarbeiter (core#829)', () => {
 
   it('folgt posHandedness des angemeldeten Mitarbeiters', () => {
     const { component } = setup({ posHandedness: 'right' })
+
+    expect(component.handedness()).toBe('right')
+  })
+
+  it('folgt einer Wahl im Avatar-Menü sofort, ohne neu geladenen Mitarbeiter (core#833)', () => {
+    const { component, chosenHandedness } = setup({ posHandedness: 'left' })
+
+    chosenHandedness.set('right')
 
     expect(component.handedness()).toBe('right')
   })

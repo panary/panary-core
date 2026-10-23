@@ -992,6 +992,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Ability statt users:UPDATE, das wuerde dem Geraet beliebige User-Patches
     // erlauben. Self-Scope erzwingt der currentPin-Beweis in der Methode.
     AppAbility.CAN_CHANGE_POS_PIN,
+    // Eigene Bedienhand am Terminal setzen (users.setPosHandedness, #833) —
+    // Self-Scope erzwingt das Bediener-Token in der Methode.
+    AppAbility.CAN_SET_POS_HANDEDNESS,
 
     // Drucken erlauben
     { resource: AppResource.PRINT_SERVER, action: AppAction.CREATE },
@@ -1045,6 +1048,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.WORKING_TIMES, action: [AppAction.CREATE, AppAction.READ, AppAction.UPDATE] },
     AppAbility.CAN_CLOCK_IN,
     AppAbility.CAN_CHANGE_POS_PIN,
+    AppAbility.CAN_SET_POS_HANDEDNESS,
 
     // Drucken erlauben (der mobile Kellner druckt die Rechnung am Tisch)
     { resource: AppResource.PRINT_SERVER, action: AppAction.CREATE },

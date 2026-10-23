@@ -566,6 +566,10 @@ export const AppAbility = {
   // Mitarbeiter — die Bindung an die Person leistet der currentPin-Beweis
   // innerhalb der Methode, nicht diese Ability.
   CAN_CHANGE_POS_PIN: 'can_change_pos_pin',
+  // Erlaubt `users.setPosHandedness` ohne `users:UPDATE` (panary/panary-core#833).
+  // Die Ability autorisiert nur das Geraet; wessen Bedienhand sich aendert,
+  // bestimmt allein das Bediener-Token aus `verifyPin` (ADR 0053).
+  CAN_SET_POS_HANDEDNESS: 'can_set_pos_handedness',
 
   // =======================================================
   // Zeiterfassung PERMISSIONS

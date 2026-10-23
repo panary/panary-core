@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, untracked } from '@angular/core'
+import { PosHandednessService } from '@panary/users/data-access'
 import { RouterOutlet } from '@angular/router'
 import { PosIdleLogoutService } from '../services/pos-idle-logout.service'
 import { IdleWarningOverlayComponent } from './idle-warning-overlay.component'
@@ -48,5 +49,12 @@ export class AppPosShellComponent {
   constructor() {
     this.idle.start()
     inject(DestroyRef).onDestroy(() => this.idle.stop())
+
+    // Offline gewählte Bedienhand nachsenden, sobald der Edge wieder erreichbar ist (core#833).
+    // Bewusst getrackt: jede Rückkehr der Verbindung löst aus (angular.md §2.1).
+    const handedness = inject(PosHandednessService)
+    effect(() => {
+      if (handedness.online()) untracked(() => void handedness.flush())
+    })
   }
 }

@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: Bedienhand am POS (posHandedness)
-description: Wie ein Mitarbeiter seine Bedienhand an der Kasse trägt — Feld posHandedness ohne Null und ohne Default, Auflösung „fehlt = links", Self-Patch, Edge-Spalte, Sync-Pfad und die Release-Reihenfolge mit der Cloud.
+description: Wie ein Mitarbeiter seine Bedienhand an der Kasse trägt und am POS umschaltet — Feld posHandedness ohne Null und ohne Default, Auflösung „fehlt = links", Self-Patch, Methode setPosHandedness über das Bediener-Token, Offline-Nachsenden, Sync-Pfad und die Release-Reihenfolge mit der Cloud.
 tags: [users, pos-client, api-edge, sync, security]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-22T00:00:00.000Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-23T00:00:00.000Z }
 ---
 
 Ein Mitarbeiter bestimmt, auf welcher Seite der Kasse der Warenkorb sitzt. Linkshänder
@@ -57,8 +57,46 @@ geschlossen (`withoutServerStamp`).
 
 ⚠️ **Der POS-Client meldet sich als Gerät an**, nicht als Mitarbeiter (`device:<id>`). Ein
 regulärer `patch` vom Terminal scheitert deshalb an `FOREIGN_RECORD`, wie beim PIN-Wechsel
-(`changePin`). Das Umschalten am POS (#833) braucht einen eigenen Weg, der die Person hinter
-dem Terminal bindet; der Self-Patch deckt die persönliche Anmeldung ab.
+(`changePin`). Der Self-Patch deckt die persönliche Anmeldung ab; am Terminal gilt der Weg unten.
+
+## Umschalten am POS (seit #833)
+
+Avatar-Menü der Rail → „Warenkorb-Seite". Die Kasse spiegelt sofort, gespeichert wird am Edge
+über die Custom-Method **`users.setPosHandedness({ posHandedness })`**.
+
+| Regel | Umsetzung |
+|---|---|
+| Person allein aus dem Bediener-Token | Ziel ist `params.posOperator.userId` (Token aus `verifyPin`, geprüft gegen Signatur, Gerät, Mandant, Kontostatus, 12 h; ADR 0053). Eine `userId` im Body gibt es nicht |
+| Fail-closed | ohne Token oder mit abgelehntem Token `401`; anders als bei `orders`, wo ein ungültiges Token den Aufruf durchlässt |
+| Nur dieses eine Feld | jeder andere Schlüssel im Body und jeder Wert außer `left`/`right` → `400` |
+| Mandant | zusätzlich `checkCallerOwnsRecord` gegen das Gerät, obwohl das Token schon gebunden ist |
+| Recht des Geräts | Ability `CAN_SET_POS_HANDEDNESS` (DEVICE_POS, DEVICE_TABLET) über ein eigenes Methoden-Set in `authorize()` — kein `users:UPDATE`, kein Durchgriff auf `patch` oder `changePin` |
+| Schreiben | interner `users.patch` (Validator, Resolver, Sync-Outbox), danach sofortiger Sync-Lauf wie bei `changePin`; Audit `UPDATE`/`CONFIGURATION` |
+
+Code: `apps/api-edge/src/services/users/users.ts` (`setPosHandedness`),
+`libs/shared/backend/src/hooks/authorize.hook.ts` (`HANDEDNESS_METHODS`),
+`libs/domains/users/data-access/src/lib/services/pos-handedness.service.ts` (Client),
+`libs/apps/pos-client/shell/src/lib/shell/pos-account-panel.ts` (Menüeintrag).
+
+### Offline und Nachsenden
+
+Die Offline-Outbox der Bestellungen trägt `users` nicht (`pos-outbox-replay.service.ts` kennt nur
+`orders` und `pre-orders`). `PosHandednessService` hält die Wahl deshalb selbst:
+
+- Offline oder bei einem Verbindungsfehler (kein Status, `408`, `5xx`) wird die Wahl mit dem
+  **Bediener-Token ihrer Sitzung** in `localStorage.pnry_pos_handedness_pending` gemerkt. Die
+  Kasse spiegelt trotzdem sofort.
+- Die Shell sendet gemerkte Wahlen nach, sobald der Edge wieder erreichbar ist — jede mit ihrem
+  eigenen Token, nicht mit dem des gerade Angemeldeten. Hat inzwischen jemand anderes übernommen,
+  bleibt die Zuordnung richtig.
+- Endgültig verloren ist eine Wahl nur, wenn der Edge sie selbst verwirft: `400` oder die
+  gekennzeichnete Token-Ablehnung der Methode (`NotAuthenticated` mit `data.reason:
+  POS_OPERATOR_REQUIRED`, etwa Token nach 12 h abgelaufen). Ein `401` der abgelaufenen
+  Geräte-Sitzung zählt nicht dazu — die Wahl bleibt gemerkt.
+- Eine neue Wahl wartet auf ein laufendes Nachsenden; sonst käme der ältere Wert zuletzt an.
+- Bis zum Neuladen gewinnt die Wahl dieser Sitzung über den geladenen Datensatz: Die Kasse hält
+  den Mitarbeiter als Momentaufnahme. Ändert ein Admin den Wert in der Cloud, sieht der POS ihn
+  nach dem nächsten Login.
 
 ## Sync
 
@@ -86,6 +124,8 @@ wenn die Edges #827 tragen.
 
 ## Nicht abgedeckt
 
+- **Offline länger als die Token-Laufzeit:** Eine gemerkte Wahl, die erst nach 12 h nachgesendet
+  wird, lehnt der Edge ab; sie verfällt still, die Kasse zeigt danach wieder den gespeicherten Wert.
 - **Pull-Apply ist bedingungslos** (`user.schema.ts`, `USER_EDGE_LOCAL_FIELDS`-Kommentar):
   Kommt ein Cloud-Pull vor dem Push der lokalen Änderung an, überschreibt er sie mit dem
   alten Wert, wie bei `posPin`. Sichtbar nur bei wackligem Netz.

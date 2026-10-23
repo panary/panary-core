@@ -242,6 +242,36 @@ describe('authorize() — Edge-Custom-Method-Tabelle (Rolle × Methode)', () => 
     await expectForbidden({ path: 'products', method: 'changePin', user: devicePos })
   })
 
+  it('users.setPosHandedness (#833): POS/Tablet über die Ability, Kiosk/KDS nicht', async () => {
+    await expectAllowed({ path: 'users', method: 'setPosHandedness', user: devicePos })
+    await expectAllowed({ path: 'users', method: 'setPosHandedness', user: deviceTablet })
+    await expectForbidden({ path: 'users', method: 'setPosHandedness', user: deviceKiosk })
+    await expectForbidden({ path: 'users', method: 'setPosHandedness', user: deviceKds })
+  })
+
+  it('CAN_SET_POS_HANDEDNESS und CAN_CHANGE_POS_PIN greifen nicht über Kreuz', async () => {
+    await expectForbidden({
+      path: 'users',
+      method: 'changePin',
+      user: { ...deviceKds, permissions: ['can_set_pos_handedness'] },
+    })
+    await expectForbidden({
+      path: 'users',
+      method: 'setPosHandedness',
+      user: { ...deviceKds, permissions: ['can_change_pos_pin'] },
+    })
+    await expectForbidden({
+      path: 'users',
+      method: 'patch',
+      user: { ...deviceKds, permissions: ['can_set_pos_handedness'] },
+    })
+    await expectAllowed({
+      path: 'users',
+      method: 'setPosHandedness',
+      user: { ...deviceKds, permissions: ['can_set_pos_handedness'] },
+    })
+  })
+
   it('can_change_pos_pin im user.permissions-Array genügt (Sonder-Gerät)', async () => {
     await expectAllowed({
       path: 'users',

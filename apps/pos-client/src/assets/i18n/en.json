@@ -25,7 +25,12 @@
     "ACCOUNT": "Account and working time",
     "GROUP_WORKING_TIME": "Working time",
     "SINCE": "since {{time}}",
-    "CLOCK_OUT_LOGS_OUT": "Logs you out afterwards"
+    "CLOCK_OUT_LOGS_OUT": "Logs you out afterwards",
+    "CART_SIDE": "Cart side",
+    "CART_SIDE_LEFT": "left — tap for right",
+    "CART_SIDE_RIGHT": "right — tap for left",
+    "CART_SIDE_PENDING": "Saved offline — will be sent when connected.",
+    "CART_SIDE_FAILED": "Cart side could not be saved."
   },
   "ENTITY": {
     "DOCUMENT": "Document",

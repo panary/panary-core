@@ -21,4 +21,6 @@ export interface UserService extends ServiceInterface<User, UserData, UserParams
     data: { userId: string; currentPin: string; newPin: string },
     params?: UserParams,
   ): Promise<Omit<User, 'password' | 'posPin'>>
+  /** Bedienhand des per Bediener-Token belegten Mitarbeiters (#833) — keine userId im Body. */
+  setPosHandedness(data: unknown, params?: UserParams): Promise<Pick<User, '_id' | 'posHandedness'>>
 }

@@ -121,6 +121,17 @@ describe('hasEffectiveAbility', () => {
   })
 })
 
+// CAN_SET_POS_HANDEDNESS (#833): dieselben Geraete wie der PIN-Selbstwechsel —
+// nur Terminals mit Mitarbeiter-Login.
+describe('CAN_SET_POS_HANDEDNESS', () => {
+  it('DEVICE_POS/DEVICE_TABLET ja, DEVICE_KDS/DEVICE_KIOSK nein', () => {
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_POS, undefined, AppAbility.CAN_SET_POS_HANDEDNESS)).toBe(true)
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_TABLET, undefined, AppAbility.CAN_SET_POS_HANDEDNESS)).toBe(true)
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_KDS, undefined, AppAbility.CAN_SET_POS_HANDEDNESS)).toBe(false)
+    expect(hasEffectiveAbility(UserSystemRole.DEVICE_KIOSK, undefined, AppAbility.CAN_SET_POS_HANDEDNESS)).toBe(false)
+  })
+})
+
 describe('CapabilityBundles / expandBundles', () => {
   it('jeder Bundle-Grant ist ein gültiger Grant', () => {
     for (const bundle of CapabilityBundles) {

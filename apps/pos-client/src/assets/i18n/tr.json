@@ -25,7 +25,12 @@
     "ACCOUNT": "Hesap ve çalışma süresi",
     "GROUP_WORKING_TIME": "Çalışma süresi",
     "SINCE": "{{time}}'den beri",
-    "CLOCK_OUT_LOGS_OUT": "Ardından oturumu kapatır"
+    "CLOCK_OUT_LOGS_OUT": "Ardından oturumu kapatır",
+    "CART_SIDE": "Sepet tarafı",
+    "CART_SIDE_LEFT": "sol — sağ için dokunun",
+    "CART_SIDE_RIGHT": "sağ — sol için dokunun",
+    "CART_SIDE_PENDING": "Çevrimdışı kaydedildi — bağlantı kurulunca gönderilecek.",
+    "CART_SIDE_FAILED": "Sepet tarafı kaydedilemedi."
   },
   "ENTITY": {
     "DOCUMENT": "Belge",

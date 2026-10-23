@@ -6,11 +6,19 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
 import { TenantSuspensionService } from '@panary/shared/data-access'
-import { UserService } from '@panary/users/data-access'
+import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { PosStaffService } from './pos-staff.service'
 
 /** Jeder Test baut seine eigenen Fakes (testing.md §10): Aufzeichnungen bleiben im Test. */
-function setup(state: { offline?: boolean; suspended?: boolean; stampingId?: string | null } = {}) {
+function setup(
+  state: {
+    offline?: boolean
+    suspended?: boolean
+    stampingId?: string | null
+    cartSide?: 'left' | 'right'
+    choose?: () => Promise<'saved' | 'pending'>
+  } = {},
+) {
   const user = { _id: 'u-olga', firstName: 'Olga', lastName: 'Owner', stampingId: state.stampingId ?? null }
   const users = {
     currentUser: signal(user),
@@ -22,6 +30,10 @@ function setup(state: { offline?: boolean; suspended?: boolean; stampingId?: str
   }
   const session = { isOffline: signal(!!state.offline), endSession: vi.fn().mockResolvedValue(true) }
   const snackBar = { open: vi.fn() }
+  const handedness = {
+    effective: () => state.cartSide ?? 'left',
+    choose: vi.fn(state.choose ?? (() => Promise.resolve('saved' as const))),
+  }
   const injector = Injector.create({
     providers: [
       { provide: UserService, useValue: users },
@@ -29,11 +41,12 @@ function setup(state: { offline?: boolean; suspended?: boolean; stampingId?: str
       { provide: PosSessionService, useValue: session },
       { provide: TenantSuspensionService, useValue: { suspended: signal(!!state.suspended) } },
       { provide: MatSnackBar, useValue: snackBar },
+      { provide: PosHandednessService, useValue: handedness },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
     ],
   })
   const service = runInInjectionContext(injector, () => new PosStaffService())
-  return { service, users, session, snackBar }
+  return { service, users, session, snackBar, handedness }
 }
 
 describe('PosStaffService (core#832)', () => {
@@ -88,5 +101,29 @@ describe('PosStaffService (core#832)', () => {
 
   it('bildet die Initialen aus dem Namen', () => {
     expect(setup().service.initials()).toBe('OO')
+  })
+
+  it('Warenkorb-Seite: wechselt auf die andere Seite des angemeldeten Mitarbeiters (core#833)', async () => {
+    const left = setup({ cartSide: 'left' })
+    await left.service.toggleCartSide()
+    expect(left.handedness.choose.mock.calls).toEqual([['u-olga', 'right']])
+    expect(left.snackBar.open).not.toHaveBeenCalled()
+
+    const right = setup({ cartSide: 'right' })
+    await right.service.toggleCartSide()
+    expect(right.handedness.choose.mock.calls).toEqual([['u-olga', 'left']])
+  })
+
+  it('Warenkorb-Seite offline gemerkt: Hinweis aufs Nachsenden', async () => {
+    const { service, snackBar } = setup({ choose: () => Promise.resolve('pending') })
+    await service.toggleCartSide()
+    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_PENDING'])
+  })
+
+  it('Warenkorb-Seite abgelehnt: Fehlermeldung statt stiller Rücknahme', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { service, snackBar } = setup({ choose: () => Promise.reject(new Error('401')) })
+    await service.toggleCartSide()
+    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_FAILED'])
   })
 })

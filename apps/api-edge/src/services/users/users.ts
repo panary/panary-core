@@ -426,9 +426,10 @@ export const users = (app: Application) => {
 
     // Adapter-API: Validator, Resolver und sync-outbox-Recorder laufen. Kein
     // `fromSync` — sonst kaeme die Aenderung nie in der Cloud an.
-    const updated = await app
+    // Patch per ID liefert genau einen Datensatz; der Adapter-Typ kennt auch die Mehrfach-Form.
+    const updated = (await app
       .service('users')
-      .patch(user._id, { posHandedness: body['posHandedness'] as PosHandedness }, { provider: undefined })
+      .patch(user._id, { posHandedness: body['posHandedness'] as PosHandedness }, { provider: undefined })) as User
 
     // Wie bei changePin: sofort pushen, bevor ein Pull den alten Wert zurueckspielt.
     void triggerImmediateCycle(app, SyncRunTrigger.MANUAL).catch(() => undefined)

@@ -62,7 +62,8 @@ Wechsel A→B neu rechnen, lesen beide `posOperatorSession()` mit (`@panary/shar
 `storePosOperatorToken`/`clearPosOperatorToken` hoch, die bei jeder Anmeldung und Abmeldung laufen. Bis
 [core#902](https://github.com/panary/panary-core/issues/902) hielt der Dienst den vorigen Bediener fest, bis zufällig
 `users()` neu emittierte. In diesem Fenster stempelten Kommen, Pause und Gehen die falsche Person. Dass der Server die
-Zeiterfassung selbst an das Bediener-Token bindet, ist [core#903](https://github.com/panary/panary-core/issues/903).
+Zeiterfassung selbst an das Bediener-Token bindet, ist [core#903](https://github.com/panary/panary-core/issues/903);
+die Stempel-Aufrufe schicken das Token dafür seit core#907 mit (`withPosOperatorToken`).
 
 Die Menüs sind `@angular/cdk/menu` (Tastatur, Fokus, Schließen bei Klick daneben). Zwei Eigenheiten
 der CDK sind im Code begründet: Ein Untermenü öffnet mit der Maus schon beim Überfahren, und der

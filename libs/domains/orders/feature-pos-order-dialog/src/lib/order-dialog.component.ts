@@ -1636,7 +1636,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const fresh = wasFresh && target === line
     this.customizeScope.set(fresh || target.amount <= 1 ? 'all' : 'one')
     this.customizeScopeLocked.set(false)
-    this.setInfoBoxText(`${target.name} anpassen`)
+    // Kein Hinweis „… anpassen": Der Sheet-Kopf nennt das Produkt, ein Hinweis darüber verdeckte die Fußleiste (core#909).
     this.#refreshCustomize()
   }
 

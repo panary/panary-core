@@ -167,7 +167,7 @@ export const settingsSchema = Type.Object({
   // `resolveAutoLogOffTimeoutMs` — dort liegt auch die Untergrenze und die
   // Begruendung, warum `autoLogOffTimeUnit` ein freies String bleibt.
   genericUserSettings: Type.Object({
-    autoLogOffTime: Type.Number({ default: 2 }),
+    autoLogOffTime: Type.Number({ default: 5 }),
     autoLogOffTimeUnit: Type.String({ default: 'min' }),
   }),
   genericProductSettings: Type.Object({

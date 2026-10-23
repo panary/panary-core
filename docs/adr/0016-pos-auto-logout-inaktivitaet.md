@@ -66,9 +66,9 @@ vollen Datensatz, also ohne Zusatz-Roundtrip. `autoLogOff` bleibt bewusst
 außerhalb von `userQueryProperties`: sonst wäre `GET /users?autoLogOff=false`
 eine Enumeration ohne fachlichen Gegenwert.
 
-**7. Untergrenze 60 s, Default 2 min.** Der alte Schema-Default von 30 Sekunden
+**7. Untergrenze 60 s, Default 5 min.** Der alte Schema-Default von 30 Sekunden
 war nie wirksam und ist für eine Kasse unbrauchbar. Der Schema-Default steigt
-auf 2 Minuten, die Untergrenze fängt Bestandsfilialen ab, und Migration 007 in
+auf 5 Minuten (anfangs 2, mit core#941 auf 5 angehoben — 2 Minuten meldeten beim Lesen der Übersicht zu oft ab), die Untergrenze fängt Bestandsfilialen ab, und Migration 007 in
 `panary-cloud` korrigiert die Daten. Ohne Feature-Flag — abgestimmt, weil
 `panary-core` keinen Staging-Kanal hat und die Datenkorrektur das Risiko
 bereits abräumt.

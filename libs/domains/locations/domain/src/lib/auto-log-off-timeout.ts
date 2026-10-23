@@ -13,7 +13,7 @@
 export const AUTO_LOG_OFF_MIN_SECONDS = 60
 
 /** Frist, wenn nichts Brauchbares konfiguriert ist. */
-export const AUTO_LOG_OFF_FALLBACK_SECONDS = 120
+export const AUTO_LOG_OFF_FALLBACK_SECONDS = 300
 
 /**
  * Filial-Einstellung → Millisekunden.

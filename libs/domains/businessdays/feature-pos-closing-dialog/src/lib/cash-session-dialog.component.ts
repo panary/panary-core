@@ -46,10 +46,8 @@ function denomLabel(cents: number): string {
           <p>Bitte zählen Sie Ihre Kasse und erfassen Sie die Stückelung.</p>
           <div class="grid grid-cols-2 gap-2">
             @for (cents of denominations; track cents) {
-              <label
-                class="flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1"
-              >
-                <span class="text-xs text-gray-600 dark:text-gray-300 w-14">{{ label(cents) }}</span>
+              <label class="flex items-center justify-between gap-2 border border-line rounded-lg px-2 py-1">
+                <span class="text-xs text-ink-muted dark:text-ink w-14">{{ label(cents) }}</span>
                 <input
                   type="number"
                   min="0"
@@ -57,34 +55,34 @@ function denomLabel(cents: number): string {
                   inputmode="numeric"
                   [ngModel]="countFor(cents)"
                   (ngModelChange)="setCount(cents, $event)"
-                  class="border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1 w-20 text-right bg-white dark:bg-gray-900"
+                  class="border border-line-strong rounded-md px-2 py-1 w-20 text-right bg-surface-input"
                 />
               </label>
             }
           </div>
-          <div class="flex justify-between font-semibold pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between font-semibold pt-2 border-t border-line">
             <span>Gezählt gesamt</span>
             <span>{{ countedEuros() }}</span>
           </div>
         } @else {
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-gray-500 dark:text-gray-400">Bezeichnung der Kasse</span>
+            <span class="text-xs text-ink-muted">Bezeichnung der Kasse</span>
             <input
               type="text"
               maxlength="80"
               [(ngModel)]="label_"
               placeholder="z. B. Kasse 1"
-              class="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900"
+              class="border border-line-strong rounded-xl px-3 py-2 bg-surface-input"
             />
           </label>
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-gray-500 dark:text-gray-400">Wechselgeld-Anfangsbestand (€)</span>
+            <span class="text-xs text-ink-muted">Wechselgeld-Anfangsbestand (€)</span>
             <input
               type="number"
               step="0.01"
               min="0"
               [(ngModel)]="openingFloatEuros"
-              class="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900"
+              class="border border-line-strong rounded-xl px-3 py-2 bg-surface-input"
             />
           </label>
         }
@@ -100,12 +98,12 @@ function denomLabel(cents: number): string {
     </mat-dialog-content>
     <mat-dialog-actions class="flex justify-end gap-2">
       @if (phase() === 'submitted') {
-        <button class="bg-white dark:bg-gray-800 border rounded-xl px-4 h-10" (click)="close()">
+        <button class="bg-surface-elevated border rounded-xl px-4 h-10" (click)="close()">
           {{ 'COMMON.CLOSE' | translate }}
         </button>
       } @else {
         <button
-          class="bg-white dark:bg-gray-800 border rounded-xl px-4 h-10"
+          class="bg-surface-elevated border rounded-xl px-4 h-10"
           (click)="cancel()"
           [disabled]="phase() === 'submitting'"
         >

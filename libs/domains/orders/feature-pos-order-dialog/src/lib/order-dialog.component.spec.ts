@@ -33,6 +33,7 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 import { KasseDraftRegistry } from './kasse-draft-registry'
 import { OrderDialogComponent } from './order-dialog.component'
+import type { PosButton } from './pos-button.model'
 
 /**
  * Charakterisierungs-Specs der Rabatt- und Checkout-Verdrahtung (#231).
@@ -799,7 +800,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
 
     expect(component.lineItems[0].modifiers).toEqual([])
     expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
-    expect(component.infoBoxBackgroundColor).toBe('red')
+    expect(component.notice()?.tone).toBe('danger')
   })
 
   it('ein fehlendes `productType` steht als „fehlt" in der Meldung', () => {
@@ -823,7 +824,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
 
     expect(component.lineItems[0].modifiers).toEqual([])
     expect(component.infoBoxText).toBe('Erst eine Position im Warenkorb antippen')
-    expect(component.infoBoxBackgroundColor).toBe('red')
+    expect(component.notice()?.tone).toBe('danger')
   })
 
   it('der Gutfall bucht unveraendert unter die markierte Zeile', () => {
@@ -3140,7 +3141,9 @@ describe('Kasse — Kombination als Funktionstaste (core#908)', () => {
     const { component } = setup()
 
     expect(component.functionButtons).toEqual([])
-    expect(component.boardFunctionButtons.map(b => [b.name, b.variant])).toEqual([['Kombination', 'confirm']])
+    expect(component.boardFunctionButtons.map((b: PosButton) => [b.name, b.variant])).toEqual([
+      ['Kombination', 'confirm'],
+    ])
   })
 
   it('öffnet über die Taste die Kombinationsansicht, deren Tasten dann allein stehen', () => {
@@ -3152,7 +3155,7 @@ describe('Kasse — Kombination als Funktionstaste (core#908)', () => {
 
     expect(component.functionBlockLabel).toBe('Kombination')
     expect(component.boardFunctionButtons).toBe(component.functionButtons)
-    expect(component.boardFunctionButtons.map(b => b._id)).not.toContain('main-combination')
+    expect(component.boardFunctionButtons.map((b: PosButton) => b._id)).not.toContain('main-combination')
   })
 
   it('meldet über die Taste, wenn für eine Kombination Artikel fehlen', () => {

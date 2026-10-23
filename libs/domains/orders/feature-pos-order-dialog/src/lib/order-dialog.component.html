@@ -564,7 +564,7 @@
     }
 
     <!-- Anpassen-Sheet (#639, core#830): liegt über der Rasterspalte und gleitet von unten herein (CSS-Animation beim
-         Einfügen; `animate.enter` ginge nicht — die Komponente führt noch `animations` für die Infobox, NG2027). Gruppenleiste
+         Einfügen; bis core#908 schloss der Infobox-Trigger in `animations` `animate.enter` aus, NG2027). Gruppenleiste
          und Warenkorb bleiben sichtbar und ungedimmt; der Scrim tut bewusst nichts, damit ein Tipp daneben
          die Anpassung nicht verwirft. Schließen nur über Übernehmen/Abbrechen im Panel. -->
     @if (customizeModel(); as model) {

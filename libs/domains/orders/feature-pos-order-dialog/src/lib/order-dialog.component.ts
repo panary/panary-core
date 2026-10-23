@@ -208,7 +208,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // TODO: @ViewChild durch viewChild()-Signal ersetzen, sobald AfterViewInit-Logik migriert ist
   @ViewChild('productGroupContainer') productGroupContainer!: ElementRef
   /** Unsichtbare Messzeile mit allen Gruppen — liefert die Breiten, nach denen die Leiste aufteilt (core#908). */
-  readonly #productGroupMeasure = viewChild<ElementRef<HTMLElement>>('productGroupMeasure')
+  private readonly productGroupMeasure = viewChild<ElementRef<HTMLElement>>('productGroupMeasure')
   #cdr = inject(ChangeDetectorRef)
   readonly discountCodeService = inject(DiscountCodeService)
 
@@ -249,9 +249,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   private _functionButtons: PosButton[] = []
   private _functionBlockLabel = ''
-  private _infoBoxBackgroundColor = '#f1f5f9'
   private _infoBoxText = `${IDLE_INFO_TEXT}!`
-  private _infoBoxTextColor = 'black'
   private _lastParentId: string | null | undefined = undefined
   private _pager: number | undefined = undefined
   private _priceVisibility = false
@@ -479,14 +477,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return this._functionBlockLabel
   }
 
-  get infoBoxBackgroundColor() {
-    return this._infoBoxBackgroundColor
-  }
-
-  get infoBoxTextColor() {
-    return this._infoBoxTextColor
-  }
-
   get priceVisibility() {
     return this._priceVisibility
   }
@@ -663,7 +653,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       })
       this._resizeObserver.observe(this.productGroupContainer.nativeElement)
       // Die Messzeile ändert ihre Breite, wenn Gruppen dazukommen oder die Schrift nachlädt — beides ohne Resize.
-      const measure = this.#productGroupMeasure()?.nativeElement
+      const measure = this.productGroupMeasure()?.nativeElement
       if (measure) this._resizeObserver.observe(measure)
     }
   }
@@ -681,12 +671,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   calculateVisibleProductGroups() {
     const allGroups = this.productGroups
 
-    const measure = this.#productGroupMeasure()?.nativeElement
+    const measure = this.productGroupMeasure()?.nativeElement
     // Die Messzeile spiegelt `productGroups` erst nach dem nächsten Rendern; bis dahin gilt die alte Aufteilung
     // nicht als Messung. Ihr ResizeObserver rechnet nach, sobald sie steht.
     if (!this.productGroupContainer?.nativeElement || !measure || measure.children.length !== allGroups.length) {
-      this.visibleProductGroups = allGroups
-      this.overflowProductGroups = []
+      // Noch keine Messung: alle zeigen (die Leiste schneidet ab). Danach bleibt die letzte Aufteilung stehen, bis
+      // die Messzeile mit den neuen Gruppen gerendert ist — ihre Breite ändert sich, der ResizeObserver rechnet nach.
+      if (this.visibleProductGroups.length + this.overflowProductGroups.length === 0) {
+        this.visibleProductGroups = allGroups
+      }
       return
     }
 
@@ -722,29 +715,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** PUBLIC METHODS */
+  /**
+   * Meldung an den Bediener. Die Farbe entscheidet nur noch, ob der Hinweis rot ist (`'red'`) oder als Echo einer
+   * Gruppenwahl (Hex-Gruppenfarbe) stumm bleibt — die farbige Infozeile gibt es seit core#908 nicht mehr.
+   */
   setInfoBoxText(value: string, backgroundColor: string | undefined = undefined) {
-    switch (backgroundColor) {
-      case 'red':
-      case 'green':
-      case 'blue':
-      case 'brown':
-      case 'black':
-      case 'gray':
-      case 'purple':
-      case 'olive':
-        this._infoBoxTextColor = 'white'
-        break
-
-      case undefined:
-      default:
-        this._infoBoxTextColor = 'black'
-        break
-    }
-    if (backgroundColor) {
-      this._infoBoxBackgroundColor = backgroundColor
-    } else {
-      this._infoBoxBackgroundColor = '#f1f5f9'
-    }
     this._infoBoxText = value
     this.#showNotice(value, backgroundColor)
   }

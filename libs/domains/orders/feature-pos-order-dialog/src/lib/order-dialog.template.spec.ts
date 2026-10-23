@@ -260,6 +260,18 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     const rechtsZeile = rechts.slice(rechts.indexOf('.kasse__keys-row {'))
     expect(rechtsZeile.slice(0, rechtsZeile.indexOf('}'))).toContain('justify-content: flex-start')
   })
+
+  it('stellt das Ziffern-Popup je Seite über die Ziffern-Taste', () => {
+    expect(template).toContain('class="kasse__numpad-popup ')
+    expect(template).not.toMatch(/kasse__numpad-popup[^"]*left-\[/)
+    const block = (css: string, selektor: string) => {
+      const ab = css.slice(css.indexOf(selektor))
+      return ab.slice(0, ab.indexOf('}'))
+    }
+    expect(block(scss, '.kasse__numpad-popup {')).toContain('right: 0')
+    const rechts = scss.slice(scss.indexOf(".kasse[data-hand='right'] {"))
+    expect(block(rechts, '.kasse__numpad-popup {')).toContain('left: 10.375rem')
+  })
 })
 
 // Anpassen als Sheet (core#830): Das Panel liegt über der Rasterzone, sperrt Primärtaste, Ziffern und Gruppenleiste
@@ -284,7 +296,7 @@ describe('Kasse-Template — Anpassen-Sheet (core#830)', () => {
     expect(sheetStart).toBeGreaterThan(-1)
     expect(sheet).toContain('kasse__scrim kasse-scrim-enter')
     expect(sheet).toContain('kasse__sheet kasse-sheet-enter')
-    // `animate.enter` und `@Component.animations` schließen sich aus (NG2027) — die Komponente führt noch `animations`.
+    // Eingeblendet wird per CSS-Klasse; `animate.enter` und `@Component.animations` schlossen sich bis core#908 aus (NG2027).
     expect(template).not.toMatch(/animate\.(enter|leave)\s*=/)
     expect(sheet).toContain('<lib-product-customize-panel')
   })

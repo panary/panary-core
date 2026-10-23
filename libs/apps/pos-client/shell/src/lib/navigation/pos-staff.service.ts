@@ -2,7 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
-import { posOperatorSession, TenantSuspensionService } from '@panary/shared/data-access'
+import { posOperatorSession, TenantSuspensionService, withPosOperatorToken } from '@panary/shared/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { PosHandedness } from '@panary/users/domain'
 import { type TimeClockAction, timeTrackingBlockedHintKey } from './pos-navigation'
@@ -85,26 +85,26 @@ export class PosStaffService {
   async clockIn(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user) return
-    await this.#run('Clock in', () => this.#users.checkin(user._id))
+    await this.#run('Clock in', () => this.#users.checkin(user._id, withPosOperatorToken()))
   }
 
   /** Ausstempeln meldet ab — wie bisher am Dashboard. */
   async clockOut(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    if (await this.#run('Clock out', () => this.#users.checkout(user._id))) this.logout()
+    if (await this.#run('Clock out', () => this.#users.checkout(user._id, withPosOperatorToken()))) this.logout()
   }
 
   async startBreak(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    await this.#run('Start break', () => this.#users.startBreak(user._id))
+    await this.#run('Start break', () => this.#users.startBreak(user._id, withPosOperatorToken()))
   }
 
   async endBreak(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    await this.#run('End break', () => this.#users.endBreak(user._id))
+    await this.#run('End break', () => this.#users.endBreak(user._id, withPosOperatorToken()))
   }
 
   /** Seite des Warenkorbs an der Kasse — eigene Wahl dieser Sitzung, sonst Datensatz, sonst links. */
@@ -135,7 +135,11 @@ export class PosStaffService {
     void this.#session.endSession('button')
   }
 
-  /** Stempeln läuft ohne Outbox: offline oder gesperrt hinge der Aufruf still. */
+  /**
+   * Stempeln läuft ohne Outbox: offline oder gesperrt hinge der Aufruf still. Die Aufrufe tragen das
+   * Bediener-Token, damit der Edge die Stempelung an den angemeldeten Menschen binden kann (core#903).
+   * Ein Edge vor #903 entfernt den Schlüssel in `resolvePosOperator`, ohne ihn auszuwerten.
+   */
   #timeTrackingUser() {
     const blocked = this.timeTrackingBlockedKey()
     if (blocked) {

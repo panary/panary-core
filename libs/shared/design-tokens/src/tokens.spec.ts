@@ -87,6 +87,16 @@ describe('design-tokens: Aufbau', () => {
     expect(tokensCss + themeCss).not.toMatch(/^\s*--st-[\w-]+\s*:/m)
   })
 
+  it('Navigation liegt im Rahmen: --shell-nav gleich --shell-bg, in beiden Themes (cloud .l-shell-nav)', () => {
+    expect(light['--shell-nav']).toBe(light['--shell-bg'])
+    expect(dark['--shell-nav']).toBe(dark['--shell-bg'])
+  })
+
+  it('Punktraster der Anmeldeseiten hat in beiden Themes einen Wert', () => {
+    expect(light['--auth-dot']).toMatch(/^#[0-9a-f]{6}$/i)
+    expect(dark['--auth-dot']).toMatch(/^#[0-9a-f]{6}$/i)
+  })
+
   it('Touch-Skala waechst: min < Standard < Primaer, alle in rem', () => {
     const rem = (k: string) => parseFloat(light[k])
     expect(light['--touch-min']).toMatch(/rem$/)

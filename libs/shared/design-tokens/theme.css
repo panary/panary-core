@@ -56,6 +56,8 @@
   --color-shell-muted: var(--shell-muted);
   --color-shell-hover: var(--shell-hover);
   --color-shell-active: var(--shell-active);
+  --color-shell-active-ink: var(--shell-active-ink);
+  --color-auth-dot: var(--auth-dot);
 
   --font-sans: var(--font-family-sans);
   --font-mono: var(--font-family-mono);
@@ -69,4 +71,15 @@
   --spacing-touch-min: var(--touch-min);
   --spacing-touch: var(--touch);
   --spacing-touch-primary: var(--touch-primary);
+}
+
+/*
+ * Punktraster der Anmeldeseiten, Werte wie cloud/auth-shell: 24 px Raster, 1 px Punkte, halbe
+ * Deckkraft. Auf ein absolut positioniertes, leeres Element legen (`absolute inset-0`).
+ */
+@utility auth-dots {
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: radial-gradient(circle at 1px 1px, var(--auth-dot) 1px, transparent 0);
+  background-size: 24px 24px;
 }

@@ -46,7 +46,7 @@ Dunkel gilt bei `<html data-theme="dark">` oder bei System-Dunkel ohne `data-the
 | Akzent | `--accent`, `--accent-dark`, `--accent-ink`, `--accent-soft`, `--accent-border` | cloud; `--accent-ink` #157a4e hell / #2dd4a4 dunkel für Text |
 | Status | `--danger`, `--danger-ink\|soft\|line`, `--warn-*`, `--info-*` | Konzept |
 | Kasse | `--pos-key`, `--pos-key-line` | Konzept |
-| Admin-Shell | `--shell-bg\|nav\|ink\|muted\|hover\|active` | cloud `--surface-topbar`, Konzept 2.8; dunkel in beiden Themes |
+| Admin-Shell | `--shell-bg\|nav\|ink\|muted\|hover\|active\|active-ink`, `--auth-dot` | cloud `--color-frame-bg` / `.l-shell-nav`, Konzept 2.8; dunkel in beiden Themes, Navigation = Rahmenfarbe; `--auth-dot` + Utility `auth-dots` = Punktraster der Anmeldeseiten (cloud `auth-shell`) |
 | Schrift | `--font-family-sans\|mono`, `--font-size-xs…2xl` (rem) | cloud, in rem damit sie mit der Wurzelschrift (Dichte) skalieren |
 | Form | `--r-control` 0,5rem, `--r-card` 0,75rem, `--r-pill`, `--elevation-card` | Konzept |
 | Touch | `--touch-min` 3rem, `--touch` 3,5rem, `--touch-primary` 4rem | Konzept §4 |
@@ -111,8 +111,8 @@ tragen die Touch-Maße (`min-h-touch-primary` 64 px, `min-h-touch` 56 px, `min-h
 über die ganze Breite mit der Edge-Statuszeile (`layout/edge-status-bar.ts`: Cloud-Kopplung, offene Sync-Probleme,
 verbundene Geräte, Edge-Version), darunter die dunkle Navigation und der helle Inhalt (`bg-surface-bg`, runde Ecke oben
 links). Beide dunklen Flächen bleiben auch im hellen Theme dunkel, deshalb eigene `--shell-*`-Tokens statt der
-Flächen-Tokens. Das gedämpfte Grau ist dunkel `#a89e90` statt des Konzeptwerts `#8a8174`, der auf der Navigation nur
-4,33:1 erreicht. Den Cloud-Status leiten Dashboard und Statuszeile gemeinsam aus `core/cloud-status.ts` ab.
+Flächen-Tokens. Werte wie `.l-shell-nav` der Cloud (core#911): Navigation in der Farbe des Rahmens, Schrift `#d6d3ce`, gedämpft `#a8a29a`
+(der Konzeptwert `#8a8174` erreicht nur 4,33:1), Hover 6 %, aktiv 10 % Weiß mit weißer Schrift und Mint-Icon. Den Cloud-Status leiten Dashboard und Statuszeile gemeinsam aus `core/cloud-status.ts` ab.
 
 Listen nutzen den gemeinsamen Tabellenstil `.admin-table-wrap` / `.admin-table` aus `apps/admin-client/src/styles.css`.
 Er liegt in `@layer components`, damit Spaltenklassen wie `text-right` oder `font-mono` an der Zelle gewinnen; Kopf,

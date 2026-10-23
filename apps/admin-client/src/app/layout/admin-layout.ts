@@ -183,8 +183,8 @@ interface NavItem {
                   <a
                     [routerLink]="item.path"
                     (click)="closeMobileNav()"
-                    routerLinkActive="bg-shell-active [&_app-icon]:text-action"
-                    class="group flex items-center py-1.5 rounded-control text-shell-ink hover:bg-shell-hover
+                    routerLinkActive="bg-shell-active !text-shell-active-ink [&_app-icon]:text-action"
+                    class="group flex items-center py-1.5 rounded-control text-shell-ink hover:bg-shell-hover focus-visible:outline-2 focus-visible:outline-action
                            transition-colors overflow-hidden"
                     [title]="expanded() ? '' : (item.label | translate)"
                   >

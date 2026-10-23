@@ -134,7 +134,9 @@ describe('PosStaffService (core#832)', () => {
       setItem: (key: string, value: string) => void storage.set(key, value),
       removeItem: (key: string) => void storage.delete(key),
     })
-    onTestFinished(() => vi.unstubAllGlobals())
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
     const olga = { _id: 'u-olga', firstName: 'Olga', lastName: 'Owner', stampingId: null }
     const max = { _id: 'u-max', firstName: 'Max', lastName: 'Manager', stampingId: null }
     const users = {

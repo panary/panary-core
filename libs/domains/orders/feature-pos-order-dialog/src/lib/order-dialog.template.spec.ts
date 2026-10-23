@@ -252,6 +252,22 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     expect(klassen('(click)="applyProductSearch()"')).toContain('h-14')
   })
 
+  // core#928: `h-14` stand da, aber `pnry-touch-primary` setzt global `min-height: 4rem` und schlug es — die
+  // Taste blieb 64 px. Geprüft wird deshalb jede Mindesthöhe, die eine globale Klasse der Taste mitbringt.
+  it('lässt keine globale Mindesthöhe über die 3,5rem der Ziffern wachsen (core#928)', () => {
+    const styles = readFileSync(
+      fileURLToPath(new URL('../../../../../../apps/pos-client/src/styles.scss', import.meta.url)),
+      'utf8',
+    )
+    const mindesthoehe = (klasse: string) =>
+      Number(styles.match(new RegExp(`\\.${klasse}\\s*\\{[^}]*min-height:\\s*max\\(([\\d.]+)rem`))?.[1] ?? 0)
+    expect(mindesthoehe('pnry-touch-primary')).toBeGreaterThan(3.5)
+    for (const marker of ['(click)="setTaxRateSubbuttons()"', '(click)="applyProductSearch()"']) {
+      const zuHoch = klassen(marker).filter(k => mindesthoehe(k) > 3.5)
+      expect(zuHoch, marker).toEqual([])
+    }
+  })
+
   it('legt die Ziffern an den Rand gegenüber dem Warenkorb und spiegelt das mit der Händigkeit', () => {
     expect(template).toContain('class="kasse__keys-row ')
     const links = scss.slice(scss.indexOf('.kasse__keys-row {'))

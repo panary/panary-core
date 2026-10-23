@@ -26,14 +26,14 @@ export interface ConfirmDialogData {
         <div class="flex items-center justify-center w-16 h-16 rounded-2xl" [class]="iconBg">
           <lib-icon [name]="data.icon" class="text-[2rem]" [class]="iconColor" />
         </div>
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white text-center">{{ data.title }}</h2>
+        <h2 class="text-xl font-bold text-ink text-center">{{ data.title }}</h2>
       </div>
 
       <!-- Body -->
       <div class="px-6 pb-2 text-center">
-        <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{{ data.message }}</p>
+        <p class="text-ink-muted text-sm leading-relaxed">{{ data.message }}</p>
         @if (data.detail) {
-          <p class="mt-2 text-gray-700 dark:text-gray-200 font-semibold text-base">{{ data.detail }}</p>
+          <p class="mt-2 text-ink font-semibold text-base">{{ data.detail }}</p>
         }
       </div>
 
@@ -48,7 +48,7 @@ export interface ConfirmDialogData {
         </button>
         <button
           (click)="cancel()"
-          class="h-12 w-full rounded-xl font-medium text-sm text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95"
+          class="h-12 w-full rounded-xl font-medium text-sm text-ink-muted dark:text-ink bg-line-soft hover:bg-line transition-all active:scale-95"
         >
           {{ data.cancelText ?? 'Abbrechen' }}
         </button>

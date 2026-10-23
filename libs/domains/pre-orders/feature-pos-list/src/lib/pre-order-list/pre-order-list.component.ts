@@ -15,22 +15,18 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
   standalone: true,
   imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule],
   template: `
-    <div
-      class="h-full w-full bg-gray-50 dark:bg-black p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border"
-    >
+    <div class="h-full w-full bg-surface-bg p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
       <!-- Header & Filters -->
-      <header
-        class="flex-none flex flex-col gap-4 bg-white dark:bg-gray-950 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800"
-      >
+      <header class="flex-none flex flex-col gap-4 bg-surface-input rounded-2xl p-4 shadow-sm border border-line-soft">
         <div class="flex flex-row items-center justify-between">
           <div class="flex items-center gap-4">
             <button
               (click)="goBack()"
-              class="flex items-center justify-center w-10 h-10 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line-soft transition-colors"
             >
               <lib-icon name="arrow-left" class="text-[1.25rem]" />
             </button>
-            <h1 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <h1 class="text-xl font-bold text-ink flex items-center gap-2">
               <lib-icon name="calendar-dots" class="text-[1.25rem] text-accent-ink" />
               {{ 'PRE_ORDERS.TITLE' | translate }}
             </h1>
@@ -58,14 +54,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <div class="relative">
           <lib-icon
             name="magnifying-glass"
-            class="text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            class="text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
           />
           <input
             type="text"
             [(ngModel)]="searchQuery"
             (keyup.enter)="fetchOrders()"
             [placeholder]="'PRE_ORDERS.SEARCH_PLACEHOLDER' | translate"
-            class="w-full h-12 pl-10 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-accent-line transition-all text-gray-700 dark:text-gray-200 placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-gray-400"
+            class="w-full h-12 pl-10 pr-4 rounded-xl bg-surface-elevated border-none outline-none focus:ring-2 focus:ring-accent-line transition-all text-ink placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-ink-faint"
           />
           <button
             class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-action text-on-action rounded-lg shadow-sm hover:brightness-95 active:scale-95 transition-all"
@@ -80,17 +76,17 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
       <div class="flex-1 flex gap-6 min-h-0">
         <!-- Order List -->
         <div
-          class="flex-1 bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col"
+          class="flex-1 bg-surface-input rounded-2xl shadow-sm border border-line-soft overflow-hidden flex flex-col"
           [class.hidden]="selectedOrder() !== null"
           [class.lg:flex]="true"
         >
           @if (loading()) {
             <div class="flex-1 flex justify-center items-center flex-col gap-4">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-ink"></div>
-              <span class="text-gray-400 text-sm">{{ 'PRE_ORDERS.LOADING' | translate }}</span>
+              <span class="text-ink-faint text-sm">{{ 'PRE_ORDERS.LOADING' | translate }}</span>
             </div>
           } @else if (orders().length === 0) {
-            <div class="flex-1 flex justify-center items-center flex-col gap-4 text-gray-300">
+            <div class="flex-1 flex justify-center items-center flex-col gap-4 text-line-strong">
               <lib-icon name="calendar-x" class="text-[4rem]" />
               <span class="font-medium">{{ 'PRE_ORDERS.NONE_FOUND' | translate }}</span>
             </div>
@@ -98,7 +94,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             <div class="overflow-y-auto p-2 space-y-2">
               @for (order of orders(); track order._id) {
                 <div
-                  class="p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md cursor-pointer transition-all group"
+                  class="p-4 rounded-xl border border-line-soft bg-surface-input hover:bg-surface-elevated hover:shadow-md cursor-pointer transition-all group"
                   [class.ring-2]="selectedOrder()?._id === order._id"
                   [class.ring-accent-line]="selectedOrder()?._id === order._id"
                   (click)="toggleOrderSelection(order)"
@@ -108,33 +104,27 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                 >
                   <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-2">
-                      <span
-                        class="font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs"
-                      >
+                      <span class="font-bold text-ink-muted bg-line-soft px-2 py-0.5 rounded text-xs">
                         {{ order.scheduledFor | date: 'dd.MM' }}
                       </span>
                       <span class="text-xs font-bold text-accent-ink">
                         {{ 'PRE_ORDERS.TIME_OCLOCK' | translate: { time: (order.scheduledFor | date: 'HH:mm') } }}
                       </span>
                     </div>
-                    <span class="font-bold text-gray-800 dark:text-white">{{ calculateTotal(order) | eur }}</span>
+                    <span class="font-bold text-ink">{{ calculateTotal(order) | eur }}</span>
                   </div>
 
-                  <div
-                    class="font-medium text-gray-700 dark:text-gray-200 truncate group-hover:text-accent-ink transition-colors"
-                  >
+                  <div class="font-medium text-ink truncate group-hover:text-accent-ink transition-colors">
                     {{ order.customerContact.name }}
                   </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
+                  <div class="text-xs text-ink-muted flex items-center gap-1 mt-1">
                     <lib-icon name="phone" class="text-[0.75rem]" />
                     {{ order.customerContact.phone }}
                   </div>
 
                   <div class="flex justify-between items-center mt-3">
                     <div class="flex items-center gap-1.5">
-                      <span
-                        class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full"
-                      >
+                      <span class="text-xs text-ink-muted bg-line-soft px-2 py-0.5 rounded-full">
                         {{ order.lineItems.length }} {{ 'COMMON.ITEMS' | translate }}
                       </span>
                       @if ($any(order).dineLocation === 'dine-in') {
@@ -178,21 +168,19 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <!-- Order Detail -->
         @if (selectedOrder()) {
           <div
-            class="flex-1 lg:max-w-[28.125rem] bg-white dark:bg-gray-950 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col"
+            class="flex-1 lg:max-w-[28.125rem] bg-surface-input rounded-2xl shadow-sm border border-line-soft overflow-hidden flex flex-col"
           >
             <!-- Detail Header -->
-            <div
-              class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800"
-            >
+            <div class="p-4 border-b border-line-soft flex justify-between items-center bg-surface-elevated">
               <div>
-                <h2 class="font-bold text-lg text-gray-800 dark:text-white">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
+                <h2 class="font-bold text-lg text-ink">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
+                <p class="text-xs text-ink-muted">
                   {{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}
                 </p>
               </div>
               <button
                 (click)="selectedOrder.set(null)"
-                class="lg:hidden flex items-center justify-center w-10 h-10 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                class="lg:hidden flex items-center justify-center w-10 h-10 text-ink-muted rounded-xl hover:bg-line-soft transition-colors"
               >
                 <lib-icon name="x" class="text-[1.25rem]" />
               </button>
@@ -218,7 +206,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
               <!-- Receipt View -->
               <div
-                class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
+                class="bg-surface-elevated border border-line-soft rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
               >
                 <div class="space-y-3 font-mono text-sm">
                   @for (item of selectedOrder()?.lineItems; track item) {
@@ -232,9 +220,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                   }
                 </div>
 
-                <div
-                  class="mt-6 pt-4 border-t-2 border-gray-800 dark:border-gray-200 flex justify-between items-center text-lg font-bold"
-                >
+                <div class="mt-6 pt-4 border-t-2 border-ink flex justify-between items-center text-lg font-bold">
                   <span>{{ 'COMMON.TOTAL' | translate }}</span>
                   <span>{{ calculateTotal(selectedOrder()!) | eur }}</span>
                 </div>
@@ -252,7 +238,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                   </button>
 
                   <button
-                    class="col-span-2 h-12 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    class="col-span-2 h-12 rounded-lg bg-surface-elevated border border-line text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                     (click)="cancelOrder(selectedOrder()!)"
                   >
                     <lib-icon name="trash" class="text-[1.25rem]" />
@@ -261,7 +247,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
                 </div>
               }
               @if (selectedOrder()?.status !== 'pending') {
-                <div class="mt-6 text-center text-gray-400 text-sm">
+                <div class="mt-6 text-center text-ink-faint text-sm">
                   {{
                     selectedOrder()?.status === 'converted'
                       ? ('PRE_ORDERS.ALREADY_COMPLETED' | translate)
@@ -277,7 +263,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <!-- Placeholder -->
         @if (!selectedOrder()) {
           <div
-            class="hidden lg:flex flex-1 max-w-[28.125rem] bg-gray-50/50 dark:bg-gray-950/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl justify-center items-center text-gray-400 flex-col gap-2"
+            class="hidden lg:flex flex-1 max-w-[28.125rem] bg-surface-bg/50 border border-dashed border-line rounded-2xl justify-center items-center text-ink-faint flex-col gap-2"
           >
             <lib-icon name="calendar-dots" class="text-[3rem] opacity-20" />
             <span class="text-sm font-medium opacity-50">{{ 'PRE_ORDERS.SELECT_PRE_ORDER' | translate }}</span>

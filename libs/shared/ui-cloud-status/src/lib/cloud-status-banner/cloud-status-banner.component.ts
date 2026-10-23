@@ -70,7 +70,7 @@ export class CloudStatusBannerComponent {
     if (level === 'warn') {
       return `${this.BASE_CARD} bg-amber-50/95 dark:bg-amber-900/90 text-amber-900 dark:text-amber-100 border-amber-300 dark:border-amber-800`
     }
-    return `${this.BASE_CARD} bg-white/95 dark:bg-gray-900/90 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700`
+    return `${this.BASE_CARD} bg-surface-panel/95 dark:bg-surface-bg/90 text-ink border-line`
   })
 
   protected readonly actionClasses = computed(() => {

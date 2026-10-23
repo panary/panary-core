@@ -139,7 +139,7 @@ interface LocationPointer {
                             >⚠ {{ bd.reportErrorMessage }}</span
                           >
                         } @else {
-                          <span class="text-ink-faint">—</span>
+                          <span class="text-ink-faint dark:text-line-strong">—</span>
                         }
                       </td>
                       <td class="text-right whitespace-nowrap">

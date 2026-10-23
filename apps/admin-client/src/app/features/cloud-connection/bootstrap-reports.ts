@@ -286,7 +286,11 @@ const DIRECTION_LABEL: Record<BootstrapReportDirection, string> = {
 
                   <div class="flex items-center justify-between pt-1">
                     <span class="text-[11px] text-ink-faint font-mono">Report-ID: {{ row._id }}</span>
-                    <button type="button" (click)="downloadJson(row)" class="text-xs text-ink hover:text-ink underline">
+                    <button
+                      type="button"
+                      (click)="downloadJson(row)"
+                      class="text-xs text-ink/80 hover:text-ink underline"
+                    >
                       Als JSON herunterladen
                     </button>
                   </div>

@@ -32,7 +32,7 @@ import { PrinterService } from './printer.service'
       <!-- Tabelle -->
       @if (printers().length === 0) {
         <div class="p-12 text-center">
-          <p class="text-ink-faint">Keine Drucker konfiguriert</p>
+          <p class="text-ink-faint dark:text-line-strong">Keine Drucker konfiguriert</p>
           <p class="text-ink-faint text-sm mt-1">Füge einen Drucker hinzu, um loszulegen.</p>
         </div>
       } @else {

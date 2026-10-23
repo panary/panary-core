@@ -82,7 +82,7 @@ interface User {
                           @if (user.isPosUser) {
                             <span class="text-green-400 text-xs">{{ 'COMMON.YES' | translate }}</span>
                           } @else {
-                            <span class="text-ink-faint text-xs">—</span>
+                            <span class="text-ink-faint dark:text-line-strong text-xs">—</span>
                           }
                         </td>
                         <td>

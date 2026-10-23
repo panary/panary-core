@@ -88,7 +88,7 @@ import { PrinterService, type PrintServerStatus } from './printer.service'
       }
 
       @if (status()?.startedAt) {
-        <p class="mt-2 text-xs text-ink-faint">Gestartet: {{ status()!.startedAt }}</p>
+        <p class="mt-2 text-xs text-ink-faint dark:text-line-strong">Gestartet: {{ status()!.startedAt }}</p>
       }
     </div>
   `,

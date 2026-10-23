@@ -147,8 +147,9 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
             type="button"
             (click)="activeTab.set(tab.key)"
             [class.text-ink]="activeTab() === tab.key"
+            [class.text-ink-muted]="activeTab() !== tab.key"
             [class.border-ink]="activeTab() === tab.key"
-            class="text-xs px-3 py-2 border-b-2 border-transparent text-ink-muted hover:text-ink transition-colors"
+            class="text-xs px-3 py-2 border-b-2 border-transparent hover:text-ink transition-colors"
           >
             {{ tab.label }} <span class="ml-1 opacity-60">{{ countFor(tab.key) }}</span>
           </button>
@@ -196,7 +197,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                     Technische Details ({{ row.attempts }} Versuche)
                   </summary>
                   <pre
-                    class="mt-2 font-mono text-[11px] bg-surface-bg rounded p-2 overflow-auto whitespace-pre-wrap break-all"
+                    class="mt-2 font-mono text-[11px] bg-line-soft rounded p-2 overflow-auto whitespace-pre-wrap break-all"
                     >{{ row.lastError }}</pre>
                 </details>
               }
@@ -271,12 +272,12 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                     Technische Details ({{ row.attempts }} Versuche)
                   </summary>
                   <pre
-                    class="mt-2 font-mono text-[11px] bg-surface-bg rounded p-2 overflow-auto whitespace-pre-wrap break-all"
+                    class="mt-2 font-mono text-[11px] bg-line-soft rounded p-2 overflow-auto whitespace-pre-wrap break-all"
                     >{{ row.lastError }}</pre>
                   @if (row.payload) {
                     <p class="text-ink-muted mt-2 mb-1 uppercase tracking-wider">Payload</p>
                     <pre
-                      class="font-mono text-[11px] bg-surface-bg rounded p-2 overflow-auto whitespace-pre-wrap break-all max-h-60"
+                      class="font-mono text-[11px] bg-line-soft rounded p-2 overflow-auto whitespace-pre-wrap break-all max-h-60"
                       >{{ shortJson(row.payload) }}</pre>
                   }
                 </details>

@@ -84,7 +84,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
           <button
             type="button"
             (click)="showDeleteConfirm.set(true)"
-            class="text-ink-faint hover:text-red-500 dark:hover:text-red-400 transition p-2
+            class="text-ink-faint dark:text-line-strong hover:text-red-500 dark:hover:text-red-400 transition p-2
                    rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
           >
             <svg
@@ -388,11 +388,13 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                   <span class="flex-1 text-sm font-medium text-ink truncate">
                     {{ group.name || ('PRODUCTS.UNNAMED_GROUP' | translate) }}
                   </span>
-                  <span class="text-xs text-ink-faint">{{ group.options.length }} Option(en)</span>
+                  <span class="text-xs text-ink-faint dark:text-line-strong"
+                    >{{ group.options.length }} Option(en)</span
+                  >
                   <button
                     type="button"
                     (click)="removeGroup(group.id); $event.stopPropagation()"
-                    class="text-ink-faint hover:text-red-400 text-xs px-2 transition"
+                    class="text-ink-faint dark:text-line-strong hover:text-red-400 text-xs px-2 transition"
                   >
                     &#x2715;
                   </button>
@@ -519,7 +521,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                           />
                           <!-- Preisaufschlag -->
                           <div class="flex items-center gap-1 shrink-0">
-                            <span class="text-ink-faint text-xs">+&euro;</span>
+                            <span class="text-ink-faint dark:text-line-strong text-xs">+&euro;</span>
                             <input
                               [(ngModel)]="opt.priceAdjustment"
                               [name]="'og_' + gi + '_opt_' + oi + '_adj'"
@@ -544,7 +546,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                           <button
                             type="button"
                             (click)="removeOption(group, oi)"
-                            class="text-ink-faint hover:text-red-400 text-xs shrink-0 transition px-1"
+                            class="text-ink-faint dark:text-line-strong hover:text-red-400 text-xs shrink-0 transition px-1"
                           >
                             &#x2715;
                           </button>
@@ -598,7 +600,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
             type="button"
             (click)="panelMode() ? closed.emit() : router.navigate(['/products'])"
             class="bg-surface-bg border border-line-soft text-ink-muted dark:text-ink
-                   px-6 py-3 rounded-xl text-sm hover:bg-line-soft transition"
+                   px-6 py-3 rounded-xl text-sm hover:bg-line transition"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>

@@ -365,7 +365,7 @@ import { objectHash } from '../../core/dirty-check'
             type="button"
             (click)="onCancel()"
             class="bg-surface-bg border border-line-soft text-ink-muted dark:text-ink
-                   px-6 py-3 rounded-xl text-sm hover:bg-line-soft transition"
+                   px-6 py-3 rounded-xl text-sm hover:bg-line transition"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>

@@ -86,7 +86,7 @@ import { AdminIconComponent } from './icon/icon'
               (click)="select(l.code)"
               class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left
                      text-ink
-                     hover:bg-surface-bg transition"
+                     hover:bg-surface-elevated transition"
             >
               <span class="flex-1 truncate">{{ l.label }}</span>
               <span class="text-[10px] uppercase tracking-wider text-ink-faint">{{ l.code }}</span>

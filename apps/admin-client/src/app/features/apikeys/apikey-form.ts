@@ -197,7 +197,7 @@ type DeviceLookup =
               type="button"
               (click)="onCancel()"
               class="bg-surface-bg border border-line-soft text-ink-muted dark:text-ink
-                     px-6 py-3 rounded-xl text-sm hover:bg-line-soft transition"
+                     px-6 py-3 rounded-xl text-sm hover:bg-line transition"
             >
               {{ 'COMMON.CANCEL' | translate }}
             </button>
@@ -212,7 +212,7 @@ type DeviceLookup =
         @if (detail(); as key) {
           <h1 class="text-2xl font-bold tracking-tight truncate" [title]="key.name">{{ key.name }}</h1>
         } @else if (errors().length > 0) {
-          <h1 class="text-2xl font-bold tracking-tight text-ink-faint">
+          <h1 class="text-2xl font-bold tracking-tight text-ink-faint dark:text-line-strong">
             {{ 'APIKEYS.TITLE' | translate }}
           </h1>
         } @else {
@@ -319,7 +319,7 @@ type DeviceLookup =
                   }
                   <!-- Rohe ID bleibt sichtbar und markierbar — im Support-Fall
                        ist sie der Schluessel zum Log. -->
-                  <span class="text-ink-faint font-mono text-[11px] block mt-0.5 select-all">
+                  <span class="text-ink-faint dark:text-line-strong font-mono text-[11px] block mt-0.5 select-all">
                     {{ detail()!.deviceId }}
                   </span>
                 </div>
@@ -347,7 +347,7 @@ type DeviceLookup =
               [disabled]="saving()"
               [class]="
                 detail()!.active
-                  ? 'bg-surface-bg border border-line-soft text-ink-muted dark:text-ink px-6 py-3 rounded-xl text-sm hover:bg-line-soft transition disabled:opacity-50'
+                  ? 'bg-surface-bg border border-line-soft text-ink-muted dark:text-ink px-6 py-3 rounded-xl text-sm hover:bg-line transition disabled:opacity-50'
                   : 'bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm hover:bg-ink/90 transition disabled:opacity-50'
               "
             >

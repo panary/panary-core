@@ -36,7 +36,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <button
             type="button"
             (click)="showDeleteConfirm.set(true)"
-            class="text-ink-faint hover:text-red-500 dark:hover:text-red-400 transition p-2
+            class="text-ink-faint dark:text-line-strong hover:text-red-500 dark:hover:text-red-400 transition p-2
                    rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
           >
             <svg
@@ -320,7 +320,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
             type="button"
             (click)="onCancel()"
             class="bg-surface-bg border border-line-soft text-ink-muted dark:text-ink
-                   px-6 py-3 rounded-xl text-sm hover:bg-line-soft transition"
+                   px-6 py-3 rounded-xl text-sm hover:bg-line transition"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>

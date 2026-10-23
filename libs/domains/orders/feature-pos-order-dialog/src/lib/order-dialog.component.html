@@ -595,7 +595,7 @@
           <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 mt-2 max-h-48 overflow-y-auto">
             @for (customer of corporateCustomers; track customer) {
               <button
-                class="h-12 px-4 bg-surface-elevated border border-line text-ink rounded-lg text-sm font-medium text-left truncate hover:bg-surface-elevated hover:shadow-sm"
+                class="h-12 px-4 bg-surface-elevated border border-line text-ink rounded-lg text-sm font-medium text-left truncate hover:bg-surface-bg dark:hover:bg-line hover:shadow-sm"
                 (click)="setCustomer(customer)"
               >
                 {{ customer.name1 }}

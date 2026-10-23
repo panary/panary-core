@@ -17,7 +17,7 @@
 
       <!-- Mobil: Dropdown -->
       <select
-        class="md:hidden h-9 px-3 rounded-xl border border-line bg-surface-elevated text-sm text-ink text-purple-700 font-medium focus:outline-none focus:ring-2 focus:ring-purple-200"
+        class="md:hidden h-9 px-3 rounded-xl border border-line bg-surface-elevated text-sm text-purple-700 dark:text-ink font-medium focus:outline-none focus:ring-2 focus:ring-purple-200"
         (change)="selectTimeRange($any($event.target).value)"
       >
         <option value="today" [selected]="selectedTimeRange() === 'today'">{{ 'HISTORY.TODAY' | translate }}</option>
@@ -244,7 +244,7 @@
 
             <button
               (click)="printOrder()"
-              class="h-10 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink font-medium hover:bg-surface-elevated active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              class="h-10 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink font-medium hover:bg-surface-bg dark:hover:bg-line active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
               <lib-icon name="printer" class="text-[1rem]" />
               {{ 'HISTORY.PRINT' | translate }}

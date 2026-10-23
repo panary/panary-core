@@ -21,7 +21,7 @@
       <button
         (click)="zoomOpen.set(!zoomOpen()); $event.stopPropagation()"
         class="flex items-center justify-center w-10 h-10 rounded-xl text-ink-muted hover:bg-line-soft transition-colors"
-        [class.bg-surface-bg]="zoomOpen()"
+        [class.bg-line-soft]="zoomOpen()"
       >
         <lib-icon name="frame-corners" class="text-[1.25rem]" />
       </button>
@@ -160,14 +160,14 @@
 
                     <!-- Action buttons -->
                     <button
-                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-elevated hover:border-line-strong transition-colors"
+                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                       (click)="openStaffMealView(); $event.stopPropagation()"
                     >
                       <lib-icon name="hamburger" class="text-[1.375rem] text-ink" />
                       <span class="text-sm font-bold">{{ 'ACTIVE_ORDERS.STAFF_MEAL' | translate }}</span>
                     </button>
                     <button
-                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-elevated hover:border-line-strong transition-colors"
+                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                       (click)="cancelOrder(order); $event.stopPropagation()"
                     >
                       <lib-icon name="x-circle" class="text-[1.375rem] text-red-400" />
@@ -175,7 +175,7 @@
                     </button>
                     @if (splitEnabled()) {
                       <button
-                        class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-elevated hover:border-line-strong transition-colors"
+                        class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                         data-testid="split-order"
                         (click)="openSplit(order); $event.stopPropagation()"
                       >
@@ -184,14 +184,14 @@
                       </button>
                     }
                     <button
-                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-elevated hover:border-line-strong transition-colors"
+                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                       (click)="enterDiscount(); $event.stopPropagation()"
                     >
                       <lib-icon name="percent" class="text-[1.375rem] text-ink" />
                       <span class="text-sm font-bold">{{ 'ACTIVE_ORDERS.DISCOUNT' | translate }}</span>
                     </button>
                     <button
-                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-elevated hover:border-line-strong transition-colors"
+                      class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                       (click)="recordCorporateOrder(); $event.stopPropagation()"
                     >
                       <lib-icon name="buildings" class="text-[1.375rem] text-ink" />

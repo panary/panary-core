@@ -43,7 +43,7 @@ import { IconComponent } from '@panary/shared/ui-common'
               class="w-10 h-10 flex items-center justify-center rounded-full font-medium text-sm transition-all active:scale-90 mx-auto"
               [class.bg-ink]="isSelected(date)"
               [class.text-surface-panel]="isSelected(date)"
-              [class.bg-surface-bg]="!isSelected(date) && !isDisabled(date)"
+              [class.bg-line-soft]="!isSelected(date) && !isDisabled(date)"
               [class.text-ink]="!isSelected(date) && !isDisabled(date)"
               [class.hover:bg-line]="!isSelected(date) && !isDisabled(date)"
               [class.text-line-strong]="isDisabled(date)"

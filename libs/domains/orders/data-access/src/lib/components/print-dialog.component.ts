@@ -98,7 +98,7 @@ interface Printer {
               class="w-full flex items-center gap-3 px-4 py-3 rounded-xl
                      bg-surface-elevated border border-line
                      text-ink font-medium text-sm
-                     hover:bg-surface-elevated hover:border-line-strong
+                     hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong
                      active:scale-[0.98] transition-all"
             >
               <div

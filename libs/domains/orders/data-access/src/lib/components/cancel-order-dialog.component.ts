@@ -64,7 +64,7 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
               (click)="selectReason(reason)"
               class="w-full text-left px-4 py-3 rounded-xl border border-line
                      bg-surface-elevated text-ink font-medium text-sm
-                     hover:bg-surface-elevated hover:border-line-strong
+                     hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong
                      active:scale-[0.98] transition-all"
             >
               {{ reason | translate }}
@@ -100,7 +100,7 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
               <button
                 (click)="selectManager(manager)"
                 class="flex items-center gap-3 p-3 rounded-xl border border-line
-                       bg-surface-elevated hover:bg-surface-elevated
+                       bg-surface-elevated hover:bg-surface-bg dark:hover:bg-line
                        hover:border-line-strong active:scale-[0.98] transition-all text-left"
               >
                 <div

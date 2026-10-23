@@ -13,7 +13,7 @@ import { IconComponent } from '@panary/shared/ui-common'
         <div class="grid grid-cols-3 gap-2">
           @for (key of numericKeys; track key) {
             <button
-              class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-elevated dark:text-white transition-all"
+              class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-bg dark:active:bg-line dark:text-white transition-all"
               (click)="onKey(key)"
             >
               {{ key }}
@@ -26,7 +26,7 @@ import { IconComponent } from '@panary/shared/ui-common'
             <lib-icon name="backspace" />
           </button>
           <button
-            class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-elevated dark:text-white transition-all"
+            class="pnry-touch key w-20 h-16 text-2xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-bg dark:active:bg-line dark:text-white transition-all"
             (click)="onKey('0')"
           >
             0
@@ -44,7 +44,7 @@ import { IconComponent } from '@panary/shared/ui-common'
             <div class="flex justify-center gap-1">
               @for (key of row; track key) {
                 <button
-                  class="pnry-touch key w-12 h-14 text-xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-elevated dark:text-white transition-all"
+                  class="pnry-touch key w-12 h-14 text-xl rounded-lg bg-surface-elevated shadow-sm border-b-2 border-line-strong font-bold active:border-b-0 active:translate-y-[0.125rem] active:bg-surface-bg dark:active:bg-line dark:text-white transition-all"
                   (click)="onKey(key)"
                 >
                   {{ key }}

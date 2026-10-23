@@ -46,3 +46,25 @@
 .rail-item:disabled {
   opacity: 0.42;
 }
+
+/*
+ * Stempeln und Abmelden (core#907): 48 px statt 62 px hoch (Touch-Minimum, code-style §9), damit die
+ * Rail eingestempelt bei 768 px Höhe ohne Scrollen auskommt (Konzept §4).
+ */
+.rail-item--compact {
+  height: 3rem;
+  gap: 0.125rem;
+}
+
+/* Farbe nach Wirkung, wie vorher im Avatar-Menü: Kommen/Weiter Mint, Pause Amber, Gehen/Abmelden Rot. */
+.rail-item[data-tone='accent'] lib-icon {
+  color: var(--accent-ink);
+}
+
+.rail-item[data-tone='warn'] lib-icon {
+  color: var(--warn-ink);
+}
+
+.rail-item[data-tone='danger'] lib-icon {
+  color: var(--danger-ink);
+}

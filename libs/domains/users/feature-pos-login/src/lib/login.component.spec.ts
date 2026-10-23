@@ -517,12 +517,12 @@ describe('LoginComponent — Bediener-Token', () => {
     expect(store.get('pos_current_user')).not.toContain('tok-anna')
   })
 
-  it('landet nach erfolgreicher PIN in der Kasse, nicht auf der Übersicht (core#832)', async () => {
+  it('landet nach erfolgreicher PIN auf der Übersicht, nicht in der Kasse (core#907)', async () => {
     const { component, navigate } = loginWith({ _id: 'u-anna', firstName: 'Anna', lastName: 'Alt' })
 
     await component.verifyPin()
 
-    expect(navigate.mock.calls).toEqual([[['/kasse']]])
+    expect(navigate.mock.calls).toEqual([[['/dashboard']]])
   })
 
   it('merkt sich den Mitarbeiter gerätelokal — nur als ID, nur nach erfolgreicher PIN', async () => {

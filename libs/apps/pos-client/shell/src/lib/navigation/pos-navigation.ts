@@ -81,8 +81,9 @@ export const OVERVIEW_PATH = '/dashboard'
 export const OPEN_ORDERS_PATH = '/orders/active'
 export const SETTINGS_PATH = '/settings'
 
-/** Direkte Einträge der Rail, in Anzeigereihenfolge. */
+/** Direkte Einträge der Rail, in Anzeigereihenfolge. Die Übersicht ist Startansicht und steht deshalb oben (core#907). */
 export const RAIL_ENTRIES: readonly PosNavEntry[] = [
+  { id: 'overview', label: 'POS_NAV.OVERVIEW', icon: 'squares-four', target: route(OVERVIEW_PATH) },
   // Offline nutzbar (Outbox); `kasseBookingGuard` sperrt die Route zusätzlich beim gesperrten Mandanten.
   {
     id: 'kasse',
@@ -101,7 +102,6 @@ export const RAIL_ENTRIES: readonly PosNavEntry[] = [
     target: route('/orders/history'),
     requiresOnline: true,
   },
-  { id: 'overview', label: 'POS_NAV.OVERVIEW', icon: 'squares-four', target: route(OVERVIEW_PATH) },
 ]
 
 /** Abschnitte der Einstellungen; die Seite liest `?section=` und führt dieselbe Liste (`SettingsComponent`). */
@@ -235,4 +235,13 @@ export function timeTrackingBlockedHintKey(suspended: boolean, offline: boolean)
   if (suspended) return 'CLOUD_STATUS.TENANT_SUSPENDED'
   if (offline) return 'DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'
   return null
+}
+
+/** Stempel-Aktion der Rail (core#907). */
+export type TimeClockAction = 'clock-in' | 'start-break' | 'end-break' | 'clock-out'
+
+/** Welche Stempel-Tasten die Rail zeigt: ausgestempelt nur Kommen, sonst Pause bzw. Weiter und Gehen. */
+export function timeClockActions(stampedIn: boolean, onBreak: boolean): readonly TimeClockAction[] {
+  if (!stampedIn) return ['clock-in']
+  return [onBreak ? 'end-break' : 'start-break', 'clock-out']
 }

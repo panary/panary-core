@@ -7,6 +7,7 @@ import {
   resolveNavGroups,
   resolveNavItems,
   SETTINGS_ENTRIES,
+  timeClockActions,
   timeTrackingBlockedHintKey,
 } from './pos-navigation'
 
@@ -40,11 +41,11 @@ describe('Rail', () => {
       { ...PAIRED, standalone: true, cloudPaired: false, businessDayOpen: false },
     ]) {
       expect(resolveNavItems(RAIL_ENTRIES, ctx).map(item => item.entry.id)).toEqual([
+        'overview',
         'kasse',
         'open-orders',
         'pre-orders',
         'history',
-        'overview',
       ])
     }
   })
@@ -135,5 +136,13 @@ describe('timeTrackingBlockedHintKey', () => {
     expect(timeTrackingBlockedHintKey(true, false)).toBe('CLOUD_STATUS.TENANT_SUSPENDED')
     expect(timeTrackingBlockedHintKey(false, true)).toBe('DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED')
     expect(timeTrackingBlockedHintKey(false, false)).toBeNull()
+  })
+})
+
+describe('timeClockActions (core#907)', () => {
+  it('ausgestempelt nur Kommen, eingestempelt Pause und Gehen, in der Pause Weiter und Gehen', () => {
+    expect(timeClockActions(false, false)).toEqual(['clock-in'])
+    expect(timeClockActions(true, false)).toEqual(['start-break', 'clock-out'])
+    expect(timeClockActions(true, true)).toEqual(['end-break', 'clock-out'])
   })
 })

@@ -92,6 +92,31 @@ describe('PosStaffService (core#832)', () => {
     expect(failed.session.endSession).not.toHaveBeenCalled()
   })
 
+  it('Rail-Taste ruft je Aktion den passenden Server-Aufruf (core#907)', async () => {
+    const { service, users } = setup({ stampingId: 'wt-1' })
+    await service.timeClock('start-break')
+    await service.timeClock('end-break')
+    expect(users.startBreak.mock.calls).toEqual([['u-olga']])
+    expect(users.endBreak.mock.calls).toEqual([['u-olga']])
+
+    const out = setup()
+    await out.service.timeClock('clock-in')
+    expect(out.users.checkin.mock.calls).toEqual([['u-olga']])
+  })
+
+  it('Doppeltipp auf eine Rail-Taste stempelt nur einmal (core#907)', async () => {
+    const { service, users } = setup()
+    let answer: (value: unknown) => void = () => undefined
+    users.checkin.mockReturnValue(new Promise(resolve => (answer = resolve)))
+    const first = service.timeClock('clock-in')
+    const second = service.timeClock('clock-in')
+    expect(service.timeClockBusy()).toBe(true)
+    answer({})
+    await Promise.all([first, second])
+    expect(users.checkin.mock.calls).toEqual([['u-olga']])
+    expect(service.timeClockBusy()).toBe(false)
+  })
+
   it('sperrt Abmelden offline mit Hinweis', () => {
     const { service, session, snackBar } = setup({ offline: true })
     service.logout()

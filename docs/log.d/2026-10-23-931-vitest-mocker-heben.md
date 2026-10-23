@@ -1,0 +1,1 @@
+* **Fix** (panary/panary-core#931): `@vitest/mocker` per Override auf ≥ 4.1.12 gehoben (Lockfile: 4.1.12); die befristeten osv-Ignores für GHSA-qxg6-89mg-rqv8 und GHSA-xp26-3454-mjgp aus panary/panary-core#845 entfallen. Dev-only, nicht im Edge-Image.

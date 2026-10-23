@@ -117,6 +117,26 @@ describe('PosStaffService (core#832)', () => {
     expect(service.timeClockBusy()).toBe(false)
   })
 
+  it('abgelehntes Bediener-Token: Hinweis und kontrollierte PIN-Abfrage statt stummem Login (core#923)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const rejection = Object.assign(new Error('abgelehnt'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    const { service, users, session, snackBar } = setup({ stampingId: 'wt-1' })
+    users.checkout.mockRejectedValue(rejection)
+    await service.clockOut()
+    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.OPERATOR_PIN_REQUIRED'])
+    // Genau einmal: Gehen meldet nach einem Fehlschlag nicht noch zusätzlich ab.
+    expect(session.endSession.mock.calls).toEqual([['button']])
+  })
+
+  it('anderer Fehler beim Stempeln: keine PIN-Abfrage, kein Hinweis (core#923)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { service, users, session, snackBar } = setup()
+    users.checkin.mockRejectedValue(Object.assign(new Error('jwt expired'), { code: 401 }))
+    await service.clockIn()
+    expect(session.endSession).not.toHaveBeenCalled()
+    expect(snackBar.open).not.toHaveBeenCalled()
+  })
+
   it('sperrt Abmelden offline mit Hinweis', () => {
     const { service, session, snackBar } = setup({ offline: true })
     service.logout()

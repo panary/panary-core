@@ -120,3 +120,19 @@ export const posOperatorTokenOf = (params: Params | undefined): string | null =>
   const value = (params?.query as Record<string, unknown> | undefined)?.[POS_OPERATOR_TOKEN_QUERY_KEY]
   return typeof value === 'string' && value ? value : null
 }
+
+/**
+ * Kennung, mit der der Edge ein mitgeschicktes, aber abgelehntes Bediener-Token beantwortet
+ * (`401`, `data.reason`; abgelaufen nach 12 h oder fremdes Gerät). Gegenstück in
+ * `apps/api-edge/src/services/users/time-clock-scope.ts` (panary/panary-core#903).
+ */
+export const POS_OPERATOR_REQUIRED_REASON = 'POS_OPERATOR_REQUIRED'
+
+/**
+ * Ist das die Ablehnung des Bediener-Tokens — nicht der Ablauf der Geräte-Sitzung? Nur der
+ * Bediener muss sich neu per PIN anmelden; das Gerät bleibt angemeldet (panary/panary-core#923).
+ */
+export const isPosOperatorRejection = (error: unknown): boolean => {
+  const { code, data } = (error ?? {}) as { code?: unknown; data?: { reason?: unknown } | null }
+  return code === 401 && data?.reason === POS_OPERATOR_REQUIRED_REASON
+}

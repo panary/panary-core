@@ -70,6 +70,14 @@ describe('ServiceHelper.handleError — abgelehntes Bediener-Token (core#923)', 
     expect(show).not.toHaveBeenCalled()
   })
 
+  it('403 mit derselben Kennung ist keine Token-Ablehnung: Toast wie bisher, kein Wurf', () => {
+    stubSessionStorage()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { show, helper } = setup()
+    helper.handleError('users', { code: 403, message: 'verboten', data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    expect(show).toHaveBeenCalledTimes(1)
+  })
+
   it('anderer 401: Geräte-Sitzung abgelaufen wie bisher — Toast, sessionStorage leer, Login', () => {
     const clear = stubSessionStorage()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)

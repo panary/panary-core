@@ -18,18 +18,18 @@ import { DecimalPipe } from '@angular/common'
       <div class="flex items-end gap-2 text-4xl font-bold mb-6 mt-4">
         <button
           (click)="switchToHours()"
-          class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-          [class.text-gray-800]="mode() === 'HOURS'"
-          [class.text-gray-400]="mode() !== 'HOURS'"
+          class="p-2 rounded hover:bg-line-soft"
+          [class.text-ink]="mode() === 'HOURS'"
+          [class.text-ink-faint]="mode() !== 'HOURS'"
         >
           {{ hour() !== null ? (hour()! | number: '2.0') : '--' }}
         </button>
-        <span class="mb-2 text-gray-400">:</span>
+        <span class="mb-2 text-ink-faint">:</span>
         <button
           (click)="switchToMinutes()"
-          class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-          [class.text-gray-800]="mode() === 'MINUTES'"
-          [class.text-gray-400]="mode() !== 'MINUTES'"
+          class="p-2 rounded hover:bg-line-soft"
+          [class.text-ink]="mode() === 'MINUTES'"
+          [class.text-ink-faint]="mode() !== 'MINUTES'"
         >
           {{ minute() !== null ? (minute()! | number: '2.0') : '--' }}
         </button>
@@ -37,14 +37,14 @@ import { DecimalPipe } from '@angular/common'
 
       <!-- Uhren-Zifferblatt -->
       <div
-        class="relative w-96 h-96 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 shadow-inner flex items-center justify-center"
+        class="relative w-96 h-96 bg-surface-elevated rounded-full border border-line shadow-inner flex items-center justify-center"
       >
         @if (mode() === 'HOURS') {
           <!-- Äußerer Ring (1-12) -->
           @for (h of outerHours; track h) {
             <button
               class="absolute w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-colors"
-              [class.bg-gray-800]="hour() === h"
+              [class.bg-shell]="hour() === h"
               [class.text-white]="hour() === h"
               [class.bg-white]="hour() !== h"
               [style.transform]="hourTransform(h, '9.5rem')"
@@ -57,10 +57,10 @@ import { DecimalPipe } from '@angular/common'
           @for (h of innerHours; track h) {
             <button
               class="absolute w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
-              [class.bg-gray-800]="hour() === h"
+              [class.bg-shell]="hour() === h"
               [class.text-white]="hour() === h"
-              [class.bg-gray-200]="hour() !== h"
-              [class.text-gray-500]="hour() !== h"
+              [class.bg-line]="hour() !== h"
+              [class.text-ink-muted]="hour() !== h"
               [style.transform]="hourTransform(h === 0 ? 12 : h - 12, '6.5rem')"
               (click)="selectHour(h)"
             >
@@ -72,7 +72,7 @@ import { DecimalPipe } from '@angular/common'
           @for (m of minuteSteps; track m) {
             <button
               class="absolute w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl transition-colors"
-              [class.bg-gray-800]="minute() === m"
+              [class.bg-shell]="minute() === m"
               [class.text-white]="minute() === m"
               [class.bg-white]="minute() !== m"
               [style.transform]="minuteTransform(m)"
@@ -81,7 +81,7 @@ import { DecimalPipe } from '@angular/common'
               {{ m | number: '2.0' }}
             </button>
           }
-          <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+          <div class="w-2 h-2 bg-ink-faint rounded-full"></div>
         }
       </div>
     </div>

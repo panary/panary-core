@@ -29,23 +29,17 @@ export interface CustomizeOptionEvent {
       <header class="flex shrink-0 items-start gap-4 px-4 pb-3">
         <div class="min-w-0">
           <div class="flex items-baseline gap-2">
-            <span class="text-[0.625rem] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500"
-              >Anpassen</span
-            >
+            <span class="text-[0.625rem] font-semibold uppercase tracking-widest text-ink-faint">Anpassen</span>
             @if (m.amount > 1 && scopeLocked()) {
               <span
-                class="rounded bg-gray-100 px-1.5 py-0.5 text-[0.625rem] font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                class="rounded bg-line-soft px-1.5 py-0.5 text-[0.625rem] font-bold text-ink-muted dark:text-ink"
                 data-testid="customize-scope-applied"
                 >gilt für {{ scope() === 'one' ? 1 : m.amount }}×</span
               >
             }
           </div>
-          <h2 class="truncate text-lg font-bold leading-tight text-gray-900 dark:text-white">{{ m.name }}</h2>
-          <p
-            class="truncate text-sm text-gray-500 dark:text-gray-400"
-            data-testid="customize-summary"
-            [attr.title]="m.summary || null"
-          >
+          <h2 class="truncate text-lg font-bold leading-tight text-ink">{{ m.name }}</h2>
+          <p class="truncate text-sm text-ink-muted" data-testid="customize-summary" [attr.title]="m.summary || null">
             {{ m.summary || 'Wie bestellt — nichts geändert' }}
           </p>
         </div>
@@ -53,7 +47,7 @@ export interface CustomizeOptionEvent {
              abgespalten) oder für alle? Nach der ersten Änderung fest. -->
         @if (m.amount > 1 && !scopeLocked()) {
           <div
-            class="inline-flex shrink-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700"
+            class="inline-flex shrink-0 overflow-hidden rounded-xl border border-line"
             role="radiogroup"
             aria-label="Anpassung gilt für"
           >
@@ -65,7 +59,7 @@ export interface CustomizeOptionEvent {
               [class]="
                 scope() === 'one'
                   ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200'
-                  : 'bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                  : 'bg-surface-elevated text-ink-muted dark:text-ink'
               "
               [attr.aria-checked]="scope() === 'one'"
               (click)="scopeChanged.emit('one')"
@@ -76,11 +70,11 @@ export interface CustomizeOptionEvent {
               type="button"
               role="radio"
               data-testid="customize-scope-all"
-              class="pnry-touch min-h-12 border-l border-gray-200 px-4 text-sm font-semibold transition-colors dark:border-gray-700"
+              class="pnry-touch min-h-12 border-l border-line px-4 text-sm font-semibold transition-colors"
               [class]="
                 scope() === 'all'
                   ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200'
-                  : 'bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                  : 'bg-surface-elevated text-ink-muted dark:text-ink'
               "
               [attr.aria-checked]="scope() === 'all'"
               (click)="scopeChanged.emit('all')"
@@ -95,13 +89,8 @@ export interface CustomizeOptionEvent {
         @if (m.ingredients.length > 0) {
           <section class="mb-5 max-h-[40%] shrink-0 overflow-y-auto" aria-labelledby="customize-ingredients">
             <div class="mb-2 flex items-baseline justify-between">
-              <h3
-                id="customize-ingredients"
-                class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200"
-              >
-                Zutaten
-              </h3>
-              <span class="text-[0.6875rem] text-gray-400">Antippen zum Abwählen</span>
+              <h3 id="customize-ingredients" class="text-xs font-bold uppercase tracking-wider text-ink">Zutaten</h3>
+              <span class="text-[0.6875rem] text-ink-faint">Antippen zum Abwählen</span>
             </div>
             <div class="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2">
               @for (ingredient of m.ingredients; track ingredient.externalId) {
@@ -111,7 +100,7 @@ export interface CustomizeOptionEvent {
                   [class]="
                     ingredient.removed
                       ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300'
-                      : 'border-gray-200 bg-white text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
+                      : 'border-line bg-surface-elevated text-ink'
                   "
                   [attr.aria-pressed]="!ingredient.removed"
                   (click)="ingredientToggled.emit(ingredient.externalId)"
@@ -147,10 +136,7 @@ export interface CustomizeOptionEvent {
             @for (group of m.groups; track group.id) {
               <section [attr.aria-labelledby]="'customize-group-' + group.id">
                 <div class="mb-2 flex items-baseline justify-between gap-2">
-                  <h3
-                    [id]="'customize-group-' + group.id"
-                    class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200"
-                  >
+                  <h3 [id]="'customize-group-' + group.id" class="text-xs font-bold uppercase tracking-wider text-ink">
                     {{ group.name }}
                   </h3>
                   <span
@@ -158,7 +144,7 @@ export interface CustomizeOptionEvent {
                     [class]="
                       group.missing > 0
                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                        : 'text-gray-400'
+                        : 'text-ink-faint'
                     "
                     >{{ groupHint(group) }}</span
                   >
@@ -168,16 +154,12 @@ export interface CustomizeOptionEvent {
                 <ul class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-2">
                   @for (option of group.options; track option.productId) {
                     <li
-                      class="flex min-h-14 items-center gap-2 rounded-xl border bg-white py-1 pl-3 pr-1 dark:bg-gray-800"
-                      [class]="
-                        option.amount > 0
-                          ? 'border-teal-300 dark:border-teal-700'
-                          : 'border-gray-200 dark:border-gray-700'
-                      "
+                      class="flex min-h-14 items-center gap-2 rounded-xl border bg-surface-elevated py-1 pl-3 pr-1"
+                      [class]="option.amount > 0 ? 'border-teal-300 dark:border-teal-700' : 'border-line'"
                     >
                       <span class="flex min-w-0 flex-1 flex-col leading-tight">
                         <span
-                          class="truncate text-sm font-semibold text-gray-800 dark:text-gray-100"
+                          class="truncate text-sm font-semibold text-ink"
                           [class.text-teal-700]="option.amount > 0"
                           >{{ option.name }}</span
                         >
@@ -187,12 +169,12 @@ export interface CustomizeOptionEvent {
                             kein Extra — im Admin auf Modifier stellen
                           </span>
                         } @else if (option.price > 0) {
-                          <span class="text-xs text-gray-500">+{{ option.price | eur }}</span>
+                          <span class="text-xs text-ink-muted">+{{ option.price | eur }}</span>
                         }
                       </span>
                       <button
                         type="button"
-                        class="pnry-touch flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 text-gray-600 transition-all active:scale-95 disabled:opacity-30 dark:border-gray-600 dark:text-gray-300"
+                        class="pnry-touch flex h-12 w-12 items-center justify-center rounded-xl border border-line-strong text-ink-muted dark:text-ink transition-all active:scale-95 disabled:opacity-30"
                         [disabled]="option.amount === 0"
                         [attr.aria-label]="option.name + ' entfernen'"
                         (click)="optionDecreased.emit({ groupName: group.name, productId: option.productId })"
@@ -200,7 +182,7 @@ export interface CustomizeOptionEvent {
                         <lib-icon name="minus" aria-hidden="true" />
                       </button>
                       <span
-                        class="w-6 text-center text-base font-bold tabular-nums text-gray-900 dark:text-white"
+                        class="w-6 text-center text-base font-bold tabular-nums text-ink"
                         [attr.aria-label]="'Menge ' + option.name"
                         >{{ option.amount }}</span
                       >
@@ -227,7 +209,7 @@ export interface CustomizeOptionEvent {
            Funktionsleiste (#795) — mit „Herauslösen" brachen vier breite Tasten sonst um. „Fertig"
            bleibt breit und füllt den Rest. Container-Query, weil die Panelbreite zählt, nicht die
            des Fensters. -->
-      <footer class="flex shrink-0 items-stretch gap-2 border-t border-gray-200 px-4 pt-3 dark:border-gray-700">
+      <footer class="flex shrink-0 items-stretch gap-2 border-t border-line px-4 pt-3">
         <button
           type="button"
           class="pnry-touch flex h-14 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[0.5625rem] font-bold uppercase leading-tight active:scale-95 @2xl:w-auto @2xl:tracking-wide @2xl:flex-row @2xl:gap-2 @2xl:px-4 @2xl:text-xs border-2 border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
@@ -238,7 +220,7 @@ export interface CustomizeOptionEvent {
         </button>
         <button
           type="button"
-          class="pnry-touch flex h-14 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[0.5625rem] font-bold uppercase leading-tight active:scale-95 @2xl:w-auto @2xl:tracking-wide @2xl:flex-row @2xl:gap-2 @2xl:px-4 @2xl:text-xs border border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300"
+          class="pnry-touch flex h-14 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[0.5625rem] font-bold uppercase leading-tight active:scale-95 @2xl:w-auto @2xl:tracking-wide @2xl:flex-row @2xl:gap-2 @2xl:px-4 @2xl:text-xs border border-line text-ink-muted dark:text-ink"
           (click)="showAllModifiers.emit()"
         >
           <lib-icon name="squares-four" class="!text-[1.25rem]" aria-hidden="true" />
@@ -262,7 +244,7 @@ export interface CustomizeOptionEvent {
         }
         <button
           type="button"
-          class="pnry-touch ml-auto flex h-14 min-w-16 max-w-[14rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-teal-400 bg-teal-100 px-1 text-center text-[0.625rem] font-bold uppercase leading-tight text-teal-800 @2xl:tracking-wide active:scale-95 disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 @2xl:min-w-[10rem] @2xl:max-w-none @2xl:flex-none @2xl:flex-row @2xl:gap-2 @2xl:px-5 @2xl:text-sm dark:border-teal-700 dark:bg-teal-900/50 dark:text-teal-200 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
+          class="pnry-touch ml-auto flex h-14 min-w-16 max-w-[14rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-teal-400 bg-teal-100 px-1 text-center text-[0.625rem] font-bold uppercase leading-tight text-teal-800 @2xl:tracking-wide active:scale-95 disabled:border-line disabled:bg-line-soft disabled:text-ink-faint @2xl:min-w-[10rem] @2xl:max-w-none @2xl:flex-none @2xl:flex-row @2xl:gap-2 @2xl:px-5 @2xl:text-sm dark:border-teal-700 dark:bg-teal-900/50 dark:text-teal-200"
           [disabled]="!m.canFinish"
           (click)="finished.emit()"
         >

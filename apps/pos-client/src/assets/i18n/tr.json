@@ -34,7 +34,8 @@
     "CART_SIDE_LEFT": "sol — sağ için dokunun",
     "CART_SIDE_RIGHT": "sağ — sol için dokunun",
     "CART_SIDE_PENDING": "Çevrimdışı kaydedildi — bağlantı kurulunca gönderilecek.",
-    "CART_SIDE_FAILED": "Sepet tarafı kaydedilemedi."
+    "CART_SIDE_FAILED": "Sepet tarafı kaydedilemedi.",
+    "OPERATOR_PIN_REQUIRED": "Kasa oturumunuzun süresi doldu. Lütfen PIN ile yeniden giriş yapıp işlemi tekrarlayın."
   },
   "ENTITY": {
     "DOCUMENT": "Belge",

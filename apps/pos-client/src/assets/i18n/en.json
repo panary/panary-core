@@ -34,7 +34,8 @@
     "CART_SIDE_LEFT": "left — tap for right",
     "CART_SIDE_RIGHT": "right — tap for left",
     "CART_SIDE_PENDING": "Saved offline — will be sent when connected.",
-    "CART_SIDE_FAILED": "Cart side could not be saved."
+    "CART_SIDE_FAILED": "Cart side could not be saved.",
+    "OPERATOR_PIN_REQUIRED": "Your till sign-in has expired. Please sign in again with your PIN and repeat the action."
   },
   "ENTITY": {
     "DOCUMENT": "Document",

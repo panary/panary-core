@@ -34,7 +34,8 @@
     "CART_SIDE_LEFT": "links — tippen für rechts",
     "CART_SIDE_RIGHT": "rechts — tippen für links",
     "CART_SIDE_PENDING": "Offline gespeichert — wird bei Verbindung übertragen.",
-    "CART_SIDE_FAILED": "Warenkorb-Seite konnte nicht gespeichert werden."
+    "CART_SIDE_FAILED": "Warenkorb-Seite konnte nicht gespeichert werden.",
+    "OPERATOR_PIN_REQUIRED": "Deine Anmeldung an der Kasse ist abgelaufen. Bitte erneut mit PIN anmelden und noch einmal stempeln."
   },
   "ENTITY": {
     "DOCUMENT": "Dokument",

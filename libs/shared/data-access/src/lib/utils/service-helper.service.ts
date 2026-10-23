@@ -5,6 +5,7 @@ import { httpErrorCodesDE } from '@panary/util-error-handling'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { Router } from '@angular/router'
 import { readTenantSuspension, TenantSuspensionService } from '../services/tenant-suspension.service'
+import { isPosOperatorRejection } from './pos-operator-token'
 
 @Injectable({
   providedIn: 'root',
@@ -18,6 +19,7 @@ export class ServiceHelper {
   protected readonly matSnackBar: MatSnackBar = inject(MatSnackBar)
   protected readonly tenantSuspension: TenantSuspensionService = inject(TenantSuspensionService)
 
+  /** Zeigt den Fehler an. Wirft nur bei abgelehntem Bediener-Token (`isPosOperatorRejection`) weiter. */
   handleError(serviceName: string, error: FeathersError | unknown): void {
     const ERROR_DUPLICATE_KEY_MSG = 'Ein Eintrag mit diesem Schlüssel existiert bereits.'
 
@@ -29,6 +31,11 @@ export class ServiceHelper {
         return ''
       }
     }
+
+    // Abgelehntes Bediener-Token (panary/panary-core#923): kein Ablauf der Geräte-Sitzung. Das
+    // `sessionStorage.clear()` unten warf den Kassierer sonst stumm auf den Login, und die
+    // Stempelung fehlte. Der Fehler geht an den Aufrufer, der die PIN neu abfragt.
+    if (isPosOperatorRejection(error)) throw error
 
     const e = error as Record<string, unknown> | null | undefined
 

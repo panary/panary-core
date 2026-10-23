@@ -4,7 +4,7 @@ title: POS-Navigation — Rail statt Dashboard-Kacheln
 description: 'Wie der POS seit core#832 navigiert — Rail links mit fünf direkten Einträgen, „Mehr" mit Gruppen und Einstellungen-Untermenü, Stempeln und Abmelden direkt in der Rail (core#907), Avatar-Menü für die Warenkorb-Seite; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-23T02:40:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-23T03:20:00Z }
 ---
 
 # POS-Navigation — Rail statt Dashboard-Kacheln
@@ -96,6 +96,15 @@ zurückkommt.
 Mandantensperre gesperrt (`timeTrackingBlockedHintKey`, Kontosperre vor „offline"), Abmelden ist
 offline gesperrt (`PosSessionService.isOffline`). Gehen meldet danach ab. Gesperrte Stempeltasten und
 Abmelden bleiben wie die übrigen Rail-Einträge antippbar und nennen den Grund per Snackbar.
+
+**Abgelehntes Bediener-Token** ([core#923](https://github.com/panary/panary-core/issues/923)). Seit
+[core#903](https://github.com/panary/panary-core/issues/903) bindet der Edge die Zeiterfassung an das
+Bediener-Token. Ist es abgelaufen (12 h) oder gehört es zu einem anderen Gerät, antwortet er mit `401` und
+`data.reason: POS_OPERATOR_REQUIRED`. Das ist **kein** Ablauf der Geräte-Sitzung: `ServiceHelper.handleError`
+leert dann weder `sessionStorage` noch zeigt es einen Toast, sondern reicht den Fehler weiter
+(`isPosOperatorRejection`, `@panary/shared/data-access`). `PosStaffService` zeigt den Hinweis, sich erneut
+mit PIN anzumelden, und beendet die Bediener-Sitzung über `PosSessionService.endSession`. Nach der PIN ist die
+Stempelung wiederholbar; es wurde nichts gestempelt. Jeden anderen `401` behandelt `ServiceHelper` wie bisher.
 
 **Keine Rechteprüfung im UI.** `allowedRoles` war an keiner Kachel gesetzt und ist entfallen. Was ein
 Mitarbeiter darf, prüfen weiter Server (`authorize`, Custom-Methods wie `checkin`), Guards

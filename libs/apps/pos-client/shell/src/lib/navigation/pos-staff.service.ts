@@ -2,7 +2,12 @@ import { computed, inject, Injectable, signal } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
-import { posOperatorSession, TenantSuspensionService, withPosOperatorToken } from '@panary/shared/data-access'
+import {
+  isPosOperatorRejection,
+  posOperatorSession,
+  TenantSuspensionService,
+  withPosOperatorToken,
+} from '@panary/shared/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { PosHandedness } from '@panary/users/domain'
 import { type TimeClockAction, timeTrackingBlockedHintKey } from './pos-navigation'
@@ -155,12 +160,18 @@ export class PosStaffService {
       return true
     } catch (error) {
       console.error(`${label} failed:`, error)
+      // Bediener-Token abgelehnt (abgelaufen, fremdes Gerät): Das Gerät bleibt angemeldet, nur der
+      // Bediener muss neu per PIN. Danach ist die Stempelung wiederholbar (panary/panary-core#923).
+      if (isPosOperatorRejection(error)) {
+        this.#notify('POS_NAV.OPERATOR_PIN_REQUIRED', 8000)
+        void this.#session.endSession('button')
+      }
       return false
     }
   }
 
-  #notify(key: string): void {
-    this.#snackBar.open(this.#translate.instant(key), undefined, { duration: 4000 })
+  #notify(key: string, duration = 4000): void {
+    this.#snackBar.open(this.#translate.instant(key), undefined, { duration })
   }
 }
 

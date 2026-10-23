@@ -58,7 +58,7 @@
     </div>
     <p class="font-mono text-sm text-ink-muted">{{ deviceName() || 'POS Terminal' }} &middot; v{{ appVersion }}</p>
     <div class="self-start">
-      <ng-container *ngTemplateOutlet="connection" />
+      <ng-container [ngTemplateOutlet]="connection" />
     </div>
 
     <div class="flex-1"></div>
@@ -507,7 +507,7 @@
 
       <!-- Verbindung: auf lg im Seitenpanel (Konzept 2.5), hier nur mobil -->
       <div class="lg:hidden">
-        <ng-container *ngTemplateOutlet="connection" />
+        <ng-container [ngTemplateOutlet]="connection" />
       </div>
     </div>
   </div>

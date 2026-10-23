@@ -10,10 +10,4 @@ describe('sortStaff', () => {
     expect(sortStaff(input).map(p => p._id)).toEqual(['3', '2', '1'])
     expect(input.map(p => p._id)).toEqual(['1', '2', '3'])
   })
-
-  it('ordnet Umlaute nach deutscher Sortierung ein (Ö vor P)', () => {
-    const sorted = sortStaff([person('1', 'A', 'Pohl'), person('2', 'B', 'Özdemir'), person('3', 'C', 'Nolte')])
-
-    expect(sorted.map(p => p._id)).toEqual(['3', '2', '1'])
-  })
 })

@@ -12,7 +12,7 @@ Code: `libs/domains/users/feature-pos-login`.
 
 ## Seitenpanel (ab lg links)
 
-Helles Panel auf App-Tokens (`bg-surface-panel`, `border-line`, `text-ink`), Konzept `sandbox/design-studie/konzept.html`,
+Helles Panel auf App-Tokens (`bg-surface-panel`, `border-line`, `text-ink`), Konzept (Workbench-Repo, `sandbox/design-studie/konzept.html`),
 Mockup 2.5/2.6: Logo, Gerätename mit Version, Verbindungsanzeige, darunter nur auf **geteilten** Geräten die
 Zeiterfassung (`lib-time-clock-panel`, Logik unverändert), auf zugewiesenen Geräten die Namen der Zugewiesenen.
 Ganz unten stehen Theme- und Sprachtaste. Auf schmalen Bildschirmen entfällt das Panel; Logo, Sprache,

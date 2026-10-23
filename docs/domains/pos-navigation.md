@@ -10,12 +10,13 @@ generated: { by: claude-code/opus-5.5, at: 2026-10-23T11:00:00Z }
 # POS-Navigation — Rail statt Dashboard-Kacheln
 
 Seit [core#832](https://github.com/panary/panary-core/issues/832), Teil des Design-Ankers
-[core#819](https://github.com/panary/panary-core/issues/819), navigiert der POS über eine **Rail**. Seit
+[core#819](https://github.com/panary/panary-core/issues/819), navigiert der POS über eine **Rail**; sie ersetzt die Schnellzugriff-Kacheln des Dashboards, das zur
+„Übersicht" wird. Seit
 [core#942](https://github.com/panary/panary-core/issues/942) sitzt sie dem Warenkorb gegenüber: Rechtshänder
 (Warenkorb rechts) haben sie links, Linkshänder (Warenkorb links) rechts — auf jeder Seite mit Rail
 (`railSide`, `PosStaffService.railSide`). Weil ohne eigene Wahl „links" gilt (`DEFAULT_POS_HANDEDNESS`,
 [Bedienhand](pos-bedienhand.md)), steht die Rail bei allen, die nie gewählt haben, **rechts**. Ihre Menüs
-öffnen immer zur Bildschirmmitte hin. Sie ersetzt die Schnellzugriff-Kacheln des Dashboards, das zur „Übersicht" wird. Nach dem
+öffnen immer zur Bildschirmmitte hin. Nach dem
 Login landet man seit [core#907](https://github.com/panary/panary-core/issues/907) auf der **Übersicht**
 (`/dashboard`) mit Kennzahlen und Vorbestellungen; von core#832 bis dahin war es die Kasse. Grund: Michaels
 Test von `pos-v26.10.25` — Vorbestellungen und Kennzahlen (auch für die Betrugsauswertung) sollen beim

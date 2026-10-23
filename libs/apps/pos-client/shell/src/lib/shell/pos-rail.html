@@ -62,9 +62,10 @@
     <lib-icon name="lock" class="text-[1.5rem]" />
   </button>
 
-  @if (staff.isOffline()) {
-    <span class="text-xs font-semibold text-danger-ink" role="status">{{ 'POS_NAV.OFFLINE' | translate }}</span>
-  }
+  <!-- Live-Region bleibt stehen, nur der Text wechselt: eine neu entstehende Region sagen Screenreader oft nicht an. -->
+  <span class="text-xs font-semibold text-danger-ink empty:hidden" role="status">{{
+    staff.isOffline() ? ('POS_NAV.OFFLINE' | translate) : ''
+  }}</span>
   <button
     type="button"
     class="relative mt-1 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-[0.9375rem] font-bold text-surface-panel disabled:opacity-40"

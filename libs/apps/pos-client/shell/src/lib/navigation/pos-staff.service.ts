@@ -119,6 +119,13 @@ export class PosStaffService {
     await this.#run('End break', () => this.#users.endBreak(user._id, withPosOperatorToken()))
   }
 
+  /** Nennt den Grund, warum Stempeln gerade gesperrt ist; `false`, wenn es nicht gesperrt ist. */
+  notifyTimeTrackingBlocked(): boolean {
+    const blocked = this.timeTrackingBlockedKey()
+    if (blocked) this.#notify(blocked)
+    return !!blocked
+  }
+
   /** Seite des Warenkorbs an der Kasse — eigene Wahl dieser Sitzung, sonst Datensatz, sonst links. */
   readonly cartSide = computed(() => this.#handedness.effective(this.currentUser()))
 

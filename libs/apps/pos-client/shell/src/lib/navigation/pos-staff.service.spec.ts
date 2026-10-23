@@ -190,6 +190,17 @@ describe('PosStaffService (core#832)', () => {
     expect(setup({ stampingId: 'wt-1' }).service.timeClockState()).toBe('in')
   })
 
+  it('Sperr-Hinweis der Stempeltaste: nur gesperrt eine Meldung, ohne Server-Aufruf (core#942)', () => {
+    const blocked = setup({ offline: true, stampingId: 'wt-1' })
+    expect(blocked.service.notifyTimeTrackingBlocked()).toBe(true)
+    expect(blocked.snackBar.open.mock.calls.map(call => call[0])).toEqual(['DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'])
+    expect(blocked.users.startBreak).not.toHaveBeenCalled()
+
+    const free = setup({ stampingId: 'wt-1' })
+    expect(free.service.notifyTimeTrackingBlocked()).toBe(false)
+    expect(free.snackBar.open).not.toHaveBeenCalled()
+  })
+
   it('sperrt Abmelden offline mit Hinweis', () => {
     const { service, session, snackBar } = setup({ offline: true })
     service.logout()

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
-import { CdkMenuItem } from '@angular/cdk/menu'
+import { CdkMenuGroup, CdkMenuItemRadio } from '@angular/cdk/menu'
 import { TranslateModule } from '@ngx-translate/core'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { IconComponent, type IconName } from '@panary/shared/ui-common'
@@ -36,7 +36,7 @@ const THEME_OPTIONS: readonly ThemeOption[] = [
  */
 @Component({
   selector: 'lib-pos-account-panel',
-  imports: [CdkMenuItem, IconComponent, TranslateModule],
+  imports: [CdkMenuGroup, CdkMenuItemRadio, IconComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './pos-menu.css',
   template: `
@@ -60,14 +60,14 @@ const THEME_OPTIONS: readonly ThemeOption[] = [
     </div>
 
     <div class="pos-menu__label">{{ 'POS_NAV.HANDEDNESS' | translate }}</div>
-    <div class="grid grid-cols-2 gap-1.5 px-1.5 pb-1">
+    <div cdkMenuGroup class="grid grid-cols-2 gap-1.5 px-1.5 pb-1">
       @for (option of hands; track option.side) {
         <button
-          cdkMenuItem
+          cdkMenuItemRadio
           type="button"
           class="pos-menu__segment"
           [class.is-active]="staff.cartSide() === option.side"
-          [attr.aria-pressed]="staff.cartSide() === option.side"
+          [cdkMenuItemChecked]="staff.cartSide() === option.side"
           (cdkMenuItemTriggered)="staff.chooseCartSide(option.side)"
         >
           <lib-icon name="hand" class="text-[1.375rem]" [class.-scale-x-100]="option.side === 'left'" />
@@ -77,14 +77,14 @@ const THEME_OPTIONS: readonly ThemeOption[] = [
     </div>
 
     <div class="pos-menu__label">{{ 'POS_NAV.THEME' | translate }}</div>
-    <div class="grid grid-cols-3 gap-1.5 px-1.5 pb-1.5">
+    <div cdkMenuGroup class="grid grid-cols-3 gap-1.5 px-1.5 pb-1.5">
       @for (option of themes; track option.value) {
         <button
-          cdkMenuItem
+          cdkMenuItemRadio
           type="button"
           class="pos-menu__segment"
           [class.is-active]="theme.theme === option.value"
-          [attr.aria-pressed]="theme.theme === option.value"
+          [cdkMenuItemChecked]="theme.theme === option.value"
           (cdkMenuItemTriggered)="theme.setTheme(option.value)"
         >
           <lib-icon [name]="option.icon" class="text-[1.375rem]" />

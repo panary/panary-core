@@ -126,11 +126,11 @@ export class PosTimeClock {
     })
   }
 
-  /** Eingestempelt öffnet der Trigger das Menü; gesperrt nennt `PosStaffService` den Grund. */
+  /** Eingestempelt öffnet der Trigger das Menü; gesperrt nennt die Taste nur den Grund. */
   protected tap(): void {
-    const state = this.staff.timeClockState()
-    const action = timeClockTapAction(state) ?? (this.blockedKey() ? 'start-break' : null)
+    const action = timeClockTapAction(this.staff.timeClockState())
     if (action) void this.staff.timeClock(action)
+    else this.staff.notifyTimeTrackingBlocked()
   }
 
   async #loadWorkingTime(stampingId: string | null | undefined): Promise<void> {

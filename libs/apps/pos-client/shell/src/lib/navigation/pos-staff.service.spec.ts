@@ -173,6 +173,23 @@ describe('PosStaffService (core#832)', () => {
     expect(snackBar.open).not.toHaveBeenCalled()
   })
 
+  it('Bedienhand aus dem Avatar-Menü: dieselbe Seite ändert nichts, die andere wird gespeichert (core#942)', async () => {
+    const same = setup({ cartSide: 'left' })
+    await same.service.chooseCartSide('left')
+    expect(same.handedness.choose).not.toHaveBeenCalled()
+
+    const other = setup({ cartSide: 'left' })
+    await other.service.chooseCartSide('right')
+    expect(other.handedness.choose.mock.calls).toEqual([['u-olga', 'right']])
+  })
+
+  it('Rail sitzt dem Warenkorb gegenüber, Stempelzustand aus dem Datensatz (core#942)', () => {
+    expect(setup({ cartSide: 'left' }).service.railSide()).toBe('right')
+    expect(setup({ cartSide: 'right' }).service.railSide()).toBe('left')
+    expect(setup().service.timeClockState()).toBe('out')
+    expect(setup({ stampingId: 'wt-1' }).service.timeClockState()).toBe('in')
+  })
+
   it('sperrt Abmelden offline mit Hinweis', () => {
     const { service, session, snackBar } = setup({ offline: true })
     service.logout()

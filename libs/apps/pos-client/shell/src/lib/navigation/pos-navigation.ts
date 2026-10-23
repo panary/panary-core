@@ -240,8 +240,31 @@ export function timeTrackingBlockedHintKey(suspended: boolean, offline: boolean)
 /** Stempel-Aktion der Rail (core#907). */
 export type TimeClockAction = 'clock-in' | 'start-break' | 'end-break' | 'clock-out'
 
-/** Welche Stempel-Tasten die Rail zeigt: ausgestempelt nur Kommen, sonst Pause bzw. Weiter und Gehen. */
-export function timeClockActions(stampedIn: boolean, onBreak: boolean): readonly TimeClockAction[] {
-  if (!stampedIn) return ['clock-in']
-  return [onBreak ? 'end-break' : 'start-break', 'clock-out']
+/**
+ * Zustand der einen Stempeltaste der Rail (core#942): grau = ausgestempelt (Tipp = Kommen), mint =
+ * eingestempelt (Tipp öffnet Pause/Gehen), amber = Pause (Tipp = Pause Ende).
+ */
+export type TimeClockState = 'out' | 'in' | 'break'
+
+export function timeClockState(stampedIn: boolean, onBreak: boolean): TimeClockState {
+  if (!stampedIn) return 'out'
+  return onBreak ? 'break' : 'in'
+}
+
+/** Aktion eines Tipps auf die Stempeltaste; eingestempelt öffnet sie ein Menü statt zu stempeln. */
+export function timeClockTapAction(state: TimeClockState): TimeClockAction | null {
+  if (state === 'out') return 'clock-in'
+  if (state === 'break') return 'end-break'
+  return null
+}
+
+export type ScreenSide = 'left' | 'right'
+
+/**
+ * Die Rail sitzt dem Warenkorb gegenüber (Entscheidung Michael 2026-10-23, core#942): Rechtshänder
+ * (Warenkorb rechts) haben die Rail links, Linkshänder (Warenkorb links) rechts — auf jeder Seite
+ * mit Rail, nicht nur in der Kasse.
+ */
+export function railSide(cartSide: ScreenSide): ScreenSide {
+  return cartSide === 'left' ? 'right' : 'left'
 }

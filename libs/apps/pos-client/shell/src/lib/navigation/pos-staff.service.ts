@@ -10,7 +10,13 @@ import {
 } from '@panary/shared/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { PosHandedness } from '@panary/users/domain'
-import { type TimeClockAction, timeTrackingBlockedHintKey } from './pos-navigation'
+import {
+  railSide,
+  type ScreenSide,
+  type TimeClockAction,
+  timeClockState,
+  timeTrackingBlockedHintKey,
+} from './pos-navigation'
 
 /**
  * Der per PIN angemeldete Mitarbeiter: Name, Stempelstatus, Stempeln und Abmelden.
@@ -64,6 +70,7 @@ export class PosStaffService {
 
   readonly isStampedIn = computed(() => !!this.currentUser()?.stampingId)
   readonly isOnBreak = computed(() => !!this.currentUser()?.startBreakAt)
+  readonly timeClockState = computed(() => timeClockState(this.isStampedIn(), this.isOnBreak()))
 
   /** Übersetzungsschlüssel, warum Stempeln gerade nicht geht; `null` = es geht. */
   readonly timeTrackingBlockedKey = computed(() =>
@@ -114,6 +121,14 @@ export class PosStaffService {
 
   /** Seite des Warenkorbs an der Kasse — eigene Wahl dieser Sitzung, sonst Datensatz, sonst links. */
   readonly cartSide = computed(() => this.#handedness.effective(this.currentUser()))
+
+  /** Die Rail sitzt dem Warenkorb gegenüber, auf jeder Seite mit Rail (core#942). */
+  readonly railSide = computed(() => railSide(this.cartSide()))
+
+  /** Bedienhand aus dem Avatar-Menü wählen (core#942); dieselbe Wahl ist ein Tipp ohne Wirkung. */
+  async chooseCartSide(side: ScreenSide): Promise<void> {
+    if (side !== this.cartSide()) await this.toggleCartSide()
+  }
 
   /**
    * Warenkorb auf die andere Seite (core#833). Wirkt sofort; der Edge speichert über das

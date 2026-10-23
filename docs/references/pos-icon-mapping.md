@@ -14,7 +14,7 @@ sources:
 # POS-Icons: Material Symbols → Phosphor Bold
 
 Der POS zeigt Icons über `<lib-icon name="…">` (`@panary/shared/ui-common`). Die Komponente zeichnet ein
-Inline-SVG aus der Registry in `@panary/shared/util-helpers` (`iconPath()`), die nur die benutzten Phosphor-Bold-Pfade enthält (103 Icons, kein Font,
+Inline-SVG aus der Registry in `@panary/shared/util-helpers` (`iconPath()`), die nur die benutzten Phosphor-Bold-Pfade enthält (104 Icons, kein Font,
 kein CDN). Größe folgt `font-size` (`1em`), Farbe folgt `currentColor` — die bisherigen Klassen
 (`text-[1rem]`, `text-amber-600`, `animate-spin`) gelten unverändert am `<lib-icon>`.
 
@@ -46,6 +46,7 @@ kein CDN). Größe folgt `font-size` (`1em`), Farbe folgt `currentColor` — die
 | `arrow_back` | `arrow-left` |  |
 | `arrow_forward` | `arrow-right` |  |
 | `aspect_ratio` | `frame-corners` |  |
+| `back_hand` | `hand` | Bedienhand im Avatar-Menü (core#942); für Linkshänder gespiegelt |
 | `backspace` | `backspace` |  |
 | `badge` | `identification-badge` |  |
 | `block` | `prohibit` |  |

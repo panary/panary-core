@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, untracked } from '@angular/core'
 import { PosHandednessService } from '@panary/users/data-access'
 import { RouterOutlet } from '@angular/router'
+import { PosStaffService } from '../navigation/pos-staff.service'
 import { PosIdleLogoutService } from '../services/pos-idle-logout.service'
 import { IdleWarningOverlayComponent } from './idle-warning-overlay.component'
 import { PosRail } from './pos-rail'
@@ -12,13 +13,18 @@ import { PosRail } from './pos-rail'
  * `/setup` und `/login` liegen ausserhalb. Ihr Lebenszyklus ist deshalb der
  * richtige Schalter fuer den Inaktivitaets-Logout: er laeuft, solange ein
  * Mitarbeiter angemeldet ist, und nicht davor oder danach. Aus demselben Grund trägt sie die
- * Rail (core#832): Login und Einrichtung bleiben ohne Navigation.
+ * Rail (core#832): Login und Einrichtung bleiben ohne Navigation. Die Rail sitzt dem Warenkorb
+ * gegenüber und wechselt mit der Bedienhand die Seite (core#942).
  */
 @Component({
   selector: 'lib-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div id="app-frame" class="flex h-full w-full bg-surface-bg">
+    <div
+      id="app-frame"
+      class="flex h-full w-full bg-surface-bg"
+      [class.flex-row-reverse]="staff.railSide() === 'right'"
+    >
       <lib-pos-rail class="shrink-0" />
       <main class="h-full min-w-0 flex-1">
         <router-outlet></router-outlet>
@@ -45,6 +51,7 @@ import { PosRail } from './pos-rail'
 })
 export class AppPosShellComponent {
   protected readonly idle = inject(PosIdleLogoutService)
+  protected readonly staff = inject(PosStaffService)
 
   constructor() {
     this.idle.start()

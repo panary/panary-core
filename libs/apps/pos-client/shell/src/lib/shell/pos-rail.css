@@ -47,10 +47,7 @@
   opacity: 0.42;
 }
 
-/*
- * Stempeln und Abmelden (core#907): 48 px statt 62 px hoch (Touch-Minimum, code-style §9), damit die
- * Rail eingestempelt bei 768 px Höhe ohne Scrollen auskommt (Konzept §4).
- */
+/* Fußzone (core#907, core#942): 48 px statt 62 px hoch (Touch-Minimum, code-style §9). */
 .rail-item--compact {
   height: 3rem;
   gap: 0.125rem;
@@ -67,4 +64,30 @@
 
 .rail-item[data-tone='danger'] lib-icon {
   color: var(--danger-ink);
+}
+
+/*
+ * Stempeltaste (core#942): Der Zustand steht in der Farbe — grau = ausgestempelt, mint = eingestempelt,
+ * amber = Pause. Getönte Fläche wie die Funktionstasten der Kasse (code-style §9.1), kein Vollton.
+ */
+.rail-clock[data-state='out'] lib-icon {
+  color: var(--text-muted);
+}
+
+.rail-clock[data-state='in'] {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent-border);
+}
+
+.rail-clock[data-state='in'] lib-icon {
+  color: var(--accent-ink);
+}
+
+.rail-clock[data-state='break'] {
+  background: var(--warn-soft);
+  box-shadow: inset 0 0 0 2px var(--warn-line);
+}
+
+.rail-clock[data-state='break'] lib-icon {
+  color: var(--warn-ink);
 }

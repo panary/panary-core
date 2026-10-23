@@ -10,104 +10,81 @@ import {
   untracked,
 } from '@angular/core'
 import { DatePipe } from '@angular/common'
+import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu'
+import type { ConnectedPosition } from '@angular/cdk/overlay'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent, type IconName } from '@panary/shared/ui-common'
 import type { WorkingTime } from '@panary/working-times/domain'
 import { WorkingTimeService } from '@panary/working-times/data-access'
-import { type TimeClockAction, timeClockActions } from '../navigation/pos-navigation'
+import { type TimeClockState, timeClockTapAction } from '../navigation/pos-navigation'
 import { PosStaffService } from '../navigation/pos-staff.service'
 
-interface TimeClockButton {
-  readonly action: TimeClockAction
-  readonly icon: IconName
-  /** Kurzer Rail-Text. */
-  readonly label: string
-  /** Voller Text für Tooltip und Screenreader. */
-  readonly title: string
-  readonly tone: 'accent' | 'warn' | 'danger'
-}
-
-const BUTTONS: Record<TimeClockAction, TimeClockButton> = {
-  'clock-in': {
-    action: 'clock-in',
-    icon: 'sign-in',
-    label: 'POS_NAV.CLOCK_IN',
-    title: 'DASHBOARD.CLOCK_IN',
-    tone: 'accent',
-  },
-  'start-break': {
-    action: 'start-break',
-    icon: 'coffee',
-    label: 'POS_NAV.BREAK_START',
-    title: 'DASHBOARD.START_BREAK',
-    tone: 'warn',
-  },
-  'end-break': {
-    action: 'end-break',
-    icon: 'play',
-    label: 'POS_NAV.BREAK_END',
-    title: 'DASHBOARD.END_BREAK',
-    tone: 'accent',
-  },
-  'clock-out': {
-    action: 'clock-out',
-    icon: 'sign-out',
-    label: 'POS_NAV.CLOCK_OUT',
-    title: 'POS_NAV.CLOCK_OUT_TITLE',
-    tone: 'danger',
-  },
+const STATE_ICONS: Record<TimeClockState, IconName> = { out: 'clock', in: 'clock', break: 'coffee' }
+const STATE_LABELS: Record<TimeClockState, string> = {
+  out: 'POS_NAV.CLOCK_STATE_OUT',
+  in: 'POS_NAV.CLOCK_STATE_IN',
+  break: 'POS_NAV.CLOCK_STATE_BREAK',
 }
 
 /**
- * Stempeln direkt in der Rail (core#907): Status mit Uhrzeit und Kommen/Pause/Gehen mit einem Tipp.
- * Bis dahin lag das im Avatar-Menü (core#832). Gesperrt (offline, Mandantensperre) bleiben die Tasten
- * antippbar und melden den Grund — wie die übrigen Rail-Einträge. Wer gestempelt wird, entscheidet
- * `PosStaffService.currentUser()` aus der Bediener-Sitzung (core#902).
+ * Eine Stempeltaste in der Rail (core#942, vorher drei Tasten aus core#907): grau = ausgestempelt,
+ * ein Tipp stempelt ein; mint = eingestempelt, ein Tipp öffnet Pause und Gehen; amber = Pause, ein Tipp
+ * beendet sie. Gesperrt (offline, Mandantensperre) bleibt die Taste antippbar und nennt den Grund.
+ * Wer gestempelt wird, entscheidet `PosStaffService.currentUser()` aus der Bediener-Sitzung (core#902).
  */
 @Component({
   selector: 'lib-pos-time-clock',
-  imports: [DatePipe, IconComponent, TranslateModule],
+  imports: [CdkMenu, CdkMenuItem, CdkMenuTrigger, DatePipe, IconComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styleUrl: './pos-rail.css',
-  host: { class: 'flex flex-col items-center gap-1.5' },
+  styleUrls: ['./pos-rail.css', './pos-menu.css'],
+  host: { class: 'contents' },
   template: `
-    <span
-      class="max-w-[4.25rem] truncate text-center text-xs font-semibold tabular-nums"
-      [class.text-accent-ink]="staff.isStampedIn() && !staff.isOnBreak()"
-      [class.text-warn-ink]="staff.isOnBreak()"
-      [class.text-ink-muted]="!staff.isStampedIn()"
-      [title]="checkinDate() ? (checkinDate() | date: 'HH:mm') + ' · ' + duration() : ''"
-      role="status"
+    <button
+      type="button"
+      class="rail-item rail-item--compact rail-clock"
+      [attr.data-state]="staff.timeClockState()"
+      [class.is-blocked]="!!blockedKey()"
+      [disabled]="locked() || staff.timeClockBusy()"
+      [attr.aria-disabled]="blockedKey() ? true : null"
+      [attr.aria-label]="labelKey() | translate"
+      [title]="blockedKey() ?? labelKey() | translate"
+      [cdkMenuTriggerFor]="opensMenu() ? clockMenu : null"
+      [cdkMenuPosition]="menuPositions()"
+      (click)="tap()"
     >
-      @if (staff.isOnBreak()) {
-        {{ 'DASHBOARD.BREAK' | translate }}
-      } @else if (staff.isStampedIn()) {
-        @if (checkinDate(); as since) {
-          {{ since | date: 'HH:mm' }}
-        } @else {
-          {{ 'POS_NAV.CLOCKED_IN_SHORT' | translate }}
-        }
-      } @else {
-        {{ 'POS_NAV.CLOCKED_OUT_SHORT' | translate }}
-      }
-    </span>
+      <lib-icon [name]="icon()" class="text-[1.5rem]" />
+    </button>
 
-    @for (button of buttons(); track button.action) {
-      <button
-        type="button"
-        class="rail-item rail-item--compact"
-        [attr.data-tone]="button.tone"
-        [class.is-blocked]="!!staff.timeTrackingBlockedKey()"
-        [disabled]="locked() || staff.timeClockBusy()"
-        [attr.aria-disabled]="staff.timeTrackingBlockedKey() ? true : null"
-        [attr.aria-label]="button.title | translate"
-        [title]="staff.timeTrackingBlockedKey() ?? button.title | translate"
-        (click)="staff.timeClock(button.action)"
-      >
-        <lib-icon [name]="button.icon" class="text-[1.375rem]" />
-        <span>{{ button.label | translate }}</span>
-      </button>
-    }
+    <ng-template #clockMenu>
+      <div cdkMenu class="pos-menu w-[18.75rem]">
+        <div class="px-3 py-2.5">
+          <b class="block text-[1.0625rem]">{{ 'DASHBOARD.CLOCKED_IN' | translate }}</b>
+          @if (checkinDate(); as since) {
+            <span class="text-sm text-ink-muted"
+              >{{ 'POS_NAV.SINCE' | translate: { time: (since | date: 'HH:mm') } }} · {{ duration() }}</span
+            >
+          }
+        </div>
+        <button
+          cdkMenuItem
+          type="button"
+          class="pos-menu__item"
+          (cdkMenuItemTriggered)="staff.timeClock('start-break')"
+        >
+          <lib-icon name="coffee" class="text-[1.375rem] text-warn-ink" />
+          {{ 'DASHBOARD.START_BREAK' | translate }}
+        </button>
+        <button cdkMenuItem type="button" class="pos-menu__item" (cdkMenuItemTriggered)="staff.timeClock('clock-out')">
+          <lib-icon name="sign-out" class="text-[1.375rem] text-danger-ink" />
+          <span class="flex flex-col">
+            {{ 'DASHBOARD.CLOCK_OUT' | translate }}
+            <em class="text-xs font-medium not-italic text-ink-muted">{{
+              'POS_NAV.CLOCK_OUT_LOGS_OUT' | translate
+            }}</em>
+          </span>
+        </button>
+      </div>
+    </ng-template>
   `,
 })
 export class PosTimeClock {
@@ -116,18 +93,21 @@ export class PosTimeClock {
 
   /** Rail gesperrt (offenes Sheet in der Kasse). */
   readonly locked = input(false)
+  /** Das Menü öffnet zur Bildschirmmitte hin — die Rail kann links oder rechts sitzen. */
+  readonly menuPositions = input<ConnectedPosition[]>([])
 
-  protected readonly buttons = computed(() =>
-    timeClockActions(this.staff.isStampedIn(), this.staff.isOnBreak()).map(action => BUTTONS[action]),
-  )
+  protected readonly blockedKey = this.staff.timeTrackingBlockedKey
+  protected readonly icon = computed(() => STATE_ICONS[this.staff.timeClockState()])
+  protected readonly labelKey = computed(() => STATE_LABELS[this.staff.timeClockState()])
+  /** Gesperrt öffnet die Taste kein Menü, sondern nennt den Grund (wie die übrigen Rail-Einträge). */
+  protected readonly opensMenu = computed(() => this.staff.timeClockState() === 'in' && !this.blockedKey())
 
   readonly #workingTime = signal<WorkingTime | undefined>(undefined)
-  /** Minutentakt der Dauer im Tooltip. */
+  /** Minutentakt der Dauer im Menü und im Tooltip. */
   readonly #now = signal(Date.now())
 
   protected readonly checkinDate = computed(() => this.#workingTime()?.checkinDate)
 
-  /** Dauer seit Kommen für den Tooltip — die Rail selbst zeigt nur die Uhrzeit. */
   protected readonly duration = computed(() => {
     const since = this.checkinDate()
     if (!since) return ''
@@ -144,6 +124,13 @@ export class PosTimeClock {
       const stampingId = this.staff.currentUser()?.stampingId
       untracked(() => void this.#loadWorkingTime(stampingId))
     })
+  }
+
+  /** Eingestempelt öffnet der Trigger das Menü; gesperrt nennt `PosStaffService` den Grund. */
+  protected tap(): void {
+    const state = this.staff.timeClockState()
+    const action = timeClockTapAction(state) ?? (this.blockedKey() ? 'start-break' : null)
+    if (action) void this.staff.timeClock(action)
   }
 
   async #loadWorkingTime(stampingId: string | null | undefined): Promise<void> {

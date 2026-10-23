@@ -7,7 +7,9 @@ import {
   resolveNavGroups,
   resolveNavItems,
   SETTINGS_ENTRIES,
-  timeClockActions,
+  railSide,
+  timeClockState,
+  timeClockTapAction,
   timeTrackingBlockedHintKey,
 } from './pos-navigation'
 
@@ -139,10 +141,23 @@ describe('timeTrackingBlockedHintKey', () => {
   })
 })
 
-describe('timeClockActions (core#907)', () => {
-  it('ausgestempelt nur Kommen, eingestempelt Pause und Gehen, in der Pause Weiter und Gehen', () => {
-    expect(timeClockActions(false, false)).toEqual(['clock-in'])
-    expect(timeClockActions(true, false)).toEqual(['start-break', 'clock-out'])
-    expect(timeClockActions(true, true)).toEqual(['end-break', 'clock-out'])
+describe('Stempeltaste (core#942)', () => {
+  it('Zustand: aus, eingestempelt, Pause', () => {
+    expect(timeClockState(false, false)).toBe('out')
+    expect(timeClockState(true, false)).toBe('in')
+    expect(timeClockState(true, true)).toBe('break')
+  })
+
+  it('Tipp: aus → Kommen, Pause → Pause Ende, eingestempelt → kein Stempeln (Menü)', () => {
+    expect(timeClockTapAction('out')).toBe('clock-in')
+    expect(timeClockTapAction('break')).toBe('end-break')
+    expect(timeClockTapAction('in')).toBeNull()
+  })
+})
+
+describe('railSide (core#942)', () => {
+  it('Rail sitzt dem Warenkorb gegenüber', () => {
+    expect(railSide('left')).toBe('right')
+    expect(railSide('right')).toBe('left')
   })
 })

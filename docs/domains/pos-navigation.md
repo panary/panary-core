@@ -1,17 +1,22 @@
 ---
 type: Domain Concept
 title: POS-Navigation — Rail statt Dashboard-Kacheln
-description: 'Wie der POS seit core#832 navigiert — Rail links mit fünf direkten Einträgen, „Mehr" mit Gruppen und Einstellungen-Untermenü, Stempeln und Abmelden direkt in der Rail (core#907), Avatar-Menü für die Warenkorb-Seite; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
+description: 'Wie der POS seit core#832 navigiert — Rail mit fünf direkten Einträgen, „Mehr" mit Gruppen und Einstellungen-Untermenü, ruhige Fußzone mit Stempeltaste, Abmelden und Avatar (core#942), Rail gegenüber dem Warenkorb, Avatar-Menü mit Bedienhand und Darstellung; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-23T10:20:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-23T11:00:00Z }
 ---
 
 # POS-Navigation — Rail statt Dashboard-Kacheln
 
 Seit [core#832](https://github.com/panary/panary-core/issues/832), Teil des Design-Ankers
-[core#819](https://github.com/panary/panary-core/issues/819), navigiert der POS über eine **Rail** am
-linken Rand. Sie ersetzt die Schnellzugriff-Kacheln des Dashboards, das zur „Übersicht" wird. Nach dem
+[core#819](https://github.com/panary/panary-core/issues/819), navigiert der POS über eine **Rail**; sie ersetzt die Schnellzugriff-Kacheln des Dashboards, das zur
+„Übersicht" wird. Seit
+[core#942](https://github.com/panary/panary-core/issues/942) sitzt sie dem Warenkorb gegenüber: Rechtshänder
+(Warenkorb rechts) haben sie links, Linkshänder (Warenkorb links) rechts — auf jeder Seite mit Rail
+(`railSide`, `PosStaffService.railSide`). Weil ohne eigene Wahl „links" gilt (`DEFAULT_POS_HANDEDNESS`,
+[Bedienhand](pos-bedienhand.md)), steht die Rail bei allen, die nie gewählt haben, **rechts**. Ihre Menüs
+öffnen immer zur Bildschirmmitte hin. Nach dem
 Login landet man seit [core#907](https://github.com/panary/panary-core/issues/907) auf der **Übersicht**
 (`/dashboard`) mit Kennzahlen und Vorbestellungen; von core#832 bis dahin war es die Kasse. Grund: Michaels
 Test von `pos-v26.10.25` — Vorbestellungen und Kennzahlen (auch für die Betrugsauswertung) sollen beim
@@ -23,8 +28,8 @@ Anmelden im Blick sein. Vorlage: Konzept §3 und Mockup 2.7 in `sandbox/design-s
 | --- | --- |
 | Rail, direkt | Übersicht · Kasse · Offen (Badge) · Vorbest. · Historie |
 | Rail, „Mehr" | Personal: Arbeitszeiten · Ware: Abschreiben · Geschäftstag & Kasse: Tag eröffnen, Tagesabschluss, Kassenlade · Gerät: Einstellungen › Allgemein, Benutzer, Design, Drucker, Verbindung, Info |
-| Rail, unten | Verbindung (Punkt + „Online"/„Offline") · Stempelstatus (Uhrzeit des Kommens, „Pause" oder „Aus"; Tooltip mit Dauer) · Kommen bzw. Pause/Weiter und Gehen · Avatar mit Stempelpunkt · Abmelden |
-| Avatar-Menü | Name, Stempelstatus · Warenkorb-Seite |
+| Rail, unten (core#942, nur Icons) | Stempeltaste · Abmelden (Schloss) · ganz unten Avatar mit Online-Punkt (grün/rot); offline zusätzlich „Offline" über dem Avatar |
+| Avatar-Menü | Name, Stempelstatus · Bedienhand (Linkshänder/Rechtshänder, Hand-Icon) · Darstellung (Hell/Dunkel/System) |
 
 Login und Einrichtung liegen außerhalb der Shell (`AppPosShellComponent`) und haben keine Rail.
 
@@ -37,12 +42,17 @@ Login und Einrichtung liegen außerhalb der Shell (`AppPosShellComponent`) und h
 Die Warenkorb-Seite (Bedienhand, [core#833](https://github.com/panary/panary-core/issues/833)) liegt im
 Avatar-Menü.
 
-**Stempeln in der Rail** (core#907). Die Rail zeigt je Zustand nur die passenden Tasten
-(`timeClockActions`): ausgestempelt Kommen, eingestempelt Pause und Gehen, in der Pause Weiter und Gehen.
-Ein Tipp löst genau einen Aufruf aus — `PosStaffService.timeClock()` sperrt, solange die Antwort aussteht,
-und die Tasten sind so lange deaktiviert. Stempeltasten und Abmelden sind 48 px hoch statt 62 px
-(Touch-Minimum), damit die Rail eingestempelt bei 768 px Höhe ohne Scrollen auskommt. Die Arbeitszeit für
-die Uhrzeit lädt `PosTimeClock` je Stempel-ID einmal, nicht bei jedem Öffnen eines Menüs.
+**Stempeltaste** (core#942, vorher drei Tasten aus core#907). Eine Taste, der Zustand steht in der Farbe
+(`timeClockState`): grau = ausgestempelt, ein Tipp stempelt ein; mint = eingestempelt, ein Tipp öffnet ein
+Menü mit Uhrzeit und Dauer, **Pause** und **Gehen**; amber = Pause, ein Tipp beendet sie
+(`timeClockTapAction`). Ein Tipp löst genau einen Aufruf aus — `PosStaffService.timeClock()` sperrt, solange
+die Antwort aussteht. Gesperrt (offline, Mandantensperre) öffnet die Taste kein Menü, sondern nennt den Grund.
+Stempeltaste und Abmelden sind 48 px hoch (Touch-Minimum). Die Arbeitszeit für Uhrzeit und Dauer lädt
+`PosTimeClock` je Stempel-ID einmal.
+
+**Avatar-Menü** (core#942). „Linkshänder/Rechtshänder" ersetzt „Warenkorb-Seite" und wählt die Seite direkt
+(`PosStaffService.chooseCartSide`); Kasse und Rail spiegeln sofort. Die Darstellung nutzt denselben
+`ThemeServiceService` wie die Einstellungen und gilt damit für das Gerät, nicht für die Person.
 
 ## Code
 
@@ -53,7 +63,7 @@ die Uhrzeit lädt `PosTimeClock` je Stempel-ID einmal, nicht bei jedem Öffnen e
 | Dialog-Einträge (Abschreiben, Tag, Kassenlade) | `…/navigation/pos-day-actions.service.ts` |
 | Mitarbeiter, Stempeln, Abmelden | `…/navigation/pos-staff.service.ts` |
 | Rail und Menüs | `…/shell/pos-rail.{ts,html,css}`, `pos-menu.css`, `pos-account-panel.ts` |
-| Stempeln in der Rail | `…/shell/pos-time-clock.ts` (`PosTimeClock`), Regeln `timeClockActions` in `pos-navigation.ts` |
+| Stempeltaste | `…/shell/pos-time-clock.ts` (`PosTimeClock`), Regeln `timeClockState`/`timeClockTapAction`/`railSide` in `pos-navigation.ts` |
 | Übersicht-Kennzahlen | `libs/domains/orders/feature-pos-dashboard/src/lib/dashboard-kpis.ts` |
 
 **Angemeldeter Mitarbeiter.** `PosStaffService` ist ein Root-Dienst und überlebt den Bedienerwechsel. Er liest

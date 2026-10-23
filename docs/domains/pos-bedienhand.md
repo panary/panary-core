@@ -4,7 +4,7 @@ title: Bedienhand am POS (posHandedness)
 description: Wie ein Mitarbeiter seine Bedienhand an der Kasse trägt und am POS umschaltet — Feld posHandedness ohne Null und ohne Default, Auflösung „fehlt = links", Self-Patch, Methode setPosHandedness über das Bediener-Token, Offline-Nachsenden, Sync-Pfad und die Release-Reihenfolge mit der Cloud.
 tags: [users, pos-client, api-edge, sync, security]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-23T00:00:00.000Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-23T11:00:00.000Z }
 ---
 
 Ein Mitarbeiter bestimmt, auf welcher Seite der Kasse der Warenkorb sitzt. Linkshänder
@@ -61,7 +61,8 @@ regulärer `patch` vom Terminal scheitert deshalb an `FOREIGN_RECORD`, wie beim 
 
 ## Umschalten am POS (seit #833)
 
-Avatar-Menü der Rail → „Warenkorb-Seite". Die Kasse spiegelt sofort, gespeichert wird am Edge
+Avatar-Menü der Rail → „Linkshänder"/„Rechtshänder" (seit core#942, vorher „Warenkorb-Seite"). Kasse und
+Rail spiegeln sofort — die Rail sitzt dem Warenkorb gegenüber ([POS-Navigation](pos-navigation.md)) —, gespeichert wird am Edge
 über die Custom-Method **`users.setPosHandedness({ posHandedness })`**.
 
 | Regel | Umsetzung |

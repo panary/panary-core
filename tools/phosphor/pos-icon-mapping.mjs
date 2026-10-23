@@ -24,6 +24,7 @@ export const MAPPING = {
   arrow_forward: ['arrow-right', ''],
   aspect_ratio: ['frame-corners', ''],
   backspace: ['backspace', ''],
+  back_hand: ['hand', 'Bedienhand im Avatar-Menü (core#942); für Linkshänder gespiegelt'],
   badge: ['identification-badge', ''],
   block: ['prohibit', ''],
   bolt: ['lightning', ''],

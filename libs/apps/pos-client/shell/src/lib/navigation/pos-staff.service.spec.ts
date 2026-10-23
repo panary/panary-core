@@ -1,11 +1,11 @@
 // JIT-Compiler zuerst laden: @angular/material ist partial-compiled.
 import '@angular/compiler'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Injector, runInInjectionContext, signal } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
-import { TenantSuspensionService } from '@panary/shared/data-access'
+import { clearPosOperatorToken, storePosOperatorToken, TenantSuspensionService } from '@panary/shared/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { PosStaffService } from './pos-staff.service'
 
@@ -125,5 +125,56 @@ describe('PosStaffService (core#832)', () => {
     const { service, snackBar } = setup({ choose: () => Promise.reject(new Error('401')) })
     await service.toggleCartSide()
     expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_FAILED'])
+  })
+
+  it('Bedienerwechsel ohne users-Event: currentUser, Name und Stempeln folgen dem neuen Bediener (core#902)', async () => {
+    const storage = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => void storage.set(key, value),
+      removeItem: (key: string) => void storage.delete(key),
+    })
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
+    const olga = { _id: 'u-olga', firstName: 'Olga', lastName: 'Owner', stampingId: null }
+    const max = { _id: 'u-max', firstName: 'Max', lastName: 'Manager', stampingId: null }
+    const users = {
+      // Am POS ist der Auth-User das Gerät — der Kassierer kommt aus `pos_current_user`.
+      currentUser: signal(undefined),
+      users: signal([olga, max]),
+      checkin: vi.fn().mockResolvedValue(max),
+    }
+    const injector = Injector.create({
+      providers: [
+        { provide: UserService, useValue: users },
+        { provide: AuthService, useValue: { fullName: signal('Unknown User') } },
+        { provide: PosSessionService, useValue: { isOffline: signal(false), endSession: vi.fn() } },
+        { provide: TenantSuspensionService, useValue: { suspended: signal(false) } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: PosHandednessService, useValue: { effective: () => 'left', choose: vi.fn() } },
+        { provide: TranslateService, useValue: { instant: (key: string) => key } },
+      ],
+    })
+    const service = runInInjectionContext(injector, () => new PosStaffService())
+    // Anmeldung wie `#completeLogin`: erst der Mitarbeiter, dann das Token.
+    const login = (user: typeof olga) => {
+      storage.set('pos_current_user', JSON.stringify(user))
+      storePosOperatorToken({ operatorToken: `t-${user._id}`, operatorTokenExpiresAt: '2999-01-01T00:00:00.000Z' })
+    }
+
+    login(olga)
+    expect(service.currentUser()?._id).toBe('u-olga')
+    expect(service.displayName()).toBe('Olga Owner')
+
+    login(max)
+    expect(service.currentUser()?._id).toBe('u-max')
+    expect(service.displayName()).toBe('Max Manager')
+    await service.clockIn()
+    expect(users.checkin.mock.calls).toEqual([['u-max']])
+
+    storage.delete('pos_current_user')
+    clearPosOperatorToken()
+    expect(service.currentUser()).toBeUndefined()
   })
 })

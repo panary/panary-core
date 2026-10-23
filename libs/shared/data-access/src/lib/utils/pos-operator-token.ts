@@ -5,6 +5,7 @@
 // eingegeben hat. Der POS haelt es hier und schickt es bei schreibenden
 // Aufrufen als `query.operatorToken` mit. Der Edge belegt damit den Bediener;
 // ohne gueltiges Token gilt eine Zurechnung als „unbelegt“.
+import { signal, type Signal } from '@angular/core'
 import type { Params } from '@feathersjs/feathers'
 
 /**
@@ -21,6 +22,15 @@ interface StoredPosOperatorToken {
   operatorToken: string
   operatorTokenExpiresAt: string
 }
+
+/**
+ * Zaehlt jeden Bedienerwechsel (Anmelden, Abmelden) — beide laufen ueber die zwei Funktionen
+ * unten. `localStorage` ist kein Signal: Wer den angemeldeten Mitarbeiter in einem `computed()`
+ * aus `pos_current_user` liest, liest dieses Signal mit, sonst haelt ein Root-Dienst nach dem
+ * Wechsel den vorigen Bediener fest (panary/panary-core#902).
+ */
+const posOperatorSessionVersion = signal(0)
+export const posOperatorSession: Signal<number> = posOperatorSessionVersion.asReadonly()
 
 const readStorage = (): StoredPosOperatorToken | null => {
   try {
@@ -55,6 +65,7 @@ export const storePosOperatorToken = (verifyPinResult: unknown): void => {
   } catch {
     // Ohne Speicher gibt es kein Token — der Edge wertet die Aufrufe dann als unbelegt.
   }
+  posOperatorSessionVersion.update(version => version + 1)
 }
 
 export const clearPosOperatorToken = (): void => {
@@ -63,6 +74,7 @@ export const clearPosOperatorToken = (): void => {
   } catch {
     // siehe storePosOperatorToken
   }
+  posOperatorSessionVersion.update(version => version + 1)
 }
 
 /**

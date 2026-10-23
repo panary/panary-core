@@ -35,9 +35,9 @@
         </span>
       }
       @default {
-        <span class="flex items-center gap-1.5 text-xs text-gray-400">
+        <span class="flex items-center gap-1.5 text-xs text-ink-faint">
           <span class="relative flex h-2 w-2">
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-gray-400"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-ink-faint"></span>
           </span>
           {{ 'COMMON.OFFLINE' | translate }}
         </span>
@@ -107,11 +107,11 @@
     <div class="absolute top-6 left-6 right-6 z-10 lg:hidden flex items-start justify-between">
       <div class="flex flex-col items-start">
         <lib-panary-logo class="text-ink" [size]="2" />
-        <span class="text-xs text-gray-400 dark:text-ink-muted font-medium mt-1">{{ deviceName() }}</span>
+        <span class="text-xs text-ink-faint dark:text-ink-muted font-medium mt-1">{{ deviceName() }}</span>
       </div>
       <button
         (click)="cycleLanguage()"
-        class="flex items-center gap-1 text-xs text-ink-muted dark:text-gray-400 font-semibold hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+        class="flex items-center gap-1 text-xs text-ink-muted font-semibold hover:text-ink transition-colors"
         [title]="'LOGIN.CHANGE_LANGUAGE' | translate"
       >
         <lib-icon name="translate" class="text-[0.875rem]" />
@@ -170,7 +170,7 @@
               <div class="flex flex-col gap-2">
                 @for (user of posUsers(); track user._id) {
                   <button
-                    class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.99] transition-all text-left"
+                    class="flex items-center gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-surface-elevated/60 hover:bg-line-soft active:scale-[0.99] transition-all text-left"
                     (click)="selectUser(user)"
                   >
                     <div
@@ -204,12 +204,12 @@
                 <!-- Bei genau einem zugewiesenen Mitarbeiter fuehrt „zurueck"
                      in dieselbe Maske — der Pfeil waere eine Taste ohne Ziel. -->
                 <button
-                  class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+                  class="w-10 h-10 rounded-full bg-line-soft hover:bg-line flex items-center justify-center transition-colors"
                   (click)="backToUsers()"
                   [attr.aria-label]="'LOGIN.BACK_TO_USERS' | translate"
                 >
                   <svg
-                    class="w-5 h-5 text-gray-600 dark:text-gray-300"
+                    class="w-5 h-5 text-ink-muted dark:text-ink"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -237,7 +237,7 @@
             @if (!isSingleUserDevice()) {
               <button
                 type="button"
-                class="pnry-touch mx-auto mb-4 flex items-center rounded-xl px-5 text-sm font-semibold text-accent-ink hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                class="pnry-touch mx-auto mb-4 flex items-center rounded-xl px-5 text-sm font-semibold text-accent-ink hover:bg-line-soft transition-colors"
                 (click)="backToUsers()"
               >
                 {{ 'LOGIN.OTHER_PERSON' | translate }}
@@ -265,7 +265,7 @@
             <div class="min-h-12"></div>
 
             @if (isLoading()) {
-              <div class="absolute inset-0 bg-white/80 dark:bg-black/80 flex items-center justify-center">
+              <div class="absolute inset-0 bg-surface-input/80 flex items-center justify-center">
                 <div class="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
               </div>
             }
@@ -277,16 +277,11 @@
           <div class="animate-[fadeIn_0.3s_ease-out] relative">
             <div class="flex items-center gap-4 mb-6">
               <button
-                class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+                class="w-10 h-10 rounded-full bg-line-soft hover:bg-line flex items-center justify-center transition-colors"
                 (click)="cancelChangePin()"
                 [attr.aria-label]="'LOGIN.BACK_TO_USERS' | translate"
               >
-                <svg
-                  class="w-5 h-5 text-gray-600 dark:text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg class="w-5 h-5 text-ink-muted dark:text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
               </button>
@@ -317,7 +312,7 @@
               </div>
             </div>
 
-            <p class="text-center text-sm text-ink-muted dark:text-gray-400 mb-6">
+            <p class="text-center text-sm text-ink-muted mb-6">
               {{ 'LOGIN.CHANGE_PIN_HINT' | translate }}
             </p>
 
@@ -336,7 +331,7 @@
             />
 
             @if (isLoading()) {
-              <div class="absolute inset-0 bg-white/80 dark:bg-black/80 flex items-center justify-center">
+              <div class="absolute inset-0 bg-surface-input/80 flex items-center justify-center">
                 <div class="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
               </div>
             }
@@ -407,7 +402,7 @@
               @switch (errorKind()) {
                 @case ('device-key-expired') {
                   <button
-                    class="px-6 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    class="px-6 py-2.5 bg-line-soft text-ink font-medium rounded-lg hover:bg-line transition-colors"
                     (click)="requestRepair()"
                   >
                     {{ 'LOGIN.REPAIR_DEVICE' | translate }}
@@ -415,7 +410,7 @@
                 }
                 @case ('connection') {
                   <button
-                    class="px-6 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    class="px-6 py-2.5 bg-line-soft text-ink font-medium rounded-lg hover:bg-line transition-colors"
                     (click)="goToSetup()"
                   >
                     {{ 'LOGIN.SETUP_NEW' | translate }}
@@ -456,7 +451,7 @@
 
             <div class="flex gap-3">
               <button
-                class="px-6 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                class="px-6 py-2.5 bg-line-soft text-ink font-medium rounded-lg hover:bg-line transition-colors"
                 (click)="cancelRepair()"
               >
                 {{ 'COMMON.CANCEL' | translate }}
@@ -475,7 +470,7 @@
 
     <!-- Footer with Connection Indicator -->
     <div class="absolute bottom-24 lg:bottom-4 left-0 right-0 px-6 flex items-center justify-between">
-      <p class="text-xs text-gray-400 dark:text-ink-muted">
+      <p class="text-xs text-ink-faint dark:text-ink-muted">
         <span class="hidden sm:inline">Panary Terminal &bull; </span>v{{ appVersion }}
       </p>
 

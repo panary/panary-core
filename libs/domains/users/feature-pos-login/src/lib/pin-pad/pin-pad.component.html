@@ -3,7 +3,7 @@
   @for (i of dots(); track i) {
     <div
       class="w-4 h-4 rounded-full transition-all duration-150"
-      [class.bg-gray-200]="value().length <= i && !error()"
+      [class.bg-line]="value().length <= i && !error()"
       [class.bg-[#00B8D4]]="value().length > i && !error()"
       [class.bg-red-500]="error()"
       [class.scale-110]="value().length === i + 1"
@@ -15,7 +15,7 @@
 <div class="grid grid-cols-3 gap-3 max-w-[17.5rem] mx-auto">
   @for (d of digits; track d) {
     <button
-      class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
+      class="pnry-touch h-16 rounded-xl bg-line-soft hover:bg-line active:bg-line-strong text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
       (click)="digit.emit(d)"
       [disabled]="disabled()"
     >
@@ -28,7 +28,7 @@
 
   <!-- Zero -->
   <button
-    class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
+    class="pnry-touch h-16 rounded-xl bg-line-soft hover:bg-line active:bg-line-strong text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
     (click)="digit.emit('0')"
     [disabled]="disabled()"
   >
@@ -37,12 +37,12 @@
 
   <!-- Delete -->
   <button
-    class="pnry-touch h-16 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
+    class="pnry-touch h-16 rounded-xl bg-line-soft hover:bg-line active:bg-line-strong flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
     (click)="backspace.emit()"
     [disabled]="disabled()"
     [attr.aria-label]="'LOGIN.DELETE_DIGIT' | translate"
   >
-    <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class="w-6 h-6 text-ink-muted dark:text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         stroke-linecap="round"
         stroke-linejoin="round"

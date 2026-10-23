@@ -85,7 +85,7 @@ die Klassen auf Token-Klassen umgestellt sind; neue Oberflächen nutzen sie nich
 Umstellung (panary/panary-core#849, je Bereich ein PR): Hell/Dunkel-Paare wie `border-gray-200 dark:border-gray-700`
 werden zu **einer** Token-Klasse (`border-line`), wenn deren Werte in beiden Themes höchstens 30 RGB-Einheiten
 abweichen, sonst bleiben zwei Token-Klassen. Reihenfolge: orders, users, businessdays, admin-client, Rest, zuletzt
-die Datei selbst. Umgestellt: `libs/domains/orders`.
+die Datei selbst. Umgestellt: `libs/domains/orders`, `users`, `businessdays`.
 
 ## Angular Material (POS)
 

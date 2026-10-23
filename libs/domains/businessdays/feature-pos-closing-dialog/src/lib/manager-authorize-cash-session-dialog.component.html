@@ -1,8 +1,8 @@
 <!-- Kein eigener Radius auf dem Root — die panelClass `rounded-dialog` setzt
      border-radius + overflow:hidden auf der Material-Surface. -->
-<div class="flex flex-col max-h-[85vh] bg-white dark:bg-gray-950">
+<div class="flex flex-col max-h-[85vh] bg-surface-input">
   <!-- Header -->
-  <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+  <div class="flex items-center justify-between p-5 border-b border-line-soft">
     <div class="flex items-center gap-3">
       <div
         class="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-400"
@@ -10,17 +10,17 @@
         <lib-icon name="cash-register" class="text-[1.25rem]" />
       </div>
       <div>
-        <h2 class="text-base font-bold text-gray-800 dark:text-white">
+        <h2 class="text-base font-bold text-ink">
           {{ 'CASH_SESSION.AUTH_TITLE' | translate }}
         </h2>
-        <p class="text-xs text-gray-500 dark:text-gray-400">{{ cashierLabel() }}</p>
+        <p class="text-xs text-ink-muted">{{ cashierLabel() }}</p>
       </div>
     </div>
     <button
       type="button"
       (click)="cancel()"
       [disabled]="step() === 'submitting'"
-      class="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      class="flex items-center justify-center w-9 h-9 rounded-lg text-ink-faint hover:bg-line-soft disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       [attr.aria-label]="'COMMON.CLOSE' | translate"
     >
       <lib-icon name="x" class="text-[1.25rem]" />
@@ -32,8 +32,8 @@
     @switch (step()) {
       @case ('loading') {
         <div class="flex flex-col items-center justify-center py-12 gap-3">
-          <lib-icon name="arrows-clockwise" class="text-[2.5rem] text-gray-400 dark:text-gray-500 animate-spin" />
-          <p class="text-sm text-gray-500 dark:text-gray-400">
+          <lib-icon name="arrows-clockwise" class="text-[2.5rem] text-ink-faint animate-spin" />
+          <p class="text-sm text-ink-muted">
             {{ 'CASH_SESSION.AUTH_LOADING_USERS' | translate }}
           </p>
         </div>
@@ -41,13 +41,13 @@
 
       @case ('input') {
         <div class="flex flex-col gap-4">
-          <p class="text-sm text-gray-600 dark:text-gray-300">
+          <p class="text-sm text-ink-muted dark:text-ink">
             {{ 'CASH_SESSION.AUTH_INTRO' | translate: { name: cashierLabel() } }}
           </p>
 
           <!-- Wechselgeld -->
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <span class="text-xs font-medium text-ink-muted">
               {{ 'CASH_SESSION.AUTH_OPENING_FLOAT' | translate }}
             </span>
             <span class="relative flex items-center">
@@ -59,12 +59,11 @@
                 autocomplete="off"
                 [value]="openingFloatEuros() ?? ''"
                 (input)="onOpeningFloatInput($event)"
-                class="w-full h-14 pl-4 pr-10 rounded-xl border bg-white dark:bg-gray-900 text-right text-lg font-semibold text-gray-800 dark:text-white"
-                [class.border-gray-300]="canContinue()"
-                [class.dark:border-gray-700]="canContinue()"
+                class="w-full h-14 pl-4 pr-10 rounded-xl border bg-surface-input text-right text-lg font-semibold text-ink"
+                [class.border-line-strong]="canContinue()"
                 [class.border-red-400]="!canContinue()"
               />
-              <span class="absolute right-4 text-gray-400 dark:text-gray-500 font-semibold pointer-events-none">€</span>
+              <span class="absolute right-4 text-ink-faint font-semibold pointer-events-none">€</span>
             </span>
             @if (!canContinue()) {
               <span class="text-xs text-red-600 dark:text-red-400">
@@ -75,7 +74,7 @@
 
           <!-- Freigebende Person -->
           <div class="flex flex-col gap-2">
-            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <span class="text-xs font-medium text-ink-muted">
               {{ 'CASH_SESSION.AUTH_SELECT_MANAGER' | translate }}
             </span>
 
@@ -85,7 +84,7 @@
                   type="button"
                   (click)="selectManager(manager)"
                   [disabled]="!canContinue()"
-                  class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                  class="flex items-center gap-3 p-3 bg-surface-bg hover:bg-line-soft rounded-xl border border-line-soft transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <div
                     class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold flex items-center justify-center"
@@ -93,18 +92,18 @@
                     {{ manager.initials || '??' }}
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-gray-800 dark:text-white truncate">{{ manager.fullName }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <p class="font-semibold text-ink truncate">{{ manager.fullName }}</p>
+                    <p class="text-xs text-ink-muted truncate">
                       {{ manager.staffRole || manager.role }}
                     </p>
                   </div>
-                  <lib-icon name="caret-right" class="text-gray-300 dark:text-gray-600 text-[1.25rem]" />
+                  <lib-icon name="caret-right" class="text-line-strong text-[1.25rem]" />
                 </button>
               }
             } @else {
               <div class="flex flex-col items-center text-center gap-3 py-8">
-                <lib-icon name="user-minus" class="text-[2.5rem] text-gray-300 dark:text-gray-600" />
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <lib-icon name="user-minus" class="text-[2.5rem] text-line-strong" />
+                <p class="text-sm text-ink-muted">
                   @if (managersWithoutPin() > 0) {
                     {{ 'CASH_SESSION.AUTH_NO_PIN_USERS' | translate }}
                   } @else {
@@ -126,17 +125,17 @@
               >
                 {{ manager.initials || '??' }}
               </div>
-              <p class="font-semibold text-gray-800 dark:text-white">{{ manager.fullName }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">{{ manager.staffRole || manager.role }}</p>
+              <p class="font-semibold text-ink">{{ manager.fullName }}</p>
+              <p class="text-xs text-ink-muted">{{ manager.staffRole || manager.role }}</p>
             </div>
 
-            <p class="text-sm text-gray-600 dark:text-gray-300 text-center">
+            <p class="text-sm text-ink-muted dark:text-ink text-center">
               {{ 'CASH_SESSION.AUTH_ENTER_PIN' | translate }}
             </p>
 
             <!-- Betrags-Kontext: was hier gleich freigegeben wird -->
             <div
-              class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-300"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-line-soft text-xs text-ink-muted dark:text-ink"
             >
               <lib-icon name="money" class="text-[0.875rem]" />
               {{ 'CASH_SESSION.AUTH_AMOUNT_LABEL' | translate }} {{ openingFloatLabel() }}
@@ -149,8 +148,7 @@
                   class="w-3.5 h-3.5 rounded-full transition-colors"
                   [class.bg-blue-500]="pin().length > i && !pinError()"
                   [class.bg-red-500]="pinError()"
-                  [class.bg-gray-200]="pin().length <= i && !pinError()"
-                  [class.dark:bg-gray-700]="pin().length <= i && !pinError()"
+                  [class.bg-line]="pin().length <= i && !pinError()"
                 ></div>
               }
             </div>
@@ -165,7 +163,7 @@
                 <button
                   type="button"
                   (click)="addDigit(digit)"
-                  class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-xl font-semibold text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                  class="h-14 rounded-xl bg-line-soft text-xl font-semibold text-ink hover:bg-line active:scale-95 transition-all"
                 >
                   {{ digit }}
                 </button>
@@ -173,7 +171,7 @@
               <button
                 type="button"
                 (click)="backToInput()"
-                class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center"
+                class="h-14 rounded-xl bg-line-soft text-ink-muted hover:bg-line active:scale-95 transition-all flex items-center justify-center"
                 [attr.aria-label]="'COMMON.BACK' | translate"
               >
                 <lib-icon name="user" class="text-[1.25rem]" />
@@ -181,14 +179,14 @@
               <button
                 type="button"
                 (click)="addDigit('0')"
-                class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-xl font-semibold text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                class="h-14 rounded-xl bg-line-soft text-xl font-semibold text-ink hover:bg-line active:scale-95 transition-all"
               >
                 0
               </button>
               <button
                 type="button"
                 (click)="deleteDigit()"
-                class="h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center"
+                class="h-14 rounded-xl bg-line-soft text-ink-muted hover:bg-line active:scale-95 transition-all flex items-center justify-center"
                 [attr.aria-label]="'COMMON.DELETE' | translate"
               >
                 <lib-icon name="backspace" class="text-[1.25rem]" />
@@ -201,17 +199,17 @@
       @case ('submitting') {
         <div class="flex flex-col items-center justify-center py-12 gap-3">
           <lib-icon name="arrows-clockwise" class="text-[2.5rem] text-blue-500 animate-spin" />
-          <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'CASH_SESSION.AUTH_IN_PROGRESS' | translate }}</p>
+          <p class="text-sm text-ink-muted">{{ 'CASH_SESSION.AUTH_IN_PROGRESS' | translate }}</p>
         </div>
       }
 
       @case ('submitted') {
         <div class="flex flex-col items-center text-center justify-center py-10 gap-3">
           <lib-icon name="check-circle" class="text-[2.5rem] text-emerald-500" />
-          <p class="text-sm font-semibold text-gray-800 dark:text-white">
+          <p class="text-sm font-semibold text-ink">
             {{ 'CASH_SESSION.AUTH_SUCCESS' | translate }}
           </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
+          <p class="text-xs text-ink-muted">
             {{ 'CASH_SESSION.AUTH_SUCCESS_DETAIL' | translate: { name: cashierLabel(), amount: openingFloatLabel() } }}
           </p>
         </div>
@@ -220,11 +218,11 @@
       @case ('load-error') {
         <div class="flex flex-col items-center text-center gap-3 py-6">
           <lib-icon name="warning-circle" class="text-[2.5rem] text-red-500" />
-          <p class="text-sm font-semibold text-gray-800 dark:text-white">
+          <p class="text-sm font-semibold text-ink">
             {{ 'CASH_SESSION.AUTH_LOAD_ERROR' | translate }}
           </p>
           @if (errorMessage()) {
-            <p class="text-xs text-gray-500 dark:text-gray-400 break-words max-w-full">{{ errorMessage() }}</p>
+            <p class="text-xs text-ink-muted break-words max-w-full">{{ errorMessage() }}</p>
           }
         </div>
       }
@@ -234,29 +232,29 @@
   <!-- Footer / Actions -->
   @switch (step()) {
     @case ('input') {
-      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+      <div class="flex gap-2 p-4 border-t border-line-soft">
         <button
           type="button"
           (click)="cancel()"
-          class="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
         >
           {{ 'COMMON.CANCEL' | translate }}
         </button>
       </div>
     }
     @case ('enter-pin') {
-      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+      <div class="flex gap-2 p-4 border-t border-line-soft">
         <button
           type="button"
           (click)="cancel()"
-          class="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
         >
           {{ 'COMMON.CANCEL' | translate }}
         </button>
       </div>
     }
     @case ('submitted') {
-      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+      <div class="flex gap-2 p-4 border-t border-line-soft">
         <button
           type="button"
           (click)="close()"
@@ -267,11 +265,11 @@
       </div>
     }
     @case ('load-error') {
-      <div class="flex gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
+      <div class="flex gap-2 p-4 border-t border-line-soft">
         <button
           type="button"
           (click)="cancel()"
-          class="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
         >
           {{ 'COMMON.CLOSE' | translate }}
         </button>

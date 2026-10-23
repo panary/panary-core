@@ -50,12 +50,12 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
     </mat-dialog-content>
     <mat-dialog-actions class="flex justify-end gap-2">
       @if (phase() === 'submitted') {
-        <button class="bg-white dark:bg-gray-800 border rounded-xl px-4 h-10" (click)="close()">
+        <button class="bg-surface-elevated border rounded-xl px-4 h-10" (click)="close()">
           {{ 'COMMON.CLOSE' | translate }}
         </button>
       } @else {
         <button
-          class="bg-white dark:bg-gray-800 border rounded-xl px-4 h-10"
+          class="bg-surface-elevated border rounded-xl px-4 h-10"
           (click)="close()"
           [disabled]="phase() === 'submitting'"
         >

@@ -17,7 +17,7 @@
           <lib-icon name="shield-check" class="text-[1.75rem] text-amber-600 dark:text-amber-400" />
         </div>
         <h1 class="text-2xl font-bold text-[#0F172A] dark:text-white mb-2">{{ 'LOGIN.REVERIFY_TITLE' | translate }}</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="text-sm text-ink-muted">
           @if (offlineDays(); as days) {
             {{ 'LOGIN.REVERIFY_SUBTITLE_DAYS' | translate: { days: days } }}
           } @else {
@@ -27,13 +27,13 @@
       </div>
 
       @if (hasAuthorizingUsers()) {
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+        <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint mb-2">
           {{ 'LOGIN.REVERIFY_AUTHORIZING_LABEL' | translate }}
         </p>
         <div class="flex flex-col gap-2">
           @for (user of authorizingUsers(); track user._id) {
             <button
-              class="pnry-touch flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.99] transition-all text-left"
+              class="pnry-touch flex items-center gap-3 p-3 rounded-xl bg-surface-elevated dark:bg-surface-elevated/60 hover:bg-line-soft active:scale-[0.99] transition-all text-left"
               (click)="selectUser(user)"
             >
               <div
@@ -48,7 +48,7 @@
           }
         </div>
       } @else {
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p class="text-sm text-ink-muted mb-4">
           {{ 'LOGIN.REVERIFY_NO_AUTHORIZING_USERS' | translate }}
         </p>
       }
@@ -60,7 +60,7 @@
       @if (otherUsers().length > 0) {
         @if (!showEmergency()) {
           <button
-            class="pnry-touch w-full mt-6 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            class="pnry-touch w-full mt-6 text-sm font-semibold text-ink-muted hover:text-ink transition-colors"
             (click)="revealEmergency()"
           >
             {{ 'LOGIN.REVERIFY_EMERGENCY_TOGGLE' | translate }}
@@ -70,7 +70,7 @@
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1">
               {{ 'LOGIN.REVERIFY_EMERGENCY_LABEL' | translate }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            <p class="text-xs text-ink-muted mb-3">
               {{ 'LOGIN.REVERIFY_EMERGENCY_HINT' | translate }}
             </p>
             <div class="flex flex-col gap-2">
@@ -110,7 +110,7 @@
         <h2 class="text-xl font-bold text-[#0F172A] dark:text-white">
           {{ selectedUser()?.firstName }} {{ selectedUser()?.lastName }}
         </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ 'LOGIN.REVERIFY_ENTER_PIN' | translate }}</p>
+        <p class="text-sm text-ink-muted">{{ 'LOGIN.REVERIFY_ENTER_PIN' | translate }}</p>
         @if (!selectedUser()?.authorizing) {
           <p class="mt-2 text-xs font-semibold text-amber-600 dark:text-amber-400">
             {{ 'LOGIN.REVERIFY_EMERGENCY_NOTICE' | translate }}
@@ -131,7 +131,7 @@
       }
 
       <button
-        class="pnry-touch w-full mt-6 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+        class="pnry-touch w-full mt-6 text-sm font-semibold text-ink-muted hover:text-ink transition-colors"
         (click)="backToUserList()"
       >
         {{ 'COMMON.BACK' | translate }}
@@ -146,7 +146,7 @@
         <lib-icon name="warning-circle" class="text-[1.75rem] text-red-600 dark:text-red-400" />
       </div>
       <h2 class="text-xl font-bold text-[#0F172A] dark:text-white mb-2">{{ 'LOGIN.REVERIFY_TITLE' | translate }}</h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ errorMessage() }}</p>
+      <p class="text-sm text-ink-muted mb-6">{{ errorMessage() }}</p>
       <button
         class="pnry-touch px-6 py-3 rounded-xl bg-[#00B8D4] text-white text-sm font-semibold active:scale-95 transition-transform"
         (click)="retry()"

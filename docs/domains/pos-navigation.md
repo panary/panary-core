@@ -4,7 +4,7 @@ title: POS-Navigation — Rail statt Dashboard-Kacheln
 description: 'Wie der POS seit core#832 navigiert — Rail links mit fünf direkten Einträgen, „Mehr" mit Gruppen und Einstellungen-Untermenü, Stempeln und Abmelden direkt in der Rail (core#907), Avatar-Menü für die Warenkorb-Seite; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-23T03:20:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-23T10:20:00Z }
 ---
 
 # POS-Navigation — Rail statt Dashboard-Kacheln
@@ -102,8 +102,10 @@ Abmelden bleiben wie die übrigen Rail-Einträge antippbar und nennen den Grund 
 Bediener-Token. Ist es abgelaufen (12 h) oder gehört es zu einem anderen Gerät, antwortet er mit `401` und
 `data.reason: POS_OPERATOR_REQUIRED`. Das ist **kein** Ablauf der Geräte-Sitzung: `ServiceHelper.handleError`
 leert dann weder `sessionStorage` noch zeigt es einen Toast, sondern reicht den Fehler weiter
-(`isPosOperatorRejection`, `@panary/shared/data-access`). `PosStaffService` zeigt den Hinweis, sich erneut
-mit PIN anzumelden, und beendet die Bediener-Sitzung über `PosSessionService.endSession`. Nach der PIN ist die
+(`isPosOperatorRejection`, `@panary/shared/data-access`). `PosStaffService` beendet die Bediener-Sitzung über
+`PosSessionService.endSession` und zeigt **danach** den Hinweis, sich erneut mit PIN anzumelden — vorher
+ersetzte ihn die Snackbar „Benutzer erfolgreich abgemeldet“ aus `AuthService.logout()` sofort
+([core#937](https://github.com/panary/panary-core/issues/937)). Nach der PIN ist die
 Stempelung wiederholbar; es wurde nichts gestempelt. Jeden anderen `401` behandelt `ServiceHelper` wie bisher.
 
 **Keine Rechteprüfung im UI.** `allowedRoles` war an keiner Kachel gesetzt und ist entfallen. Was ein

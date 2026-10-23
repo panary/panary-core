@@ -155,6 +155,13 @@ export class LoginComponent implements OnInit {
    */
   readonly isShared = computed(() => this.deviceAssignment.isShared())
 
+  /** Die Mitarbeiterwahl auf geteilten Geräten braucht die volle Breite (Kartenraster, Konzept 2.5). */
+  readonly wideSelection = computed(() => this.currentStep() === 'select-user' && this.isShared())
+
+  readonly languageLabel = computed(
+    () => this.languages.find(language => language.code === this.languageService.currentLanguage())?.label ?? '',
+  )
+
   /** Genau ein Mitarbeiter → kein Zurueck-Pfeil, es gibt nichts zum Zurueck. */
   readonly isSingleUserDevice = computed(() => this.deviceAssignment.isAssigned() && this.posUsers().length === 1)
 

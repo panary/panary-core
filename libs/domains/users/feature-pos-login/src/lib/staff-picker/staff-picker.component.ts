@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { sortStaff, type StaffPerson } from './staff-picker.logic'
+import { shortStaffName, sortStaff, type StaffPerson } from './staff-picker.logic'
 
 export interface StaffPickerPerson extends StaffPerson {
   initials: string
@@ -26,4 +26,5 @@ export class StaffPickerComponent {
   readonly picked = output<StaffPickerPerson>()
 
   protected readonly sorted = computed(() => sortStaff(this.users()))
+  protected readonly shortName = shortStaffName
 }

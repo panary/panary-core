@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sortStaff } from './staff-picker.logic'
+import { shortStaffName, sortStaff } from './staff-picker.logic'
 
 const person = (_id: string, firstName: string, lastName: string) => ({ _id, firstName, lastName })
 
@@ -9,5 +9,15 @@ describe('sortStaff', () => {
 
     expect(sortStaff(input).map(p => p._id)).toEqual(['3', '2', '1'])
     expect(input.map(p => p._id)).toEqual(['1', '2', '3'])
+  })
+})
+
+describe('shortStaffName', () => {
+  it('hängt das Initial des Nachnamens an den Vornamen', () => {
+    expect(shortStaffName(person('1', 'Anna', 'Altstadt'))).toBe('Anna A.')
+  })
+
+  it('zeigt ohne Nachnamen nur den Vornamen', () => {
+    expect(shortStaffName(person('2', 'Cher', ' '))).toBe('Cher')
   })
 })

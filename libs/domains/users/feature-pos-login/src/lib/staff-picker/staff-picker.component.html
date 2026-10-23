@@ -4,24 +4,22 @@
     <p class="text-ink-faint text-xs mt-1">{{ 'LOGIN.CREATE_POS_USERS' | translate }}</p>
   </div>
 } @else {
-  <div class="max-h-[32rem] overflow-y-auto -mx-1 px-1">
-    <div class="grid grid-cols-3 gap-2" data-testid="staff-grid">
-      @for (user of sorted(); track user._id) {
-        <button
-          type="button"
-          class="pnry-touch flex flex-col items-center justify-center gap-1 rounded-card p-2 min-h-[5.5rem] hover:bg-surface-panel active:bg-surface-elevated transition-colors"
-          (click)="picked.emit(user)"
+  <div
+    class="grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] auto-rows-[5.25rem] gap-2.5"
+    data-testid="staff-grid"
+  >
+    @for (user of sorted(); track user._id) {
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center gap-1.5 rounded-[0.875rem] border border-pos-key-line bg-pos-key text-sm font-semibold text-ink hover:bg-surface-panel active:bg-surface-elevated transition-colors"
+        (click)="picked.emit(user)"
+      >
+        <span
+          class="size-10 rounded-full flex items-center justify-center bg-brand-navy text-white text-sm font-bold"
+          >{{ user.initials }}</span
         >
-          <span
-            class="size-12 rounded-full flex items-center justify-center text-white text-base font-bold shadow-md"
-            [style.background-color]="user.color"
-            >{{ user.initials }}</span
-          >
-          <span class="w-full truncate text-center text-xs font-medium text-ink">
-            {{ user.firstName }} {{ user.lastName }}
-          </span>
-        </button>
-      }
-    </div>
+        <span class="w-full truncate text-center">{{ shortName(user) }}</span>
+      </button>
+    }
   </div>
 }

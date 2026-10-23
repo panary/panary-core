@@ -105,6 +105,9 @@ export class LoginComponent implements OnInit {
    */
   readonly idleLogoutNotice: WritableSignal<boolean> = signal(false)
 
+  /** Der Logout hat dabei einen offenen Dialog geschlossen (panary/panary-core#941) — nur dann der Satz zum Abbruch. */
+  readonly idleLogoutInterrupted: WritableSignal<boolean> = signal(false)
+
   /** Nur dort, wo der Login mit dem Freigabe-Schritt verwechselt werden kann. */
   readonly showIdleLogoutNotice = computed(() => {
     const step = this.currentStep()
@@ -155,6 +158,13 @@ export class LoginComponent implements OnInit {
    */
   readonly isShared = computed(() => this.deviceAssignment.isShared())
 
+  /** Die Mitarbeiterwahl auf geteilten Geräten braucht die volle Breite (Kartenraster, Konzept 2.5). */
+  readonly wideSelection = computed(() => this.currentStep() === 'select-user' && this.isShared())
+
+  readonly languageLabel = computed(
+    () => this.languages.find(language => language.code === this.languageService.currentLanguage())?.label ?? '',
+  )
+
   /** Genau ein Mitarbeiter → kein Zurueck-Pfeil, es gibt nichts zum Zurueck. */
   readonly isSingleUserDevice = computed(() => this.deviceAssignment.isAssigned() && this.posUsers().length === 1)
 
@@ -194,6 +204,7 @@ export class LoginComponent implements OnInit {
   //#region Lifecycle
   ngOnInit(): void {
     this.idleLogoutNotice.set(this.#posSession.consumeEndReason() === 'idle')
+    this.idleLogoutInterrupted.set(this.#posSession.consumeEndInterrupted())
     this.loadDeviceInfo()
     this.connectAndLoadUsers().then(r => {
       /* empty */
@@ -819,9 +830,6 @@ export class LoginComponent implements OnInit {
     this.languageService.setLanguage(next)
   }
 
-  currentLanguageLabel(): string {
-    return this.languages.find(l => l.code === this.languageService.currentLanguage())?.label ?? 'DE'
-  }
   //#endregion
 
   //#region Time Clock

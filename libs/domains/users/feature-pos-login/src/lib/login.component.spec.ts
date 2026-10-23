@@ -63,6 +63,8 @@ interface SetupOptions {
   pendingOutbox?: number
   /** Grund des vorigen Sitzungsendes, den `PosSessionService` einmalig herausgibt (#604). */
   endReason?: PosLogoutReason | null
+  /** Hat das vorige Sitzungsende einen offenen Dialog geschlossen (#941)? */
+  endInterrupted?: boolean
 }
 
 function setup(options: SetupOptions = {}) {
@@ -74,6 +76,7 @@ function setup(options: SetupOptions = {}) {
     rejection = null,
     pendingOutbox,
     endReason = null,
+    endInterrupted = false,
   } = options
 
   const assignment = fakeAssignment(mode, assignedUserIds)
@@ -122,7 +125,13 @@ function setup(options: SetupOptions = {}) {
       { provide: UpdateService, useValue: {} },
       { provide: APP_CONFIG, useValue: { appVersion: '0.0.0-test' } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
-      { provide: PosSessionService, useValue: { consumeEndReason: vi.fn().mockReturnValue(endReason) } },
+      {
+        provide: PosSessionService,
+        useValue: {
+          consumeEndReason: vi.fn().mockReturnValue(endReason),
+          consumeEndInterrupted: vi.fn().mockReturnValue(endInterrupted),
+        },
+      },
     ],
   })
 
@@ -456,6 +465,15 @@ describe('LoginComponent — Hinweis nach Inaktivitaets-Logout (#604)', () => {
     component.ngOnInit()
 
     expect(component.idleLogoutNotice()).toBe(false)
+  })
+
+  // #941: Der Satz „eine offene Aktion wurde abgebrochen“ gilt nur, wenn der Logout einen Dialog geschlossen hat.
+  it.each([true, false])('trägt den Abbruch-Satz nur bei geschlossenem Dialog (interrupted=%s)', interrupted => {
+    const { component } = setup({ endReason: 'idle', endInterrupted: interrupted })
+
+    component.ngOnInit()
+
+    expect(component.idleLogoutInterrupted()).toBe(interrupted)
   })
 
   it.each(['select-user', 'enter-pin'] as const)('blendet ihn im Schritt %s ein', step => {

@@ -123,6 +123,7 @@
   },
   "LOGIN": {
     "WELCOME": "Welcome",
+    "WHO_PAYS": "Who is on the till?",
     "SELECT_ACCOUNT": "Select your account",
     "OTHER_PERSON": "Someone else",
     "ENTER_PIN": "Enter PIN",
@@ -179,6 +180,8 @@
   },
   "TIME_CLOCK": {
     "TITLE": "Time tracking",
+    "STAMP_ONLY": "Clock working time only",
+    "STAMP_HINT": "Enter employee number, then press a key",
     "SUBTITLE": "Quickly clock in or out",
     "CLOCK_IN": "Clock in",
     "CLOCK_OUT": "Clock out",

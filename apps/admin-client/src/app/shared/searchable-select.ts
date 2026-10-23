@@ -69,7 +69,7 @@ export interface SelectItem {
       <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
       <div class="fixed inset-0 z-50 flex justify-end" (click)="close()">
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/20 dark:bg-black/40"></div>
+        <div class="absolute inset-0 bg-shell/20 dark:bg-shell/40"></div>
 
         <!-- Panel -->
         <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
@@ -123,7 +123,7 @@ export interface SelectItem {
                 @if (item.sublabel) {
                   <span
                     class="text-xs ml-1.5"
-                    [class]="item.id === value() ? 'text-white/60 dark:text-black/50' : 'text-ink-faint'"
+                    [class]="item.id === value() ? 'text-white/60 dark:text-shell/50' : 'text-ink-faint'"
                     >({{ item.sublabel }})</span
                   >
                 }

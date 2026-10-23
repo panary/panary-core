@@ -28,7 +28,7 @@ import { TranslateModule } from '@ngx-translate/core'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/70 p-8 backdrop-blur-sm"
+      class="fixed inset-0 z-[1200] flex items-center justify-center bg-shell/70 p-8 backdrop-blur-sm"
       role="alertdialog"
       aria-live="assertive"
       [attr.aria-label]="'POS_IDLE.TITLE' | translate"

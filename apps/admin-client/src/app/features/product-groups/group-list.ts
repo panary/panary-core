@@ -247,7 +247,7 @@ interface ProductGroup {
           <!-- Fehler-Log Popup -->
           @if (showErrorLog() && importResult()?.errorLogs?.length) {
             <div
-              class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+              class="fixed inset-0 z-50 flex items-center justify-center bg-shell/40 dark:bg-shell/60 backdrop-blur-sm"
               role="button"
               tabindex="0"
               (click)="showErrorLog.set(false)"

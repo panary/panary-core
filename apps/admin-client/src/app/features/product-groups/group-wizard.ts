@@ -401,7 +401,7 @@ interface StepAnswer {
               @if (saving()) {
                 <span
                   class="w-4 h-4 border-2 border-line-soft/30
-                             border-t-white dark:border-t-black rounded-full animate-spin"
+                             border-t-white dark:border-t-shell rounded-full animate-spin"
                 ></span>
                 Erstelle...
               } @else {

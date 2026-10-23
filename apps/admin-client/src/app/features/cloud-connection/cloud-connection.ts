@@ -176,18 +176,15 @@ const directionLabel = (dir: InitialDirection): string => {
     <div class="p-6 max-w-3xl space-y-4 h-full overflow-y-auto">
       <div>
         <h1 class="text-xl font-bold tracking-tight">{{ 'CLOUD.TITLE' | translate }}</h1>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1.5 leading-relaxed">
+        <p class="text-ink-muted text-sm mt-1.5 leading-relaxed">
           {{ 'CLOUD.DESCRIPTION' | translate }}
         </p>
       </div>
 
       @if (loading()) {
         <div class="flex items-center gap-3 py-12 justify-center">
-          <span
-            class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900
-                       dark:border-t-white rounded-full animate-spin"
-          ></span>
-          <span class="text-slate-400 dark:text-gray-500 text-sm">{{ 'CLOUD.LOADING_STATUS' | translate }}</span>
+          <span class="w-5 h-5 border-2 border-line-strong border-t-ink rounded-full animate-spin"></span>
+          <span class="text-ink-faint text-sm">{{ 'CLOUD.LOADING_STATUS' | translate }}</span>
         </div>
       } @else {
         @switch (connectionState()) {
@@ -197,10 +194,7 @@ const directionLabel = (dir: InitialDirection): string => {
               @case ('input') {
                 <div class="space-y-5">
                   <div class="space-y-1.5">
-                    <label
-                      for="pairingCode"
-                      class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
+                    <label for="pairingCode" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
                       {{ 'CLOUD.PAIRING_CODE' | translate }}
                     </label>
                     <input
@@ -212,16 +206,13 @@ const directionLabel = (dir: InitialDirection): string => {
                       pattern="[0-9]*"
                       inputmode="numeric"
                       placeholder="000000"
-                      class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4
+                      class="w-full bg-surface-input border border-line-soft rounded-xl p-4
                              font-mono text-2xl text-center tracking-[0.5em]"
                     />
                   </div>
                   <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
-                      <label
-                        for="cloudUrl"
-                        class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
+                      <label for="cloudUrl" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
                         {{ 'CLOUD.CLOUD_URL' | translate }}
                       </label>
                       <input
@@ -229,15 +220,12 @@ const directionLabel = (dir: InitialDirection): string => {
                         [(ngModel)]="cloudUrl"
                         name="cloudUrl"
                         type="url"
-                        class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
+                        class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                                font-mono text-xs"
                       />
                     </div>
                     <div class="space-y-1">
-                      <label
-                        for="edgeName"
-                        class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
+                      <label for="edgeName" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
                         {{ 'CLOUD.EDGE_NAME' | translate }}
                       </label>
                       <input
@@ -246,7 +234,7 @@ const directionLabel = (dir: InitialDirection): string => {
                         name="edgeName"
                         type="text"
                         placeholder="Hauptstandort"
-                        class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3 text-sm"
+                        class="w-full bg-surface-input border border-line-soft rounded-lg p-3 text-sm"
                       />
                     </div>
                   </div>
@@ -265,7 +253,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     <button
                       (click)="onRunPreflight()"
                       [disabled]="preflighting() || pairingCode.length < 6 || !edgeName"
-                      class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm"
+                      class="bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm"
                     >
                       @if (preflighting()) {
                         <span class="inline-flex items-center gap-2">
@@ -310,59 +298,55 @@ const directionLabel = (dir: InitialDirection): string => {
 
                     @if (pf.edgeInventory && pf.cloudInventory) {
                       <div class="grid grid-cols-2 gap-3">
-                        <div
-                          class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4"
-                        >
-                          <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Edge (lokal)</p>
+                        <div class="bg-surface-input border border-line-soft rounded-xl p-4">
+                          <p class="text-xs uppercase tracking-wider text-ink-muted mb-2">Edge (lokal)</p>
                           <table class="w-full text-sm">
                             <tbody>
                               <tr>
-                                <td class="text-slate-500">Produkte</td>
+                                <td class="text-ink-muted">Produkte</td>
                                 <td class="text-right font-mono">{{ pf.edgeInventory.products }}</td>
                               </tr>
                               <tr>
-                                <td class="text-slate-500">Produktgruppen</td>
+                                <td class="text-ink-muted">Produktgruppen</td>
                                 <td class="text-right font-mono">{{ pf.edgeInventory.productGroups }}</td>
                               </tr>
                               <tr>
-                                <td class="text-slate-500">Personal</td>
+                                <td class="text-ink-muted">Personal</td>
                                 <td class="text-right font-mono">{{ pf.edgeInventory.users }}</td>
                               </tr>
                               <tr>
-                                <td class="text-slate-500">Firmenkunden</td>
+                                <td class="text-ink-muted">Firmenkunden</td>
                                 <td class="text-right font-mono">{{ pf.edgeInventory.corporateCustomers }}</td>
                               </tr>
                               <tr>
-                                <td class="text-slate-500">Kunden</td>
+                                <td class="text-ink-muted">Kunden</td>
                                 <td class="text-right font-mono">{{ pf.edgeInventory.customers }}</td>
                               </tr>
                             </tbody>
                           </table>
                         </div>
-                        <div
-                          class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4"
-                        >
-                          <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Cloud</p>
+                        <div class="bg-surface-input border border-line-soft rounded-xl p-4">
+                          <p class="text-xs uppercase tracking-wider text-ink-muted mb-2">Cloud</p>
                           <table class="w-full text-sm">
                             <tbody>
                               <tr>
-                                <td class="text-slate-500">Produkte</td>
+                                <td class="text-ink-muted">Produkte</td>
                                 <td class="text-right font-mono">{{ pf.cloudInventory.products }}</td>
                               </tr>
                               <tr>
-                                <td class="text-slate-500">Produktgruppen</td>
+                                <td class="text-ink-muted">Produktgruppen</td>
                                 <td class="text-right font-mono">{{ pf.cloudInventory.productGroups }}</td>
                               </tr>
                               <tr>
-                                <td class="text-slate-500">Personal</td>
+                                <td class="text-ink-muted">Personal</td>
                                 <td class="text-right font-mono">{{ pf.cloudInventory.users }}</td>
                               </tr>
                               <tr>
-                                <td class="text-slate-500">Firmenkunden</td>
+                                <td class="text-ink-muted">Firmenkunden</td>
                                 <td class="text-right font-mono">{{ pf.cloudInventory.corporateCustomers }}</td>
                               </tr>
                               <tr>
-                                <td class="text-slate-500">Kunden</td>
+                                <td class="text-ink-muted">Kunden</td>
                                 <td class="text-right font-mono">{{ pf.cloudInventory.customers }}</td>
                               </tr>
                             </tbody>
@@ -381,16 +365,16 @@ const directionLabel = (dir: InitialDirection): string => {
                     }
 
                     <div class="space-y-2">
-                      <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Initiale Sync-Richtung</p>
+                      <p class="text-xs font-medium text-ink-muted uppercase tracking-wider">Initiale Sync-Richtung</p>
                       @for (opt of directionOptions(); track opt.value) {
                         <label
-                          class="flex items-start gap-3 p-3 border border-slate-200 dark:border-gray-800 rounded-lg
-                                       hover:bg-slate-50 dark:hover:bg-gray-900/30"
+                          class="flex items-start gap-3 p-3 border border-line-soft rounded-lg
+                                       hover:bg-surface-elevated dark:hover:bg-surface-bg/30"
                           [class.cursor-pointer]="!opt.disabled"
                           [class.cursor-not-allowed]="opt.disabled"
                           [class.opacity-50]="opt.disabled"
                           [class.ring-2]="selectedDirection() === opt.value"
-                          [class.ring-slate-900]="selectedDirection() === opt.value"
+                          [class.ring-ink]="selectedDirection() === opt.value"
                         >
                           <input
                             type="radio"
@@ -403,7 +387,7 @@ const directionLabel = (dir: InitialDirection): string => {
                           />
                           <div>
                             <p class="text-sm font-medium">{{ opt.label }}</p>
-                            <p class="text-xs text-slate-500">{{ opt.description }}</p>
+                            <p class="text-xs text-ink-muted">{{ opt.description }}</p>
                             @if (opt.disabledReason) {
                               <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">⚠ {{ opt.disabledReason }}</p>
                             }
@@ -431,14 +415,14 @@ const directionLabel = (dir: InitialDirection): string => {
                           Ich verstehe, dass alle lokalen Stammdaten durch Cloud-Daten ersetzt werden.
                         </span>
                       </label>
-                      <p class="text-xs text-slate-500 dark:text-slate-400 -mt-2 ml-1">
+                      <p class="text-xs text-ink-muted -mt-2 ml-1">
                         Vor dem Pull wird automatisch ein vollstaendiges DB-Backup unter
                         <code class="text-[11px]">data/panary.sqlite.pre-pairing-&lt;timestamp&gt;.bak</code> angelegt.
                       </p>
                     }
 
                     @if (selectedDirection() === 'merge-by-external-id') {
-                      <p class="text-xs text-slate-500 dark:text-slate-400 ml-1">
+                      <p class="text-xs text-ink-muted ml-1">
                         Vor dem Merge wird automatisch ein vollstaendiges DB-Backup unter
                         <code class="text-[11px]">data/panary.sqlite.pre-pairing-&lt;timestamp&gt;.bak</code> angelegt.
                       </p>
@@ -456,7 +440,7 @@ const directionLabel = (dir: InitialDirection): string => {
                       <button
                         (click)="onStartBootstrap()"
                         [disabled]="bootstrapping() || !canStart()"
-                        class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         @if (bootstrapping()) {
                           <span class="inline-flex items-center gap-2">
@@ -469,9 +453,7 @@ const directionLabel = (dir: InitialDirection): string => {
                           <span>Bootstrap starten</span>
                         }
                       </button>
-                      <button (click)="onAbortWizard()" class="text-slate-500 text-sm hover:text-slate-900">
-                        Abbrechen
-                      </button>
+                      <button (click)="onAbortWizard()" class="text-ink-muted text-sm hover:text-ink">Abbrechen</button>
                     </div>
                   </div>
                 }
@@ -480,13 +462,11 @@ const directionLabel = (dir: InitialDirection): string => {
               @case ('user-selection') {
                 <div class="space-y-5">
                   <div>
-                    <p class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      User-Auswahl
-                    </p>
+                    <p class="text-xs font-medium text-ink-muted uppercase tracking-wider">User-Auswahl</p>
                     <h2 class="text-base font-semibold mt-1">
                       Welche lokalen User sollen in die Cloud uebernommen werden?
                     </h2>
-                    <p class="text-xs text-slate-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+                    <p class="text-xs text-ink-muted mt-1.5 leading-relaxed">
                       Default: alle Personal- und Geraete-User vorausgewaehlt. Owner- und Plattform-Rollen werden
                       grundsaetzlich nicht synchronisiert (Cloud verwaltet sie selbst).
                     </p>
@@ -494,35 +474,28 @@ const directionLabel = (dir: InitialDirection): string => {
 
                   @if (loadingUsers()) {
                     <div class="flex items-center gap-3 py-8 justify-center">
-                      <span
-                        class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600 border-t-slate-900
-                                   dark:border-t-white rounded-full animate-spin"
-                      ></span>
-                      <span class="text-slate-400 dark:text-gray-500 text-sm">Lade lokale User …</span>
+                      <span class="w-5 h-5 border-2 border-line-strong border-t-ink rounded-full animate-spin"></span>
+                      <span class="text-ink-faint text-sm">Lade lokale User …</span>
                     </div>
                   } @else {
                     @if (selectableUsers().length > 0) {
                       <div class="flex items-center gap-2 text-xs">
-                        <button (click)="selectAllUsers()" class="text-slate-700 dark:text-slate-300 hover:underline">
-                          Alle auswaehlen
-                        </button>
-                        <span class="text-slate-300">·</span>
-                        <button (click)="deselectAllUsers()" class="text-slate-700 dark:text-slate-300 hover:underline">
-                          Keine auswaehlen
-                        </button>
-                        <span class="ml-auto text-slate-500">
+                        <button (click)="selectAllUsers()" class="text-ink hover:underline">Alle auswaehlen</button>
+                        <span class="text-line-strong">·</span>
+                        <button (click)="deselectAllUsers()" class="text-ink hover:underline">Keine auswaehlen</button>
+                        <span class="ml-auto text-ink-muted">
                           {{ selectedUserIds().size }} von {{ selectableUsers().length }} ausgewaehlt
                         </span>
                       </div>
 
                       <div
-                        class="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800
-                                  rounded-xl divide-y divide-slate-200 dark:divide-gray-800 overflow-hidden"
+                        class="bg-surface-panel dark:bg-surface-bg/50 border border-line-soft
+                                  rounded-xl divide-y divide-line-soft overflow-hidden"
                       >
                         @for (user of selectableUsers(); track user._id) {
                           <label
                             class="flex items-center gap-3 px-4 py-3 cursor-pointer
-                                         hover:bg-slate-50 dark:hover:bg-gray-900/30"
+                                         hover:bg-surface-elevated dark:hover:bg-surface-bg/30"
                           >
                             <input
                               type="checkbox"
@@ -534,17 +507,17 @@ const directionLabel = (dir: InitialDirection): string => {
                               <div class="flex items-baseline gap-2 flex-wrap">
                                 <span class="text-sm font-medium truncate">{{ user.loginname }}</span>
                                 @if (user.firstName || user.lastName) {
-                                  <span class="text-xs text-slate-500 truncate">
+                                  <span class="text-xs text-ink-muted truncate">
                                     {{ user.firstName }} {{ user.lastName }}
                                   </span>
                                 }
                               </div>
                               <div class="flex items-center gap-2 mt-0.5">
-                                <span class="text-[10px] uppercase tracking-wider font-mono text-slate-500">
+                                <span class="text-[10px] uppercase tracking-wider font-mono text-ink-muted">
                                   {{ user.role }}
                                 </span>
                                 @if (user.email) {
-                                  <span class="text-xs text-slate-400 truncate">· {{ user.email }}</span>
+                                  <span class="text-xs text-ink-faint truncate">· {{ user.email }}</span>
                                 }
                               </div>
                             </div>
@@ -562,16 +535,14 @@ const directionLabel = (dir: InitialDirection): string => {
 
                     @if (blockedUsers().length > 0) {
                       <details
-                        class="bg-slate-50 dark:bg-gray-900/30 border border-slate-200 dark:border-gray-800
+                        class="bg-surface-elevated dark:bg-surface-bg/30 border border-line-soft
                                        rounded-xl"
                       >
-                        <summary
-                          class="px-4 py-3 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900"
-                        >
+                        <summary class="px-4 py-3 cursor-pointer text-xs font-medium text-ink-muted hover:text-ink">
                           {{ blockedUsers().length }} User werden nicht synchronisiert (Cloud-verwaltete Rollen)
                         </summary>
                         <div class="px-4 pb-3 pt-1">
-                          <ul class="text-xs text-slate-500 space-y-1">
+                          <ul class="text-xs text-ink-muted space-y-1">
                             @for (user of blockedUsers(); track user._id) {
                               <li class="flex items-center gap-2">
                                 <span class="font-mono text-[10px] uppercase tracking-wider">{{ user.role }}</span>
@@ -579,7 +550,7 @@ const directionLabel = (dir: InitialDirection): string => {
                               </li>
                             }
                           </ul>
-                          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                          <p class="text-xs text-ink-faint mt-2 leading-relaxed">
                             Cloud verwaltet Owner- und Plattform-Identitaeten ueber das eigene Admin-Dashboard.
                             Edge-Backup-Accounts wuerden in der Cloud Login-Konflikte verursachen.
                           </p>
@@ -600,7 +571,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     <button
                       (click)="confirmUserSelection()"
                       [disabled]="bootstrapping() || loadingUsers()"
-                      class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-6 py-3 rounded-xl
+                      class="bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl
                              text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       @if (bootstrapping()) {
@@ -617,14 +588,14 @@ const directionLabel = (dir: InitialDirection): string => {
                     <button
                       (click)="backToPreflight()"
                       [disabled]="bootstrapping()"
-                      class="text-slate-500 text-sm hover:text-slate-900 disabled:opacity-50"
+                      class="text-ink-muted text-sm hover:text-ink disabled:opacity-50"
                     >
                       Zurueck
                     </button>
                     <button
                       (click)="onAbortWizard()"
                       [disabled]="bootstrapping()"
-                      class="text-slate-500 text-sm hover:text-slate-900 disabled:opacity-50"
+                      class="text-ink-muted text-sm hover:text-ink disabled:opacity-50"
                     >
                       Abbrechen
                     </button>
@@ -669,24 +640,17 @@ const directionLabel = (dir: InitialDirection): string => {
               <!-- Tab-Bar — trennt Verbindungs-Settings von der Sync-Historie.
                    Nur im Connected-State sichtbar; Wizard-/Pairing-/Error-States
                    zeigen weiterhin keine Tabs. -->
-              <div
-                role="tablist"
-                aria-label="Cloud-Kopplung-Bereiche"
-                class="flex border-b border-slate-200 dark:border-gray-800"
-              >
+              <div role="tablist" aria-label="Cloud-Kopplung-Bereiche" class="flex border-b border-line-soft">
                 <button
                   role="tab"
                   type="button"
                   [attr.aria-selected]="activeTab() === 'connection'"
                   (click)="selectTab('connection')"
-                  [class.border-slate-900]="activeTab() === 'connection'"
-                  [class.dark:border-white]="activeTab() === 'connection'"
-                  [class.text-slate-900]="activeTab() === 'connection'"
-                  [class.dark:text-white]="activeTab() === 'connection'"
-                  [class.text-slate-500]="activeTab() !== 'connection'"
-                  [class.dark:text-gray-400]="activeTab() !== 'connection'"
+                  [class.border-ink]="activeTab() === 'connection'"
+                  [class.text-ink]="activeTab() === 'connection'"
+                  [class.text-ink-muted]="activeTab() !== 'connection'"
                   class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
-                               hover:text-slate-900 dark:hover:text-white transition"
+                               hover:text-ink transition"
                 >
                   Verbindung
                 </button>
@@ -695,14 +659,11 @@ const directionLabel = (dir: InitialDirection): string => {
                   type="button"
                   [attr.aria-selected]="activeTab() === 'history'"
                   (click)="selectTab('history')"
-                  [class.border-slate-900]="activeTab() === 'history'"
-                  [class.dark:border-white]="activeTab() === 'history'"
-                  [class.text-slate-900]="activeTab() === 'history'"
-                  [class.dark:text-white]="activeTab() === 'history'"
-                  [class.text-slate-500]="activeTab() !== 'history'"
-                  [class.dark:text-gray-400]="activeTab() !== 'history'"
+                  [class.border-ink]="activeTab() === 'history'"
+                  [class.text-ink]="activeTab() === 'history'"
+                  [class.text-ink-muted]="activeTab() !== 'history'"
                   class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
-                               hover:text-slate-900 dark:hover:text-white transition"
+                               hover:text-ink transition"
                 >
                   Sync-Historie
                 </button>
@@ -711,14 +672,11 @@ const directionLabel = (dir: InitialDirection): string => {
                   type="button"
                   [attr.aria-selected]="activeTab() === 'reports'"
                   (click)="selectTab('reports')"
-                  [class.border-slate-900]="activeTab() === 'reports'"
-                  [class.dark:border-white]="activeTab() === 'reports'"
-                  [class.text-slate-900]="activeTab() === 'reports'"
-                  [class.dark:text-white]="activeTab() === 'reports'"
-                  [class.text-slate-500]="activeTab() !== 'reports'"
-                  [class.dark:text-gray-400]="activeTab() !== 'reports'"
+                  [class.border-ink]="activeTab() === 'reports'"
+                  [class.text-ink]="activeTab() === 'reports'"
+                  [class.text-ink-muted]="activeTab() !== 'reports'"
                   class="px-4 py-2.5 -mb-px border-b-2 border-transparent text-sm font-medium
-                               hover:text-slate-900 dark:hover:text-white transition"
+                               hover:text-ink transition"
                 >
                   Bootstrap-Reports
                 </button>
@@ -765,26 +723,24 @@ const directionLabel = (dir: InitialDirection): string => {
                           <span class="text-xs text-amber-700 ml-1">— Bootstrap laeuft</span>
                         }
                       </span>
-                      <span class="text-xs text-slate-500 dark:text-gray-400">{{ liveStatusSubline() }}</span>
+                      <span class="text-xs text-ink-muted">{{ liveStatusSubline() }}</span>
                     </div>
                   </div>
                 }
 
                 <div
-                  class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl divide-y divide-slate-200 dark:divide-gray-800"
+                  class="bg-surface-panel dark:bg-surface-bg/50 border border-line-soft rounded-xl divide-y divide-line-soft"
                 >
                   <div class="flex items-center justify-between px-4 py-3">
-                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Cloud-URL</span>
+                    <span class="text-xs uppercase tracking-wider text-ink-muted">Cloud-URL</span>
                     <span class="text-sm font-mono">{{ connectionInfo()?.cloudUrl }}</span>
                   </div>
                   <div class="flex items-center justify-between px-4 py-3">
-                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Edge-Name</span>
+                    <span class="text-xs uppercase tracking-wider text-ink-muted">Edge-Name</span>
                     <span class="text-sm">{{ connectionInfo()?.edgeName || '—' }}</span>
                   </div>
                   <div class="flex items-center justify-between px-4 py-3">
-                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400"
-                      >Verbunden seit</span
-                    >
+                    <span class="text-xs uppercase tracking-wider text-ink-muted">Verbunden seit</span>
                     <span class="text-sm">{{ formatDate(connectionInfo()?.connectedAt) }}</span>
                   </div>
                   <!-- „Datenabgleich", nicht „Sync": das Feld traegt seit ADR 0017
@@ -793,9 +749,7 @@ const directionLabel = (dir: InitialDirection): string => {
                      („letzter Kontakt …") — beides gleich zu benennen war genau
                      der Widerspruch, den Betreiber hier gelesen haben. -->
                   <div class="flex items-center justify-between px-4 py-3">
-                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400"
-                      >Letzter Datenabgleich</span
-                    >
+                    <span class="text-xs uppercase tracking-wider text-ink-muted">Letzter Datenabgleich</span>
                     <span class="text-sm">
                       {{
                         connectionInfo()?.lastSyncAt
@@ -805,14 +759,12 @@ const directionLabel = (dir: InitialDirection): string => {
                     </span>
                   </div>
                   <div class="flex items-center justify-between px-4 py-3">
-                    <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400"
-                      >Naechster geplanter Abgleich</span
-                    >
+                    <span class="text-xs uppercase tracking-wider text-ink-muted">Naechster geplanter Abgleich</span>
                     <span class="text-sm">{{ nextExpectedSyncLabel() }}</span>
                   </div>
                   @if (connectionInfo()?.lastClockSkewMs !== undefined) {
                     <div class="flex items-center justify-between px-4 py-3">
-                      <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Clock-Skew</span>
+                      <span class="text-xs uppercase tracking-wider text-ink-muted">Clock-Skew</span>
                       <span
                         class="text-sm font-mono"
                         [class.text-amber-600]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 30000"
@@ -827,15 +779,13 @@ const directionLabel = (dir: InitialDirection): string => {
                 </div>
 
                 <!-- Sync-Mode-Settings -->
-                <div
-                  class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
-                >
-                  <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400">Sync-Verhalten</p>
+                <div class="bg-surface-panel dark:bg-surface-bg/50 border border-line-soft rounded-xl p-4 space-y-3">
+                  <p class="text-xs uppercase tracking-wider text-ink-muted">Sync-Verhalten</p>
                   <select
                     [(ngModel)]="syncMode"
                     name="syncMode"
                     (change)="onSyncModeChange()"
-                    class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm"
+                    class="w-full bg-surface-input border border-line-soft rounded-lg p-2 text-sm"
                   >
                     @for (opt of syncModeOptions; track opt.value) {
                       <option [value]="opt.value">{{ opt.label }} — {{ opt.description }}</option>
@@ -843,7 +793,7 @@ const directionLabel = (dir: InitialDirection): string => {
                   </select>
                   @if (syncMode === 'auto') {
                     <div class="flex items-center gap-4">
-                      <label for="syncIntervalSec" class="text-xs text-slate-500 dark:text-gray-400">Intervall</label>
+                      <label for="syncIntervalSec" class="text-xs text-ink-muted">Intervall</label>
                       <input
                         id="syncIntervalSec"
                         type="number"
@@ -852,9 +802,9 @@ const directionLabel = (dir: InitialDirection): string => {
                         min="60"
                         max="3600"
                         (blur)="onSaveSyncMode()"
-                        class="w-28 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm"
+                        class="w-28 bg-surface-input border border-line-soft rounded-lg p-2 text-sm"
                       />
-                      <span class="text-xs text-slate-500 dark:text-gray-400">Sekunden</span>
+                      <span class="text-xs text-ink-muted">Sekunden</span>
                     </div>
                   }
                   @if (syncMode === 'scheduled') {
@@ -867,13 +817,13 @@ const directionLabel = (dir: InitialDirection): string => {
                               [(ngModel)]="syncScheduleTimes[$index]"
                               [name]="'syncScheduleTime-' + $index"
                               (change)="onSaveSyncMode()"
-                              class="w-32 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm"
+                              class="w-32 bg-surface-input border border-line-soft rounded-lg p-2 text-sm"
                             />
                             <button
                               type="button"
                               (click)="removeScheduleTime($index)"
                               aria-label="Uhrzeit entfernen"
-                              class="text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-sm px-2 py-1"
+                              class="text-ink-faint hover:text-red-600 dark:hover:text-red-400 text-sm px-2 py-1"
                             >
                               ✕
                             </button>
@@ -887,20 +837,18 @@ const directionLabel = (dir: InitialDirection): string => {
                       <button
                         type="button"
                         (click)="addScheduleTime()"
-                        class="text-xs font-medium text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-1.5"
+                        class="text-xs font-medium text-ink-muted dark:text-ink hover:text-ink border border-line-soft rounded-lg px-3 py-1.5"
                       >
                         + Uhrzeit
                       </button>
                       <div class="flex items-center gap-4">
-                        <label for="syncScheduleTimezone" class="text-xs text-slate-500 dark:text-gray-400"
-                          >Zeitzone</label
-                        >
+                        <label for="syncScheduleTimezone" class="text-xs text-ink-muted">Zeitzone</label>
                         <select
                           id="syncScheduleTimezone"
                           [(ngModel)]="syncScheduleTimezone"
                           name="syncScheduleTimezone"
                           (change)="onSaveSyncMode()"
-                          class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2 text-sm"
+                          class="flex-1 bg-surface-input border border-line-soft rounded-lg p-2 text-sm"
                         >
                           @for (tz of timezoneOptions; track tz) {
                             <option [value]="tz">{{ tz }}</option>
@@ -910,7 +858,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     </div>
                   }
                   @if (syncMode === 'scheduled' || syncMode === 'disabled') {
-                    <p class="text-xs text-slate-500 dark:text-gray-400">
+                    <p class="text-xs text-ink-muted">
                       Die Cloud-Verbindung wird unabhängig davon regelmäßig gehalten — sonst würde die Kopplung nach 24
                       Stunden ablaufen und ein erneutes Koppeln nötig machen.
                     </p>
@@ -927,7 +875,7 @@ const directionLabel = (dir: InitialDirection): string => {
                       <button
                         (click)="onSyncNow()"
                         [disabled]="syncing() || reloadingUsers()"
-                        class="bg-slate-900 dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap disabled:opacity-60"
+                        class="bg-ink text-surface-panel px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap disabled:opacity-60"
                       >
                         @if (syncing()) {
                           Synchronisiere …
@@ -945,7 +893,7 @@ const directionLabel = (dir: InitialDirection): string => {
                         aria-controls="sync-more-actions"
                         aria-label="Weitere Sync-Aktionen"
                         title="Weitere Sync-Aktionen"
-                        class="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                        class="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg border border-line text-ink-muted dark:text-ink hover:bg-surface-elevated disabled:opacity-50"
                       >
                         <app-icon name="dots-three" class="text-[20px]" />
                       </button>
@@ -964,17 +912,15 @@ const directionLabel = (dir: InitialDirection): string => {
                         -->
                         <div
                           id="sync-more-actions"
-                          class="absolute top-full left-0 mt-2 z-50 w-72 max-w-full bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl shadow-2xl py-1"
+                          class="absolute top-full left-0 mt-2 z-50 w-72 max-w-full bg-surface-input border border-line-soft rounded-xl shadow-2xl py-1"
                         >
                           <button
                             type="button"
                             (click)="onReloadUsers()"
-                            class="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-gray-900"
+                            class="w-full text-left px-3 py-2 hover:bg-surface-bg"
                           >
-                            <span class="block text-sm font-medium text-slate-900 dark:text-white"
-                              >Benutzer neu laden</span
-                            >
-                            <span class="block text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                            <span class="block text-sm font-medium text-ink">Benutzer neu laden</span>
+                            <span class="block text-xs text-ink-muted mt-0.5">
                               Holt alle Benutzer dieses Standorts vollständig aus der Online-Datenbank — auch solche,
                               die hier fehlen.
                             </span>
@@ -984,7 +930,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     </div>
 
                     @if (lastSyncResult(); as r) {
-                      <p class="text-xs text-slate-500 dark:text-gray-400">
+                      <p class="text-xs text-ink-muted">
                         Synchronisiert: ↑ {{ r.pushed }} gesendet, ↓ {{ r.pulled }} empfangen, {{ r.durationMs }} ms
                       </p>
                     }
@@ -994,9 +940,7 @@ const directionLabel = (dir: InitialDirection): string => {
                           Benutzer noch nicht geladen ({{ r.lastError }}). Der nächste Abgleich holt es nach.
                         </p>
                       } @else {
-                        <p class="text-xs text-slate-500 dark:text-gray-400">
-                          Benutzer neu geladen: ↓ {{ r.pulled }} empfangen
-                        </p>
+                        <p class="text-xs text-ink-muted">Benutzer neu geladen: ↓ {{ r.pulled }} empfangen</p>
                       }
                     }
                   </div>
@@ -1018,68 +962,64 @@ const directionLabel = (dir: InitialDirection): string => {
                    ohne SQLite-Tool. Plus prominente Hard-Delete-Action.
                    Bewusst VOR der Sync-Historie platziert — Operatoren sehen
                    den DB-State zuerst, bevor sie die Historie durchsuchen. -->
-                <details
-                  class="bg-slate-50 dark:bg-gray-900/30 border border-slate-200 dark:border-gray-800 rounded-xl"
-                >
+                <details class="bg-surface-elevated dark:bg-surface-bg/30 border border-line-soft rounded-xl">
                   <summary
-                    class="px-4 py-3 cursor-pointer text-xs font-medium text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white"
+                    class="px-4 py-3 cursor-pointer text-xs font-medium text-ink-muted dark:text-ink hover:text-ink"
                   >
                     Diagnose &amp; Erweiterte Aktionen
                   </summary>
-                  <div class="px-4 pb-4 pt-3 space-y-4 border-t border-slate-200 dark:border-gray-800">
+                  <div class="px-4 pb-4 pt-3 space-y-4 border-t border-line-soft">
                     <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs font-mono">
+                      <div><span class="text-ink-muted">_id:</span> {{ connectionInfo()?._id ?? '—' }}</div>
                       <div>
-                        <span class="text-slate-500 dark:text-gray-400">_id:</span> {{ connectionInfo()?._id ?? '—' }}
-                      </div>
-                      <div>
-                        <span class="text-slate-500 dark:text-gray-400">cloudEdgeId:</span>
+                        <span class="text-ink-muted">cloudEdgeId:</span>
                         {{ connectionInfo()?.cloudEdgeId ?? '—' }}
                       </div>
                       <div>
-                        <span class="text-slate-500 dark:text-gray-400">pairingStatus:</span>
+                        <span class="text-ink-muted">pairingStatus:</span>
                         {{ connectionInfo()?.pairingStatus ?? '—' }}
                       </div>
                       <div>
-                        <span class="text-slate-500 dark:text-gray-400">bootstrapStatus:</span>
+                        <span class="text-ink-muted">bootstrapStatus:</span>
                         {{ connectionInfo()?.bootstrapStatus ?? '—' }}
                       </div>
                       <div>
-                        <span class="text-slate-500 dark:text-gray-400">syncMode:</span>
+                        <span class="text-ink-muted">syncMode:</span>
                         {{ connectionInfo()?.syncMode ?? '—' }}
                       </div>
                       <div>
-                        <span class="text-slate-500 dark:text-gray-400">syncIntervalSec:</span>
+                        <span class="text-ink-muted">syncIntervalSec:</span>
                         {{ connectionInfo()?.syncIntervalSec ?? '—' }}
                       </div>
                       <div class="col-span-2">
-                        <span class="text-slate-500 dark:text-gray-400">syncSchedule:</span>
+                        <span class="text-ink-muted">syncSchedule:</span>
                         {{ syncScheduleDiagnostics() }}
                       </div>
                       <div class="col-span-2">
-                        <span class="text-slate-500 dark:text-gray-400">cloudUrl:</span>
+                        <span class="text-ink-muted">cloudUrl:</span>
                         {{ connectionInfo()?.cloudUrl ?? '—' }}
                       </div>
                       @if (connectionInfo()?.bootstrapError) {
                         <div class="col-span-2 text-red-600 dark:text-red-400">
-                          <span class="text-slate-500 dark:text-gray-400">bootstrapError:</span>
+                          <span class="text-ink-muted">bootstrapError:</span>
                           {{ connectionInfo()?.bootstrapError }}
                         </div>
                       }
                       @if (connectionInfo()?.errorMessage) {
                         <div class="col-span-2 text-red-600 dark:text-red-400">
-                          <span class="text-slate-500 dark:text-gray-400">errorMessage:</span>
+                          <span class="text-ink-muted">errorMessage:</span>
                           {{ connectionInfo()?.errorMessage }}
                         </div>
                       }
                     </div>
-                    <div class="pt-3 border-t border-slate-200 dark:border-gray-800">
+                    <div class="pt-3 border-t border-line-soft">
                       <button
                         (click)="confirmingHardDelete.set(true)"
                         class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-md"
                       >
                         Verbindung hart loeschen (lokal)
                       </button>
-                      <p class="text-xs text-slate-500 dark:text-gray-400 mt-1.5">
+                      <p class="text-xs text-ink-muted mt-1.5">
                         Entfernt den lokalen DB-Eintrag bedingungslos — Cloud-Side wird best-effort benachrichtigt.
                         Verwende dies nur bei verwaisten Halbzustaenden.
                       </p>
@@ -1148,10 +1088,10 @@ const directionLabel = (dir: InitialDirection): string => {
                 </div>
               </div>
               <div class="flex gap-3">
-                <button (click)="onReset()" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">
+                <button (click)="onReset()" class="bg-shell text-white px-4 py-2 rounded-lg text-sm">
                   Zuruecksetzen
                 </button>
-                <p class="text-xs text-slate-500 self-center">
+                <p class="text-xs text-ink-muted self-center">
                   Setzt die Verbindung zurueck und beginnt das Pairing neu.
                 </p>
               </div>
@@ -1170,7 +1110,7 @@ const directionLabel = (dir: InitialDirection): string => {
                 </div>
               </div>
               <div class="flex gap-3">
-                <button (click)="onReset()" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">
+                <button (click)="onReset()" class="bg-shell text-white px-4 py-2 rounded-lg text-sm">
                   Zuruecksetzen
                 </button>
               </div>

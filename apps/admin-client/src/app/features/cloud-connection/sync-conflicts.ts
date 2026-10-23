@@ -117,16 +117,14 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
       <header class="flex items-center justify-between">
         <div>
           <h1 class="text-xl font-bold tracking-tight">Sync-Status</h1>
-          <p class="text-slate-500 dark:text-gray-400 text-sm mt-1">
-            Datenabgleich zwischen diesem Standort und der Online-Datenbank.
-          </p>
+          <p class="text-ink-muted text-sm mt-1">Datenabgleich zwischen diesem Standort und der Online-Datenbank.</p>
         </div>
         <div class="flex items-center gap-2">
           @if (rejectedRows().length > 1) {
             <button
               (click)="retryAllRejected()"
               [disabled]="bulkBusy()"
-              class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-50"
+              class="bg-ink text-surface-panel text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-50"
               title="Alle abgelehnten Eintraege erneut zum Hochladen freigeben"
             >
               Alle erneut versuchen ({{ rejectedRows().length }})
@@ -135,7 +133,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
           <button
             (click)="reload()"
             [disabled]="loading()"
-            class="text-slate-500 text-xs hover:text-slate-900 disabled:opacity-50"
+            class="text-ink-muted text-xs hover:text-ink disabled:opacity-50"
           >
             ⟳ Aktualisieren
           </button>
@@ -143,16 +141,14 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
       </header>
 
       <!-- Tab-Switcher -->
-      <div class="flex items-center gap-1 border-b border-gray-200 dark:border-gray-800">
+      <div class="flex items-center gap-1 border-b border-line-soft">
         @for (tab of tabs; track tab.key) {
           <button
             type="button"
             (click)="activeTab.set(tab.key)"
-            [class.text-slate-900]="activeTab() === tab.key"
-            [class.dark:text-white]="activeTab() === tab.key"
-            [class.border-slate-900]="activeTab() === tab.key"
-            [class.dark:border-white]="activeTab() === tab.key"
-            class="text-xs px-3 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+            [class.text-ink]="activeTab() === tab.key"
+            [class.border-ink]="activeTab() === tab.key"
+            class="text-xs px-3 py-2 border-b-2 border-transparent text-ink-muted hover:text-ink transition-colors"
           >
             {{ tab.label }} <span class="ml-1 opacity-60">{{ countFor(tab.key) }}</span>
           </button>
@@ -161,14 +157,14 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
 
       @if (loading()) {
         <div class="flex items-center gap-3 py-12 justify-center">
-          <span class="w-5 h-5 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin"></span>
-          <span class="text-slate-400 text-sm">Lade Sync-Status …</span>
+          <span class="w-5 h-5 border-2 border-line-strong border-t-ink rounded-full animate-spin"></span>
+          <span class="text-ink-faint text-sm">Lade Sync-Status …</span>
         </div>
       } @else if (filteredItems().length === 0) {
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 text-center">
+        <div class="bg-surface-input border border-line-soft rounded-xl p-8 text-center">
           <p class="text-2xl mb-2">✓</p>
-          <p class="text-sm text-slate-700 dark:text-gray-200 font-medium">Alles synchron</p>
-          <p class="text-xs text-slate-500 mt-1">
+          <p class="text-sm text-ink font-medium">Alles synchron</p>
+          <p class="text-xs text-ink-muted mt-1">
             Keine ausstehenden Sync-Probleme zwischen diesem Standort und der Online-Datenbank.
           </p>
         </div>
@@ -176,9 +172,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
         <!-- In Wiederholung (transiente Rejects im Backoff) -->
         @if (showRetrying()) {
           @for (row of retryingRows(); track row._id) {
-            <article
-              class="bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 space-y-2"
-            >
+            <article class="bg-surface-input border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 space-y-2">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span
@@ -187,22 +181,22 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                     In Wiederholung
                   </span>
                   <span class="text-sm font-medium"> {{ labelForServiceX(row.service) }} {{ opLabel(row.op) }} </span>
-                  <span class="text-xs font-mono text-slate-400">{{ row.entityId.slice(0, 8) }}…</span>
+                  <span class="text-xs font-mono text-ink-faint">{{ row.entityId.slice(0, 8) }}…</span>
                 </div>
-                <span class="text-xs text-slate-400"
+                <span class="text-xs text-ink-faint"
                   >Versuch {{ row.attempts }}/10 · nächster: {{ formatDate(row.nextAttemptAt) }}</span
                 >
               </div>
 
-              <p class="text-sm text-slate-600 dark:text-gray-300">{{ problemDescription(row) }}</p>
+              <p class="text-sm text-ink-muted dark:text-ink">{{ problemDescription(row) }}</p>
 
               @if (row.lastError) {
                 <details class="text-xs">
-                  <summary class="cursor-pointer text-slate-500 hover:text-slate-900">
+                  <summary class="cursor-pointer text-ink-muted hover:text-ink">
                     Technische Details ({{ row.attempts }} Versuche)
                   </summary>
                   <pre
-                    class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all"
+                    class="mt-2 font-mono text-[11px] bg-surface-bg rounded p-2 overflow-auto whitespace-pre-wrap break-all"
                     >{{ row.lastError }}</pre>
                 </details>
               }
@@ -212,7 +206,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                   (click)="forceRetryNow(row)"
                   [disabled]="rowBusy() === row._id"
                   title="Sofort erneut versuchen, ohne auf den Backoff zu warten"
-                  class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-40"
+                  class="bg-ink text-surface-panel text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-40"
                 >
                   Jetzt erneut versuchen
                 </button>
@@ -224,7 +218,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                   Verwerfen
                 </button>
                 @if (rowBusy() === row._id) {
-                  <span class="text-xs text-slate-500">verarbeite …</span>
+                  <span class="text-xs text-ink-muted">verarbeite …</span>
                 }
               </div>
             </article>
@@ -234,9 +228,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
         <!-- Rejected Outbox (Nicht hochgeladen) -->
         @if (showRejected()) {
           @for (row of rejectedRows(); track row._id) {
-            <article
-              class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-2"
-            >
+            <article class="bg-surface-input border border-line-soft rounded-xl p-4 space-y-2">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span
@@ -245,12 +237,12 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                     Nicht hochgeladen
                   </span>
                   <span class="text-sm font-medium"> {{ labelForServiceX(row.service) }} {{ opLabel(row.op) }} </span>
-                  <span class="text-xs font-mono text-slate-400">{{ row.entityId.slice(0, 8) }}…</span>
+                  <span class="text-xs font-mono text-ink-faint">{{ row.entityId.slice(0, 8) }}…</span>
                 </div>
-                <span class="text-xs text-slate-400">{{ formatDate(row.terminalAt ?? row.occurredAt) }}</span>
+                <span class="text-xs text-ink-faint">{{ formatDate(row.terminalAt ?? row.occurredAt) }}</span>
               </div>
 
-              <p class="text-sm text-slate-600 dark:text-gray-300">{{ problemDescription(row) }}</p>
+              <p class="text-sm text-ink-muted dark:text-ink">{{ problemDescription(row) }}</p>
 
               @if (isPolicyBlocked(row)) {
                 <!-- Erklaerender Banner fuer Policy-blockierte Rejects (z.B.
@@ -275,16 +267,16 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
 
               @if (row.lastError) {
                 <details class="text-xs">
-                  <summary class="cursor-pointer text-slate-500 hover:text-slate-900">
+                  <summary class="cursor-pointer text-ink-muted hover:text-ink">
                     Technische Details ({{ row.attempts }} Versuche)
                   </summary>
                   <pre
-                    class="mt-2 font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all"
+                    class="mt-2 font-mono text-[11px] bg-surface-bg rounded p-2 overflow-auto whitespace-pre-wrap break-all"
                     >{{ row.lastError }}</pre>
                   @if (row.payload) {
-                    <p class="text-slate-500 mt-2 mb-1 uppercase tracking-wider">Payload</p>
+                    <p class="text-ink-muted mt-2 mb-1 uppercase tracking-wider">Payload</p>
                     <pre
-                      class="font-mono text-[11px] bg-slate-50 dark:bg-gray-950 rounded p-2 overflow-auto whitespace-pre-wrap break-all max-h-60"
+                      class="font-mono text-[11px] bg-surface-bg rounded p-2 overflow-auto whitespace-pre-wrap break-all max-h-60"
                       >{{ shortJson(row.payload) }}</pre>
                   }
                 </details>
@@ -301,7 +293,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                         ? 'Server lehnt diese Daten wiederholt ab. Warte oder kontaktiere den Support.'
                         : 'Push erneut versuchen mit der urspruenglich gespeicherten Payload'
                   "
-                  class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-40"
+                  class="bg-ink text-surface-panel text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-40"
                 >
                   Erneut versuchen
                 </button>
@@ -326,7 +318,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                   Verwerfen
                 </button>
                 @if (rowBusy() === row._id) {
-                  <span class="text-xs text-slate-500">verarbeite …</span>
+                  <span class="text-xs text-ink-muted">verarbeite …</span>
                 }
               </div>
             </article>
@@ -336,15 +328,15 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
         <!-- Konflikte -->
         @if (showConflicts()) {
           @for (group of conflictsGroupedByService(); track group.service) {
-            <section class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl">
-              <header class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <section class="bg-surface-input border border-line-soft rounded-xl">
+              <header class="px-4 py-3 border-b border-line-soft flex items-center justify-between">
                 <h2 class="text-sm font-semibold">{{ labelForServiceX(group.service) }}</h2>
-                <span class="text-xs text-slate-500">
+                <span class="text-xs text-ink-muted">
                   {{ group.rows.length }} Konflikt{{ group.rows.length === 1 ? '' : 'e' }}
                 </span>
               </header>
               @for (row of group.rows; track row._id) {
-                <article class="border-b border-gray-100 dark:border-gray-800 last:border-b-0 px-4 py-3 space-y-2">
+                <article class="border-b border-line-soft last:border-b-0 px-4 py-3 space-y-2">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <span
@@ -352,34 +344,34 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                       >
                         {{ labelForReason(row.reason) }}
                       </span>
-                      <span class="text-xs font-mono text-slate-400">{{ row.edgeRecordId.slice(0, 8) }}…</span>
+                      <span class="text-xs font-mono text-ink-faint">{{ row.edgeRecordId.slice(0, 8) }}…</span>
                     </div>
-                    <span class="text-xs text-slate-400">{{ formatDate(row.createdAt) }}</span>
+                    <span class="text-xs text-ink-faint">{{ formatDate(row.createdAt) }}</span>
                   </div>
 
                   <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-50 dark:bg-gray-900/40 rounded-lg p-3">
-                      <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Dieser Standort</p>
+                    <div class="bg-surface-elevated dark:bg-surface-bg/40 rounded-lg p-3">
+                      <p class="text-xs uppercase tracking-wider text-ink-muted mb-1">Dieser Standort</p>
                       @if (isRemoveConflict(row)) {
-                        <p class="text-xs text-slate-600 dark:text-gray-300">
+                        <p class="text-xs text-ink-muted dark:text-ink">
                           Löschung des Datensatzes — von der Online-Datenbank abgelehnt.
                         </p>
                       } @else if (row.edgePayload) {
-                        <pre
-                          class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all"
-                          >{{ shortJson(row.edgePayload) }}</pre>
+                        <pre class="text-[11px] font-mono text-ink whitespace-pre-wrap break-all">{{
+                          shortJson(row.edgePayload)
+                        }}</pre>
                       } @else {
-                        <p class="text-xs text-slate-400">—</p>
+                        <p class="text-xs text-ink-faint">—</p>
                       }
                     </div>
                     <div class="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3">
-                      <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Online-Datenbank</p>
+                      <p class="text-xs uppercase tracking-wider text-ink-muted mb-1">Online-Datenbank</p>
                       @if (row.cloudPayload) {
-                        <pre
-                          class="text-[11px] font-mono text-slate-700 dark:text-gray-200 whitespace-pre-wrap break-all"
-                          >{{ shortJson(row.cloudPayload) }}</pre>
+                        <pre class="text-[11px] font-mono text-ink whitespace-pre-wrap break-all">{{
+                          shortJson(row.cloudPayload)
+                        }}</pre>
                       } @else {
-                        <p class="text-xs text-slate-400">— (kein Cloud-Pendant)</p>
+                        <p class="text-xs text-ink-faint">— (kein Cloud-Pendant)</p>
                       }
                     </div>
                   </div>
@@ -397,7 +389,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                     <button
                       (click)="resolveConflict(row, 'use-edge')"
                       [disabled]="rowBusy() === row._id"
-                      class="bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-50"
+                      class="bg-ink text-surface-panel text-xs px-3 py-1.5 rounded-md hover:opacity-90 disabled:opacity-50"
                     >
                       Diesen Standort behalten
                     </button>
@@ -406,7 +398,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                         (click)="resolveConflict(row, 'discard')"
                         [disabled]="rowBusy() === row._id"
                         title="Der Lösch-Auftrag wird verworfen. Der Datensatz bleibt an diesem Standort erhalten und wird nicht gelöscht."
-                        class="text-slate-600 dark:text-gray-300 text-xs px-3 py-1.5 hover:underline disabled:opacity-50"
+                        class="text-ink-muted dark:text-ink text-xs px-3 py-1.5 hover:underline disabled:opacity-50"
                       >
                         Lösch-Auftrag verwerfen
                       </button>
@@ -421,7 +413,7 @@ const isRetryOnCooldown = (row: SyncOutboxRow): boolean => {
                       </button>
                     }
                     @if (rowBusy() === row._id) {
-                      <span class="text-xs text-slate-500">verarbeite …</span>
+                      <span class="text-xs text-ink-muted">verarbeite …</span>
                     }
                   </div>
                 </article>

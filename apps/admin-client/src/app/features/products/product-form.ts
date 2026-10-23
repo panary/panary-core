@@ -54,14 +54,14 @@ interface MinimalProduct {
   categoryIds: string[]
 }
 
-const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-               text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-               focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none`
-const INPUT_SM = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-2.5
-                  text-slate-900 dark:text-white text-sm focus:border-slate-900 dark:focus:border-white
-                  focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none`
-const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider'
-const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider'
+const INPUT = `w-full bg-surface-input border border-line-soft rounded-lg p-3
+               text-ink focus:border-ink
+               focus:ring-1 focus:ring-ink outline-none`
+const INPUT_SM = `w-full bg-surface-input border border-line-soft rounded-lg p-2.5
+                  text-ink text-sm focus:border-ink
+                  focus:ring-1 focus:ring-ink outline-none`
+const LABEL = 'text-xs font-medium text-ink-muted uppercase tracking-wider'
+const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
 
 @Component({
   selector: 'app-product-form',
@@ -84,7 +84,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
           <button
             type="button"
             (click)="showDeleteConfirm.set(true)"
-            class="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition p-2
+            class="text-ink-faint hover:text-red-500 dark:hover:text-red-400 transition p-2
                    rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
           >
             <svg
@@ -125,9 +125,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
       <form #f="ngForm" (ngSubmit)="onSave()" class="space-y-5">
         <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-5" [class.opacity-60]="readOnly()">
           <!-- Status-Pille -->
-          <div
-            class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800"
-          >
+          <div class="relative flex bg-surface-bg rounded-2xl p-1.5 border border-line-soft">
             <div
               class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
               [class]="statusPillBg()"
@@ -140,8 +138,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 (click)="form.status = s.value"
                 [class]="
                   form.status === s.value
-                    ? 'text-slate-900 dark:text-white font-semibold'
-                    : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
+                    ? 'text-ink font-semibold'
+                    : 'text-ink-faint hover:text-ink-muted dark:hover:text-ink'
                 "
                 class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200"
               >
@@ -153,16 +151,16 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
 
           @if (!isNew()) {
             <div
-              class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+              class="bg-surface-elevated dark:bg-surface-bg/50 border border-line-soft rounded-lg p-4
                       grid grid-cols-2 gap-x-6 gap-y-2 text-xs"
             >
               <div>
-                <span class="text-slate-400 dark:text-gray-500">ID</span>
-                <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ entityId() }}</p>
+                <span class="text-ink-faint">ID</span>
+                <p class="text-ink-muted dark:text-ink font-mono mt-0.5 select-all">{{ entityId() }}</p>
               </div>
               <div>
-                <span class="text-slate-400 dark:text-gray-500">External ID</span>
-                <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ externalId() || '—' }}</p>
+                <span class="text-ink-faint">External ID</span>
+                <p class="text-ink-muted dark:text-ink font-mono mt-0.5 select-all">{{ externalId() || '—' }}</p>
               </div>
             </div>
           }
@@ -174,8 +172,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 <!-- Emoji-Hinweis -->
                 <span class="relative inline-block mr-1 group">
                   <svg
-                    class="w-3.5 h-3.5 inline-block text-slate-300 dark:text-gray-600 cursor-help
-                            hover:text-slate-500 dark:hover:text-gray-400 transition -mt-0.5"
+                    class="w-3.5 h-3.5 inline-block text-line-strong cursor-help
+                            hover:text-ink-muted transition -mt-0.5"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -189,7 +187,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                   </svg>
                   <span
                     class="absolute top-1/2 left-full -translate-y-1/2 ml-2 px-3 py-2 rounded-lg
-                             bg-slate-900 dark:bg-white text-white dark:text-black text-[10px] leading-relaxed
+                             bg-ink text-surface-panel text-[10px] leading-relaxed
                              whitespace-nowrap opacity-0 pointer-events-none
                              group-hover:opacity-100 transition-opacity shadow-lg z-30"
                   >
@@ -199,7 +197,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                     Oder: Emoji kopieren &amp; einfügen
                     <span
                       class="absolute top-1/2 right-full -translate-y-1/2 -mr-px
-                               border-4 border-transparent border-r-slate-900 dark:border-r-white"
+                               border-4 border-transparent border-r-ink"
                     ></span>
                   </span>
                 </span>
@@ -214,7 +212,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                   maxlength="4"
                   placeholder="🍽"
                   class="w-11 h-full shrink-0 text-center text-lg bg-transparent outline-none border-r
-                       border-slate-200 dark:border-gray-800 p-3"
+                       border-line-soft p-3"
                 />
                 <input
                   id="productName"
@@ -241,12 +239,10 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
           </div>
 
           <!-- Typ-Pille (gleitend) -->
-          <div
-            class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800"
-          >
+          <div class="relative flex bg-surface-bg rounded-2xl p-1.5 border border-line-soft">
             <!-- Gleitende Pille -->
             <div
-              class="absolute top-1.5 bottom-1.5 rounded-xl bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 ease-out"
+              class="absolute top-1.5 bottom-1.5 rounded-xl bg-surface-elevated shadow-lg transition-all duration-300 ease-out"
               [style.left]="'calc(' + typeIndex * (100 / 3) + '% + 6px)'"
               [style.width]="'calc(' + 100 / 3 + '% - 4px)'"
             ></div>
@@ -256,8 +252,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 (click)="form.productType = t.value"
                 [class]="
                   form.productType === t.value
-                    ? 'text-slate-900 dark:text-white font-semibold'
-                    : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
+                    ? 'text-ink font-semibold'
+                    : 'text-ink-faint hover:text-ink-muted dark:hover:text-ink'
                 "
                 class="relative z-10 flex-1 py-2.5 text-center text-sm rounded-xl transition-colors duration-200"
               >
@@ -326,23 +322,23 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
             <div class="space-y-2">
               <span class="${LABEL}">{{ 'PRODUCT_GROUPS.TITLE' | translate }}</span>
               <div
-                class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+                class="bg-surface-elevated dark:bg-surface-bg/50 border border-line-soft rounded-lg p-4
                         grid grid-cols-2 gap-2"
               >
                 @for (group of productGroups(); track group._id) {
                   <label
-                    class="flex items-center gap-2 cursor-pointer hover:text-slate-900 dark:hover:text-white
-                              transition text-slate-600 dark:text-gray-300 text-sm"
+                    class="flex items-center gap-2 cursor-pointer hover:text-ink
+                              transition text-ink-muted dark:text-ink text-sm"
                   >
                     <input
                       type="checkbox"
                       [value]="group.externalId ?? group._id"
                       [checked]="isGroupSelected(group)"
                       (change)="toggleCategory(group, $event)"
-                      class="w-4 h-4 accent-slate-900 dark:accent-white"
+                      class="w-4 h-4 accent-ink"
                     />
                     <span
-                      class="inline-block w-3 h-3 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
+                      class="inline-block w-3 h-3 rounded-full shrink-0 border border-line-strong"
                       [style.background-color]="group.color"
                     ></span>
                     {{ group.name }}
@@ -360,8 +356,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 <button
                   type="button"
                   (click)="showCopyFromPicker.set(true)"
-                  class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                       border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
+                  class="text-xs text-ink-muted hover:text-ink
+                       border border-line-soft hover:border-line-strong
                        px-3 py-1.5 rounded-lg transition"
                 >
                   Von Produkt übernehmen
@@ -369,8 +365,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                 <button
                   type="button"
                   (click)="addGroup()"
-                  class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                       border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
+                  class="text-xs text-ink-muted hover:text-ink
+                       border border-line-soft hover:border-line-strong
                        px-3 py-1.5 rounded-lg transition"
                 >
                   + {{ 'PRODUCTS.GROUP' | translate }}
@@ -379,33 +375,31 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
             </div>
 
             @for (group of optionGroups(); track group.id; let gi = $index) {
-              <div class="border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
+              <div class="border border-line-soft rounded-xl overflow-hidden">
                 <!-- Group Header -->
                 <div
-                  class="flex items-center gap-3 px-4 py-3 bg-slate-200/70 dark:bg-gray-800/80 cursor-pointer"
+                  class="flex items-center gap-3 px-4 py-3 bg-line/70 dark:bg-surface-elevated/80 cursor-pointer"
                   role="button"
                   tabindex="0"
                   (click)="toggleCollapse(group.id)"
                   (keydown.enter)="toggleCollapse(group.id)"
                 >
-                  <span class="text-slate-400 dark:text-gray-500 text-xs w-4">{{
-                    isCollapsed(group.id) ? '▶' : '▼'
-                  }}</span>
-                  <span class="flex-1 text-sm font-medium text-slate-900 dark:text-white truncate">
+                  <span class="text-ink-faint text-xs w-4">{{ isCollapsed(group.id) ? '▶' : '▼' }}</span>
+                  <span class="flex-1 text-sm font-medium text-ink truncate">
                     {{ group.name || ('PRODUCTS.UNNAMED_GROUP' | translate) }}
                   </span>
-                  <span class="text-xs text-slate-400 dark:text-gray-600">{{ group.options.length }} Option(en)</span>
+                  <span class="text-xs text-ink-faint">{{ group.options.length }} Option(en)</span>
                   <button
                     type="button"
                     (click)="removeGroup(group.id); $event.stopPropagation()"
-                    class="text-slate-400 dark:text-gray-600 hover:text-red-400 text-xs px-2 transition"
+                    class="text-ink-faint hover:text-red-400 text-xs px-2 transition"
                   >
                     &#x2715;
                   </button>
                 </div>
 
                 @if (!isCollapsed(group.id)) {
-                  <div class="p-4 space-y-4 bg-slate-50 dark:bg-gray-900/20">
+                  <div class="p-4 space-y-4 bg-surface-elevated dark:bg-surface-bg/20">
                     <!-- Gruppenname -->
                     <div class="space-y-1">
                       <label [attr.for]="'optGroupName-' + gi" class="${LABEL_SM}"
@@ -474,9 +468,9 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                           <button
                             type="button"
                             (click)="openCategoryPicker($event, group.id)"
-                            class="text-xs text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
-                                 transition px-2 py-1 border border-slate-200 dark:border-gray-800
-                                 hover:border-slate-400 dark:hover:border-gray-600 rounded-lg"
+                            class="text-xs text-ink-faint hover:text-ink
+                                 transition px-2 py-1 border border-line-soft
+                                 hover:border-line-strong rounded-lg"
                           >
                             + Gruppe
                           </button>
@@ -486,7 +480,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                               type="button"
                               (click)="clearOptions(group)"
                               class="text-xs text-red-400/70 hover:text-red-500
-                                   transition px-2 py-1 border border-slate-200 dark:border-gray-800
+                                   transition px-2 py-1 border border-line-soft
                                    hover:border-red-300 dark:hover:border-red-800 rounded-lg"
                             >
                               Alle löschen
@@ -496,9 +490,9 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                           <button
                             type="button"
                             (click)="addOption(group)"
-                            class="text-xs text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
-                                 transition px-2 py-1 border border-slate-200 dark:border-gray-800
-                                 hover:border-slate-400 dark:hover:border-gray-600 rounded-lg"
+                            class="text-xs text-ink-faint hover:text-ink
+                                 transition px-2 py-1 border border-line-soft
+                                 hover:border-line-strong rounded-lg"
                           >
                             + Option
                           </button>
@@ -506,15 +500,15 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                       </div>
 
                       @if (group.options.length === 0) {
-                        <p class="text-slate-300 dark:text-gray-700 text-xs text-center py-3">
+                        <p class="text-line-strong text-xs text-center py-3">
                           {{ 'PRODUCTS.NO_OPTIONS' | translate }}
                         </p>
                       }
 
                       @for (opt of group.options; track $index; let oi = $index) {
                         <div
-                          class="flex items-center gap-2 bg-white dark:bg-gray-900/50 border border-slate-200
-                                  dark:border-gray-800 rounded-lg p-2"
+                          class="flex items-center gap-2 bg-surface-panel dark:bg-surface-bg/50 border border-line-soft
+                                  rounded-lg p-2"
                         >
                           <!-- Produkt auswählen -->
                           <app-searchable-select
@@ -525,26 +519,24 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                           />
                           <!-- Preisaufschlag -->
                           <div class="flex items-center gap-1 shrink-0">
-                            <span class="text-slate-400 dark:text-gray-600 text-xs">+&euro;</span>
+                            <span class="text-ink-faint text-xs">+&euro;</span>
                             <input
                               [(ngModel)]="opt.priceAdjustment"
                               [name]="'og_' + gi + '_opt_' + oi + '_adj'"
                               type="number"
                               step="0.01"
                               placeholder="0.00"
-                              class="w-20 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                                   rounded-lg px-2 py-1.5 text-slate-900 dark:text-white text-sm outline-none font-mono"
+                              class="w-20 bg-surface-input border border-line-soft
+                                   rounded-lg px-2 py-1.5 text-ink text-sm outline-none font-mono"
                             />
                           </div>
                           <!-- Standard -->
-                          <label
-                            class="flex items-center gap-1 text-xs text-slate-400 dark:text-gray-500 shrink-0 cursor-pointer"
-                          >
+                          <label class="flex items-center gap-1 text-xs text-ink-faint shrink-0 cursor-pointer">
                             <input
                               [(ngModel)]="opt.isDefault"
                               [name]="'og_' + gi + '_opt_' + oi + '_def'"
                               type="checkbox"
-                              class="w-3 h-3 accent-slate-900 dark:accent-white"
+                              class="w-3 h-3 accent-ink"
                             />
                             Std.
                           </label>
@@ -552,7 +544,7 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
                           <button
                             type="button"
                             (click)="removeOption(group, oi)"
-                            class="text-slate-400 dark:text-gray-600 hover:text-red-400 text-xs shrink-0 transition px-1"
+                            class="text-ink-faint hover:text-red-400 text-xs shrink-0 transition px-1"
                           >
                             &#x2715;
                           </button>
@@ -564,8 +556,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
               </div>
             } @empty {
               <p
-                class="text-slate-300 dark:text-gray-600 text-xs text-center py-6 border border-dashed
-                      border-slate-200 dark:border-gray-800 rounded-xl"
+                class="text-line-strong text-xs text-center py-6 border border-dashed
+                      border-line-soft rounded-xl"
               >
                 {{ 'PRODUCTS.NO_OPTION_GROUPS' | translate }}
               </p>
@@ -605,8 +597,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
           <button
             type="button"
             (click)="panelMode() ? closed.emit() : router.navigate(['/products'])"
-            class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
-                   dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition"
+            class="bg-surface-bg border border-line-soft text-ink-muted dark:text-ink
+                   px-6 py-3 rounded-xl text-sm hover:bg-line-soft transition"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>
@@ -620,8 +612,8 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
       <div class="fixed inset-0 z-50" (click)="activeCategoryPicker.set(null)">
         <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <div
-          class="fixed min-w-48 max-h-64 overflow-y-auto bg-white dark:bg-gray-950
-                    border border-slate-200 dark:border-gray-800 rounded-lg shadow-2xl py-1"
+          class="fixed min-w-48 max-h-64 overflow-y-auto bg-surface-input
+                    border border-line-soft rounded-lg shadow-2xl py-1"
           [style.top.px]="pickerPos().top"
           [style.left.px]="pickerPos().left"
           (click)="$event.stopPropagation()"
@@ -630,14 +622,14 @@ const LABEL_SM = 'text-xs text-slate-400 dark:text-gray-500 uppercase tracking-w
             <button
               type="button"
               (click)="addProductsByCategory(pickerGroup()!, pg)"
-              class="w-full text-left px-3 py-1.5 text-sm text-slate-700 dark:text-gray-300
-                     hover:bg-slate-50 dark:hover:bg-gray-800 transition flex items-center gap-2"
+              class="w-full text-left px-3 py-1.5 text-sm text-ink
+                     hover:bg-surface-elevated transition flex items-center gap-2"
             >
               <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0" [style.background-color]="pg.color"></span>
               {{ pg.name }}
             </button>
           } @empty {
-            <p class="px-3 py-2 text-xs text-slate-300 dark:text-gray-600">Keine Gruppen</p>
+            <p class="px-3 py-2 text-xs text-line-strong">Keine Gruppen</p>
           }
         </div>
       </div>
@@ -717,9 +709,9 @@ export class ProductFormComponent implements OnInit {
       case 'DRAFT':
         return 'bg-yellow-500/40 dark:bg-yellow-800/40'
       case 'ARCHIVED':
-        return 'bg-slate-300 dark:bg-gray-800'
+        return 'bg-line'
       default:
-        return 'bg-slate-300 dark:bg-gray-800'
+        return 'bg-line'
     }
   }
   private formRef = viewChild<NgForm>('f')

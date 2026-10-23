@@ -31,10 +31,10 @@ import { formatApiError } from '../../core/error-helper'
       </div>
 
       @if (loading()) {
-        <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
+        <p class="text-ink-faint">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (!locationId()) {
         <div class="text-center py-16">
-          <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
+          <p class="text-ink-faint text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
         </div>
       } @else {
         <!--
@@ -112,8 +112,8 @@ import { formatApiError } from '../../core/error-helper'
           <button
             (click)="onSave()"
             [disabled]="saving() || locked()"
-            class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-8 py-3 rounded-xl text-sm
-                   hover:bg-slate-800 dark:hover:bg-gray-200 transition disabled:opacity-50"
+            class="bg-ink text-surface-panel font-bold px-8 py-3 rounded-xl text-sm
+                   hover:bg-ink/90 transition disabled:opacity-50"
           >
             {{ saving() ? ('COMMON.SAVING' | translate) : ('PRINTERS.SAVE_SETTINGS' | translate) }}
           </button>

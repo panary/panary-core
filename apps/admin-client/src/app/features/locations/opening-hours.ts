@@ -6,7 +6,7 @@ import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
 import { CloudManagedService } from '../../core/cloud-managed.service'
 import { formatApiError, getApiErrorCode } from '../../core/error-helper'
 
-const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider'
+const LABEL = 'text-xs font-medium text-ink-muted uppercase tracking-wider'
 const DAY_NAMES = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 
 interface RegularHour {
@@ -34,11 +34,11 @@ interface HourException {
     <div class="p-6 max-w-2xl space-y-6 h-full overflow-y-auto">
       <div>
         <h1 class="text-xl font-bold tracking-tight">{{ 'OPENING_HOURS.TITLE' | translate }}</h1>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1">{{ 'OPENING_HOURS.DESCRIPTION' | translate }}</p>
+        <p class="text-ink-muted text-sm mt-1">{{ 'OPENING_HOURS.DESCRIPTION' | translate }}</p>
       </div>
 
       @if (loading()) {
-        <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
+        <p class="text-ink-faint">{{ 'COMMON.LOADING' | translate }}</p>
       } @else {
         @if (readOnly()) {
           <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_OPENING_HOURS" />
@@ -54,12 +54,12 @@ interface HourException {
         -->
         <fieldset
           [disabled]="readOnly()"
-          class="min-w-0 m-0 flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4"
+          class="min-w-0 m-0 flex items-center justify-between border border-line-soft rounded-xl p-4"
           [class.opacity-60]="readOnly()"
         >
           <div>
-            <p class="text-sm font-medium text-slate-900 dark:text-white">{{ 'OPENING_HOURS.ENABLED' | translate }}</p>
-            <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
+            <p class="text-sm font-medium text-ink">{{ 'OPENING_HOURS.ENABLED' | translate }}</p>
+            <p class="text-xs text-ink-faint mt-0.5">
               {{ 'OPENING_HOURS.ENABLED_HINT' | translate }}
             </p>
           </div>
@@ -68,15 +68,15 @@ interface HourException {
             (click)="toggleEnabled()"
             [class]="
               enabled
-                ? 'relative w-9 h-5 bg-slate-900 dark:bg-white rounded-full transition'
-                : 'relative w-9 h-5 bg-slate-300 dark:bg-gray-700 rounded-full transition'
+                ? 'relative w-9 h-5 bg-ink rounded-full transition'
+                : 'relative w-9 h-5 bg-line-strong rounded-full transition'
             "
           >
             <span
               [class]="
                 enabled
-                  ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
-                  : 'absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
+                  ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-surface-input rounded-full transition-all'
+                  : 'absolute top-0.5 left-0.5 w-4 h-4 bg-surface-input rounded-full transition-all'
               "
             ></span>
           </button>
@@ -85,7 +85,7 @@ interface HourException {
         <!-- Reguläre Öffnungszeiten -->
         <fieldset
           [disabled]="readOnly()"
-          class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+          class="min-w-0 m-0 border border-line-soft rounded-xl p-4 space-y-3"
           [class.opacity-60]="readOnly()"
         >
           <span class="${LABEL}">{{ 'OPENING_HOURS.REGULAR' | translate }}</span>
@@ -93,9 +93,7 @@ interface HourException {
           @for (hour of regular; track hour.day) {
             <div class="flex items-center gap-3 py-1.5">
               <!-- Tag -->
-              <span class="w-28 text-sm font-medium text-slate-700 dark:text-gray-300 shrink-0">{{
-                dayName(hour.day)
-              }}</span>
+              <span class="w-28 text-sm font-medium text-ink shrink-0">{{ dayName(hour.day) }}</span>
 
               <!-- Geöffnet/Geschlossen Toggle -->
               <label class="flex items-center gap-2 cursor-pointer shrink-0">
@@ -103,9 +101,9 @@ interface HourException {
                   type="checkbox"
                   [checked]="!hour.closed"
                   (change)="hour.closed = !hour.closed; saveRegular()"
-                  class="w-4 h-4 accent-slate-900 dark:accent-white"
+                  class="w-4 h-4 accent-ink"
                 />
-                <span class="text-xs text-slate-500 dark:text-gray-400 w-16">
+                <span class="text-xs text-ink-muted w-16">
                   {{ hour.closed ? ('OPENING_HOURS.CLOSED' | translate) : ('OPENING_HOURS.OPEN' | translate) }}
                 </span>
               </label>
@@ -117,17 +115,17 @@ interface HourException {
                   [(ngModel)]="hour.open"
                   [name]="'open-' + hour.day"
                   (change)="saveRegular()"
-                  class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white"
+                  class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
+                         text-ink outline-none focus:border-ink"
                 />
-                <span class="text-slate-400 text-xs">—</span>
+                <span class="text-ink-faint text-xs">—</span>
                 <input
                   type="time"
                   [(ngModel)]="hour.close"
                   [name]="'close-' + hour.day"
                   (change)="saveRegular()"
-                  class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white"
+                  class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
+                         text-ink outline-none focus:border-ink"
                 />
               }
             </div>
@@ -137,7 +135,7 @@ interface HourException {
         <!-- Ausnahmen -->
         <fieldset
           [disabled]="readOnly()"
-          class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
+          class="min-w-0 m-0 border border-line-soft rounded-xl p-4 space-y-3"
           [class.opacity-60]="readOnly()"
         >
           <div class="flex items-center justify-between">
@@ -145,8 +143,8 @@ interface HourException {
             <button
               type="button"
               (click)="addException()"
-              class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                     border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
+              class="text-xs text-ink-muted hover:text-ink
+                     border border-line-soft hover:border-line-strong
                      px-3 py-1.5 rounded-lg transition"
             >
               + {{ 'OPENING_HOURS.ADD_EXCEPTION' | translate }}
@@ -154,19 +152,19 @@ interface HourException {
           </div>
 
           @if (exceptions().length === 0) {
-            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-4">
+            <p class="text-line-strong text-xs text-center py-4">
               {{ 'OPENING_HOURS.NO_EXCEPTIONS' | translate }}
             </p>
           } @else {
             @for (exc of exceptions(); track exc._id || $index) {
-              <div class="flex items-center gap-3 py-1.5 border-t border-slate-100 dark:border-gray-800 first:border-0">
+              <div class="flex items-center gap-3 py-1.5 border-t border-line-soft first:border-0">
                 <input
                   type="date"
                   [(ngModel)]="exc.date"
                   [name]="'exc-date-' + $index"
                   (change)="saveException(exc)"
-                  class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                         text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white"
+                  class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
+                         text-ink outline-none focus:border-ink"
                 />
                 <input
                   type="text"
@@ -174,20 +172,18 @@ interface HourException {
                   [name]="'exc-label-' + $index"
                   (change)="saveException(exc)"
                   placeholder="Bezeichnung"
-                  class="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                         rounded-lg px-2 py-1.5 text-sm text-slate-900 dark:text-white outline-none
-                         focus:border-slate-900 dark:focus:border-white"
+                  class="flex-1 bg-surface-input border border-line-soft
+                         rounded-lg px-2 py-1.5 text-sm text-ink outline-none
+                         focus:border-ink"
                 />
                 <label class="flex items-center gap-1.5 cursor-pointer shrink-0">
                   <input
                     type="checkbox"
                     [checked]="exc.closed"
                     (change)="exc.closed = !exc.closed; saveException(exc)"
-                    class="w-4 h-4 accent-slate-900 dark:accent-white"
+                    class="w-4 h-4 accent-ink"
                   />
-                  <span class="text-xs text-slate-500 dark:text-gray-400">{{
-                    'OPENING_HOURS.CLOSED' | translate
-                  }}</span>
+                  <span class="text-xs text-ink-muted">{{ 'OPENING_HOURS.CLOSED' | translate }}</span>
                 </label>
                 @if (!exc.closed) {
                   <input
@@ -195,23 +191,23 @@ interface HourException {
                     [(ngModel)]="exc.open"
                     [name]="'exc-open-' + $index"
                     (change)="saveException(exc)"
-                    class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                           text-slate-900 dark:text-white outline-none"
+                    class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
+                           text-ink outline-none"
                   />
-                  <span class="text-slate-400 text-xs">—</span>
+                  <span class="text-ink-faint text-xs">—</span>
                   <input
                     type="time"
                     [(ngModel)]="exc.close"
                     [name]="'exc-close-' + $index"
                     (change)="saveException(exc)"
-                    class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5 text-sm
-                           text-slate-900 dark:text-white outline-none"
+                    class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
+                           text-ink outline-none"
                   />
                 }
                 <button
                   type="button"
                   (click)="removeException(exc)"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-gray-500
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-ink-faint
                          hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs shrink-0"
                 >
                   ✕

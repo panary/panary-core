@@ -23,26 +23,23 @@ interface User {
   template: `
     <div class="flex h-full overflow-hidden">
       <!-- Linke Seite: Tabelle -->
-      <div
-        [class]="selectedId() ? 'w-72 shrink-0 border-r border-slate-200 dark:border-gray-800' : 'flex-1'"
-        class="overflow-y-auto"
-      >
+      <div [class]="selectedId() ? 'w-72 shrink-0 border-r border-line-soft' : 'flex-1'" class="overflow-y-auto">
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
             <h1 class="text-xl font-bold tracking-tight">{{ 'USERS.TITLE' | translate }}</h1>
             <button
               (click)="selectItem('new')"
-              class="bg-slate-900 dark:bg-white text-white dark:text-black font-bold px-4 py-2 rounded-xl text-xs
-                     hover:bg-slate-800 dark:hover:bg-gray-200 transition"
+              class="bg-ink text-surface-panel font-bold px-4 py-2 rounded-xl text-xs
+                     hover:bg-ink/90 transition"
             >
               + {{ 'COMMON.NEW' | translate }}
             </button>
           </div>
 
           @if (loading()) {
-            <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
+            <p class="text-ink-faint text-sm">{{ 'COMMON.LOADING' | translate }}</p>
           } @else if (users().length === 0) {
-            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
+            <p class="text-ink-faint text-center py-12 text-sm">
               {{ 'USERS.NO_USERS' | translate }}
             </p>
           } @else {
@@ -65,18 +62,18 @@ interface User {
                       (click)="selectItem(user._id)"
                       [class]="
                         user._id === selectedId()
-                          ? 'bg-slate-100 dark:bg-white/5 border-l-2 border-l-slate-900 dark:border-l-white'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/30 border-l-2 border-l-transparent'
+                          ? 'bg-surface-bg dark:bg-white/5 border-l-2 border-l-ink'
+                          : 'hover:bg-surface-elevated dark:hover:bg-surface-elevated/30 border-l-2 border-l-transparent'
                       "
                       class="cursor-pointer transition"
                     >
                       <td class="font-medium truncate max-w-40">{{ user.firstName }} {{ user.lastName }}</td>
                       @if (!selectedId()) {
-                        <td class="text-slate-500 dark:text-gray-400 text-xs">{{ user.loginname }}</td>
+                        <td class="text-ink-muted text-xs">{{ user.loginname }}</td>
                         <td>
                           <span
-                            class="text-xs px-2 py-0.5 rounded-full border border-slate-300 dark:border-gray-700
-                                       text-slate-600 dark:text-gray-300"
+                            class="text-xs px-2 py-0.5 rounded-full border border-line-strong
+                                       text-ink-muted dark:text-ink"
                           >
                             {{ formatRole(user.role) }}
                           </span>
@@ -85,16 +82,12 @@ interface User {
                           @if (user.isPosUser) {
                             <span class="text-green-400 text-xs">{{ 'COMMON.YES' | translate }}</span>
                           } @else {
-                            <span class="text-slate-400 dark:text-gray-600 text-xs">—</span>
+                            <span class="text-ink-faint text-xs">—</span>
                           }
                         </td>
                         <td>
                           <span
-                            [class]="
-                              user.status === 'ACTIVE'
-                                ? 'text-green-400 text-xs'
-                                : 'text-slate-400 dark:text-gray-500 text-xs'
-                            "
+                            [class]="user.status === 'ACTIVE' ? 'text-green-400 text-xs' : 'text-ink-faint text-xs'"
                           >
                             {{ user.status }}
                           </span>
@@ -113,20 +106,20 @@ interface User {
       @if (selectedId()) {
         <div class="flex-1 flex flex-col overflow-hidden">
           <div
-            class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
+            class="shrink-0 bg-surface-bg border-b border-line-soft
                       px-4 py-2.5 flex items-center gap-2"
           >
             <button
               (click)="prevItem()"
               [disabled]="currentIndex() <= 0"
-              class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                     disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
+              class="text-ink-muted hover:text-ink
+                     disabled:text-line-strong disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+                     hover:bg-line-soft transition text-sm"
             >
               ◀
             </button>
-            <span class="text-xs text-slate-400 dark:text-gray-500 min-w-12 text-center">
+            <span class="text-xs text-ink-faint min-w-12 text-center">
               @if (selectedId() !== 'new') {
                 {{ currentIndex() + 1 }} / {{ users().length }}
               } @else {
@@ -136,19 +129,19 @@ interface User {
             <button
               (click)="nextItem()"
               [disabled]="currentIndex() >= users().length - 1"
-              class="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                     disabled:text-slate-300 dark:disabled:text-gray-700 disabled:cursor-not-allowed
+              class="text-ink-muted hover:text-ink
+                     disabled:text-line-strong disabled:cursor-not-allowed
                      w-8 h-8 flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+                     hover:bg-line-soft transition text-sm"
             >
               ▶
             </button>
             <div class="flex-1"></div>
             <button
               (click)="selectedId.set(null)"
-              class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white w-8 h-8
+              class="text-ink-faint hover:text-ink w-8 h-8
                      flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+                     hover:bg-line-soft transition text-sm"
             >
               ✕
             </button>

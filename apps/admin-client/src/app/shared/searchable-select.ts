@@ -29,29 +29,29 @@ export interface SelectItem {
     <button
       type="button"
       (click)="open()"
-      class="w-full flex items-center justify-between gap-1 bg-white dark:bg-gray-900
-             border border-slate-200 dark:border-gray-800 rounded-lg px-2 py-1.5
-             text-sm outline-none hover:border-slate-400 dark:hover:border-gray-600
-             focus:border-slate-900 dark:focus:border-white transition min-w-0"
+      class="w-full flex items-center justify-between gap-1 bg-surface-input
+             border border-line-soft rounded-lg px-2 py-1.5
+             text-sm outline-none hover:border-line-strong
+             focus:border-ink transition min-w-0"
     >
       @if (selectedItem(); as item) {
-        <span class="truncate text-slate-900 dark:text-white">
+        <span class="truncate text-ink">
           {{ item.label }}
           @if (item.sublabel) {
-            <span class="text-slate-400 dark:text-gray-500">({{ item.sublabel }})</span>
+            <span class="text-ink-faint">({{ item.sublabel }})</span>
           }
         </span>
         <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <span
           (click)="clear($event)"
-          class="text-slate-300 dark:text-gray-600 hover:text-red-400 shrink-0 text-xs cursor-pointer px-0.5"
+          class="text-line-strong hover:text-red-400 shrink-0 text-xs cursor-pointer px-0.5"
         >
           &#x2715;
         </span>
       } @else {
-        <span class="truncate text-slate-300 dark:text-gray-600">{{ placeholder() }}</span>
+        <span class="truncate text-line-strong">{{ placeholder() }}</span>
         <svg
-          class="w-3 h-3 shrink-0 text-slate-300 dark:text-gray-600"
+          class="w-3 h-3 shrink-0 text-line-strong"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -74,24 +74,20 @@ export interface SelectItem {
         <!-- Panel -->
         <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <div
-          class="relative w-full max-w-sm my-4 mr-4 flex flex-col bg-white dark:bg-gray-950
-                    border border-slate-200 dark:border-gray-800 rounded-xl shadow-2xl overflow-hidden"
+          class="relative w-full max-w-sm my-4 mr-4 flex flex-col bg-surface-input
+                    border border-line-soft rounded-xl shadow-2xl overflow-hidden"
           (click)="$event.stopPropagation()"
         >
           <!-- Header -->
-          <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-gray-800">
-            <span class="text-sm font-medium text-slate-900 dark:text-white">Produkt auswählen</span>
-            <button
-              type="button"
-              (click)="close()"
-              class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white transition text-sm"
-            >
+          <div class="flex items-center justify-between px-4 py-3 border-b border-line-soft">
+            <span class="text-sm font-medium text-ink">Produkt auswählen</span>
+            <button type="button" (click)="close()" class="text-ink-faint hover:text-ink transition text-sm">
               &#x2715;
             </button>
           </div>
 
           <!-- Suchfeld -->
-          <div class="px-4 py-2 border-b border-slate-100 dark:border-gray-800/50">
+          <div class="px-4 py-2 border-b border-line-soft">
             <input
               #searchInput
               [value]="searchText()"
@@ -101,9 +97,9 @@ export interface SelectItem {
               (keydown.enter)="selectHighlighted()"
               type="text"
               [placeholder]="placeholder()"
-              class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800
-                     rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none
-                     focus:border-slate-900 dark:focus:border-white transition"
+              class="w-full bg-surface-bg border border-line-soft
+                     rounded-lg px-3 py-2 text-sm text-ink outline-none
+                     focus:border-ink transition"
             />
           </div>
 
@@ -115,34 +111,32 @@ export interface SelectItem {
                 (click)="select(item)"
                 (mouseenter)="highlightedIndex.set(i)"
                 [class]="
-                  'w-full text-left px-4 py-2.5 text-sm border-b border-slate-50 dark:border-gray-900 transition-colors ' +
+                  'w-full text-left px-4 py-2.5 text-sm border-b border-line-soft transition-colors ' +
                   (item.id === value()
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-black font-medium'
+                    ? 'bg-ink text-surface-panel font-medium'
                     : i === highlightedIndex()
-                      ? 'bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white'
-                      : 'text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800/50')
+                      ? 'bg-line-soft text-ink'
+                      : 'text-ink hover:bg-surface-elevated dark:hover:bg-surface-elevated/50')
                 "
               >
                 {{ item.label }}
                 @if (item.sublabel) {
                   <span
                     class="text-xs ml-1.5"
-                    [class]="
-                      item.id === value() ? 'text-white/60 dark:text-black/50' : 'text-slate-400 dark:text-gray-500'
-                    "
+                    [class]="item.id === value() ? 'text-white/60 dark:text-black/50' : 'text-ink-faint'"
                     >({{ item.sublabel }})</span
                   >
                 }
               </button>
             } @empty {
-              <p class="px-4 py-8 text-sm text-slate-300 dark:text-gray-600 text-center">Keine Treffer</p>
+              <p class="px-4 py-8 text-sm text-line-strong text-center">Keine Treffer</p>
             }
           </div>
 
           <!-- Footer mit Anzahl -->
           <div
-            class="px-4 py-2 border-t border-slate-200 dark:border-gray-800
-                      text-xs text-slate-400 dark:text-gray-500 text-center"
+            class="px-4 py-2 border-t border-line-soft
+                      text-xs text-ink-faint text-center"
           >
             {{ filteredItems().length }} von {{ items().length }} Produkten
           </div>

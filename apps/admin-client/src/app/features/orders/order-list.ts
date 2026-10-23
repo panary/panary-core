@@ -56,7 +56,7 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between min-h-9">
             <h1 class="text-xl font-bold tracking-tight">{{ 'ORDERS.TITLE' | translate }}</h1>
-            <span class="text-xs text-slate-400 dark:text-gray-500 tabular-nums">{{ totalOrders() }}</span>
+            <span class="text-xs text-ink-faint tabular-nums">{{ totalOrders() }}</span>
           </div>
 
           <!-- Zeitfilter -->
@@ -67,8 +67,8 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                 class="px-3 py-1.5 rounded-lg text-xs font-medium transition"
                 [class]="
                   timeRange() === range.key
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-black'
-                    : 'text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800'
+                    ? 'bg-ink text-surface-panel'
+                    : 'text-ink-muted border border-line-soft hover:bg-surface-elevated'
                 "
               >
                 {{ range.labelKey | translate }}
@@ -80,12 +80,12 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
           @if (loading()) {
             <div class="flex items-center justify-center py-16">
               <span
-                class="w-5 h-5 border-2 border-slate-300 dark:border-gray-600
-                           border-t-slate-900 dark:border-t-white rounded-full animate-spin"
+                class="w-5 h-5 border-2 border-line-strong
+                           border-t-ink rounded-full animate-spin"
               ></span>
             </div>
           } @else if (orders().length === 0) {
-            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
+            <p class="text-ink-faint text-center py-12 text-sm">
               {{ 'ORDERS.NO_ORDERS' | translate }}
             </p>
           } @else {
@@ -124,11 +124,11 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                       class="cursor-pointer transition"
                       [class]="
                         selectedId() === order._id
-                          ? 'bg-slate-100 dark:bg-gray-800'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
+                          ? 'bg-line-soft'
+                          : 'hover:bg-surface-elevated dark:hover:bg-surface-bg/50'
                       "
                     >
-                      <td class="text-sm font-bold text-slate-900 dark:text-white tabular-nums">
+                      <td class="text-sm font-bold text-ink tabular-nums">
                         {{ order.dailySequenceNumber }}
                       </td>
                       <td>
@@ -139,13 +139,13 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                           {{ statusLabel(order.status) }}
                         </span>
                       </td>
-                      <td class="text-sm text-slate-600 dark:text-gray-400">
+                      <td class="text-sm text-ink-muted">
                         {{ channelLabel(order.orderChannel) }}
                       </td>
-                      <td class="text-sm text-slate-600 dark:text-gray-400">
+                      <td class="text-sm text-ink-muted">
                         {{ order.dineLocation === 'dine-in' ? 'Vor Ort' : 'Mitnehmen' }}
                       </td>
-                      <td class="text-sm text-slate-600 dark:text-gray-400">
+                      <td class="text-sm text-ink-muted">
                         @if (order.staffPaymentInfo?.userName) {
                           <span class="inline-flex items-center gap-1">
                             <app-icon name="fork-knife" class="text-[14px] text-amber-500" />
@@ -159,13 +159,13 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                           –
                         }
                       </td>
-                      <td class="text-sm text-slate-500 dark:text-gray-400 tabular-nums">
+                      <td class="text-sm text-ink-muted tabular-nums">
                         {{ businessDayLabel(order) }}
                       </td>
-                      <td class="text-sm text-slate-900 dark:text-white text-right tabular-nums font-medium">
+                      <td class="text-sm text-ink text-right tabular-nums font-medium">
                         {{ formatAmount(order) }}
                       </td>
-                      <td class="text-sm text-slate-500 dark:text-gray-400 text-right tabular-nums">
+                      <td class="text-sm text-ink-muted text-right tabular-nums">
                         {{ formatTime(order.createdAt) }}
                       </td>
                     </tr>
@@ -180,17 +180,15 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
                 <button
                   (click)="prevPage()"
                   [disabled]="currentPage() === 0"
-                  class="text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition"
+                  class="text-ink-faint hover:text-ink disabled:opacity-30 transition"
                 >
                   <app-icon name="caret-left" class="text-[18px]" />
                 </button>
-                <span class="text-xs text-slate-400 dark:text-gray-500 tabular-nums">
-                  {{ currentPage() + 1 }} / {{ totalPages() }}
-                </span>
+                <span class="text-xs text-ink-faint tabular-nums"> {{ currentPage() + 1 }} / {{ totalPages() }} </span>
                 <button
                   (click)="nextPage()"
                   [disabled]="currentPage() >= totalPages() - 1"
-                  class="text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition"
+                  class="text-ink-faint hover:text-ink disabled:opacity-30 transition"
                 >
                   <app-icon name="caret-right" class="text-[18px]" />
                 </button>
@@ -202,21 +200,21 @@ function getTimeRangeFilter(range: Exclude<TimeRange, 'businessDay'>): Record<st
 
       <!-- Rechte Seite: Detail-Panel -->
       @if (selectedId(); as id) {
-        <div class="w-80 shrink-0 border-l border-slate-200 dark:border-gray-800 flex flex-col overflow-hidden">
+        <div class="w-80 shrink-0 border-l border-line-soft flex flex-col overflow-hidden">
           <!-- Panel Header -->
           <div
-            class="shrink-0 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800
+            class="shrink-0 bg-surface-bg border-b border-line-soft
                       px-4 py-2.5 flex items-center gap-2"
           >
-            <span class="text-xs text-slate-400 dark:text-gray-500">
+            <span class="text-xs text-ink-faint">
               {{ 'ORDERS.DETAIL_TITLE' | translate }}
             </span>
             <div class="flex-1"></div>
             <button
               (click)="selectedId.set(null)"
-              class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white w-8 h-8
+              class="text-ink-faint hover:text-ink w-8 h-8
                      flex items-center justify-center rounded-lg
-                     hover:bg-slate-100 dark:hover:bg-gray-800 transition text-sm"
+                     hover:bg-line-soft transition text-sm"
             >
               ✕
             </button>
@@ -393,7 +391,7 @@ export class OrderListComponent implements OnInit {
       case 'aborted':
         return 'bg-red-500/10 text-red-400 border-red-500/20'
       default:
-        return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+        return 'bg-ink-muted/10 text-ink-faint border-ink-muted/20'
     }
   }
 

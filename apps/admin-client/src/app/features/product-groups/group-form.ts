@@ -36,7 +36,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <button
             type="button"
             (click)="showDeleteConfirm.set(true)"
-            class="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition p-2
+            class="text-ink-faint hover:text-red-500 dark:hover:text-red-400 transition p-2
                    rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
           >
             <svg
@@ -77,9 +77,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
       <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
         <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-5" [class.opacity-60]="readOnly()">
           <!-- Status-Pille -->
-          <div
-            class="relative flex bg-slate-100 dark:bg-gray-950 rounded-2xl p-1.5 border border-slate-200 dark:border-gray-800"
-          >
+          <div class="relative flex bg-surface-bg rounded-2xl p-1.5 border border-line-soft">
             <div
               class="absolute top-1.5 bottom-1.5 rounded-xl shadow-lg transition-all duration-300 ease-out"
               [class]="statusPillBg()"
@@ -92,8 +90,8 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 (click)="form.status = s.value"
                 [class]="
                   form.status === s.value
-                    ? 'text-slate-900 dark:text-white font-semibold'
-                    : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
+                    ? 'text-ink font-semibold'
+                    : 'text-ink-faint hover:text-ink-muted dark:hover:text-ink'
                 "
                 class="relative z-10 flex-1 py-2 text-center text-sm rounded-xl transition-colors duration-200"
               >
@@ -105,16 +103,16 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 
           @if (!isNew()) {
             <div
-              class="bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-4
+              class="bg-surface-elevated dark:bg-surface-bg/50 border border-line-soft rounded-lg p-4
                       grid grid-cols-2 gap-x-6 gap-y-2 text-xs"
             >
               <div>
-                <span class="text-slate-400 dark:text-gray-500">ID</span>
-                <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ entityId() }}</p>
+                <span class="text-ink-faint">ID</span>
+                <p class="text-ink-muted dark:text-ink font-mono mt-0.5 select-all">{{ entityId() }}</p>
               </div>
               <div>
-                <span class="text-slate-400 dark:text-gray-500">External ID</span>
-                <p class="text-slate-600 dark:text-gray-300 font-mono mt-0.5 select-all">{{ externalId() || '—' }}</p>
+                <span class="text-ink-faint">External ID</span>
+                <p class="text-ink-muted dark:text-ink font-mono mt-0.5 select-all">{{ externalId() || '—' }}</p>
               </div>
             </div>
           }
@@ -122,9 +120,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <div class="grid grid-cols-3 gap-4">
             <!-- Name -->
             <div class="col-span-2 space-y-1">
-              <label
-                for="groupName"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              <label for="groupName" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
                 >{{ 'COMMON.NAME' | translate }} *</label
               >
               <input
@@ -147,20 +143,18 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
             </div>
             <!-- Kürzel -->
             <div class="space-y-1">
-              <label
-                for="groupAcronym"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >{{ 'PRODUCTS.ACRONYM' | translate }}</label
-              >
+              <label for="groupAcronym" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+                'PRODUCTS.ACRONYM' | translate
+              }}</label>
               <input
                 id="groupAcronym"
                 [(ngModel)]="form.acronym"
                 name="acronym"
                 type="text"
                 maxlength="10"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
+                class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none font-mono"
               />
             </div>
           </div>
@@ -168,25 +162,23 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <div class="grid grid-cols-2 gap-4">
             <!-- Farbe -->
             <div class="space-y-1">
-              <label
-                for="groupColor"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >{{ 'PRODUCT_GROUPS.COLOR' | translate }}</label
-              >
+              <label for="groupColor" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+                'PRODUCT_GROUPS.COLOR' | translate
+              }}</label>
               <div class="relative">
                 <div
-                  class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-slate-200
-                          dark:border-gray-800 rounded-lg"
+                  class="flex items-center gap-3 p-3 bg-surface-input border border-line-soft
+                          rounded-lg"
                 >
                   <span
-                    class="w-8 h-8 rounded-full shrink-0 border border-slate-300 dark:border-gray-700"
+                    class="w-8 h-8 rounded-full shrink-0 border border-line-strong"
                     [style.background-color]="form.color"
                   ></span>
-                  <span class="text-sm text-slate-600 dark:text-gray-300 font-mono">{{ form.color }}</span>
+                  <span class="text-sm text-ink-muted dark:text-ink font-mono">{{ form.color }}</span>
                   <button
                     type="button"
                     (click)="showColorPicker = !showColorPicker"
-                    class="ml-auto text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white
+                    class="ml-auto text-ink-faint hover:text-ink
                          transition text-xs"
                   >
                     {{ showColorPicker ? '▲' : '▼' }}
@@ -194,8 +186,8 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 </div>
                 @if (showColorPicker) {
                   <div
-                    class="absolute z-10 mt-1 p-3 bg-white dark:bg-gray-900 border border-slate-300
-                            dark:border-gray-700 rounded-lg shadow-xl flex flex-wrap gap-2 w-full"
+                    class="absolute z-10 mt-1 p-3 bg-surface-input border border-line-strong
+                            rounded-lg shadow-xl flex flex-wrap gap-2 w-full"
                   >
                     @for (c of colorPalette; track c) {
                       <button
@@ -203,8 +195,8 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                         (click)="form.color = c; showColorPicker = false"
                         [class]="
                           form.color === c
-                            ? 'w-7 h-7 rounded-full ring-2 ring-slate-900 dark:ring-white ring-offset-1 ring-offset-white dark:ring-offset-gray-900 scale-110'
-                            : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-slate-400 dark:hover:ring-gray-500'
+                            ? 'w-7 h-7 rounded-full ring-2 ring-ink ring-offset-1 ring-offset-surface-input scale-110'
+                            : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-line-strong'
                         "
                         [style.background-color]="c"
                         [attr.aria-label]="'Farbe ' + c"
@@ -218,9 +210,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
             </div>
             <!-- Reihenfolge -->
             <div class="space-y-1">
-              <label
-                for="groupSortOrder"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+              <label for="groupSortOrder" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
                 >{{ 'PRODUCT_GROUPS.SORT_ORDER' | translate }} *</label
               >
               <input
@@ -245,11 +235,9 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <!-- MwSt. -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label
-                for="groupVatIn"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label
-              >
+              <label for="groupVatIn" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+                'PRODUCTS.TAX_INSIDE' | translate
+              }}</label>
               <input
                 id="groupVatIn"
                 [(ngModel)]="form.taxInside"
@@ -258,17 +246,15 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 step="0.1"
                 min="0"
                 max="100"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
+                class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none font-mono"
               />
             </div>
             <div class="space-y-1">
-              <label
-                for="groupVatOut"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-                >{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label
-              >
+              <label for="groupVatOut" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+                'PRODUCTS.TAX_OUTSIDE' | translate
+              }}</label>
               <input
                 id="groupVatOut"
                 [(ngModel)]="form.taxOutside"
@@ -277,9 +263,9 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 step="0.1"
                 min="0"
                 max="100"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
+                class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none font-mono"
               />
             </div>
           </div>
@@ -287,15 +273,8 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <!-- Sichtbarkeit -->
           <div class="flex items-center gap-6 pt-2">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                [(ngModel)]="form.excluded"
-                name="excluded"
-                type="checkbox"
-                class="w-4 h-4 accent-slate-900 dark:accent-white"
-              />
-              <span class="text-sm text-slate-600 dark:text-gray-300">{{
-                'PRODUCT_GROUPS.HIDE_IN_ORDER' | translate
-              }}</span>
+              <input [(ngModel)]="form.excluded" name="excluded" type="checkbox" class="w-4 h-4 accent-ink" />
+              <span class="text-sm text-ink-muted dark:text-ink">{{ 'PRODUCT_GROUPS.HIDE_IN_ORDER' | translate }}</span>
             </label>
           </div>
         </fieldset>
@@ -340,8 +319,8 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <button
             type="button"
             (click)="onCancel()"
-            class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
-                   dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition"
+            class="bg-surface-bg border border-line-soft text-ink-muted dark:text-ink
+                   px-6 py-3 rounded-xl text-sm hover:bg-line-soft transition"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>
@@ -418,9 +397,9 @@ export class GroupFormComponent implements OnInit {
       case 'DRAFT':
         return 'bg-yellow-500/40 dark:bg-yellow-800/40'
       case 'ARCHIVED':
-        return 'bg-slate-300 dark:bg-gray-800'
+        return 'bg-line'
       default:
-        return 'bg-slate-300 dark:bg-gray-800'
+        return 'bg-line'
     }
   }
   errors = signal<string[]>([])
@@ -457,12 +436,10 @@ export class GroupFormComponent implements OnInit {
     status: 'ACTIVE',
   }
 
-  private readonly baseInputClass =
-    'w-full bg-white dark:bg-gray-900 border rounded-lg p-3 text-slate-900 dark:text-white focus:ring-1 outline-none'
+  private readonly baseInputClass = 'w-full bg-surface-input border rounded-lg p-3 text-ink focus:ring-1 outline-none'
 
   inputClass(ctrl: any): string {
-    if (!ctrl || ctrl.pristine)
-      return `${this.baseInputClass} border-slate-200 dark:border-gray-800 focus:border-slate-900 dark:focus:border-white focus:ring-slate-900 dark:focus:ring-white`
+    if (!ctrl || ctrl.pristine) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
     if (ctrl.invalid) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
     return `${this.baseInputClass} border-green-500/30 focus:border-green-400 focus:ring-green-400`
   }

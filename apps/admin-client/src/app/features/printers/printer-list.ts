@@ -9,19 +9,19 @@ import { PrinterService } from './printer.service'
   imports: [MatDialogModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-xl">
+    <div class="bg-surface-input border border-line-soft rounded-xl">
       <!-- Header -->
-      <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-gray-800">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Drucker</h2>
+      <div class="flex items-center justify-between p-6 border-b border-line-soft">
+        <h2 class="text-lg font-semibold text-ink">Drucker</h2>
         <div class="flex items-center gap-3">
           @if (saving()) {
-            <span class="text-xs text-slate-400 dark:text-gray-500">Speichern...</span>
+            <span class="text-xs text-ink-faint">Speichern...</span>
           }
           <button
             (click)="onAddPrinter()"
             [disabled]="saving() || readOnly()"
-            class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 dark:bg-white
-                   text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200
+            class="px-4 py-2 rounded-lg text-sm font-medium bg-ink
+                   text-surface-panel hover:bg-ink/90
                    transition disabled:opacity-50"
           >
             + Drucker hinzufügen
@@ -32,8 +32,8 @@ import { PrinterService } from './printer.service'
       <!-- Tabelle -->
       @if (printers().length === 0) {
         <div class="p-12 text-center">
-          <p class="text-slate-400 dark:text-gray-500">Keine Drucker konfiguriert</p>
-          <p class="text-slate-400 dark:text-gray-600 text-sm mt-1">Füge einen Drucker hinzu, um loszulegen.</p>
+          <p class="text-ink-faint">Keine Drucker konfiguriert</p>
+          <p class="text-ink-faint text-sm mt-1">Füge einen Drucker hinzu, um loszulegen.</p>
         </div>
       } @else {
         <div class="overflow-x-auto">
@@ -51,8 +51,8 @@ import { PrinterService } from './printer.service'
             </thead>
             <tbody>
               @for (printer of printers(); track printer.pid) {
-                <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/50 transition">
-                  <td class="text-sm text-slate-900 dark:text-white font-medium">{{ printer.name }}</td>
+                <tr class="hover:bg-surface-elevated dark:hover:bg-surface-bg/50 transition">
+                  <td class="text-sm text-ink font-medium">{{ printer.name }}</td>
                   <td>
                     @if (printer.type === 'ip') {
                       <span
@@ -70,14 +70,14 @@ import { PrinterService } from './printer.service'
                       </span>
                     }
                   </td>
-                  <td class="text-sm text-slate-600 dark:text-gray-400">
+                  <td class="text-sm text-ink-muted">
                     @if (printer.type === 'ip') {
                       {{ printer.ip }}:{{ printer.port ?? 9100 }}
                     } @else {
                       {{ printer.mqttTopic }}
                     }
                   </td>
-                  <td class="text-sm text-slate-600 dark:text-gray-400">{{ printer.paperWidth ?? '80mm' }}</td>
+                  <td class="text-sm text-ink-muted">{{ printer.paperWidth ?? '80mm' }}</td>
                   <td>
                     <!--
                       Ein Bestandsdrucker traegt kein Rollenfeld und druckt den
@@ -105,7 +105,7 @@ import { PrinterService } from './printer.service'
                       @default {
                         <span
                           class="inline-flex px-2 py-0.5 rounded text-xs font-medium
-                                 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400"
+                                 bg-line-soft text-ink-muted"
                         >
                           Küche &amp; Quittung
                         </span>
@@ -116,7 +116,7 @@ import { PrinterService } from './printer.service'
                     @if (printer.active) {
                       <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                     } @else {
-                      <span class="w-2 h-2 rounded-full bg-slate-300 dark:bg-gray-600 inline-block"></span>
+                      <span class="w-2 h-2 rounded-full bg-line-strong inline-block"></span>
                     }
                   </td>
                   <td class="text-right">
@@ -125,8 +125,8 @@ import { PrinterService } from './printer.service'
                         <button
                           (click)="onTestPrint(printer.pid)"
                           [disabled]="testingPrinter() === printer.pid"
-                          class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-gray-400
-                                 hover:bg-slate-100 dark:hover:bg-gray-800 transition disabled:opacity-50"
+                          class="px-3 py-1.5 rounded-lg text-xs font-medium text-ink-muted
+                                 hover:bg-line-soft transition disabled:opacity-50"
                           title="Testdruck"
                         >
                           {{ testingPrinter() === printer.pid ? '...' : 'Test' }}
@@ -135,8 +135,8 @@ import { PrinterService } from './printer.service'
                       <button
                         (click)="onEditPrinter(printer)"
                         [disabled]="readOnly()"
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-gray-400
-                               hover:bg-slate-100 dark:hover:bg-gray-800 transition disabled:opacity-50"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium text-ink-muted
+                               hover:bg-line-soft transition disabled:opacity-50"
                       >
                         Bearbeiten
                       </button>
@@ -158,7 +158,7 @@ import { PrinterService } from './printer.service'
       }
 
       @if (testResult()) {
-        <div class="p-4 border-t border-slate-200 dark:border-gray-800">
+        <div class="p-4 border-t border-line-soft">
           <p
             class="text-sm"
             [class]="

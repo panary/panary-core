@@ -42,9 +42,9 @@ interface LocationPointer {
             <!-- Dreistufig: solange /health nicht geantwortet hat, ein Platzhalter
                  statt „Standalone", das gleich darauf auf „Cloud" umspringt. -->
             @if (!cloudManaged.stateKnown()) {
-              <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">&nbsp;</p>
+              <p class="text-xs text-ink-faint mt-1">&nbsp;</p>
             } @else {
-              <p class="text-xs text-slate-400 dark:text-gray-500 mt-1">
+              <p class="text-xs text-ink-faint mt-1">
                 {{ (readOnly() ? 'BUSINESS_DAYS.SUBTITLE_CLOUD' : 'BUSINESS_DAYS.SUBTITLE_STANDALONE') | translate }}
               </p>
             }
@@ -78,9 +78,9 @@ interface LocationPointer {
           }
 
           @if (loading()) {
-            <p class="text-slate-400 dark:text-gray-500 text-sm">{{ 'COMMON.LOADING' | translate }}</p>
+            <p class="text-ink-faint text-sm">{{ 'COMMON.LOADING' | translate }}</p>
           } @else if (businessDays().length === 0) {
-            <p class="text-slate-400 dark:text-gray-500 text-center py-12 text-sm">
+            <p class="text-ink-faint text-center py-12 text-sm">
               {{ 'BUSINESS_DAYS.NONE' | translate }}
             </p>
           } @else {
@@ -122,13 +122,13 @@ interface LocationPointer {
                           </span>
                         }
                       </td>
-                      <td class="text-slate-500 dark:text-gray-400 text-xs">
+                      <td class="text-ink-muted text-xs">
                         {{ modeLabelKey(bd.operationMode) | translate }}
                       </td>
-                      <td class="text-slate-500 dark:text-gray-400 text-xs tabular-nums">
+                      <td class="text-ink-muted text-xs tabular-nums">
                         {{ bd.openedAt ? (bd.openedAt | date: 'dd.MM.yyyy HH:mm') : '—' }}
                       </td>
-                      <td class="text-slate-500 dark:text-gray-400 text-xs tabular-nums">
+                      <td class="text-ink-muted text-xs tabular-nums">
                         {{ bd.closedAt ? (bd.closedAt | date: 'dd.MM.yyyy HH:mm') : '—' }}
                       </td>
                       <td class="text-xs max-w-60">
@@ -139,7 +139,7 @@ interface LocationPointer {
                             >⚠ {{ bd.reportErrorMessage }}</span
                           >
                         } @else {
-                          <span class="text-slate-400 dark:text-gray-600">—</span>
+                          <span class="text-ink-faint">—</span>
                         }
                       </td>
                       <td class="text-right whitespace-nowrap">
@@ -300,13 +300,13 @@ export class BusinessDaysListComponent implements OnInit {
       case 'closing-aggregating':
         return 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-300'
       case 'closed':
-        return 'bg-gray-100 text-gray-700 ring-gray-500/20 dark:bg-gray-800 dark:text-gray-300'
+        return 'bg-line-soft text-ink ring-ink-muted/20'
       case 'failed':
         return 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/30 dark:text-red-300'
       case 'audited':
         return 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-900/30 dark:text-blue-300'
       default:
-        return 'bg-gray-100 text-gray-700 ring-gray-500/20'
+        return 'bg-line-soft text-ink ring-ink-muted/20'
     }
   }
 

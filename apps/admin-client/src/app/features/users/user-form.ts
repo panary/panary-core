@@ -33,43 +33,37 @@ import { objectHash } from '../../core/dirty-check'
       <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label
-              for="userFirstName"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'USERS.FIRST_NAME' | translate }}</label
-            >
+            <label for="userFirstName" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+              'USERS.FIRST_NAME' | translate
+            }}</label>
             <input
               id="userFirstName"
               [(ngModel)]="form.firstName"
               name="firstName"
               type="text"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none"
             />
           </div>
           <div class="space-y-1">
-            <label
-              for="userLastName"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'USERS.LAST_NAME' | translate }}</label
-            >
+            <label for="userLastName" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+              'USERS.LAST_NAME' | translate
+            }}</label>
             <input
               id="userLastName"
               [(ngModel)]="form.lastName"
               name="lastName"
               type="text"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none"
             />
           </div>
         </div>
 
         <div class="space-y-1">
-          <label
-            for="userLoginname"
-            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+          <label for="userLoginname" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
             >{{ 'USERS.LOGIN_NAME' | translate }} *</label
           >
           <input
@@ -95,11 +89,9 @@ import { objectHash } from '../../core/dirty-check'
         </div>
 
         <div class="space-y-1">
-          <label
-            for="userEmail"
-            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-            >{{ 'USERS.EMAIL' | translate }}</label
-          >
+          <label for="userEmail" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+            'USERS.EMAIL' | translate
+          }}</label>
           <input
             id="userEmail"
             [(ngModel)]="form.email"
@@ -115,10 +107,7 @@ import { objectHash } from '../../core/dirty-check'
         </div>
 
         <div class="space-y-1">
-          <label
-            for="userPassword"
-            class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-          >
+          <label for="userPassword" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
             {{ 'USERS.PASSWORD' | translate }} {{ isNew() ? '*' : ('USERS.PASSWORD_UNCHANGED' | translate) }}
           </label>
           <input
@@ -144,15 +133,15 @@ import { objectHash } from '../../core/dirty-check'
 
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="userRole" class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
+            <label for="userRole" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
               >{{ 'USERS.ROLE' | translate }} *</label
             >
             <select
               id="userRole"
               [(ngModel)]="form.role"
               name="role"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink outline-none"
             >
               <option value="tenant:staff">{{ 'ROLES.TENANT_STAFF' | translate }}</option>
               <option value="tenant:manager">{{ 'ROLES.TENANT_MANAGER' | translate }}</option>
@@ -161,21 +150,19 @@ import { objectHash } from '../../core/dirty-check'
             </select>
           </div>
           <div class="space-y-1">
-            <label
-              for="userFunction"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'USERS.FUNCTION' | translate }}</label
-            >
+            <label for="userFunction" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+              'USERS.FUNCTION' | translate
+            }}</label>
             <input
               id="userFunction"
               [(ngModel)]="form.staffRole"
               name="staffRole"
               type="text"
               placeholder="z.B. Kellner, Koch"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                     focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none
-                     placeholder-slate-400 dark:placeholder-gray-600"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink focus:border-ink
+                     focus:ring-1 focus:ring-ink outline-none
+                     placeholder-ink-faint"
             />
           </div>
         </div>
@@ -183,17 +170,15 @@ import { objectHash } from '../../core/dirty-check'
         <!-- Kontostatus (#275): nur an fremden Konten, siehe canEditStatus() -->
         @if (canEditStatus()) {
           <div class="space-y-1">
-            <label
-              for="userStatus"
-              class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >{{ 'USERS.STATUS' | translate }}</label
-            >
+            <label for="userStatus" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
+              'USERS.STATUS' | translate
+            }}</label>
             <select
               id="userStatus"
               [(ngModel)]="form.status"
               name="status"
-              class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                     text-slate-900 dark:text-white outline-none"
+              class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                     text-ink outline-none"
             >
               <option value="ACTIVE">{{ 'USERS.STATUS_ACTIVE' | translate }}</option>
               <option value="ARCHIVED">{{ 'USERS.STATUS_ARCHIVED' | translate }}</option>
@@ -204,7 +189,7 @@ import { objectHash } from '../../core/dirty-check'
                 <option value="REJECTED">{{ 'USERS.STATUS_REJECTED' | translate }}</option>
               }
             </select>
-            <p class="text-xs text-slate-500 dark:text-gray-500">
+            <p class="text-xs text-ink-muted dark:text-ink-faint">
               {{ (form.status === 'ACTIVE' ? 'USERS.STATUS_HINT_ACTIVE' : 'USERS.STATUS_HINT_BLOCKED') | translate }}
             </p>
           </div>
@@ -213,23 +198,15 @@ import { objectHash } from '../../core/dirty-check'
         <!-- POS-Benutzer -->
         <div class="flex items-center gap-6 pt-2">
           <label class="flex items-center gap-2 cursor-pointer">
-            <input
-              [(ngModel)]="form.isPosUser"
-              name="isPosUser"
-              type="checkbox"
-              class="w-4 h-4 accent-slate-900 dark:accent-white"
-            />
-            <span class="text-sm text-slate-600 dark:text-gray-300">{{ 'USERS.POS_USER' | translate }}</span>
+            <input [(ngModel)]="form.isPosUser" name="isPosUser" type="checkbox" class="w-4 h-4 accent-ink" />
+            <span class="text-sm text-ink-muted dark:text-ink">{{ 'USERS.POS_USER' | translate }}</span>
           </label>
         </div>
 
         @if (form.isPosUser) {
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label
-                for="employeeNumber"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >
+              <label for="employeeNumber" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
                 {{ 'USERS.EMPLOYEE_NUMBER' | translate }}
               </label>
               <input
@@ -252,23 +229,18 @@ import { objectHash } from '../../core/dirty-check'
               }
             </div>
             <div class="space-y-1">
-              <label
-                for="posPin"
-                class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider"
-              >
+              <label for="posPin" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
                 {{ 'USERS.POS_PIN' | translate }}
                 @if (!isNew() && hasPosPin() && !editingPin()) {
-                  <span class="text-slate-400 dark:text-gray-500 normal-case tracking-normal"
-                    >({{ 'USERS.PIN_SET' | translate }})</span
-                  >
+                  <span class="text-ink-faint normal-case tracking-normal">({{ 'USERS.PIN_SET' | translate }})</span>
                 }
               </label>
               @if (!isNew() && hasPosPin() && !editingPin()) {
                 <button
                   type="button"
                   (click)="editingPin.set(true); form.posPin = ''"
-                  class="w-full text-left bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                         text-slate-400 dark:text-gray-500 hover:border-slate-400 dark:hover:border-gray-600 transition cursor-pointer"
+                  class="w-full text-left bg-surface-input border border-line-soft rounded-lg p-3
+                         text-ink-faint hover:border-line-strong transition cursor-pointer"
                 >
                   &#x2022;&#x2022;&#x2022;&#x2022; &mdash; {{ 'USERS.PIN_CLICK_TO_CHANGE' | translate }}
                 </button>
@@ -295,8 +267,8 @@ import { objectHash } from '../../core/dirty-check'
         }
 
         <!-- Personalessen & Rabatt -->
-        <div class="border-t border-slate-200 dark:border-gray-800 pt-4 space-y-4">
-          <p class="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+        <div class="border-t border-line-soft pt-4 space-y-4">
+          <p class="text-xs font-medium text-ink-muted uppercase tracking-wider">
             {{ 'USERS.STAFF_MEAL_DISCOUNT' | translate }}
           </p>
 
@@ -305,30 +277,30 @@ import { objectHash } from '../../core/dirty-check'
               [(ngModel)]="form.allowStaffMealOrders"
               name="allowStaffMealOrders"
               type="checkbox"
-              class="w-4 h-4 accent-slate-900 dark:accent-white"
+              class="w-4 h-4 accent-ink"
             />
-            <span class="text-sm text-slate-600 dark:text-gray-300">{{ 'USERS.STAFF_MEAL_ELIGIBLE' | translate }}</span>
+            <span class="text-sm text-ink-muted dark:text-ink">{{ 'USERS.STAFF_MEAL_ELIGIBLE' | translate }}</span>
           </label>
 
           @if (form.allowStaffMealOrders) {
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1">
-                <label for="discountType" class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">{{
+                <label for="discountType" class="text-xs text-ink-faint uppercase tracking-wider">{{
                   'USERS.DISCOUNT_TYPE' | translate
                 }}</label>
                 <select
                   id="discountType"
                   [(ngModel)]="form.discountType"
                   name="discountType"
-                  class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                         text-slate-900 dark:text-white outline-none"
+                  class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                         text-ink outline-none"
                 >
                   <option value="percent">{{ 'USERS.DISCOUNT_PERCENT' | translate }}</option>
                   <option value="amount">{{ 'USERS.DISCOUNT_AMOUNT' | translate }}</option>
                 </select>
               </div>
               <div class="space-y-1">
-                <label for="discountValue" class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider">
+                <label for="discountValue" class="text-xs text-ink-faint uppercase tracking-wider">
                   {{
                     (form.discountType === 'percent' ? 'USERS.DISCOUNT_LABEL_PERCENT' : 'USERS.DISCOUNT_LABEL_AMOUNT')
                       | translate
@@ -343,9 +315,9 @@ import { objectHash } from '../../core/dirty-check'
                   min="0"
                   [max]="form.discountType === 'percent' ? 100 : 9999"
                   placeholder="z.B. 50"
-                  class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg p-3
-                         text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-white
-                         focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none font-mono"
+                  class="w-full bg-surface-input border border-line-soft rounded-lg p-3
+                         text-ink focus:border-ink
+                         focus:ring-1 focus:ring-ink outline-none font-mono"
                 />
               </div>
             </div>
@@ -392,8 +364,8 @@ import { objectHash } from '../../core/dirty-check'
           <button
             type="button"
             (click)="onCancel()"
-            class="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600
-                   dark:text-gray-300 px-6 py-3 rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-gray-800 transition"
+            class="bg-surface-bg border border-line-soft text-ink-muted dark:text-ink
+                   px-6 py-3 rounded-xl text-sm hover:bg-line-soft transition"
           >
             {{ 'COMMON.CANCEL' | translate }}
           </button>
@@ -471,12 +443,10 @@ export class UserFormComponent {
     discount: 0,
   }
 
-  private readonly baseInputClass =
-    'w-full bg-white dark:bg-gray-900 border rounded-lg p-3 text-slate-900 dark:text-white focus:ring-1 outline-none'
+  private readonly baseInputClass = 'w-full bg-surface-input border rounded-lg p-3 text-ink focus:ring-1 outline-none'
 
   inputClass(ctrl: any): string {
-    if (!ctrl || ctrl.pristine)
-      return `${this.baseInputClass} border-slate-200 dark:border-gray-800 focus:border-slate-900 dark:focus:border-white focus:ring-slate-900 dark:focus:ring-white`
+    if (!ctrl || ctrl.pristine) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
     if (ctrl.invalid) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
     return `${this.baseInputClass} border-green-500/30 focus:border-green-400 focus:ring-green-400`
   }

@@ -10,9 +10,9 @@ import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
 import { CloudManagedService } from '../../core/cloud-managed.service'
 import { formatApiError, getApiErrorCode } from '../../core/error-helper'
 
-const LABEL = 'text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider'
-const INPUT = `w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-2.5
-               text-sm text-slate-900 dark:text-white outline-none focus:border-slate-900 dark:focus:border-white`
+const LABEL = 'text-xs font-medium text-ink-muted uppercase tracking-wider'
+const INPUT = `w-full bg-surface-input border border-line-soft rounded-lg px-3 py-2.5
+               text-sm text-ink outline-none focus:border-ink`
 
 interface RoomVm {
   /**
@@ -54,16 +54,16 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
         <div class="flex items-center justify-between min-h-9">
           <h1 class="text-xl font-bold tracking-tight">{{ 'LOCATION.TABLES_SETTINGS' | translate }}</h1>
         </div>
-        <p class="text-slate-500 dark:text-gray-400 text-sm mt-1 leading-relaxed">
+        <p class="text-ink-muted text-sm mt-1 leading-relaxed">
           {{ 'LOCATION.TABLES_DESCRIPTION' | translate }}
         </p>
       </div>
 
       @if (loading()) {
-        <p class="text-slate-400 dark:text-gray-500">{{ 'COMMON.LOADING' | translate }}</p>
+        <p class="text-ink-faint">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (!locationId()) {
         <div class="text-center py-16">
-          <p class="text-slate-400 dark:text-gray-500 text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
+          <p class="text-ink-faint text-lg">{{ 'LOCATION.NO_LOCATION' | translate }}</p>
         </div>
       } @else {
         @if (readOnly()) {
@@ -74,22 +74,22 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
             stiller PATCH ohne Nutzeraktion waere ueberraschend — und bei
             Cloud-Verwaltung ohnehin verboten.
           -->
-          <div class="border border-slate-200 dark:border-gray-800 rounded-xl p-3">
-            <p class="text-xs text-slate-500 dark:text-gray-400">{{ 'LOCATION.TABLES_MIGRATION_HINT' | translate }}</p>
+          <div class="border border-line-soft rounded-xl p-3">
+            <p class="text-xs text-ink-muted">{{ 'LOCATION.TABLES_MIGRATION_HINT' | translate }}</p>
           </div>
         }
 
         <!-- Toggle -->
         <fieldset
           [disabled]="readOnly()"
-          class="min-w-0 m-0 flex items-center justify-between border border-slate-200 dark:border-gray-800 rounded-xl p-4"
+          class="min-w-0 m-0 flex items-center justify-between border border-line-soft rounded-xl p-4"
           [class.opacity-60]="readOnly()"
         >
           <div>
-            <p class="text-sm font-medium text-slate-900 dark:text-white">
+            <p class="text-sm font-medium text-ink">
               {{ 'LOCATION.TABLES_ENABLED' | translate }}
             </p>
-            <p class="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
+            <p class="text-xs text-ink-faint mt-0.5">
               {{ 'LOCATION.TABLES_ENABLED_HINT' | translate }}
             </p>
           </div>
@@ -98,15 +98,15 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
             (click)="toggleEnabled()"
             [class]="
               enabled()
-                ? 'relative w-9 h-5 bg-slate-900 dark:bg-white rounded-full transition'
-                : 'relative w-9 h-5 bg-slate-300 dark:bg-gray-700 rounded-full transition'
+                ? 'relative w-9 h-5 bg-ink rounded-full transition'
+                : 'relative w-9 h-5 bg-line-strong rounded-full transition'
             "
           >
             <span
               [class]="
                 enabled()
-                  ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
-                  : 'absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-black rounded-full transition-all'
+                  ? 'absolute top-0.5 left-[18px] w-4 h-4 bg-surface-input rounded-full transition-all'
+                  : 'absolute top-0.5 left-0.5 w-4 h-4 bg-surface-input rounded-full transition-all'
               "
             ></span>
           </button>
@@ -115,7 +115,7 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
         <!-- Bereiche -->
         <fieldset
           [disabled]="readOnly()"
-          class="min-w-0 m-0 border border-slate-200 dark:border-gray-800 rounded-xl p-4 space-y-4"
+          class="min-w-0 m-0 border border-line-soft rounded-xl p-4 space-y-4"
           [class.opacity-60]="readOnly()"
         >
           <div class="flex items-center justify-between">
@@ -124,8 +124,8 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
               type="button"
               (click)="addRoom()"
               [disabled]="saving()"
-              class="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white
-                     border border-slate-200 dark:border-gray-800 hover:border-slate-400 dark:hover:border-gray-600
+              class="text-xs text-ink-muted hover:text-ink
+                     border border-line-soft hover:border-line-strong
                      px-3 py-1.5 rounded-lg transition disabled:opacity-50"
             >
               + {{ 'LOCATION.TABLES_ROOM_ADD' | translate }}
@@ -133,13 +133,13 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
           </div>
 
           @if (rooms().length === 0) {
-            <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-6">
+            <p class="text-line-strong text-xs text-center py-6">
               {{ 'LOCATION.TABLES_NO_ROOMS' | translate }}
             </p>
           }
 
           @for (room of rooms(); track room.id) {
-            <div class="border border-slate-100 dark:border-gray-800/60 rounded-lg p-3 space-y-3">
+            <div class="border border-line-soft rounded-lg p-3 space-y-3">
               <div class="flex items-center gap-2">
                 <input
                   [ngModel]="room.name"
@@ -156,7 +156,7 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
                   [disabled]="saving()"
                   [title]="'LOCATION.TABLES_REMOVE_ROOM' | translate"
                   class="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg
-                         text-slate-400 dark:text-gray-500 hover:text-red-400
+                         text-ink-faint hover:text-red-400
                          hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50"
                 >
                   ✕
@@ -183,16 +183,16 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
                   type="button"
                   (click)="addTables(room.id)"
                   [disabled]="saving()"
-                  class="px-4 py-2.5 text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-black
-                         rounded-lg hover:bg-slate-800 dark:hover:bg-gray-200 transition whitespace-nowrap disabled:opacity-50"
+                  class="px-4 py-2.5 text-sm font-medium bg-ink text-surface-panel
+                         rounded-lg hover:bg-ink/90 transition whitespace-nowrap disabled:opacity-50"
                 >
                   + {{ 'LOCATION.TABLES_ADD' | translate }}
                 </button>
               </div>
-              <p class="text-[11px] text-slate-400 dark:text-gray-500">{{ 'LOCATION.TABLES_ADD_HINT' | translate }}</p>
+              <p class="text-[11px] text-ink-faint">{{ 'LOCATION.TABLES_ADD_HINT' | translate }}</p>
 
               @if (room.tables.length === 0) {
-                <p class="text-slate-300 dark:text-gray-600 text-xs text-center py-3">
+                <p class="text-line-strong text-xs text-center py-3">
                   {{ 'LOCATION.TABLES_NONE' | translate }}
                 </p>
               } @else {
@@ -203,7 +203,7 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
                       [class]="
                         isDuplicate(table.label)
                           ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 ring-1 ring-inset ring-amber-300 dark:ring-amber-700'
-                          : 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300'
+                          : 'bg-line-soft text-ink'
                       "
                     >
                       {{ table.label }}
@@ -212,7 +212,7 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
                         (click)="removeTable(room.id, table.id)"
                         [disabled]="saving()"
                         class="w-7 h-7 flex items-center justify-center rounded-md
-                               text-slate-400 dark:text-gray-500 hover:text-red-400
+                               text-ink-faint hover:text-red-400
                                hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs disabled:opacity-50"
                       >
                         ✕
@@ -220,7 +220,7 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
                     </span>
                   }
                 </div>
-                <p class="text-xs text-slate-400 dark:text-gray-500">
+                <p class="text-xs text-ink-faint">
                   {{ 'LOCATION.TABLES_COUNT' | translate: { count: room.tables.length } }}
                 </p>
               }
@@ -229,7 +229,7 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
         </fieldset>
 
         @if (info()) {
-          <p class="text-slate-500 dark:text-gray-400 text-sm">{{ info() }}</p>
+          <p class="text-ink-muted text-sm">{{ info() }}</p>
         }
 
         @if (error()) {

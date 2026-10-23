@@ -75,7 +75,7 @@ import { AdminIconComponent } from './icon/icon'
           role="listbox"
           [attr.aria-label]="'COMMON.LANGUAGE' | translate"
           class="absolute bottom-full left-0 mb-2 z-50 w-48 max-h-72 overflow-y-auto
-                 bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800
+                 bg-surface-input border border-line-soft
                  rounded-xl shadow-2xl py-1"
         >
           @for (l of lang.languages; track l.code) {
@@ -85,13 +85,13 @@ import { AdminIconComponent } from './icon/icon'
               [attr.aria-selected]="l.code === lang.currentLanguage()"
               (click)="select(l.code)"
               class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left
-                     text-slate-700 dark:text-gray-300
-                     hover:bg-slate-50 dark:hover:bg-gray-900 transition"
+                     text-ink
+                     hover:bg-surface-bg transition"
             >
               <span class="flex-1 truncate">{{ l.label }}</span>
-              <span class="text-[10px] uppercase tracking-wider text-slate-400 dark:text-gray-500">{{ l.code }}</span>
+              <span class="text-[10px] uppercase tracking-wider text-ink-faint">{{ l.code }}</span>
               @if (l.code === lang.currentLanguage()) {
-                <app-icon name="check" class="text-[16px] text-slate-900 dark:text-white" />
+                <app-icon name="check" class="text-[16px] text-ink" />
               }
             </button>
           }

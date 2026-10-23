@@ -125,7 +125,9 @@ function setup(options: SetupOptions = {}) {
       { provide: UpdateService, useValue: {} },
       { provide: APP_CONFIG, useValue: { appVersion: '0.0.0-test' } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
-      { provide: PosSessionService, useValue: {
+      {
+        provide: PosSessionService,
+        useValue: {
           consumeEndReason: vi.fn().mockReturnValue(endReason),
           consumeEndInterrupted: vi.fn().mockReturnValue(endInterrupted),
         },

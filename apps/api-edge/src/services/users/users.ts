@@ -40,11 +40,16 @@ type TimeClockParams = UserParams & { user?: TimeClockActor; deviceAccessScope?:
  */
 type VerifyPinParams = UserParams & { user?: { _id?: string; role?: string; tenantId?: string } }
 
+/** Params-Ausschnitt von `setPosHandedness`: Geraete-User plus das per Token belegte Gegenueber. */
+type SetPosHandednessParams = UserParams & { user?: OwnershipActor }
+
+const POS_HANDEDNESS_VALUES: ReadonlySet<unknown> = new Set<unknown>(Object.values(PosHandedness))
+
 const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
 import { DatabaseType } from '@panary/shared-common'
 import { BadRequest, Conflict, Forbidden, NotAuthenticated, TooManyRequests } from '@feathersjs/errors'
 import bcrypt from 'bcryptjs'
-import { checkChangePinRequest } from '@panary/users/domain'
+import { checkChangePinRequest, PosHandedness } from '@panary/users/domain'
 import { clearPinFailures, getPinLockoutSeconds, logger, recordPinFailure } from '@panary/shared-backend'
 import { triggerImmediateCycle } from '../../workers/cloud-sync-scheduler.worker'
 import { SyncRunTrigger } from '@panary/sync/domain'
@@ -62,6 +67,7 @@ export const usersMethods = [
   'endBreak',
   'verifyPin',
   'changePin',
+  'setPosHandedness',
 ] as const
 
 export type { UserService } from './users.class'
@@ -380,6 +386,49 @@ export const users = (app: Application) => {
 
     const { posPin: _newPin, password: _pwd, ...safeUser } = updated as any
     return safeUser
+  }
+
+  // Custom method: setPosHandedness — eigene Bedienhand am Terminal (panary/panary-core#833).
+  //
+  // Eigene Methode aus demselben Grund wie changePin: Der POS ist am Edge das
+  // Geraet, ein regulaerer patch scheitert an restrictUserSelfPatch, und
+  // users:UPDATE waere ein Freibrief. Wessen Feld sich aendert, bestimmt allein
+  // das Bediener-Token (`params.posOperator`, ADR 0053) — eine userId im Body
+  // gibt es nicht, und jeder andere Schluessel wird abgelehnt.
+  //
+  // 🚨 Fail-closed, anders als bei orders: Ohne gueltiges Token gibt es keinen
+  // Menschen, dem die Aenderung gehoeren koennte. Der POS haelt die Wahl offline
+  // selbst und sendet sie mit dem Token der Sitzung nach.
+  service.setPosHandedness = async (data: unknown, params?: SetPosHandednessParams) => {
+    const operator = params?.posOperator
+    if (!operator || params?.posOperatorRejected) {
+      throw new NotAuthenticated('Bediener-Token fehlt oder ist ungueltig')
+    }
+
+    const body = (data ?? {}) as Record<string, unknown>
+    const keys = Object.keys(body)
+    if (keys.length !== 1 || keys[0] !== 'posHandedness' || !POS_HANDEDNESS_VALUES.has(body['posHandedness'])) {
+      throw new BadRequest('Erwartet genau { posHandedness: "left" | "right" }')
+    }
+
+    const user = await app.service('users').get(operator.userId, { provider: undefined })
+    // Das Token ist bereits an Geraet und Mandant gebunden; die Pruefung haelt
+    // die Methode trotzdem unabhaengig davon dicht (multiTenancy ist bei
+    // Custom-Methods ein No-Op).
+    if (checkCallerOwnsRecord(params?.user as OwnershipActor | undefined, user)) {
+      throw new Forbidden('Benutzer gehoert nicht zum eigenen Mandanten')
+    }
+
+    // Adapter-API: Validator, Resolver und sync-outbox-Recorder laufen. Kein
+    // `fromSync` — sonst kaeme die Aenderung nie in der Cloud an.
+    const updated = await app
+      .service('users')
+      .patch(user._id, { posHandedness: body['posHandedness'] as PosHandedness }, { provider: undefined })
+
+    // Wie bei changePin: sofort pushen, bevor ein Pull den alten Wert zurueckspielt.
+    void triggerImmediateCycle(app, SyncRunTrigger.MANUAL).catch(() => undefined)
+
+    return { _id: updated._id, posHandedness: updated.posHandedness }
   }
 
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService

@@ -220,6 +220,7 @@ Grenzen der Tabelle:
 | `can_open_drawer` | – | – | – | – | – | – | – | – | – | – | – |
 | `can_void_order` | – | – | – | ✓ | ✓ | ✓ | – | ✓ | – | – | – |
 | `can_change_pos_pin` | – | – | – | – | – | – | – | ✓ | – | ✓ | – |
+| `can_set_pos_handedness` | – | – | – | – | – | – | – | ✓ | – | ✓ | – |
 | `can_clock_in` | – | – | – | – | – | – | – | ✓ | – | ✓ | – |
 | `can_manage_time` | – | – | – | – | – | ✓ | – | – | – | – | – |
 | `can_see_reports` | – | – | – | ✓ | – | ✓ | – | – | – | – | – |

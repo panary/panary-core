@@ -70,6 +70,9 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
   // (TENANT_STAFF/MANAGER) duerfen es damit regulaer; Geraete-Rollen laufen
   // ueber die CAN_CHANGE_POS_PIN-Ability (s. u.).
   changePin: AppAction.UPDATE,
+  // setPosHandedness schreibt ein Feld am User → UPDATE; Geraete-Rollen ueber
+  // die CAN_SET_POS_HANDEDNESS-Ability (s. u.).
+  setPosHandedness: AppAction.UPDATE,
   checkin: AppAction.UPDATE,
   checkout: AppAction.UPDATE,
   startBreak: AppAction.UPDATE,
@@ -100,6 +103,11 @@ const TIME_CLOCK_METHODS: ReadonlySet<string> = new Set(['checkin', 'checkout', 
 // Die Ability autorisiert nur das GERAET; die Bindung an den Mitarbeiter
 // leistet der currentPin-Beweis innerhalb der Methode.
 const PIN_CHANGE_METHODS: ReadonlySet<string> = new Set(['changePin'])
+
+// users-Bedienhand (#833): eigenes Set aus demselben Grund — CAN_CHANGE_POS_PIN
+// soll keine Bedienhand setzen und umgekehrt. Die Bindung an den Mitarbeiter
+// leistet das Bediener-Token innerhalb der Methode.
+const HANDEDNESS_METHODS: ReadonlySet<string> = new Set(['setPosHandedness'])
 
 // SQLite speichert `permissions` als JSON-Text. Die users-After-Hooks parsen
 // das Feld normalerweise schon — defensiv trotzdem normalisieren, damit ein
@@ -155,6 +163,11 @@ export const authorize = () => async (context: HookContext, next: NextFunction) 
   // users:UPDATE (POS-/Tablet-Terminals ohne Mitarbeiter-Session).
   if (!allowed && resource === AppResource.USERS && PIN_CHANGE_METHODS.has(method)) {
     allowed = hasEffectiveAbility(role, permissions, AppAbility.CAN_CHANGE_POS_PIN)
+  }
+
+  // 6c. Bedienhand-Sonderfall: CAN_SET_POS_HANDEDNESS als Alternative zu users:UPDATE.
+  if (!allowed && resource === AppResource.USERS && HANDEDNESS_METHODS.has(method)) {
+    allowed = hasEffectiveAbility(role, permissions, AppAbility.CAN_SET_POS_HANDEDNESS)
   }
 
   if (allowed) {

@@ -11,10 +11,10 @@ describe('Spiegelung mit der Bedienhand (core#976)', () => {
     )
   })
 
-  it('lib-page-header spiegelt die Kopfzeile bei Rail links', () => {
-    expect(quelle('../page-header/page-header.component.ts')).toContain(
-      ":host-context([data-rail-side='left']) .page-header {\n        flex-direction: row-reverse;",
-    )
+  it('lib-page-header setzt bei Rail links nur die Aktionen vor den Abstandhalter, der Titel bleibt links', () => {
+    const kopf = quelle('../page-header/page-header.component.ts')
+    expect(kopf).toContain(":host-context([data-rail-side='left']) .page-header-actions {\n        order: 0;")
+    expect(kopf).not.toContain('row-reverse')
   })
 
   it('die Einstellungs-Navigation wechselt mit der Rail die Seite', () => {

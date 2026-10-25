@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, WritableSignal } from '@angular/core'
 import { formatEur } from '@panary/shared/util-helpers'
-import { Router } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -15,6 +15,7 @@ import {
   PosSplitComponent,
 } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { findRequestedPreOrder } from './pre-order-selection'
 
 @Component({
   selector: 'lib-pre-order-list',
@@ -255,6 +256,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 export class PreOrderListComponent implements OnInit {
   #preOrderService = inject(PreOrderService)
   #router = inject(Router)
+  #route = inject(ActivatedRoute)
   #dialog = inject(MatDialog)
   #snackBar = inject(MatSnackBar)
   #translate = inject(TranslateService)
@@ -300,8 +302,28 @@ export class PreOrderListComponent implements OnInit {
     return result
   })
 
-  ngOnInit() {
-    this.fetchOrders()
+  async ngOnInit() {
+    await this.fetchOrders()
+    await this.#selectRequested()
+  }
+
+  /** „Als Nächstes abholen" auf Start öffnet eine Vorbestellung per `?select=<id>` (core#1025). */
+  async #selectRequested() {
+    const id = this.#route.snapshot.queryParamMap.get('select')
+    if (!id) return
+    // Parameter gleich entfernen, sonst wählt ein Neuladen dieselbe Vorbestellung erneut aus.
+    this.#router.navigate([], {
+      relativeTo: this.#route,
+      queryParams: { select: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    })
+    const order = await findRequestedPreOrder(id, this.orders(), requested => this.#preOrderService.get(requested))
+    if (order) {
+      this.selectedOrder.set(order)
+    } else {
+      this.#snackBar.open(this.#translate.instant('PRE_ORDERS.NOT_OPEN_ANYMORE'), undefined, { duration: 4000 })
+    }
   }
 
   goBack() {

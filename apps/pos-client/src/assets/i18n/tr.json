@@ -438,6 +438,7 @@
     "CANCEL_ERROR": "İptal hatası",
     "ALREADY_COMPLETED": "Bu sipariş zaten tamamlanmış.",
     "ALREADY_CANCELED": "Bu sipariş zaten iptal edilmiş.",
+    "NOT_OPEN_ANYMORE": "Bu ön sipariş artık açık değil.",
     "SELECT_PRE_ORDER": "Bir ön sipariş seçin",
     "CUSTOMER_NAME": "Müşteri adı",
     "DINE_IN": "Yerinde",

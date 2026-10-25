@@ -150,6 +150,11 @@ export class DashboardComponent implements OnInit {
     this.#router.navigate([path])
   }
 
+  /** Öffnet Vorbestellungen mit dieser Vorbestellung ausgewählt (core#1025). */
+  openPreOrder(preOrder: PreOrder) {
+    this.#router.navigate(['/pre-orders'], { queryParams: { select: preOrder._id } })
+  }
+
   #buildOccupancyChart(): EChartsOption {
     const hourlyCounts = hourlyOrderCounts(this.orders())
     const { startHour, endHour } = chartWindow(this.#todaysOpening(), hourlyCounts)

@@ -145,13 +145,19 @@
         <div class="bg-surface-panel rounded-2xl p-6 border border-line flex flex-col gap-3 lg:w-80 flex-none">
           <h2 class="text-lg font-bold text-ink">{{ 'DASHBOARD.PICKUP_NEXT' | translate }}</h2>
           @for (preOrder of nextPreOrders(); track preOrder._id) {
-            <div class="rounded-xl bg-surface-rail px-4 py-3">
+            <!-- Antippen öffnet die Vorbestellung ausgewählt (core#1025) -->
+            <button
+              type="button"
+              (click)="openPreOrder(preOrder)"
+              data-testid="pickup-next-entry"
+              class="w-full text-left rounded-xl bg-surface-rail px-4 py-3 cursor-pointer hover:bg-line-soft active:scale-[0.98] transition-all outline-none focus-visible:ring-2 focus-visible:ring-accent-line"
+            >
               <div class="flex justify-between gap-2 font-semibold text-ink">
                 <span class="truncate">{{ preOrder.customerContact.name }}</span>
                 <span class="text-accent-ink">{{ preOrder.scheduledFor | date: 'HH:mm' }}</span>
               </div>
               <div class="text-sm text-ink-muted truncate">{{ preOrderSummary(preOrder.lineItems) }}</div>
-            </div>
+            </button>
           } @empty {
             <p class="text-sm text-ink-muted">{{ 'DASHBOARD.PICKUP_NONE' | translate }}</p>
           }

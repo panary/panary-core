@@ -438,6 +438,7 @@
     "CANCEL_ERROR": "Fehler beim Stornieren",
     "ALREADY_COMPLETED": "Diese Bestellung ist bereits abgeschlossen.",
     "ALREADY_CANCELED": "Diese Bestellung ist bereits storniert.",
+    "NOT_OPEN_ANYMORE": "Diese Vorbestellung ist nicht mehr offen.",
     "SELECT_PRE_ORDER": "Wähle eine Vorbestellung",
     "CUSTOMER_NAME": "Kundenname",
     "DINE_IN": "Vor Ort",

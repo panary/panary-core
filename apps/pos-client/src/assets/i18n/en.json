@@ -438,6 +438,7 @@
     "CANCEL_ERROR": "Error canceling",
     "ALREADY_COMPLETED": "This order has already been completed.",
     "ALREADY_CANCELED": "This order has already been canceled.",
+    "NOT_OPEN_ANYMORE": "This pre-order is no longer open.",
     "SELECT_PRE_ORDER": "Select a pre-order",
     "CUSTOMER_NAME": "Customer name",
     "DINE_IN": "Dine-in",

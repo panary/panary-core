@@ -29,6 +29,11 @@ describe('Historie-Kopf (core#975)', () => {
 describe('Historie: ID und Aktionen im Detailkopf (core#1024)', () => {
   const kopf = source.slice(source.indexOf('data-testid="detail-head"'), source.indexOf('<!-- Detail Content -->'))
 
+  it('Kopf und scrollender Inhalt sind im Template auffindbar, der Kopf steht davor', () => {
+    expect(source.indexOf('data-testid="detail-head"')).toBeGreaterThan(-1)
+    expect(source.indexOf('<!-- Detail Content -->')).toBeGreaterThan(source.indexOf('data-testid="detail-head"'))
+  })
+
   it('der Kopf trägt ID, Drucken und Stornieren', () => {
     expect(kopf).toContain('data-testid="detail-id"')
     expect(kopf).toContain('selectedOrder()?._id')

@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # pnpm installieren — fest gepinnt (synchron zum packageManager-Feld);
 # pnpm@latest würde inzwischen auf pnpm 11 springen (ungetesteter Major)
-RUN corepack enable && corepack prepare pnpm@10.34.3 --activate
+# Node 25+ liefert corepack nicht mehr mit (Node-26-Umstieg) — pnpm daher per npm, gleiche Version.
+RUN npm install -g pnpm@10.34.3
 
 WORKDIR /build
 

@@ -1,5 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  type ElementRef,
+  input,
+  output,
+  viewChild,
+} from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { syncTopLayer, type TopLayerElement } from '@panary/shared/ui-notifications'
 
 /**
  * Kuendigt den Inaktivitaets-Logout an.
@@ -12,9 +22,15 @@ import { TranslateModule } from '@ngx-translate/core'
  * Zwei Entscheidungen zum Markup, die nicht ins Template passen (Backticks
  * wuerden dort das Template-Literal beenden):
  *
- * - **`z-[1200]`** liegt ueber dem CDK-Overlay-Container (1000). Die Warnung
- *   muss auch ueber einem offenen Abschreibungs- oder Tagesabschluss-Dialog
- *   erscheinen, sonst versteckt sie sich dahinter.
+ * - **Top-Layer statt `z-index`** (core#1080). Die Warnung muss ueber jedem
+ *   offenen Dialog stehen, auch ueber der Rueckfrage „Bestellung verwerfen?“.
+ *   Die CDK legt Dialoge in den Top-Layer (Popover-API, core#1060), dagegen half
+ *   das fruehere `z-[1200]` nicht. Die Warnung ist deshalb selbst ein Popover
+ *   und oeffnet nach dem Dialog, liegt also darueber. Einen Listener, der sie
+ *   nach jedem spaeteren Popover wieder hochholt, gibt es bewusst nicht: Er
+ *   spraenge mit dem gleichen Listener der Meldungsebene hin und her, und ein
+ *   neuer Dialog braucht einen Tipp, der die Warnung ohnehin beendet. Ohne
+ *   Popover-API (alte WebViews) bleibt `z-[1200]` als Rueckfall.
  * - **Deckender Backdrop:** waehrend des Countdowns darf ein Tap nicht
  *   versehentlich einen Button darunter treffen. Weil der Aktivitaets-Listener
  *   am `document` in der Capture-Phase haengt, zaehlt derselbe Tap trotzdem als
@@ -28,7 +44,10 @@ import { TranslateModule } from '@ngx-translate/core'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="fixed inset-0 z-[1200] flex items-center justify-center bg-shell/70 p-8 backdrop-blur-sm"
+      #layer
+      popover="manual"
+      class="fixed inset-0 z-[1200] m-0 flex h-full max-h-none w-full max-w-none items-center justify-center border-0
+             bg-shell/70 p-8 text-inherit backdrop-blur-sm"
       role="alertdialog"
       aria-live="assertive"
       [attr.aria-label]="'POS_IDLE.TITLE' | translate"
@@ -77,6 +96,15 @@ export class IdleWarningOverlayComponent {
   readonly discardsOrder = input(false)
 
   readonly stayLoggedIn = output<void>()
+
+  private readonly layer = viewChild<ElementRef<HTMLElement>>('layer')
+
+  constructor() {
+    afterNextRender(() => {
+      const layer = this.layer()?.nativeElement as TopLayerElement | undefined
+      if (layer) syncTopLayer(layer, true, 0)
+    })
+  }
 
   protected readonly progressPercent = computed(() => {
     const total = this.warningSeconds()

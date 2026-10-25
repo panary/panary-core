@@ -4,7 +4,7 @@ title: 'POS-Meldungen — Arten, Dauer, Stapel und Position'
 description: 'Wie der POS Meldungen zeigt: NotificationService mit vier Arten und fester Dauer, Quittierpflicht, Stapel aus drei, Zählung gleicher Meldungen, Anzeige oben mittig über Dialogen.'
 tags: [pos-client, ui, notifications, design-system]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:45:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T20:10:00Z }
 sources:
   - { id: adr-0061, resource: '../adr/0061-pos-meldungen-statt-material-snackbar.md', title: 'ADR 0061' }
 ---
@@ -90,6 +90,10 @@ Dialog-Backdrop, abgedunkelt und nicht antippbar. Deshalb ist die Ebene jetzt se
   stehen, öffnet die Ebene neu und liegt wieder darüber. Sie hört dafür im Capture-Durchlauf auf
   `toggle`-Ereignisse fremder Popover.
 - Ohne Popover-API (alte WebView) bleibt sie im normalen Fluss mit `z-index: 2000`.
+- Die Vorwarnung des Auto-Logouts nutzt seit [#1080](https://github.com/panary/panary-core/issues/1080)
+  dasselbe `syncTopLayer` (aus `@panary/shared/ui-notifications` exportiert), aber ohne Listener für fremde
+  Popover. Zwei Ebenen, die sich gegenseitig nach oben holen, sprängen sonst hin und her. Stehen beide, liegen
+  die Meldungen über der Vorwarnung.
 
 Schwäche: Öffnet die Ebene wegen eines neuen Dialogs neu, spielen die stehenden Meldungen ihre
 Einblendung noch einmal ab.

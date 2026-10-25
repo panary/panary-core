@@ -4,7 +4,7 @@ title: POS-Auto-Logout bei Inaktivität
 description: Wie sich der POS-Client nach Inaktivität abmeldet — Konfigurationskette, Einfrieren nur offline, eine angefangene Bestellung wird verworfen statt die Frist anzuhalten (core#1064), Offline-Verhalten und die beiden Schwellwerte.
 tags: [pos-client, users, locations, auth]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-10-25T19:10:00.000Z }
+generated: { by: claude-code/opus-5, at: 2026-10-25T20:10:00.000Z }
 ---
 
 Der POS-Client meldet einen Mitarbeiter nach einer konfigurierbaren Zeit ohne
@@ -83,6 +83,16 @@ es schlicht vergessen; genau dafür gibt es den Auto-Logout. `startBreak()`
 verzichtet bewusst auf den Logout *beim Pausenstart* („No logout to allow easy
 resume"), das betrifft aber nur den Moment des Umschaltens und nicht die
 folgenden Minuten ohne Aufsicht.
+
+## Vorwarnung über Dialogen (seit core#1080)
+
+Die Vorwarnung (`IdleWarningOverlayComponent`) ist ein Popover im Top-Layer (`popover="manual"`, geöffnet über
+`syncTopLayer` der [Meldungsebene](../architecture/pos-meldungen.md)). Mit dem früheren `z-[1200]` lag sie unter
+jedem CDK-Dialog, denn die CDK legt Dialoge seit core#1060 in den Top-Layer. Im Sichttest panary/panary-core#1077
+verdeckte die Rückfrage „Bestellung verwerfen?“ den Countdown vollständig. Abgemeldet wurde trotzdem, nur sah es
+niemand. Sie öffnet nach dem Dialog und liegt damit darüber. Einen Listener, der sie nach einem später geöffneten
+Popover wieder hochholt, gibt es nicht: Ein neuer Dialog braucht meist einen Tipp, und der beendet die Vorwarnung. Ein Dialog, der ohne Eingriff aufgeht (Antwort einer laufenden Anfrage, Timer), verdeckt sie weiterhin. Das ist bewusst offen gelassen, denn ein Hochhol-Listener spränge mit dem der Meldungsebene hin und her.
+Ohne Popover-API bleibt `z-[1200]` als Rückfall.
 
 ## Aktivitätserfassung
 

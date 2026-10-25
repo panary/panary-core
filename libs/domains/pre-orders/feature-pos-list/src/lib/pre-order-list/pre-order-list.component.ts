@@ -140,20 +140,55 @@ import { findRequestedPreOrder } from './pre-order-selection'
             posSplitDetail
             class="flex-1 bg-surface-input rounded-2xl shadow-sm border border-line-soft overflow-hidden flex flex-col"
           >
-            <!-- Detail Header -->
-            <div class="p-4 border-b border-line-soft flex justify-between items-center bg-surface-elevated">
-              <div>
-                <h2 class="font-bold text-lg text-ink">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
-                <p class="text-xs text-ink-muted">
-                  {{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}
-                </p>
+            <!-- Detail Header: ID und Aktionen ohne Scrollen erreichbar (core#1024) -->
+            <div
+              class="p-4 border-b border-line-soft bg-surface-elevated flex flex-col gap-3"
+              data-testid="detail-head"
+            >
+              <div class="flex justify-between items-start gap-3">
+                <div class="min-w-0">
+                  <h2 class="font-bold text-lg text-ink">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
+                  <p class="text-xs text-ink-muted">
+                    {{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}
+                  </p>
+                  <p class="text-xs text-ink-faint truncate" data-testid="detail-id">
+                    <span class="font-bold uppercase">ID</span>
+                    <span class="font-mono select-all">{{ selectedOrder()?._id }}</span>
+                  </p>
+                </div>
+                <button
+                  (click)="selectedOrder.set(null)"
+                  class="lg:hidden flex items-center justify-center w-10 h-10 text-ink-muted rounded-xl hover:bg-line-soft transition-colors"
+                >
+                  <lib-icon name="x" class="text-[1.25rem]" />
+                </button>
               </div>
-              <button
-                (click)="selectedOrder.set(null)"
-                class="lg:hidden flex items-center justify-center w-10 h-10 text-ink-muted rounded-xl hover:bg-line-soft transition-colors"
-              >
-                <lib-icon name="x" class="text-[1.25rem]" />
-              </button>
+              @if (selectedOrder()?.status === 'pending') {
+                <div class="grid grid-cols-2 gap-2" data-testid="detail-actions">
+                  <button
+                    class="h-11 rounded-lg bg-action text-on-action font-bold hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    (click)="convertToLiveOrder(selectedOrder()!)"
+                  >
+                    <lib-icon name="cash-register" class="text-[1.25rem]" />
+                    {{ 'PRE_ORDERS.CREATE_ORDER' | translate }}
+                  </button>
+                  <button
+                    class="h-11 rounded-lg bg-surface-elevated border border-line text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    (click)="cancelOrder(selectedOrder()!)"
+                  >
+                    <lib-icon name="trash" class="text-[1.25rem]" />
+                    {{ 'PRE_ORDERS.CANCEL_ORDER' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <div class="text-sm text-ink-faint" data-testid="detail-actions">
+                  {{
+                    selectedOrder()?.status === 'converted'
+                      ? ('PRE_ORDERS.ALREADY_COMPLETED' | translate)
+                      : ('PRE_ORDERS.ALREADY_CANCELED' | translate)
+                  }}
+                </div>
+              }
             </div>
 
             <!-- Detail Content -->
@@ -195,37 +230,6 @@ import { findRequestedPreOrder } from './pre-order-selection'
                   <span>{{ calculateTotal(selectedOrder()!) | eur }}</span>
                 </div>
               </div>
-
-              <!-- Metadata Actions -->
-              @if (selectedOrder()?.status === 'pending') {
-                <div class="mt-6 grid grid-cols-2 gap-3">
-                  <button
-                    class="col-span-2 h-12 rounded-lg bg-action text-on-action font-bold hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2"
-                    (click)="convertToLiveOrder(selectedOrder()!)"
-                  >
-                    <lib-icon name="cash-register" class="text-[1.25rem]" />
-                    {{ 'PRE_ORDERS.CREATE_ORDER' | translate }}
-                  </button>
-
-                  <button
-                    class="col-span-2 h-12 rounded-lg bg-surface-elevated border border-line text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
-                    (click)="cancelOrder(selectedOrder()!)"
-                  >
-                    <lib-icon name="trash" class="text-[1.25rem]" />
-                    {{ 'PRE_ORDERS.CANCEL_ORDER' | translate }}
-                  </button>
-                </div>
-              }
-              @if (selectedOrder()?.status !== 'pending') {
-                <div class="mt-6 text-center text-ink-faint text-sm">
-                  {{
-                    selectedOrder()?.status === 'converted'
-                      ? ('PRE_ORDERS.ALREADY_COMPLETED' | translate)
-                      : ('PRE_ORDERS.ALREADY_CANCELED' | translate)
-                  }}
-                  .
-                </div>
-              }
             </div>
           </div>
         }

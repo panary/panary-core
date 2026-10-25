@@ -170,6 +170,7 @@ export class PosHandednessService {
       } catch (error) {
         if (!isFinalHandednessRejection(error)) return
         this.#forget(entry.userId)
+        writeLocal(entry.userId, undefined)
         this.#setChosen(entry.userId, undefined)
       }
     }

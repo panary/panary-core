@@ -141,6 +141,7 @@ describe('PosHandednessService (core#833)', () => {
 
     expect(service.effective(anna)).toBe('right')
     expect(pending()).toEqual([])
+    expect(localStorage.getItem(POS_HANDEDNESS_LOCAL_STORAGE_KEY)).toContain('right')
   })
 
   it('flush sendet jede gemerkte Wahl mit dem Token ihrer Sitzung und vergisst sie danach', async () => {

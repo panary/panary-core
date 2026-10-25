@@ -100,7 +100,6 @@ export function placeBesideDialog(input: {
   const above = fitting(dialog.top - DIALOG_CLEARANCE - anchorTop)
   const below = fitting(viewportHeight - DIALOG_CLEARANCE - belowTop)
 
-  if (above === heights.length) return { top: anchorTop, count: above }
-  if (below === heights.length) return { top: belowTop, count: below }
+  // Oben gewinnt bei Gleichstand, also auch, wenn der ganze Stapel darüber passt.
   return above >= below ? { top: anchorTop, count: above } : { top: belowTop, count: below }
 }

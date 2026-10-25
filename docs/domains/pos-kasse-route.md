@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: POS-Kasse als Route /kasse
-description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen nachfragt, warum der Auto-Logout jetzt an der Eingabe hängt und wie sie ein Neuladen auf /kasse übersteht.'
+description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen und Abmelden nachfragt, warum der Auto-Logout eine angefangene Bestellung verwirft (core#1064) und wie sie ein Neuladen auf /kasse übersteht.'
 tags: [orders, pos, ui, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-22T14:40:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:10:00Z }
 ---
 
 # POS-Kasse als Route `/kasse`
@@ -27,7 +27,8 @@ Code: `libs/domains/orders/feature-pos-order-dialog/src/lib/` (`kasse-page.compo
 | Vorbestellung angelegt | `preorder-created` | wie Bestellen |
 | „Zur Übersicht" (Bestellung nicht möglich), nach Rückfrage | `cancelled` | `/dashboard` |
 | Browser-Zurück, anderer Eintrag der [Rail](pos-navigation.md) | — | `kasseLeaveGuard` fragt nach |
-| Logout, Inaktivität, Neueinrichtung (`/login`, `/setup`) | — | ohne Rückfrage, Entwurf verworfen |
+| Abmelden, „Gehen" (Rail, seit [core#1064](https://github.com/panary/panary-core/issues/1064)) | — | dieselbe Rückfrage wie beim Seitenwechsel **vor** dem Abmelden, danach ohne Guard nach `/login` |
+| Inaktivität, Neueinrichtung (`/login`, `/setup`) | — | ohne Rückfrage, Entwurf verworfen (Inaktivität protokolliert den Abbruch) |
 
 Die Komponente kennt keinen Dialog mehr: Ihr Ende meldet sie über `closed`. Was dann geschieht,
 entscheidet `KassePageComponent`. Der Klassenname `OrderDialogComponent` bleibt vorerst, denn
@@ -74,9 +75,26 @@ History-Eintrag davor mit `/kasse`. Das nächste Zurück sprang dann zwei Seiten
 Sandbox so gemessen. `'computed'` stellt die History-Position wieder her, und das zweite Zurück zielt
 wieder auf die Übersicht.
 
-Ausgenommen sind Ziele, die die Sitzung beenden (`/login`, `/setup`). Dort entscheidet nicht der
-Kassierer, und eine Rückfrage hielte den Logout auf. Verworfen wird dann wie früher: Auch der Dialog
-ging beim Routenwechsel ungefragt zu (`PosSessionService.endSession` → `closeAll()`).
+Ausgenommen sind Ziele, die die Sitzung beenden (`/login`, `/setup`). Eine Rückfrage im Guard käme zu
+spät: `endSession` hat die Sitzung schon beendet, wenn die Navigation läuft. Verworfen wird dann wie
+früher: Auch der Dialog ging beim Routenwechsel ungefragt zu (`PosSessionService.endSession` → `closeAll()`).
+
+Seit [core#1064](https://github.com/panary/panary-core/issues/1064) fragt deshalb das Abmelden selbst, bevor es
+die Sitzung beendet. Im Sunmi-Test (2026-10-25) ging eine Bestellung beim Abmelden verloren. `PosStaffService.logout()`
+und `clockOut()` rufen `KasseDraftRegistry.confirmLeave()`, das an `confirmLeave()` der laufenden Kasse
+weitergibt: derselbe Dialog „Bestellung verwerfen?" wie beim Seitenwechsel, bei leerer Kasse ohne Dialog.
+„Weiter bearbeiten" lässt angemeldet, bei „Gehen" auch eingestempelt. Ein zweiter Tipp während der offenen
+Rückfrage öffnet keine zweite. Das Avatar-Menü hat seit core#907 kein Abmelden mehr.
+
+Mit „Bestellung verwerfen" steht die Kasse sofort leer (`#clearForSessionEnd`), nicht erst nach dem Logout.
+Scheitert das Abmelden danach (Verbindung gerade weg, Ausstempeln abgelehnt), zeigt die Kasse keine
+Bestellung, die schon als abgebrochen protokolliert ist, und ein späteres Verlassen schreibt keinen zweiten
+Abbruch. Dasselbe gilt für das Verwerfen beim Inaktivitäts-Logout.
+
+Läuft die Inaktivitätsfrist ab, während die Rückfrage offen ist, schließt `endSession` den Dialog
+(`closeAll()` umgeht `disableClose`). Die Rückfrage endet dann mit „nicht verlassen", Abmelden bzw.
+Gehen brechen ab, und der Inaktivitäts-Logout hat die Bestellung zuvor schon verworfen und protokolliert. Der
+Logout hängt also nicht an der Rückfrage. Gemessen ist dieser Pfad nur am Code, ein Spec dafür fehlt.
 
 ## Neuladen direkt auf `/kasse`
 
@@ -107,9 +125,11 @@ bleibt dabei stehen.
 ## Auto-Logout
 
 Als Dialog setzte der [Inaktivitäts-Logout](pos-auto-logout.md#wann-eingefroren-wird) aus, solange der
-Bestelldialog offen war. Die Route ist dauernd offen und bleibt es nach dem Bestellen, der Logout käme
-nie. Deshalb zählt jetzt die Eingabe: `KasseDraftRegistry.hasDraft()` fragt je Takt die laufende Kasse
-nach `#hadInput`. Eine leere Kasse meldet ab wie jede andere Seite.
+Bestelldialog offen war. Ab core#828 zählte die Eingabe (`KasseDraftRegistry.hasDraft()`), aber eine
+liegengelassene Kasse mit Artikeln blieb damit unbegrenzt angemeldet. Seit
+[core#1064](https://github.com/panary/panary-core/issues/1064) läuft die Frist auch mit Eingabe ab. Die
+Vorwarnung sagt dann „Die offene Bestellung wird dabei verworfen.", und vor dem Logout protokolliert
+`KasseDraftRegistry.discardDraft()` die Bestellung als abgebrochen (`order-cancel`).
 
 ## Nicht abgedeckt
 

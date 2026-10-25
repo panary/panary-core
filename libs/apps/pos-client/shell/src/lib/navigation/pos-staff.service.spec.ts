@@ -7,6 +7,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
 import { clearPosOperatorToken, storePosOperatorToken, TenantSuspensionService } from '@panary/shared/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
+import { KasseDraftRegistry } from '@panary/orders/feature-pos-order-dialog'
 import { PosStaffService } from './pos-staff.service'
 
 /** Jeder Test baut seine eigenen Fakes (testing.md §10): Aufzeichnungen bleiben im Test. */
@@ -17,6 +18,8 @@ function setup(
     stampingId?: string | null
     cartSide?: 'left' | 'right'
     choose?: () => Promise<'saved' | 'pending' | 'local'>
+    /** Offene Kasse: angefangene Bestellung und Antwort auf die Rückfrage (core#1064). */
+    kasse?: { input: boolean; confirm: boolean }
   } = {},
 ) {
   const user = { _id: 'u-olga', firstName: 'Olga', lastName: 'Owner', stampingId: state.stampingId ?? null }
@@ -35,8 +38,12 @@ function setup(
     effective: () => state.cartSide ?? 'left',
     choose: vi.fn(state.choose ?? (() => Promise.resolve('saved' as const))),
   }
+  const kasse = new KasseDraftRegistry()
+  const confirmLeave = vi.fn(() => Promise.resolve(state.kasse?.confirm ?? true))
+  if (state.kasse) kasse.attach({ hasInput: () => !!state.kasse?.input, confirmLeave, discard: vi.fn() })
   const injector = Injector.create({
     providers: [
+      { provide: KasseDraftRegistry, useValue: kasse },
       { provide: UserService, useValue: users },
       { provide: AuthService, useValue: { fullName: signal('Olga Owner') } },
       { provide: PosSessionService, useValue: session },
@@ -47,7 +54,7 @@ function setup(
     ],
   })
   const service = runInInjectionContext(injector, () => new PosStaffService())
-  return { service, users, session, notify, handedness }
+  return { service, users, session, notify, handedness, confirmLeave }
 }
 
 describe('PosStaffService (core#832)', () => {
@@ -205,11 +212,44 @@ describe('PosStaffService (core#832)', () => {
     expect(free.notify).not.toHaveBeenCalled()
   })
 
-  it('sperrt Abmelden offline mit Hinweis', () => {
+  it('sperrt Abmelden offline mit Hinweis', async () => {
     const { service, session, notify } = setup({ offline: true })
-    service.logout()
+    await service.logout()
     expect(session.endSession).not.toHaveBeenCalled()
     expect(notify.mock.calls[0][1]).toBe('DASHBOARD.LOGOUT_OFFLINE_BLOCKED')
+  })
+
+  it('Abmelden mit angefangener Bestellung: „Weiter bearbeiten" bleibt angemeldet (core#1064)', async () => {
+    const { service, session, confirmLeave } = setup({ kasse: { input: true, confirm: false } })
+    await service.logout()
+    expect(confirmLeave).toHaveBeenCalledTimes(1)
+    expect(session.endSession).not.toHaveBeenCalled()
+  })
+
+  it('Abmelden mit angefangener Bestellung: „Bestellung verwerfen" meldet ab (core#1064)', async () => {
+    const { service, session } = setup({ kasse: { input: true, confirm: true } })
+    await service.logout()
+    expect(session.endSession.mock.calls).toEqual([['button']])
+  })
+
+  it('Abmelden ohne offene Kasse meldet direkt ab (core#1064)', async () => {
+    const { service, session, confirmLeave } = setup()
+    await service.logout()
+    expect(confirmLeave).not.toHaveBeenCalled()
+    expect(session.endSession.mock.calls).toEqual([['button']])
+  })
+
+  it('„Gehen" mit angefangener Bestellung fragt vor dem Ausstempeln; abgelehnt bleibt man eingestempelt (core#1064)', async () => {
+    const refused = setup({ stampingId: 'wt-1', kasse: { input: true, confirm: false } })
+    await refused.service.clockOut()
+    expect(refused.users.checkout).not.toHaveBeenCalled()
+    expect(refused.session.endSession).not.toHaveBeenCalled()
+
+    const confirmed = setup({ stampingId: 'wt-1', kasse: { input: true, confirm: true } })
+    await confirmed.service.clockOut()
+    expect(confirmed.users.checkout).toHaveBeenCalledTimes(1)
+    expect(confirmed.confirmLeave).toHaveBeenCalledTimes(1)
+    expect(confirmed.session.endSession.mock.calls).toEqual([['button']])
   })
 
   it('bildet die Initialen aus dem Namen', () => {
@@ -268,6 +308,7 @@ describe('PosStaffService (core#832)', () => {
       providers: [
         { provide: UserService, useValue: users },
         { provide: AuthService, useValue: { fullName: signal('Unknown User') } },
+        { provide: KasseDraftRegistry, useValue: new KasseDraftRegistry() },
         { provide: PosSessionService, useValue: { isOffline: signal(false), endSession: vi.fn() } },
         { provide: TenantSuspensionService, useValue: { suspended: signal(false) } },
         { provide: NotificationService, useValue: new NotificationService() },

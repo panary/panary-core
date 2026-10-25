@@ -10,6 +10,7 @@ import {
 } from '@panary/shared/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { PosHandedness } from '@panary/users/domain'
+import { KasseDraftRegistry } from '@panary/orders/feature-pos-order-dialog'
 import {
   railSide,
   type ScreenSide,
@@ -34,6 +35,7 @@ export class PosStaffService {
   readonly #handedness = inject(PosHandednessService)
   readonly #notifications = inject(NotificationService)
   readonly #translate = inject(TranslateService)
+  readonly #kasse = inject(KasseDraftRegistry)
 
   readonly isOffline = this.#session.isOffline
   readonly bookingSuspended = this.#suspension.suspended
@@ -106,11 +108,15 @@ export class PosStaffService {
     await this.#run('Clock in', () => this.#users.checkin(user._id, withPosOperatorToken()))
   }
 
-  /** Ausstempeln meldet ab — wie bisher am Dashboard. */
+  /**
+   * Ausstempeln meldet ab — wie bisher am Dashboard. Eine angefangene Bestellung fragt vorher nach (core#1064);
+   * wer „Weiter bearbeiten" wählt, bleibt eingestempelt.
+   */
   async clockOut(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    if (await this.#run('Clock out', () => this.#users.checkout(user._id, withPosOperatorToken()))) this.logout()
+    if (!(await this.#kasse.confirmLeave())) return
+    if (await this.#run('Clock out', () => this.#users.checkout(user._id, withPosOperatorToken()))) this.#endSession()
   }
 
   async startBreak(): Promise<void> {
@@ -162,8 +168,22 @@ export class PosStaffService {
     }
   }
 
-  /** Offline gesperrt: Die Wiederanmeldung braucht den Server (Begründung in `PosSessionService`). */
-  logout(): void {
+  /**
+   * Offline gesperrt: Die Wiederanmeldung braucht den Server (Begründung in `PosSessionService`).
+   * Eine angefangene Bestellung fragt wie beim Seitenwechsel nach (core#1064); der Leave-Guard der
+   * Kasse lässt `/login` danach ohne zweite Rückfrage durch.
+   */
+  async logout(): Promise<void> {
+    if (this.isOffline()) {
+      this.#notify('DASHBOARD.LOGOUT_OFFLINE_BLOCKED')
+      return
+    }
+    if (!(await this.#kasse.confirmLeave())) return
+    this.#endSession()
+  }
+
+  /** Zweite Offline-Prüfung mit Absicht: Zwischen Rückfrage bzw. Ausstempeln und hier kann die Verbindung weg sein. */
+  #endSession(): void {
     if (this.isOffline()) {
       this.#notify('DASHBOARD.LOGOUT_OFFLINE_BLOCKED')
       return

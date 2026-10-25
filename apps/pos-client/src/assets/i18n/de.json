@@ -3,7 +3,8 @@
     "TITLE": "Automatische Abmeldung",
     "MESSAGE": "Du wirst in {{seconds}} Sekunden abgemeldet.",
     "HINT": "Tippe irgendwo, um angemeldet zu bleiben.",
-    "STAY": "Angemeldet bleiben"
+    "STAY": "Angemeldet bleiben",
+    "DISCARDS_ORDER": "Die offene Bestellung wird dabei verworfen."
   },
   "POS_NAV": {
     "LABEL": "Hauptnavigation",

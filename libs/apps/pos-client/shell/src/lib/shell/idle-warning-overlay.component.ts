@@ -42,6 +42,12 @@ import { TranslateModule } from '@ngx-translate/core'
           {{ 'POS_IDLE.MESSAGE' | translate: { seconds: remainingSeconds() } }}
         </p>
 
+        @if (discardsOrder()) {
+          <p class="mt-3 text-lg font-semibold text-danger-ink" data-testid="idle-discards-order">
+            {{ 'POS_IDLE.DISCARDS_ORDER' | translate }}
+          </p>
+        }
+
         <div class="mt-6 h-2 w-full overflow-hidden rounded-full bg-line">
           <div
             class="h-full bg-amber-500 transition-[width] duration-1000 ease-linear"
@@ -67,6 +73,8 @@ export class IdleWarningOverlayComponent {
   readonly remainingSeconds = input.required<number>()
   /** Gesamtes Vorwarnfenster in Sekunden — Bezugsgroesse des Fortschrittsbalkens. */
   readonly warningSeconds = input.required<number>()
+  /** Liegt eine angefangene Bestellung in der Kasse, verwirft der Logout sie (core#1064). */
+  readonly discardsOrder = input(false)
 
   readonly stayLoggedIn = output<void>()
 

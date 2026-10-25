@@ -36,6 +36,7 @@ import { PosRail } from './pos-rail'
       <lib-idle-warning-overlay
         [remainingSeconds]="idle.remainingSeconds()"
         [warningSeconds]="idle.warningSeconds()"
+        [discardsOrder]="idle.discardsOrder()"
         (stayLoggedIn)="idle.reset()"
       />
     }

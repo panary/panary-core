@@ -5,7 +5,7 @@ description: Der Inaktivitäts-Logout am Terminal leitet seinen Einfrier-Zustand
 tags: [pos-client, users, locations, auth]
 status: stable
 decision: accepted
-generated: { by: claude-code/opus-5, at: 2026-08-03T00:00:00.000Z }
+generated: { by: claude-code/opus-5, at: 2026-10-25T19:10:00.000Z }
 ---
 
 ## Problem
@@ -91,5 +91,10 @@ bereits abräumt.
 - Release-Reihenfolge ist bindend: Core-Release → Cloud-Pin-Bump →
   Cloud-Release mit Migration 007 → erst dann `pos-v*`. Andere Reihenfolge
   bedeutet 60-Sekunden-Logouts auf Bestandsfilialen.
+
+*Nachtrag [core#1064](https://github.com/panary/panary-core/issues/1064) (2026-10-25):* Eine angefangene
+Bestellung friert die Frist nicht mehr ein. Bis dahin blieb eine liegengelassene Kasse mit Artikeln unbegrenzt
+angemeldet. Jetzt kündigt die Vorwarnung das Verwerfen an, und der Logout protokolliert die Bestellung als
+abgebrochen. Eingefroren wird nur noch offline. Das Prinzip „aus dem Zustand abgeleitet statt gebucht“ gilt weiter.
 
 Details zur Wirkkette: [POS-Auto-Logout bei Inaktivität](../domains/pos-auto-logout.md).

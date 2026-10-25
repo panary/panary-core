@@ -40,7 +40,8 @@ const ICONS: Record<NotificationType, IconName> = {
           [attr.data-sticky]="n.duration === 0 ? '' : null"
           tabindex="0"
           (click)="onSurface(n)"
-          (keydown.enter)="onSurface(n)"
+          (keydown.enter)="onSurfaceKey($event, n)"
+          (keydown.space)="onSurfaceKey($event, n)"
           (pointerdown)="service.pause(n.id)"
           (pointerup)="service.resume(n.id)"
           (pointercancel)="service.resume(n.id)"
@@ -93,8 +94,8 @@ const ICONS: Record<NotificationType, IconName> = {
       display: flex;
       align-items: center;
       gap: 0.625rem;
-      min-height: 3rem;
-      padding: 0.375rem 0.375rem 0.375rem 0.875rem;
+      min-height: 3.5rem;
+      padding: 0.25rem 0.25rem 0.25rem 0.875rem;
       border-radius: var(--r-card, 0.75rem);
       box-shadow:
         0 10px 28px rgb(0 0 0 / 0.28),
@@ -150,7 +151,7 @@ const ICONS: Record<NotificationType, IconName> = {
     .notification__action,
     .notification__close {
       flex: none;
-      min-height: 2.5rem;
+      min-height: 3rem;
       border: 0;
       border-radius: var(--r-control, 0.5rem);
       font: inherit;
@@ -163,7 +164,7 @@ const ICONS: Record<NotificationType, IconName> = {
       background: rgb(255 255 255 / 0.18);
     }
     .notification__close {
-      width: 2.5rem;
+      width: 3rem;
       display: grid;
       place-items: center;
       background: transparent;
@@ -199,6 +200,13 @@ export class NotificationOutletComponent {
   protected onSurface(n: Notification): void {
     if (n.duration === 0) return
     this.service.remove(n.id)
+  }
+
+  /** Tastatur nur auf der Fläche selbst — Enter auf der Aktionstaste soll deren Aktion auslösen. */
+  protected onSurfaceKey(event: Event, n: Notification): void {
+    if (event.target !== event.currentTarget) return
+    event.preventDefault()
+    this.onSurface(n)
   }
 
   protected onAction(event: Event, n: Notification): void {

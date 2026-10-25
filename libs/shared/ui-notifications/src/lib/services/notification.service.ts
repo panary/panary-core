@@ -66,7 +66,14 @@ export class NotificationService {
     const duration = options.sticky ? 0 : (options.duration ?? notificationDuration(type, !!options.action))
     const same = this.#notifications().find(n => n.type === type && n.message === message && n.title === options.title)
     if (same) {
-      const updated: Notification = { ...same, count: same.count + 1, action: options.action, duration }
+      // Quittierpflicht gewinnt: Eine Wiederholung ohne `sticky` darf eine stehende Meldung nicht
+      // zeitgesteuert machen. Eine Aktion bleibt, wenn die Wiederholung keine mitbringt.
+      const updated: Notification = {
+        ...same,
+        count: same.count + 1,
+        action: options.action ?? same.action,
+        duration: same.duration === 0 ? 0 : duration,
+      }
       this.#notifications.update(list => list.map(n => (n.id === same.id ? updated : n)))
       this.#arm(updated)
       return this.#ref(same.id)
@@ -82,7 +89,7 @@ export class NotificationService {
       count: 1,
     }
     this.#notifications.update(list => [created, ...list])
-    this.#trim()
+    this.#trim(created.id)
     this.#arm(created)
     return this.#ref(created.id)
   }
@@ -122,11 +129,13 @@ export class NotificationService {
   }
 
   #arm(notification: Notification): void {
+    // Liegt gerade ein Finger auf der Meldung, bleibt sie angehalten; nur die Restzeit beginnt neu.
+    const paused = this.#timers.get(notification.id)?.handle === null
     this.#clearTimer(notification.id)
     if (notification.duration <= 0) return
     const timer: Timer = { handle: null, remaining: notification.duration, startedAt: 0 }
     this.#timers.set(notification.id, timer)
-    this.#start(notification.id, timer)
+    if (!paused) this.#start(notification.id, timer)
   }
 
   #start(id: number, timer: Timer): void {
@@ -140,11 +149,14 @@ export class NotificationService {
     this.#timers.delete(id)
   }
 
-  /** Verdrängt die ältesten Meldungen mit Ablauf, bis der Stapel wieder passt. */
-  #trim(): void {
+  /**
+   * Verdrängt die ältesten Meldungen mit Ablauf, bis der Stapel wieder passt. Die gerade angelegte
+   * nie: Stehen schon genug quittierpflichtige, wächst der Stapel, statt die neue still zu schlucken.
+   */
+  #trim(createdId: number): void {
     let list = this.#notifications()
     while (list.length > MAX_VISIBLE_NOTIFICATIONS) {
-      const oldest = [...list].reverse().find(n => n.duration > 0)
+      const oldest = [...list].reverse().find(n => n.duration > 0 && n.id !== createdId)
       if (!oldest) break
       this.#clearTimer(oldest.id)
       list = list.filter(n => n !== oldest)

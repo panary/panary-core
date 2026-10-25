@@ -2404,6 +2404,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   #offerUndo(message: string, restore: () => void): void {
     const serial = ++this.#undoSerial
+    // Höchstens ein Angebot: Ein älteres „Rückgängig" griffe ohnehin nicht mehr (Serial).
+    this.#undoRef?.dismiss()
     this.#undoRef = this.#notifications.info(message, {
       action: {
         label: 'Rückgängig',

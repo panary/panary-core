@@ -502,6 +502,16 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
     expect(component.lineItems).toHaveLength(0)
   })
 
+  it('ein neues „Rueckgaengig" schliesst das aeltere — es steht hoechstens eines (core#1026)', () => {
+    const { component, noticeRefs } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.selectProduct(0)
+    component.increaseSelectedQuantity() // -> 2
+    component.increaseSelectedQuantity() // -> 3
+
+    expect(noticeRefs.map(ref => ref.dismissed)).toEqual([true, false])
+  })
+
   it('Minus bei Menge 1 ist deaktiviert und loescht NICHT', () => {
     const { component, notices } = setup()
     component.increaseLineItem(product('p-1'))

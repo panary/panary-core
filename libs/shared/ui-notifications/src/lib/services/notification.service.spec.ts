@@ -83,6 +83,46 @@ describe('NotificationService (core#1026)', () => {
     expect(messages(service)).toEqual([])
   })
 
+  it('eine Wiederholung ohne sticky macht eine quittierpflichtige nicht zeitgesteuert', () => {
+    const service = new NotificationService()
+    service.error('Rabattcode nicht eingelöst', { sticky: true })
+    service.error('Rabattcode nicht eingelöst')
+
+    vi.advanceTimersByTime(60_000)
+    expect(service.notifications()).toEqual([expect.objectContaining({ duration: 0, count: 2 })])
+  })
+
+  it('eine Wiederholung ohne Aktion behält die Aktion', () => {
+    const service = new NotificationService()
+    const run = vi.fn()
+    const ref = service.info('entfernt', { action: { label: 'Rückgängig', run } })
+    service.info('entfernt')
+
+    service.runAction(ref.id)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('eine Wiederholung lässt eine angehaltene Meldung angehalten', () => {
+    const service = new NotificationService()
+    const ref = service.success('halten')
+    service.pause(ref.id)
+    service.success('halten')
+
+    vi.advanceTimersByTime(10_000)
+    expect(messages(service)).toEqual(['halten'])
+    service.resume(ref.id)
+    vi.advanceTimersByTime(3000)
+    expect(messages(service)).toEqual([])
+  })
+
+  it('schluckt eine neue Meldung nicht, wenn der Stapel voll quittierpflichtiger ist', () => {
+    const service = new NotificationService()
+    for (const m of ['a', 'b', 'c']) service.error(m, { sticky: true })
+    service.success('neu')
+
+    expect(messages(service)).toEqual(['neu', 'c', 'b', 'a'])
+  })
+
   it('unterscheidet gleiche Texte verschiedener Art', () => {
     const service = new NotificationService()
     service.info('x')

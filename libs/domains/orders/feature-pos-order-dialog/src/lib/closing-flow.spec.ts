@@ -6,6 +6,10 @@ describe('closingSteps — Folge der Abschlusskette (core#1069)', () => {
     expect(closingSteps({ showPagers: true, showTables: true, takeOut: true })).toEqual(['pager', 'table', 'time'])
   })
 
+  it('überspringt den Tisch, wenn die Filiale keine Tische führt', () => {
+    expect(closingSteps({ showPagers: true, showTables: false, takeOut: true })).toEqual(['pager', 'time'])
+  })
+
   it('lässt die Zeit im Haus weg', () => {
     expect(closingSteps({ showPagers: true, showTables: true, takeOut: false })).toEqual(['pager', 'table'])
   })

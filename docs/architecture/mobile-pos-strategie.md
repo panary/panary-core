@@ -312,3 +312,9 @@ Der erste Schritt ist gebaut: ein Capacitor-8-Wrapper um `apps/pos-client` (`app
 - WLAN-ADB: Entwickleroptionen → Drahtloses Debugging → „Mit Kopplungscode koppeln"; am Mac `adb pair <ip>:<port>`, danach
   `adb connect <ip>:<port>`. Der Port ändert sich bei jedem Neustart des Drahtlosen Debuggings.
 - WebView debuggen: `chrome://inspect` am Mac.
+
+**CI-Gate (panary/panary-core#1028):** Die CI baut kein Android, und `.prettierignore` schließt `apps/pos-client/android`
+aus. `pnpm android-xml:gate` (`scripts/android-xml-gate.mjs`) prüft deshalb jede per `git ls-files` getrackte `*.xml`
+unter `apps/pos-client/android/` mit `xmllint --noout` auf Wohlgeformtheit — Anlass war ein `--` im Manifest-Kommentar
+(#1016). Fail-closed: 0 Dateien oder fehlendes `xmllint` ist ein Fehler. Wohlgeformt heißt nicht gültig; fehlende
+Attribute oder Manifest-Merge-Konflikte findet nur ein Gradle-Lauf.

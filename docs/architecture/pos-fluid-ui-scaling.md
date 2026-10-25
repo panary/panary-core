@@ -4,7 +4,7 @@ title: Fluide POS-UI-Skalierung & Terminal-Density — Mechanik-Referenz
 description: Referenz der Skalierungs-Mechanik im POS-Client — CSS-Tokens, Touch-Floors, Terminal-Density via device.uiScale, UiScaleService-Persistenz und px-Audit.
 tags: [pos-client, devices, ui]
 status: stable
-generated: { by: claude-code/fable-5, at: 2026-07-27T13:20:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T14:45:00Z }
 ---
 
 # Fluide POS-UI-Skalierung & Terminal-Density (PNRY-FEAT-POS-UI-SCALE-001)
@@ -21,7 +21,8 @@ Seit core#823 ist die Touch-Skala **Standard**; das Flag `pos-fluid-ui-scaling-v
 |---|---|
 | `--pnry-density` | Terminal-Density-Faktor (Default 1); setzt der `UiScaleService` per Inline-Style auf `<html>` |
 | `html { font-size }` | `calc(16px * var(--pnry-density))` — bewusst **ohne** Viewport-Anteil: größere Bildschirme bekommen mehr Kachelspalten, nicht größere Elemente (Konzept §4) |
-| `--pnry-tile-min` | Mindestbreite Artikel-Tile (`8.25rem` = 132px bei Dichte 1); Raster: `repeat(auto-fill, minmax(var(--pnry-tile-min, 8.25rem), 1fr))` |
+| `--pnry-tile-min` | Mindestbreite Artikel-Tile; global `8.25rem` (132px bei Dichte 1) als Rückfall, die Kasse setzt an `.kasse` 9,5rem ([core#1020](https://github.com/panary/panary-core/issues/1020)); Raster: `repeat(auto-fill, minmax(var(--pnry-tile-min, 8.25rem), 1fr))` |
+| `--pnry-tile-h` | Höhe von Produktkachel und Funktionstaste, nur an `.kasse` (5,25rem, core#1020) |
 | `.pnry-touch` / `.pnry-touch-primary` | Touch-Floors `max(3.5rem, 48px)` / `max(4rem, 48px)` — immer wirksam (56/64px bei Dichte 1, nie unter 48px) |
 
 ## Terminal-Density

@@ -198,6 +198,15 @@ jobs:
           node scripts/csp-connect-src.spec.mjs
           pnpm csp:gate
 
+      # Die CI baut kein Android und .prettierignore schliesst das Projekt aus: ein XML-Kommentar mit `--`
+      # brach so erst den lokalen APK-Build (#1016). Fail-closed: 0 Dateien oder fehlendes xmllint = rot.
+      - name: Android-XML auf Wohlgeformtheit pruefen
+        run: |
+          # xmllint fehlt auf ubuntu-latest (gemessen: ENOENT, #1028); das Gate bleibt fail-closed
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+          node scripts/android-xml-gate.spec.mjs
+          pnpm android-xml:gate
+
       # Libs mit `paths`-Override auf ein fremdes dist muessen `panaryVitestPlugins()` in ihre
       # vitest.config.mts einhaengen (CLAUDE.md §2.1, #404): sonst laedt Vitest je nach
       # Task-Reihenfolge eine .d.ts statt Code — mal rot, meist still gruen. Das Gate faengt

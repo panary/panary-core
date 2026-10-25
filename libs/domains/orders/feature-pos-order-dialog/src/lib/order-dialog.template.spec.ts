@@ -195,9 +195,16 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
     expect(template).toContain('@if (notice(); as hint)')
   })
 
-  it('trennt Namen auf Kacheln und Gruppen nicht mitten im Wort (core#853)', () => {
-    expect(template).not.toMatch(/hyphens/)
-    expect(template).not.toMatch(/lang="de"/)
+  // core#1019: Die Gruppentaste hat wieder eine feste Breite und trennt deshalb lange Ein-Wort-Namen wie vor dem
+  // Redesign. Kacheln bleiben ohne Silbentrennung — dort las sich „FLAMMKU-CHEN" schlecht (core#853).
+  it('trennt Namen auf Kacheln nicht mitten im Wort, nur in der Gruppentaste (core#853, core#1019)', () => {
+    const chip = template.slice(template.indexOf('<ng-template #groupChip'), template.indexOf('</ng-template>'))
+    const ohneChip = template.replace(chip, '')
+    expect(ohneChip).not.toMatch(/hyphens/)
+    expect(ohneChip).not.toMatch(/lang="de"/)
+    expect(chip.match(/hyphens/g)).toHaveLength(1)
+    // Ohne `lang` trennt der Browser nicht: Das Dokument ist `lang="en"` (apps/pos-client/src/index.html).
+    expect(chip).toContain('lang="de"')
   })
 
   it('hat keine Spalte 2 mehr', () => {
@@ -227,6 +234,17 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
       .map(k => k.match(/^w-(\d+)$/)?.[1])
       .find(Boolean)
     expect(Number(burger) * 0.25).toBe(GROUP_BURGER_WIDTH_REM)
+  })
+
+  it('gibt jeder Gruppe dieselbe feste Breite, lange Namen brechen in zwei Zeilen um (core#1019)', () => {
+    const chip = klassen('(click)="createProductButtons(productGroup)"\n      [disabled]')
+    expect(chip).toContain('w-[var(--pnry-group-chip)]')
+    expect(chip.filter(k => /^(min-w|max-w)-/.test(k))).toEqual([])
+    expect(chip).not.toContain('whitespace-nowrap')
+    const name = template.slice(template.indexOf('<ng-template #groupChip'), template.indexOf('</ng-template>'))
+    expect(name).toContain('line-clamp-2')
+    expect(name).not.toContain('truncate')
+    expect(scss).toMatch(/\.kasse \{[^}]*--pnry-group-chip: 5\.25rem;/)
   })
 
   it('misst Leiste und Messzeile mit derselben Gruppen-Vorlage, Farbe als Punkt statt Unterkante', () => {
@@ -440,5 +458,52 @@ describe('Bezahlansicht-Template — Karte und Gutschein (core#831)', () => {
 
   it('sperrt „Bar kassieren", bis der Betrag gedeckt ist, und während des Abschlusses', () => {
     expect(view).toContain('[disabled]="busy() || !canCollect()"')
+  })
+})
+
+// core#1021: Die Steuerleiste einer unteren Zeile lag halb unter dem Listenrand. Gerendert wird hier nichts (Node),
+// deshalb prüft die Spec die Verdrahtung an der Quelle; was der Helfer tut, prüft cart-scroll.spec.ts.
+describe('Kasse — markierte Zeile in den Sichtbereich (core#1021)', () => {
+  const component = readFileSync(fileURLToPath(new URL('./order-dialog.component.ts', import.meta.url)), 'utf8')
+  const leiste = template.slice(template.indexOf('<ng-template #steuerleiste>'))
+  // Der öffnende Tag der Leiste selbst — Kommentare davor zählen nicht.
+  const tag = leiste.match(/<div\s[^>]*role="toolbar"/)?.[0] ?? ''
+
+  it('markiert die eine Steuerleiste, die alle Zeilenarten teilen', () => {
+    expect(template.match(/#selectionToolbar\b/g)).toHaveLength(1)
+    expect(tag).toMatch(/\s#selectionToolbar\s/)
+    expect(template.match(/\[ngTemplateOutlet\]="steuerleiste"/g)).toHaveLength(3)
+  })
+
+  it('scrollt nach jedem neuen Rendern der Leiste, mit ihrem Außenabstand', () => {
+    expect(component).toContain("viewChild<ElementRef<HTMLElement>>('selectionToolbar')")
+    expect(component).toContain('effect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))')
+    expect(tag.match(/class="([^"]*)"/)?.[1].split(/\s+/)).toContain('scroll-mb-2')
+  })
+})
+
+// core#1020: Auf der Sunmi passten nur 3×4 Produkte. Kachel und Funktionstaste schrumpfen auf rund 0,6 der Fläche,
+// bleiben aber gemeinsam ein Maß (code-style.md §9.1) und ein Touch-Ziel ≥ 48 px.
+describe('Kasse — Kachelmaß (core#1020)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  const kasse = scss.slice(scss.indexOf('.kasse {'), scss.indexOf("&[data-hand='right']"))
+  const rem = (token: string) => Number(kasse.match(new RegExp(`--${token}: (\\d+(?:\\.\\d+)?)rem;`))?.[1])
+
+  it('verkleinert die Kachel gegenüber 12,5 × 6,5rem auf etwa 0,6 der Fläche', () => {
+    const anteil = (rem('pnry-tile-min') * rem('pnry-tile-h')) / (12.5 * 6.5)
+    expect(anteil).toBeGreaterThanOrEqual(0.55)
+    expect(anteil).toBeLessThanOrEqual(0.65)
+  })
+
+  it('hält Breite und Höhe über 48 px bei Dichte 1', () => {
+    expect(rem('pnry-tile-min') * 16).toBeGreaterThanOrEqual(48)
+    expect(rem('pnry-tile-h') * 16).toBeGreaterThanOrEqual(48)
+  })
+
+  it('gibt Produktkachel und Funktionstaste dieselbe Höhe aus dem Token, ohne festes Maß daneben', () => {
+    expect(template.match(/h-\[var\(--pnry-tile-h\)\]/g)).toHaveLength(2)
+    expect(template).toContain('w-[var(--pnry-tile-min)] h-[var(--pnry-tile-h)]')
+    expect(template).toContain('minmax(var(--pnry-tile-min),1fr)')
+    expect(template).not.toMatch(/h-\[6\.5rem\]/)
   })
 })

@@ -4,8 +4,14 @@
  * einer Zone (Ziffern 0–9, − vor +, Text bleiben). Keine `dir="rtl"`-Tricks. Ohne Wahl gilt links (wie bisher).
  */
 .kasse {
-  /* Produktkachel und Funktionstaste teilen ein Maß (code-style.md §9.1); 12,5rem laut Konzept §4. */
-  --pnry-tile-min: 12.5rem;
+  /* Produktkachel und Funktionstaste teilen ein Maß (code-style.md §9.1). Seit core#1020 9,5 × 5,25rem statt
+     12,5 × 6,5rem (Konzept §4): Fläche ×0,61, auf der Sunmi passten sonst nur 3×4 Produkte. Beides rem — die
+     Dichte skaliert über die Root-Schrift mit, hier wird nichts zusätzlich verkleinert. */
+  --pnry-tile-min: 9.5rem;
+  --pnry-tile-h: 5.25rem;
+  /* Gruppentaste: feste Breite, Namen brechen um (core#1019). 5,25rem ist die Mindestbreite vor dem Redesign
+     (pos-v26.10.24): Trotz Rail passen auf 1366 px wieder 13 Gruppen und der Burger in die Zeile. */
+  --pnry-group-chip: 5.25rem;
 
   display: grid;
   grid-template-columns: 25rem minmax(0, 1fr);

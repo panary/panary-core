@@ -1,0 +1,2 @@
+* **Update** (panary/panary-core#1023): [POS-Split-Layout](../domains/pos-split-layout.md) — Vorbestellungen: Der Auswahlring einer Karte wird nicht mehr links vom `overflow` der Liste abgeschnitten (Innenabstand `p-1`); die Historie hatte mit `p-2` schon genug.
+* **Update** (panary/panary-core#1023): Mutationsprobe `pre-order-list.tokens.spec.ts`: `p-1` an der Liste entfernt → 1 rot; Kontrolllauf 4/4 grün.

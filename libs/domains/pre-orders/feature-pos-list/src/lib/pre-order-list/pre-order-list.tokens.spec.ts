@@ -26,3 +26,13 @@ describe('Vorbestellungen: Wochentag in der App-Sprache (core#975)', () => {
     expect(source).toContain("weekday: 'long'")
   })
 })
+
+// core#1023: Der Auswahlring (ring-2, außen gezeichnet) wurde vom overflow der Liste links abgeschnitten.
+describe('Vorbestellungen: Auswahlring bleibt sichtbar (core#1023)', () => {
+  it('die scrollende Liste hat Innenabstand für den Ring', () => {
+    const source = readFileSync(fileURLToPath(new URL('./pre-order-list.component.ts', import.meta.url)), 'utf8')
+    const liste = source.match(/<div posSplitList class="([^"]*)"/)?.[1].split(' ') ?? []
+    expect(liste).toEqual(expect.arrayContaining(['overflow-y-auto', 'p-1']))
+    expect(source).toContain('[class.ring-2]="selectedOrder()?._id === order._id"')
+  })
+})

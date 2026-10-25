@@ -4,27 +4,13 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
  * Einheitlicher Seitenkopf des POS (core#972, Designstudie POS-Screens v2, E6): 68 px hoch, Titel mit
  * grauem Zusatz, ohne Zurück-Pfeil, Kopf-Icon und Kasten — die Rail ist immer da. Der Standard-Slot
  * nimmt Zähler und Suche neben dem Titel, `[pageHeaderActions]` die Aktionen. Der Titel bleibt immer
- * links (Text linksbündig, core#1005); gespiegelt werden nur die Aktionen: Sie sitzen auf der Seite der
- * Rail (`data-rail-side` am App-Rahmen der Shell, core#976) — Rail rechts: am rechten Rand, Rail links:
- * gleich hinter dem Titel.
+ * links (Text linksbündig, core#1005), die Aktionen stehen ihm gegenüber am rechten Rand — bei Rail links
+ * wie rechts (core#1022). Gleich hinter dem Titel hingen sie bei Rail links am Titel.
  */
 @Component({
   selector: 'lib-page-header',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block shrink-0' },
-  styles: [
-    `
-      .page-header-spacer {
-        order: 1;
-      }
-      .page-header-actions {
-        order: 2;
-      }
-      :host-context([data-rail-side='left']) .page-header-actions {
-        order: 0;
-      }
-    `,
-  ],
   template: `
     <header class="flex h-[4.25rem] items-center gap-4 px-6">
       <div class="flex min-w-0 items-baseline gap-3">

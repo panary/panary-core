@@ -117,6 +117,7 @@ import {
 import { BundleFlow } from './bundle-flow'
 import { KasseDraftRegistry } from './kasse-draft-registry'
 import { splitGroupBar } from './group-bar'
+import { revealCartSelection } from './cart-scroll'
 import {
   type CustomizeModel,
   REMOVED_INGREDIENT_PREFIX,
@@ -209,6 +210,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productGroupContainer') productGroupContainer!: ElementRef
   /** Unsichtbare Messzeile mit allen Gruppen — liefert die Breiten, nach denen die Leiste aufteilt (core#908). */
   private readonly productGroupMeasure = viewChild<ElementRef<HTMLElement>>('productGroupMeasure')
+  /** Steuerleiste der markierten Zeile — es steht höchstens eine im Warenkorb (core#1021). */
+  private readonly selectionToolbar = viewChild<ElementRef<HTMLElement>>('selectionToolbar')
   #cdr = inject(ChangeDetectorRef)
   readonly discountCodeService = inject(DiscountCodeService)
 
@@ -543,6 +546,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const kasse = inject(KasseDraftRegistry)
     inject(DestroyRef).onDestroy(kasse.attach(() => this.#hadInput))
     inject(DestroyRef).onDestroy(kasse.attachSheet(this.sheetOpen))
+
+    // Jede neue Markierung rendert ihre eigene Leiste; das Signal folgt ihr, egal über welchen Weg markiert wurde
+    // (Zeile, Position oder Kopf einer Kombination). Gescrollt wird erst, wenn die Leiste im DOM steht.
+    effect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))
 
     this._productionTimes = this.orderService.productionTimes
 

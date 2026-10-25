@@ -5,7 +5,7 @@ description: Warum der Kassenbildschirm seit core#829 ein Zonen-Grid mit einzeil
 tags: [orders, pos, ux, design-system]
 status: stable
 decision: accepted
-generated: { by: claude-code/opus-5.5, at: 2026-10-23T04:40:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T14:20:00Z }
 ---
 
 # POS-Layout B — Gruppenleiste, Warenkorbspalte, Steuerleiste, Spiegelung
@@ -39,11 +39,15 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
    Angepasst wird über die Steuerleiste. Bis dahin öffnete der Tipp das Panel sofort und nahm das
    Raster weg, auch wenn nur die Menge zu ändern war.
 4. **Gruppenleiste ohne Wischen, eine Zeile** (seit [core#908](https://github.com/panary/panary-core/issues/908)):
-   Jede Gruppe ist so breit wie ihr Name, die Gruppenfarbe ist ein Punkt davor. Was nicht passt, liegt
+   Jede Gruppe ist gleich breit (seit core#1019, unten), die Gruppenfarbe ist ein Punkt davor. Was nicht passt, liegt
    hinter einem Burger-Button am Zeilenende. `group-bar.ts` teilt nach den Breiten auf, die eine unsichtbare
    Messzeile mit allen Gruppen liefert; die Reihenfolge bleibt, keine Gruppe rückt in eine Lücke vor.
    *Vorher (core#829):* `minmax(9rem, 1fr)` in höchstens zwei Zeilen, danach „Weitere (n)". Auf dem
    MacBook brachen die breiten Felder lange Namen um, und die zweite Zeile kostete eine Rasterzeile.
+   *Nachgeschärft ([core#1019](https://github.com/panary/panary-core/issues/1019)):* Die Inhaltsbreite
+   kostete auf der Sunmi Gruppen in der Zeile. Seither ist jede Gruppe gleich breit (`--pnry-group-chip`,
+   5,25rem), lange Namen brechen in zwei Zeilen um, mit Silbentrennung nur in dieser Taste. Die Aufteilung
+   misst weiter, statt die Breite als Konstante zu wiederholen.
 5. **Spiegelung je Mitarbeiter** über `grid-template-areas` und `data-hand` aus `posHandedness`
    ([core#827](https://github.com/panary/panary-core/issues/827)). Gespiegelt werden Zonen
    (Warenkorb ↔ Raster, Primärtaste ↔ Ziffernleiste), nie Inhalte: Die Ziffern laufen 0–9 von links

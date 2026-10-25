@@ -4,7 +4,7 @@ title: POS-Navigation — Rail statt Dashboard-Kacheln
 description: 'Wie der POS seit core#832 navigiert — Rail mit fünf direkten Einträgen, „Mehr" mit Gruppen und direktem Einstellungen-Eintrag, ruhige Fußzone mit Stempeltaste, Abmelden und Avatar (core#942), Rail gegenüber dem Warenkorb, Avatar-Menü mit Bedienhand und Darstellung; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T09:10:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T15:00:00Z }
 ---
 
 # POS-Navigation — Rail statt Dashboard-Kacheln
@@ -88,7 +88,7 @@ der CDK ist im Code begründet: `cdkMenuItemDisabled` setzt nur `aria-disabled`;
 
 ## Seitenkopf
 
-`<lib-page-header>` (`@panary/shared/ui-common`, [core#972](https://github.com/panary/panary-core/issues/972), Designstudie E6) ist der eine Kopf aller POS-Seiten: 68 px, `title`, grauer `subtitle`, Standard-Slot für Zähler und Suche, `[pageHeaderActions]` für Aktionen. Ohne Zurück-Pfeil und Kopf-Icon, ohne Kasten. Die Shell setzt `data-rail-side` am App-Rahmen; der Titel bleibt immer links ([core#1005](https://github.com/panary/panary-core/issues/1005)), nur die Aktionen wechseln per `:host-context` die Seite — Rail rechts: am rechten Rand, Rail links: gleich hinter dem Titel. Seiten brauchen keine Eingabe dafür. Jede Seite setzt ihn selbst ein; eine DOM-Spec gibt es nicht, weil der Workspace keine Komponenten-Tests fährt.
+`<lib-page-header>` (`@panary/shared/ui-common`, [core#972](https://github.com/panary/panary-core/issues/972), Designstudie E6) ist der eine Kopf aller POS-Seiten: 68 px, `title`, grauer `subtitle`, Standard-Slot für Zähler und Suche, `[pageHeaderActions]` für Aktionen. Ohne Zurück-Pfeil und Kopf-Icon, ohne Kasten. Die Shell setzt `data-rail-side` am App-Rahmen; der Titel bleibt immer links ([core#1005](https://github.com/panary/panary-core/issues/1005)), die Aktionen stehen ihm gegenüber am rechten Rand, bei Rail links wie rechts ([core#1022](https://github.com/panary/panary-core/issues/1022); vorher hingen sie bei Rail links gleich hinter dem Titel). Der Kopf spiegelt also nicht mit; Seiten brauchen keine Eingabe dafür. Jede Seite setzt ihn selbst ein; eine DOM-Spec gibt es nicht, weil der Workspace keine Komponenten-Tests fährt.
 
 **Offline-Streifen** ([core#972](https://github.com/panary/panary-core/issues/972), E8): `AppComponent` rendert den priorisierten Cloud-Status mit `layout="strip"` — volle Breite oben im Fluss, der Inhalt rückt nach unten, nichts wird verdeckt. Die Wurzel ist dafür eine Spalte; die geroutete Seite füllt den Rest. Der Admin-Client behält die schwebende Karte (`layout="floating"`, Standard). Die Einstellungen nutzen den Seitenkopf ohne Zurück-Pfeil und Zahnrad-Icon.
 

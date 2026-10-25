@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: POS-Anpassen-Panel — Zutaten abwählen, Extras hinzufügen
-description: 'Beim Antippen eines Produkts mit ui.showOptionsAuto (oder einer Warenkorb-Position) zeigt der Bestelldialog ein Sheet über Raster und Ziffernleiste mit abwählbaren Zutaten und Extras je Optionsgruppe; die OHNE-Funktionstaste ist entfallen.'
+description: 'Beim Antippen eines Produkts mit ui.showOptionsAuto (oder über „Anpassen“ an jeder Warenkorb-Position) zeigt der Bestelldialog ein Sheet über Raster und Ziffernleiste mit abwählbaren Zutaten, Extras je Optionsgruppe und „Alle Modifier“; ohne beides mit Leerzustand. Das alte Extras-Raster ist seit core#1085 entfallen.'
 tags: [orders, pos, products]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:15:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T22:00:00Z }
 ---
 
 # POS-Anpassen-Panel
@@ -52,18 +52,39 @@ Spalten (`auto-fill`, 16rem), die Überschrift über die volle Breite; gescrollt
 | Auslöser | Bedingung |
 | --- | --- |
 | Antippen des Produkts (Kachel oder Numpad-Nummer) | `product.ui.showOptionsAuto === true` **und** anpassbarer Inhalt |
-| „Anpassen" in der Steuerleiste der markierten Position (seit [core#829](https://github.com/panary/panary-core/issues/829); vorher öffnete schon der Tipp auf die Position) | anpassbarer Inhalt, unabhängig vom Flag |
+| „Anpassen" in der Steuerleiste der markierten Position (seit [core#829](https://github.com/panary/panary-core/issues/829); vorher öffnete schon der Tipp auf die Position) | **immer** — jedes Produkt, auch ein Menü, seit [core#1085](https://github.com/panary/panary-core/issues/1085) |
 
 **Anpassbarer Inhalt** heißt: mindestens eine `ingredientReferences`-Zutat mit `isRemovable: true`
 oder eine `optionGroups`-Gruppe mit Optionen (`hasCustomizableContent` in
-`libs/domains/orders/feature-pos-order-dialog/src/lib/product-customize.ts`). Ohne beides bleibt es
-beim bisherigen Extras-Raster mit „Alle Modifier anzeigen".
+`libs/domains/orders/feature-pos-order-dialog/src/lib/product-customize.ts`). Er entscheidet nur noch,
+ob sich das Sheet beim Antippen von selbst öffnet.
 
-Bundles (Menüs) öffnen das Panel **nicht**, auch nicht über den Warenkorb-Tipp. Ihre
-Optionsgruppen sind Menüschritte, die der Bundle-Flow mit seinen Pflichtschritten abarbeitet.
+### Eine Ansicht für jedes Produkt (core#1085)
 
-`ui.showOptionsAuto` pflegt die Cloud-Produktdetailseite. Das Legacy-Feld `showExtrasAfterSelect`
-wird weiterhin nur im Soßen-Schritt gelesen und nicht migriert.
+Bis core#1085 nahm „Anpassen" an einem Produkt **ohne** anpassbaren Inhalt einen zweiten Weg: das alte
+Extras-Raster „Extras auswählen" mit den Funktionstasten ABBRUCH und „Alle Modifier anzeigen" statt des
+Sheets. Am Gerät fiel das beim Kassentest mit `pos-v26.10.31` auf: Das Schnitzel zeigte das Raster, die
+Pizza das Sheet. Ursache war `setExtraSubButtons`, das nur für `#canCustomize(line)` das Sheet öffnete.
+Ein Ladefehler lag nicht vor: Das Demo-Profil legt das Schnitzel mit sechs Zutaten an, keine davon
+`isRemovable`, und ohne Optionsgruppe (gemessen in der Sandbox-Mongo, beide Filialen). Erst
+`sandbox.sh testdaten` macht „Eier" abwählbar und hängt eine Gruppe „Extras" an. Hätte das Produkt
+Optionsgruppen, deren Modifier im POS-Katalog fehlen, wäre der Weg das Sheet gewesen (die Prüfung zählt
+die rohen `optionGroups`), nicht das Raster.
+
+Seitdem gilt:
+
+- „Anpassen" öffnet für jede markierte Zeile oder Position das Sheet. Ohne Zutaten und Extras zeigt es
+  einen **Leerzustand** („Keine Extras hinterlegt", `model.empty`, `data-testid="customize-empty"`).
+  Anzahl, Rabatt und Notiz bleiben in der Steuerleiste.
+- **Menüs** öffnen das Sheet ebenfalls, aber ihre Optionsgruppen erscheinen dort **nicht**: Sie sind
+  Menüschritte, die der Bundle-Flow mit seinen Pflichtschritten abarbeitet. Bis core#1085 öffnete ein
+  Menü gar kein Panel, sondern ebenfalls das Raster.
+- Nur die ganz markierte Kombination öffnet nichts. Dort heißt die Taste „Kombi lösen".
+- Das Raster-Gerüst (`setExtraSubButtons`, `#fillAllModifierButtons`, `#increaseExtraFromRaster`) und der
+  Legacy-Zweig `showExtrasAfterSelect` im Soßen-Schritt sind entfernt. Das Feld kennt das Produktschema
+  nicht mehr (`additionalProperties: false`), der Zweig war unerreichbar.
+
+`ui.showOptionsAuto` pflegt die Cloud-Produktdetailseite.
 
 ### Zeilen aufspalten und zusammenführen (#699)
 
@@ -79,7 +100,6 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 | Panel im Hinzufügen-Ablauf (Multiplikator, Auto-Panel) | Standard „alle" — „3 ×" Burger ohne Ketchup bleibt eine Zeile mit 3 Stück. |
 | „Fertig", Wechsel zu einer anderen Zeile, Bestellen | Gleiche Konfigurationen werden **eine** Zeile. Die vordere bleibt und übernimmt die Menge; die Markierung folgt ihr. |
 | „Abbrechen" | Nimmt genau die Wirkung des Panels zurück: abgespaltene Stücke gehen an ihre Herkunft zurück (samt kopiertem Rabatt), Modifier der Zeilen vom Öffnen werden wiederhergestellt. Was währenddessen von außen geschah (Produkt per Numpad, Menge aus der Steuerleiste), bleibt. |
-| Extra über das Raster (ohne Panel) an einer Zeile mit n > 1 | Ein Stück wird abgespalten, das Extra gebucht, danach zusammengeführt. |
 | Produkt antippen | Landet nur auf einer Zeile **gleicher** Konfiguration, also ohne Anpassung. „1× Burger + Käse" bekommt keinen zweiten Burger, es entsteht „1× Burger". Der Multiplikator addiert die ganze Menge (bis #699 nur +1). |
 
 - **Auto-Panel:** Die frühere Regel „je Tipp eine eigene Zeile" ist entfallen. Zwei unveränderte
@@ -88,7 +108,7 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 - **Positionsrabatt (D5):** Ein Prozent-Rabatt geht beim Abspalten mit, ein Festbetrag bleibt an der
   Restzeile (die Infobox sagt es). Zusammengeführt wird nur ohne Rabatt oder bei gleichem
   Prozent-Rabatt, nie bei Festbetrag.
-- **Menüs (D6):** werden für ein Extra aus dem Raster aufgespalten (Bestandteile tief kopiert), aber
+- **Menüs (D6):** werden für ein Extra mit „1 Stück" aufgespalten (Bestandteile tief kopiert), aber
   **nie zusammengeführt**. Ebenso nie zusammengeführt: Zeilen ohne `externalId`, Zeilen über eine
   Kombinationsgrenze, bereits abgeschickte Bestellungen und eine Bestandszeile mit Modifiern ohne
   `modifierScope: 'unit'` mit einer neuen (die Zählweise gehört zum Schlüssel). Eine solche
@@ -104,22 +124,27 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
 | Kopf | Produktname, Umschalter „1 Stück \| alle n" (seit #795 neben dem Titel) bzw. „gilt für n×", Zusammenfassung einzeilig („ohne Ketchup · 2× Käse") | Umschalter nur vor der ersten Änderung |
 | Zutaten | jede `isRemovable`-Zutat als Chip, Name aus `displayName` vor `ingredientName` | Tipp schaltet „drin" ↔ „ohne" (rot, durchgestrichen, Preis-Effekt) |
 | Extras | je Optionsgruppe Karten mit Name, Aufpreis, `−` Menge `+`, seit #795 spaltenweise (erst untereinander, dann rechts weiter) | Plus gesperrt bei `maxSelections`, Minus bei Menge 0 |
-| Fuß | Abbrechen · Alle Modifier · (an einer Kombinations-Position) n herauslösen · Fertig; unter 42rem Panelbreite kompakt | Fertig gesperrt („Noch n wählen"), solange `minSelections` fehlt |
+| Leerzustand | nur ohne Zutaten und Extras: „Keine Extras hinterlegt" mit Hinweis auf „Alle Modifier" (core#1085) | — |
+| Fuß | Abbrechen · Alle Modifier (Umschalter) · (an einer Kombinations-Position) n herauslösen · Fertig; unter 42rem Panelbreite kompakt | Fertig gesperrt („Noch n wählen"), solange `minSelections` fehlt |
 
 - **`maxSelections: 0`** gilt als unbegrenzt.
 - Eine Option, deren Produkt kein Modifier ist, steht mit Warnhinweis da und lässt sich nicht
-  buchen (dieselbe Regel wie im Raster, #273).
+  buchen (#273).
 - **Abbrechen** verwirft die Anpassung seit dem Öffnen des Panels, seit #699 inklusive Aufspaltung.
   Die Zeile selbst bleibt: Abbrechen verwirft die Anpassung, nicht das Produkt.
 - Jeder andere Ansichtswechsel (Produktgruppe, Auswahl aufheben) schließt das Panel und **behält**
-  die Änderungen, wie früher der Wechsel aus dem Extras-Raster.
+  die Änderungen.
 - **Wechselt die Auswahl** bei offenem Panel (Kombinations-Position, Pfeiltasten), zieht das Panel
-  zur neuen Zeile mit. Ist die nicht anpassbar, schließt es, und die Auswahl bleibt stehen. Plus und
+  zur neuen Zeile mit, seit core#1085 auch auf eine ohne Extras (Leerzustand). Plus und
   Minus buchen ohnehin auf die Zeile des Panels, nie auf die gerade markierte.
 - **Änderungen von außen** kommen im Panel an: Menge per Steuerleiste oder Undo zieht „gilt für n×"
   nach, und das Löschen der Zeile schließt das Panel.
-- **Alle Modifier** öffnet das Raster aller Katalog-Modifier für die Zeile, etwa für ein Extra, das
-  in keiner Optionsgruppe des Produkts steht.
+- **Alle Modifier** blendet seit core#1085 eine Gruppe „Alle Modifier" im Sheet ein und wieder aus
+  (`aria-pressed`): alle Katalog-Modifier ohne die für diese Zeile ausgeschlossenen
+  (`excludedButtons`/`excludedSubButtons`) und ohne die, die schon in einer Optionsgruppe des Produkts
+  stehen (sonst zählte ihre Menge in beiden Gruppen). Unbegrenzt, gebucht unter dem allgemeinen
+  Extra-Thema wie früher im Raster. Abspalten regelt der Umschalter „1 Stück | alle n" wie bei jedem
+  anderen Extra. Vorher wechselte die Taste ins Raster aller Modifier.
 
 Gebucht wird über dieselben Methoden wie bisher. Zutaten nutzen `toggleIngredientRemoval`, also den
 Modifier „Ohne X" (siehe [„OHNE"-Modifier](modifier-ohne-marker.md)). Extras laufen über

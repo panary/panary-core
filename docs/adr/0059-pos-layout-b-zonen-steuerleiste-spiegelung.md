@@ -24,6 +24,8 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
 - **Gruppen per Wischen oder Menü.** Ab etwa zehn Gruppen verschwand der Rest hinter einem
   Hamburger-Menü.
 - **Linkshänder** greifen bei Warenkorb links und Primärtaste links über die Ziffern hinweg.
+  *Nachtrag core#1063:* Die Bezeichnung ist seitdem getauscht. Warenkorb links heißt „Rechtshänder“, der Wert
+  `left` bleibt ([Bedienhand](../domains/pos-bedienhand.md)).
 
 ## Entscheidung
 

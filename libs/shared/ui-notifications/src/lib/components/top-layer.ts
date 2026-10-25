@@ -131,3 +131,14 @@ export function openModalBounds(candidates: readonly ModalCandidate[]): DialogBo
   }
   return null
 }
+
+/**
+ * Betrifft eine DOM-Änderung einen Dialog? Die CDK entfernt ein Overlay beim Schließen aus dem DOM, ohne
+ * `hidePopover` — dabei kommt kein `toggle`. Ohne diese Beobachtung blieben zurückgehaltene Meldungen nach dem
+ * Schließen verborgen (core#1094, im Sichttest gemessen).
+ */
+export function touchesDialog(node: Node): boolean {
+  if (node.nodeType !== 1) return false
+  const element = node as Element
+  return element.matches(MODAL_DIALOG_SELECTOR) || element.querySelector(MODAL_DIALOG_SELECTOR) !== null
+}

@@ -21,6 +21,7 @@ import {
   MODAL_DIALOG_SELECTOR,
   openModalBounds,
   placeBesideDialog,
+  touchesDialog,
   raiseAboveForeignPopovers,
   syncTopLayer,
   type TopLayerElement,
@@ -289,6 +290,13 @@ export class NotificationOutletComponent {
       }
       const stop = raiseAboveForeignPopovers(this.#doc, layer, visible, top, onDialogChange)
       destroyRef.onDestroy(stop)
+      const view = this.#doc.defaultView
+      if (!view?.MutationObserver) return
+      const observer = new view.MutationObserver(mutations => {
+        if (mutations.some(m => [...m.addedNodes, ...m.removedNodes].some(touchesDialog))) onDialogChange()
+      })
+      observer.observe(this.#doc.body, { childList: true, subtree: true })
+      destroyRef.onDestroy(() => observer.disconnect())
     })
   }
 
@@ -319,6 +327,9 @@ export class NotificationOutletComponent {
     const layer = this.layer()?.nativeElement
     if (!layer) return
     const items = Array.from(layer.querySelectorAll<HTMLElement>(':scope > .notification'))
+    // Gerechnet wird über die Liste des Dienstes, nicht über das DOM: Läuft das vor Angulars Render, fehlen
+    // die neuen Elemente noch — mit `count: 0` blieben dann alle verborgen (core#1094, im Sichttest gemessen).
+    const list = untracked(this.notifications)
     const dialog =
       'showPopover' in layer
         ? openModalBounds(Array.from(this.#doc.querySelectorAll<HTMLElement>(MODAL_DIALOG_SELECTOR)))
@@ -331,7 +342,7 @@ export class NotificationOutletComponent {
           anchorTop: anchorTop(),
           viewportHeight: this.#doc.defaultView?.innerHeight ?? 0,
           dialog,
-          heights: items.map(item => item.offsetHeight || FALLBACK_NOTIFICATION_HEIGHT),
+          heights: list.map((_, i) => items[i]?.offsetHeight || FALLBACK_NOTIFICATION_HEIGHT),
           gap: NOTIFICATION_GAP,
         }),
       )

@@ -6,6 +6,7 @@ import {
   openModalBounds,
   placeBesideDialog,
   raiseAboveForeignPopovers,
+  touchesDialog,
   syncTopLayer,
   type ToggleTarget,
   type TopLayerElement,
@@ -253,5 +254,28 @@ describe('MODAL_DIALOG_SELECTOR (core#1094)', () => {
     expect(
       matches('<div role="dialog" class="kasse__sheet"></div><div popover="manual" role="alertdialog"></div>'),
     ).toBe(0)
+  })
+})
+
+describe('touchesDialog (core#1094)', () => {
+  const node = (html: string) => {
+    document.body.innerHTML = html
+    return document.body.firstChild as Node
+  }
+
+  it('erkennt den Overlay-Host, der einen Dialog enthält — die CDK entfernt ihn ohne toggle', () => {
+    expect(
+      touchesDialog(
+        node(
+          '<div class="cdk-overlay-popover"><mat-dialog-container class="cdk-dialog-container"></mat-dialog-container></div>',
+        ),
+      ),
+    ).toBe(true)
+    expect(touchesDialog(node('<mat-dialog-container class="cdk-dialog-container"></mat-dialog-container>'))).toBe(true)
+  })
+
+  it('übergeht Text und fremde Elemente', () => {
+    expect(touchesDialog(document.createTextNode('x'))).toBe(false)
+    expect(touchesDialog(node('<div class="notification"></div>'))).toBe(false)
   })
 })

@@ -98,7 +98,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of filteredData(); track row.date.getTime()) {
+              @for (row of filteredData(); track row.workingTime?._id ?? row.date.getTime()) {
                 <tr
                   class="border-b border-line-soft last:border-0 hover:bg-surface-elevated transition-colors"
                   [class.bg-surface-elevated]="row.status === 'off'"

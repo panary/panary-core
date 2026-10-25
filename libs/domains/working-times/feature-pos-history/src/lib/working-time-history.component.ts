@@ -86,7 +86,7 @@ export class WorkingTimeHistoryComponent {
   })
 
   /** Der Monat ohne einen einzigen Eintrag (freie Tage gibt es immer, zählen aber nicht). */
-  monthIsEmpty = computed(() => this.monthlyData().every(d => d.status === 'off'))
+  monthIsEmpty = computed(() => this.monthlyData().length > 0 && this.monthlyData().every(d => d.status === 'off'))
 
   totals = computed(() => monthTotals(this.monthlyData(), new Date()))
   totalNetLabel = computed(() => formatTotal(this.totals().netMs))
@@ -159,6 +159,8 @@ export class WorkingTimeHistoryComponent {
           $gte: start.toISOString(),
           $lte: end.toISOString(),
         },
+        // Aufsteigend, weil `newestFirst` mehrere Einträge eines Tages danach ordnet (später zuerst).
+        $sort: { checkinDate: 1 },
       },
     })
 

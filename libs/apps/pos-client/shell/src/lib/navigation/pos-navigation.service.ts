@@ -17,7 +17,7 @@ import {
   RAIL_ENTRIES,
   resolveNavGroups,
   resolveNavItems,
-  SETTINGS_ENTRIES,
+  SETTINGS_ENTRY,
 } from './pos-navigation'
 import { PosDayActionsService } from './pos-day-actions.service'
 
@@ -48,7 +48,7 @@ export class PosNavigationService {
 
   readonly rail = computed(() => resolveNavItems(RAIL_ENTRIES, this.context()))
   readonly moreGroups = computed(() => resolveNavGroups(MORE_GROUPS, this.context()))
-  readonly settings = computed(() => resolveNavItems(SETTINGS_ENTRIES, this.context()))
+  readonly settings = computed(() => resolveNavItems([SETTINGS_ENTRY], this.context())[0])
 
   /** Dieselbe Menge, die „Offene Bestellungen" listet (`ordersActive`). */
   readonly openOrdersCount = computed(() => this.#orders.ordersActive().length)
@@ -80,7 +80,7 @@ export class PosNavigationService {
    * allein: `/settings` ohne `?section=` zeigt „Allgemein" und gehört genauso dazu.
    */
   readonly moreActive = computed(() =>
-    [...this.moreGroups().flatMap(group => group.items), ...this.settings()].some(
+    [...this.moreGroups().flatMap(group => group.items), this.settings()].some(
       ({ entry: { target } }) => target.kind === 'route' && isNavPathActive(target.path, this.url()),
     ),
   )

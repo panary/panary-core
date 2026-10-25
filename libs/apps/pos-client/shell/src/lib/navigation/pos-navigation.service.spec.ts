@@ -46,7 +46,7 @@ function setup(state: { offline?: boolean; sheetOpen?: boolean } = {}) {
   })
   const service = runInInjectionContext(injector, () => new PosNavigationService())
   const item = (id: string): PosNavItem => {
-    const all = [...service.rail(), ...service.moreGroups().flatMap(g => g.items), ...service.settings()]
+    const all = [...service.rail(), ...service.moreGroups().flatMap(g => g.items), service.settings()]
     const found = all.find(i => i.entry.id === id)
     if (!found) throw new Error(`${id} nicht sichtbar`)
     return found
@@ -67,13 +67,13 @@ describe('PosNavigationService (core#832)', () => {
     expect(service.openOrdersCount()).toBe(2)
   })
 
-  it('navigiert Routen-Einträge samt Abschnitt der Einstellungen', () => {
+  it('navigiert Routen-Einträge, Einstellungen direkt ohne Abschnitt', () => {
     const { service, router, item } = setup()
     service.open(item('history'))
-    service.open(item('settings-printer'))
+    service.open(item('settings'))
     expect(router.navigate.mock.calls).toEqual([
       [['/orders/history'], { queryParams: undefined }],
-      [['/settings'], { queryParams: { section: 'printer' } }],
+      [['/settings'], { queryParams: undefined }],
     ])
   })
 

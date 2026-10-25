@@ -104,28 +104,18 @@ export const RAIL_ENTRIES: readonly PosNavEntry[] = [
   },
 ]
 
-/** Abschnitte der Einstellungen; die Seite liest `?section=` und führt dieselbe Liste (`SettingsComponent`). */
-export const SETTINGS_SECTIONS = ['general', 'users', 'design', 'printer', 'connection', 'info'] as const
-export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
-
-const SETTINGS_SECTION_LABELS: Record<SettingsSection, string> = {
-  general: 'SETTINGS.GENERAL',
-  users: 'SETTINGS.USERS',
-  design: 'SETTINGS.DESIGN',
-  printer: 'SETTINGS.PRINTER',
-  connection: 'SETTINGS.CONNECTION',
-  info: 'SETTINGS.INFO',
+/**
+ * Einstellungen im „Mehr"-Menü: ein direkter Eintrag ohne Untermenü (core#971). Ohne `?section=` zeigt
+ * die Seite „Allgemein"; die Abschnitte wechselt sie selbst in ihrer Seitenleiste. Immer sichtbar, offline nutzbar.
+ */
+export const SETTINGS_ENTRY: PosNavEntry = {
+  id: 'settings',
+  label: 'DASHBOARD.SETTINGS',
+  icon: 'gear',
+  target: route(SETTINGS_PATH),
 }
 
-/** Untermenü „Einstellungen" im „Mehr"-Menü — immer sichtbar, offline nutzbar. */
-export const SETTINGS_ENTRIES: readonly PosNavEntry[] = SETTINGS_SECTIONS.map(section => ({
-  id: `settings-${section}`,
-  label: SETTINGS_SECTION_LABELS[section],
-  icon: 'gear',
-  target: route(SETTINGS_PATH, { section }),
-}))
-
-/** Gruppen des „Mehr"-Menüs (Konzept §3). Die Gruppe „Gerät" trägt das Einstellungen-Untermenü. */
+/** Gruppen des „Mehr"-Menüs (Konzept §3). Die Einstellungen stehen darunter als eigener Eintrag (`SETTINGS_ENTRY`). */
 export const MORE_GROUPS: readonly PosNavGroup[] = [
   {
     id: 'staff',

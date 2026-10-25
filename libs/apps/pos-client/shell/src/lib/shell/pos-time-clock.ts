@@ -12,11 +12,12 @@ import {
 import { DatePipe } from '@angular/common'
 import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu'
 import type { ConnectedPosition } from '@angular/cdk/overlay'
+import { MatTooltip } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent, type IconName } from '@panary/shared/ui-common'
 import type { WorkingTime } from '@panary/working-times/domain'
 import { WorkingTimeService } from '@panary/working-times/data-access'
-import { type TimeClockState, timeClockTapAction } from '../navigation/pos-navigation'
+import { type ScreenSide, type TimeClockState, timeClockTapAction } from '../navigation/pos-navigation'
 import { PosStaffService } from '../navigation/pos-staff.service'
 
 const STATE_ICONS: Record<TimeClockState, IconName> = { out: 'clock', in: 'clock', break: 'coffee' }
@@ -34,7 +35,7 @@ const STATE_LABELS: Record<TimeClockState, string> = {
  */
 @Component({
   selector: 'lib-pos-time-clock',
-  imports: [CdkMenu, CdkMenuItem, CdkMenuTrigger, DatePipe, IconComponent, TranslateModule],
+  imports: [CdkMenu, CdkMenuItem, CdkMenuTrigger, DatePipe, IconComponent, MatTooltip, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./pos-rail.css', './pos-menu.css'],
   host: { class: 'contents' },
@@ -47,7 +48,8 @@ const STATE_LABELS: Record<TimeClockState, string> = {
       [disabled]="locked() || staff.timeClockBusy()"
       [attr.aria-disabled]="blockedKey() ? true : null"
       [attr.aria-label]="labelKey() | translate"
-      [title]="blockedKey() ?? labelKey() | translate"
+      [matTooltip]="blockedKey() ?? labelKey() | translate"
+      [matTooltipPosition]="railSide() === 'left' ? 'right' : 'left'"
       [cdkMenuTriggerFor]="opensMenu() ? clockMenu : null"
       [cdkMenuPosition]="menuPositions()"
       (click)="tap()"
@@ -93,6 +95,8 @@ export class PosTimeClock {
 
   /** Rail gesperrt (offenes Sheet in der Kasse). */
   readonly locked = input(false)
+  /** Seite der Rail; Hinweis und Menü öffnen zur Bildschirmmitte hin (core#968). */
+  readonly railSide = input<ScreenSide>('left')
   /** Das Menü öffnet zur Bildschirmmitte hin — die Rail kann links oder rechts sitzen. */
   readonly menuPositions = input<ConnectedPosition[]>([])
 

@@ -103,7 +103,9 @@
 
 /*
  * Gruppenleiste (core#1068): Die Farbe der Gruppe steht als Kante oben über die volle Tastenbreite, gesetzt über
- * `--group-color` am Button. Die gewählte Gruppe trägt Tönung und Rand in ihrer Farbe und eine kräftigere Kante.
+ * `--group-color` am Button. Die gewählte Gruppe trägt Tönung und Rand in ihrer Farbe und eine kräftigere Kante — markiert mit `aria-current`,
+ * nicht `aria-pressed`: Die Taste wählt eine Ansicht, sie schaltet nichts ein und aus (code-style.md §9.1). Liegt die
+ * Gruppe hinter dem Burger, trägt der Burger ihre Kante.
  * Unlayered schlägt das die Tailwind-Klassen `bg-surface-panel`/`border-line` der Taste.
  */
 .kasse__group-edge {
@@ -114,7 +116,7 @@
   transition: height 160ms ease-out;
 }
 
-.kasse__group[aria-pressed='true'] {
+.kasse__group[aria-current='true'] {
   background-color: color-mix(in srgb, var(--group-color) 16%, var(--surface-panel));
   border-color: color-mix(in srgb, var(--group-color) 55%, var(--border-default));
 

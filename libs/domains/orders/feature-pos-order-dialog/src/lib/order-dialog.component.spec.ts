@@ -3195,6 +3195,27 @@ describe('Kasse — aktive Produktgruppe (core#1068)', () => {
     expect(component.activeProductGroupId()).toBe('g-2')
   })
 
+  it('hebt die Gruppe auch auf dem Rückweg ins Raster hervor (setProductButtonsByGroupId)', () => {
+    const { component } = setup()
+    component['productGroupService'].getProductGroupById = () => ({ _id: 'cat-1', name: 'Hauptgerichte' })
+    component.setDeleteSubbuttons()
+
+    component.setProductButtonsByGroupId('cat-1')
+
+    expect(component.activeProductGroupId()).toBe('cat-1')
+  })
+
+  it('meldet die gewählte Gruppe hinter dem Burger, eine sichtbare nicht', () => {
+    const { component } = setup()
+    const versteckt = { _id: 'g-9', name: 'Saisonales', color: '#3cb0a0' }
+    component.overflowProductGroups = [versteckt as never]
+
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke', color: '#0ea5e9' } as never)
+    expect(component.activeOverflowGroup()).toBeUndefined()
+    component.createProductButtons(versteckt as never)
+    expect(component.activeOverflowGroup()).toEqual(versteckt)
+  })
+
   it('verliert die Hervorhebung, sobald ein Ablauf das Raster ersetzt', () => {
     const { component } = setup()
     component.createProductButtons({ _id: 'g-1', name: 'Getränke', color: '#0ea5e9' } as never)

@@ -14,12 +14,17 @@
       <!-- Striche per [class]-Ausdruck: [class.translate-y-[0.3125rem]] bindet nur „translate-y-[0" (core#573) -->
       <button
         type="button"
-        class="pnry-touch h-12 w-12 shrink-0 rounded-control bg-surface-panel border border-line text-ink-muted flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+        class="kasse__group pnry-touch relative overflow-hidden h-12 w-12 shrink-0 rounded-control bg-surface-panel border border-line text-ink-muted flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+        [style.--group-color]="activeOverflowGroup()?.color ?? null"
+        [attr.aria-current]="activeOverflowGroup() ? 'true' : null"
         [matMenuTriggerFor]="moreGroups"
         #moreGroupsTrigger="matMenuTrigger"
         [disabled]="sheetOpen()"
         [attr.aria-label]="'ORDER_DIALOG.MORE_GROUPS' | translate: { count: overflowProductGroups.length }"
       >
+        @if (activeOverflowGroup()) {
+          <span class="kasse__group-edge" aria-hidden="true"></span>
+        }
         <span class="flex flex-col gap-[0.1875rem] transition-transform duration-300" aria-hidden="true">
           <span
             class="w-[1.125rem] h-[0.125rem] bg-current rounded-full transition-transform duration-300"
@@ -37,7 +42,12 @@
       </button>
       <mat-menu #moreGroups="matMenu" xPosition="before" yPosition="below" [overlapTrigger]="false">
         @for (productGroup of overflowProductGroups; track productGroup._id) {
-          <button mat-menu-item (click)="createProductButtons(productGroup)" [disabled]="sheetOpen()">
+          <button
+            mat-menu-item
+            (click)="createProductButtons(productGroup)"
+            [disabled]="sheetOpen()"
+            [attr.aria-current]="activeProductGroupId() === productGroup._id ? 'true' : null"
+          >
             <span class="inline-flex items-center gap-2.5">
               <span
                 class="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -45,6 +55,9 @@
                 aria-hidden="true"
               ></span>
               <span class="text-xs font-semibold uppercase">{{ productGroup.name }}</span>
+              @if (activeProductGroupId() === productGroup._id) {
+                <lib-icon name="check" class="!text-[1rem] text-accent-ink" />
+              }
             </span>
           </button>
         }
@@ -73,7 +86,7 @@
       type="button"
       class="kasse__group pnry-touch relative overflow-hidden h-12 basis-[var(--pnry-group-chip)] grow shrink-0 min-w-0 max-w-[8.5rem] rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase shadow-card flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
       [style.--group-color]="productGroup.color"
-      [attr.aria-pressed]="activeProductGroupId() === productGroup._id"
+      [attr.aria-current]="activeProductGroupId() === productGroup._id ? 'true' : null"
       (click)="createProductButtons(productGroup)"
       [disabled]="sheetOpen()"
     >

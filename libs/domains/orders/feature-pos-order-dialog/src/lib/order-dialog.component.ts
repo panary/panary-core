@@ -437,6 +437,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   readonly activeProductGroupId = signal<string | null>(null)
 
+  /** Liegt die gewählte Gruppe hinter dem Burger, zeigt der Burger ihre Kante (core#1068). */
+  activeOverflowGroup(): ProductGroup | undefined {
+    const id = this.activeProductGroupId()
+    return id ? this.overflowProductGroups.find(group => group._id === id) : undefined
+  }
+
   get combinations(): OrderLineItem[][] {
     return getCombinations({ lineItems: this.#lineItems } as any)
   }
@@ -938,6 +944,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.createProductButtons(group)
     this.setInfoBoxText(group.name, group.color)
     this.clearButtons()
+    // Rückweg ins Gruppenraster nach Modifier-, Menü- und Kombi-Abläufen: Das Raster zeigt wieder die Gruppe.
+    this.activeProductGroupId.set(group._id)
     this._selectedProductIndex = null
     this._selectedCombinationIndex = [null, null]
     this._lastParentId = undefined

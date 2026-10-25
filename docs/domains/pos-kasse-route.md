@@ -49,7 +49,10 @@ Bis [core#1087](https://github.com/panary/panary-core/issues/1087) zeigte der R�
 aktualisiert" standen nach jedem Abschicken drei Meldungen über dem Druckdialog. Jetzt bestätigt allein der Bestelldialog
 mit einer Erfolgsmeldung „Bestellung abgeschickt" (`ORDER_PLACED_MESSAGE`). Ohne Bezahlansicht kommt sie erst, wenn das
 Anlegen gelungen ist, im Kassenbetrieb nach „Bar kassieren" oder „Offen lassen". Das gilt mit und ohne Rücksprung.
-„Bestellen" in der Rail ersetzt die frühere Taste.
+„Bestellen" in der Rail ersetzt die frühere Taste. Der `OrderService` schweigt bei „Bestellung wurde erstellt" nur
+10 s nach dem eigenen Anlegen (`OWN_CREATE_ECHO_MS`); Bestellungen anderer Terminals melden sich weiter. Eine
+Vorbestellung bestätigt die Realtime-Meldung „Vorbestellung wurde erstellt" des `PreOrderService` (in der Sandbox
+kam das Echo auf dem eigenen Gerät sofort an); eine zweite Meldung aus dem Dialog gibt es dafür bewusst nicht.
 
 ## Frischer Start je Bestellung
 

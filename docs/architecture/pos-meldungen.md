@@ -107,13 +107,19 @@ Element mit `aria-modal="true"` aus (`placeBesideDialog` in `top-layer.ts`, gere
 - Sonst steht er direkt unter dem Dialog, wenn er dort ganz passt.
 - Passt er nirgends ganz, zeigt die Ebene im größeren Streifen so viele der **neuesten** Meldungen, wie hineinpassen,
   notfalls keine, solange ein fensterhoher Dialog offen ist. Die übrigen bleiben im Dienst stehen
-  (`.notification--held`), laufen weiter ab und erscheinen wieder, sobald der Dialog schließt.
+  (`.notification--held`), ihr Ablauf ist angehalten, und sie erscheinen wieder, sobald der Dialog schließt.
+- **Fehler, Warnungen und Quittierpflichtige werden nie zurückgehalten.** Sie stammen oft aus dem Dialog selbst und
+  dürfen nicht ungesehen ablaufen; im Zweifel verdecken sie ihn wie vor #1087.
+- Ohne Popover-API (alte WebView) wird nicht zurückgehalten: Dort gibt es kein `toggle` beim Schließen des Dialogs,
+  die Meldungen blieben sonst bis zur nächsten verborgen.
 - Neu gerechnet wird nach jeder neuen Meldung und bei jedem Öffnen oder Schließen eines fremden Popovers, dazu
   noch einmal 250 ms später, weil die CDK Dialoge hereinwachsen lässt.
 - Die Auto-Logout-Vorwarnung (#1080) ist davon unberührt: Sie ist ein eigenes Popover und bleibt bewusst über Dialogen.
 
 Nicht abgedeckt: Ein Dialog, der seine Höhe nach dem Öffnen ändert (nachgeladene Liste), verschiebt die Ebene erst mit
-der nächsten Meldung oder dem nächsten Dialogwechsel.
+der nächsten Meldung oder dem nächsten Dialogwechsel. Zurückhalten und Anhalten im Outlet haben keinen Unit-Test (der
+Outlet hat keine Spec); geprüft wird es im Sichttest. Gerechnet ist `placeBesideDialog`, erkannt `openModalBounds`, beide
+in `top-layer.ts` und dort getestet.
 
 ## Was entfallen ist
 

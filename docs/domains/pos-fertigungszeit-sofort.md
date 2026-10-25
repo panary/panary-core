@@ -52,7 +52,7 @@ Seit [core#1069](https://github.com/panary/panary-core/issues/1069) (Designstudi
 | Wechsel | Der Rasterinhalt hängt an `viewKey` (Funktionsblock, Kettenschritt, Gruppe). Ändert er sich, gleitet der Inhalt in 220 ms 2rem von der Rasterseite herein (gespiegelt mit `data-hand`), und der Titel leuchtet einmal in Mint auf. Ein Tipp auf eine Kachel derselben Ansicht ändert den Schlüssel nicht |
 | Bewegung reduzieren | Nur Einblenden in 120 ms, kein Gleiten, kein Aufleuchten; Schrittkopf und Beschriftung tragen allein |
 
-Ein `KEIN PAGER` springt direkt zur Fertigungszeit; der Tisch-Schritt steht dann als „ohne" im Kopf.
+Ein `KEIN PAGER` springt direkt zur Fertigungszeit; der Tisch-Schritt steht dann als „ohne" im Kopf. Jede neue Kette (`selectDineLocation`) beginnt ohne Pager und Tisch, `KEIN PAGER`/`KEIN TISCH` leeren den jeweiligen Wert — vorher trug eine Bestellung nach einem abgebrochenen Versuch still den alten Pager oder Tisch. Während das Anpassen-Sheet offen ist, bleibt `viewKey` stehen; nach dem Schließen kehrt das Raster ohne erneutes Hereingleiten zurück.
 
 ## Innen: keine Abfrage
 

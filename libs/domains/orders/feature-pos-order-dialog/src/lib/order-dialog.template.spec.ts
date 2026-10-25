@@ -254,11 +254,36 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     expect(scss).toMatch(/\.kasse \{[^}]*--pnry-group-chip: 5\.25rem;/)
   })
 
-  it('misst Leiste und Messzeile mit derselben Gruppen-Vorlage, Farbe als Punkt statt Unterkante', () => {
+  it('misst Leiste und Messzeile mit derselben Gruppen-Vorlage', () => {
     expect(template.match(/\[ngTemplateOutlet\]="groupChip"/g)).toHaveLength(2)
     expect(template).toContain('#productGroupMeasure')
     expect(template).not.toContain("'3px solid ' + productGroup.color")
-    expect(template.match(/\[style\.background-color\]="productGroup\.color"/g)).toHaveLength(2)
+  })
+
+  // core#1068: Farbe als Kante oben statt Punkt im Text, die gewählte Gruppe hervorgehoben.
+  it('setzt die Gruppenfarbe als Kante oben, der Punkt bleibt nur im Burger-Menü', () => {
+    const vorlage = template.slice(template.indexOf('<ng-template #groupChip'), template.indexOf('</ng-template>'))
+    expect(vorlage.indexOf('<ng-template #groupChip')).toBe(0)
+    expect(vorlage).toContain('[style.--group-color]="productGroup.color"')
+    expect(vorlage).toContain('class="kasse__group-edge"')
+    expect(vorlage).not.toContain('rounded-full')
+    expect(vorlage).not.toContain('[style.background-color]')
+    expect(template.match(/\[style\.background-color\]="productGroup\.color"/g)).toHaveLength(1)
+  })
+
+  it('hebt die gewählte Gruppe über aria-current hervor, nicht über aria-pressed (§9.1: nur für Toggles)', () => {
+    expect(klassen('(click)="createProductButtons(productGroup)"\n      [disabled]')).toContain('kasse__group')
+    const vorlage = template.slice(template.indexOf('<ng-template #groupChip'), template.indexOf('</ng-template>'))
+    expect(vorlage).toContain(`[attr.aria-current]="activeProductGroupId() === productGroup._id ? 'true' : null"`)
+    expect(vorlage).not.toContain('aria-pressed')
+    const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+    expect(scss).toMatch(/\.kasse__group-edge \{[^}]*height: 0\.25rem;[^}]*background: var\(--group-color/)
+    const aktiv = scss.slice(scss.indexOf(".kasse__group[aria-current='true'] {"))
+    expect(aktiv).toMatch(
+      /^\.kasse__group\[aria-current='true'\] \{\s*background-color: color-mix\(in srgb, var\(--group-color\) 16%/,
+    )
+    expect(aktiv).toMatch(/border-color: color-mix\(in srgb, var\(--group-color\) 55%/)
+    expect(aktiv).toMatch(/\.kasse__group-edge \{\s*height: 0\.375rem;/)
   })
 
   it('führt Kombination in der Leiste unter dem Warenkorb, Positionsrabatt und Code unter „Optionen" (core#965)', () => {
@@ -583,3 +608,17 @@ function klassenIn(text: string, marker: string): string[] {
       .split(/\s+/) ?? []
   )
 }
+
+// core#1068: Liegt die gewählte Gruppe hinter dem Burger, zeigt der Burger ihre Kante und das Menü einen Haken.
+describe('Kasse-Template — gewählte Gruppe hinter dem Burger (core#1068)', () => {
+  it('färbt den Burger mit der gewählten Gruppe und markiert ihren Menüeintrag', () => {
+    const start = template.indexOf('[matMenuTriggerFor]="moreGroups"')
+    const burger = template.slice(template.lastIndexOf('<button', start), template.indexOf('</button>', start))
+    expect(burger).toContain('kasse__group ')
+    expect(burger).toContain('[style.--group-color]="activeOverflowGroup()?.color ?? null"')
+    expect(burger).toContain(`[attr.aria-current]="activeOverflowGroup() ? 'true' : null"`)
+    expect(burger).toMatch(/@if \(activeOverflowGroup\(\)\) \{\s*<span class="kasse__group-edge"/)
+    const menue = template.slice(template.indexOf('<mat-menu #moreGroups'), template.indexOf('</mat-menu>', start))
+    expect(menue).toMatch(/@if \(activeProductGroupId\(\) === productGroup\._id\) \{\s*<lib-icon name="check"/)
+  })
+})

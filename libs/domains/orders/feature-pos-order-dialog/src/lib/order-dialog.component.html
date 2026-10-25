@@ -4,7 +4,7 @@
      entfallen; Meldungen erscheinen als Hinweis über dem Raster. -->
 <section class="kasse relative h-full min-h-0 overflow-hidden bg-surface-bg text-ink" [attr.data-hand]="handedness()">
   <!-- Gruppenleiste (core#908, core#1019): eine Zeile, jede Gruppe gleich breit (`--pnry-group-chip`), lange Namen
-       brechen in zwei Zeilen um, Farbe als Punkt. Was nicht passt, liegt hinter dem Burger. Abstand und
+       brechen in zwei Zeilen um, Farbe als Kante oben (core#1068). Was nicht passt, liegt hinter dem Burger. Abstand und
        Burger-Breite stecken auch in group-bar.ts — beide zusammen ändern. -->
   <div #productGroupContainer class="kasse__groups relative flex items-center gap-2 px-3 pt-2 pb-2 overflow-hidden">
     @for (productGroup of visibleProductGroups; track productGroup._id) {
@@ -14,12 +14,17 @@
       <!-- Striche per [class]-Ausdruck: [class.translate-y-[0.3125rem]] bindet nur „translate-y-[0" (core#573) -->
       <button
         type="button"
-        class="pnry-touch h-12 w-12 shrink-0 rounded-control bg-surface-panel border border-line text-ink-muted flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+        class="kasse__group pnry-touch relative overflow-hidden h-12 w-12 shrink-0 rounded-control bg-surface-panel border border-line text-ink-muted flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+        [style.--group-color]="activeOverflowGroup()?.color ?? null"
+        [attr.aria-current]="activeOverflowGroup() ? 'true' : null"
         [matMenuTriggerFor]="moreGroups"
         #moreGroupsTrigger="matMenuTrigger"
         [disabled]="sheetOpen()"
         [attr.aria-label]="'ORDER_DIALOG.MORE_GROUPS' | translate: { count: overflowProductGroups.length }"
       >
+        @if (activeOverflowGroup()) {
+          <span class="kasse__group-edge" aria-hidden="true"></span>
+        }
         <span class="flex flex-col gap-[0.1875rem] transition-transform duration-300" aria-hidden="true">
           <span
             class="w-[1.125rem] h-[0.125rem] bg-current rounded-full transition-transform duration-300"
@@ -37,7 +42,12 @@
       </button>
       <mat-menu #moreGroups="matMenu" xPosition="before" yPosition="below" [overlapTrigger]="false">
         @for (productGroup of overflowProductGroups; track productGroup._id) {
-          <button mat-menu-item (click)="createProductButtons(productGroup)" [disabled]="sheetOpen()">
+          <button
+            mat-menu-item
+            (click)="createProductButtons(productGroup)"
+            [disabled]="sheetOpen()"
+            [attr.aria-current]="activeProductGroupId() === productGroup._id ? 'true' : null"
+          >
             <span class="inline-flex items-center gap-2.5">
               <span
                 class="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -45,6 +55,9 @@
                 aria-hidden="true"
               ></span>
               <span class="text-xs font-semibold uppercase">{{ productGroup.name }}</span>
+              @if (activeProductGroupId() === productGroup._id) {
+                <lib-icon name="check" class="!text-[1rem] text-accent-ink" />
+              }
             </span>
           </button>
         }
@@ -66,25 +79,24 @@
   </div>
 
   <ng-template #groupChip let-productGroup>
+    <!-- Farbe als Kante oben über die volle Breite (core#1068, Designstudie #1062 Variante B): Der Punkt im Textfluss
+         nahm bei 84 px Taste 16 px der ersten Zeile, „ALKOHOLFREIE GETRÄNKE" brach deshalb unschön um. Die gewählte
+         Gruppe trägt Tönung, Rand in Gruppenfarbe und eine kräftigere Kante (order-dialog.component.scss). -->
     <button
       type="button"
-      class="pnry-touch h-12 basis-[var(--pnry-group-chip)] grow shrink-0 min-w-0 max-w-[8.5rem] rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase shadow-card flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+      class="kasse__group pnry-touch relative overflow-hidden h-12 basis-[var(--pnry-group-chip)] grow shrink-0 min-w-0 max-w-[8.5rem] rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase shadow-card flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+      [style.--group-color]="productGroup.color"
+      [attr.aria-current]="activeProductGroupId() === productGroup._id ? 'true' : null"
       (click)="createProductButtons(productGroup)"
       [disabled]="sheetOpen()"
     >
+      <span class="kasse__group-edge" aria-hidden="true"></span>
       <!-- Grundmaß statt Inhaltsbreite (core#1019): Breite Namen kosteten auf der Sunmi Gruppen in der Zeile. Gezählt
            wird mit `--pnry-group-chip`; was in der Zeile frei bleibt, verteilen die Tasten bis 8,5rem unter sich
-           (core#1046) — so passt „• HAUPTGERICHTE" (118 px) in eine Zeile, statt mit 84 px getrennt oder gekürzt zu
-           werden. Silbentrennung erst, wenn es eng wird; sonst bräche „HAUPTGERICHTE" hinter dem T um (#795). Der
-           Punkt steht im Textfluss, damit er die zweite Zeile nicht einrückt. -->
-      <span class="w-full text-center leading-tight line-clamp-2 [hyphens:auto]" lang="de"
-        ><span
-          class="mr-1.5 inline-block h-2.5 w-2.5 rounded-full align-[-0.0625rem]"
-          [style.background-color]="productGroup.color"
-          aria-hidden="true"
-        ></span
-        >{{ productGroup.name }}</span
-      >
+           (core#1046). Silbentrennung erst, wenn es eng wird; sonst bräche „HAUPTGERICHTE" hinter dem T um (#795). -->
+      <span class="w-full text-center leading-tight line-clamp-2 [hyphens:auto]" lang="de">{{
+        productGroup.name
+      }}</span>
     </button>
   </ng-template>
 

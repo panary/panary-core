@@ -62,9 +62,12 @@ export class PosIdleLogoutService {
 
   readonly #phase = signal<PosIdlePhase>('disabled')
   readonly #remainingSeconds = signal(0)
+  readonly #discardsOrder = signal(false)
 
   readonly phase = this.#phase.asReadonly()
   readonly remainingSeconds = this.#remainingSeconds.asReadonly()
+  /** Verwirft der anstehende Logout eine angefangene Bestellung? Die Vorwarnung sagt es dann (core#1064). */
+  readonly discardsOrder = this.#discardsOrder.asReadonly()
 
   /** Ist der Auto-Logoff fuer den angemeldeten Mitarbeiter aktiv? */
   readonly isEnabled = computed(() => isAutoLogOffEnabled(this.#sessionUser()))
@@ -79,22 +82,16 @@ export class PosIdleLogoutService {
   }
 
   /**
-   * Ist die Frist ausgesetzt?
+   * Ist die Frist ausgesetzt? Nur **offline**: Die Wiederanmeldung braucht die
+   * serverseitige PIN-Pruefung; ein Logout ohne Verbindung sperrt das Terminal aus.
    *
-   * Zwei Gruende, beide aus der Wahrheit abgeleitet statt gebucht — ein
-   * vergessener Hold wuerde den Auto-Logoff dauerhaft und unsichtbar
-   * abschalten:
-   *
-   * 1. **Angefangene Bestellung.** Der Entwurf lebt komponenten-privat in der
-   *    Kasse und waere nach einem Logout verloren. Seit die Kasse eine Route ist
-   *    (core#828), zaehlt die Eingabe, nicht das Offensein: Die Kasse bleibt nach
-   *    dem Bestellen offen, der Logout kaeme sonst nie.
-   * 2. **Offline.** Die Wiederanmeldung braucht die serverseitige
-   *    PIN-Pruefung; ein Logout ohne Verbindung sperrt das Terminal aus.
+   * Eine angefangene Bestellung haelt die Frist seit core#1064 nicht mehr an. Bis
+   * dahin (core#828) blieb eine liegengelassene Kasse mit Artikeln unbegrenzt
+   * angemeldet. Jetzt kuendigt die Vorwarnung das Verwerfen an, und der Logout
+   * protokolliert die Bestellung als abgebrochen (Entscheidung Michael 2026-10-25).
    */
   #isFrozen(): boolean {
-    if (this.#session.isOffline()) return true
-    return this.#kasseDraft.hasDraft()
+    return this.#session.isOffline()
   }
 
   /** Startet die Ueberwachung. Idempotent — ein zweiter Mount legt keinen zweiten Timer an. */
@@ -174,12 +171,15 @@ export class PosIdleLogoutService {
     // Takt eine Change Detection an, obwohl sich nichts bewegt.
     const nextRemaining = result.phase === 'warning' ? Math.ceil(result.remainingMs / 1000) : 0
     if (this.#remainingSeconds() !== nextRemaining) this.#remainingSeconds.set(nextRemaining)
+    const discardsOrder = result.phase === 'warning' && this.#kasseDraft.hasDraft()
+    if (this.#discardsOrder() !== discardsOrder) this.#discardsOrder.set(discardsOrder)
 
     if (result.shouldLogout) {
       // Vor dem Logout zuruecksetzen: schlaegt `endSession` fehl (offline in
       // genau diesem Moment), soll nicht bei jedem weiteren Takt erneut
       // gefeuert werden.
       this.reset()
+      this.#kasseDraft.discardDraft()
       void this.#session.endSession('idle')
     }
   }

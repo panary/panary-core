@@ -3,7 +3,8 @@
     "TITLE": "Otomatik oturum kapatma",
     "MESSAGE": "{{seconds}} saniye içinde oturumun kapatılacak.",
     "HINT": "Oturumu açık tutmak için ekrana dokun.",
-    "STAY": "Oturumu açık tut"
+    "STAY": "Oturumu açık tut",
+    "DISCARDS_ORDER": "Açık sipariş iptal edilecek."
   },
   "POS_NAV": {
     "LABEL": "Ana gezinme",

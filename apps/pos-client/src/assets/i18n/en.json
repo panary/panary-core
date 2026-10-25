@@ -3,7 +3,8 @@
     "TITLE": "Automatic sign-out",
     "MESSAGE": "You will be signed out in {{seconds}} seconds.",
     "HINT": "Tap anywhere to stay signed in.",
-    "STAY": "Stay signed in"
+    "STAY": "Stay signed in",
+    "DISCARDS_ORDER": "The open order will be discarded."
   },
   "POS_NAV": {
     "LABEL": "Main navigation",

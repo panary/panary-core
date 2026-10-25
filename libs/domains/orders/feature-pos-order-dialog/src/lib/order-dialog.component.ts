@@ -543,9 +543,22 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** CONSTRUCTOR */
   constructor() {
-    // Der Inaktivitäts-Logout fragt je Takt, ob hier etwas eingegeben ist (core#828).
+    // Abmelden fragt wie der Seitenwechsel nach, der Inaktivitäts-Logout verwirft (core#828, core#1064).
     const kasse = inject(KasseDraftRegistry)
-    inject(DestroyRef).onDestroy(kasse.attach(() => this.#hadInput))
+    inject(DestroyRef).onDestroy(
+      kasse.attach({
+        hasInput: () => this.#hadInput,
+        confirmLeave: async () => {
+          if (!(await this.confirmLeave())) return false
+          this.#clearForSessionEnd()
+          return true
+        },
+        discard: () => {
+          this.#logCancelled()
+          this.#clearForSessionEnd()
+        },
+      }),
+    )
     inject(DestroyRef).onDestroy(kasse.attachSheet(this.sheetOpen))
 
     // Jede neue Markierung rendert ihre eigene Leiste; das Signal folgt ihr, egal über welchen Weg markiert wurde
@@ -3637,6 +3650,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.deleteOrder()
         this.unselectProduct()
       })
+  }
+
+  /**
+   * Verworfen ist verworfen, auch wenn das Abmelden danach scheitert (offline, Ausstempeln abgelehnt): Die Kasse
+   * steht dann leer, statt eine schon als abgebrochen protokollierte Bestellung weiter zu zeigen (core#1064).
+   */
+  #clearForSessionEnd(): void {
+    this.deleteOrder()
+    this.unselectProduct()
+    this.#hadInput = false
   }
 
   #logCancelled(): void {

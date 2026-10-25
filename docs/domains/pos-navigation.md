@@ -4,7 +4,7 @@ title: POS-Navigation — Rail statt Dashboard-Kacheln
 description: 'Wie der POS seit core#832 navigiert — Rail mit fünf direkten Einträgen, „Mehr" mit Gruppen und direktem Einstellungen-Eintrag, ruhige Fußzone mit Stempeltaste, Abmelden und Avatar (core#942), Rail gegenüber dem Warenkorb, Avatar-Menü mit Bedienhand und Darstellung; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:30:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:40:00Z }
 ---
 
 # POS-Navigation — Rail statt Dashboard-Kacheln
@@ -116,7 +116,9 @@ zurückkommt.
 
 **Stempeln und Abmelden** folgen ihren bisherigen Regeln: Kommen, Pause und Gehen sind offline und bei
 Mandantensperre gesperrt (`timeTrackingBlockedHintKey`, Kontosperre vor „offline"), Abmelden ist
-offline gesperrt (`PosSessionService.isOffline`). Gehen meldet danach ab. Gesperrte Stempeltasten und
+offline gesperrt (`PosSessionService.isOffline`). Gehen meldet danach ab. Liegt in der Kasse eine
+angefangene Bestellung, fragen Abmelden und Gehen vorher wie der Seitenwechsel
+([core#1064](https://github.com/panary/panary-core/issues/1064), [Kasse als Route](pos-kasse-route.md)). Gesperrte Stempeltasten und
 Abmelden bleiben wie die übrigen Rail-Einträge antippbar und nennen den Grund als Warnung.
 
 **Abgelehntes Bediener-Token** ([core#923](https://github.com/panary/panary-core/issues/923)). Seit

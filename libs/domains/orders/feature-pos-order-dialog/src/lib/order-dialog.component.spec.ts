@@ -2357,12 +2357,89 @@ describe('Kasse — Entwurf für den Inaktivitäts-Logout (core#828)', () => {
 
   it('das Lösen einer alten Kasse hängt eine neuere nicht ab', () => {
     const registry = new KasseDraftRegistry()
-    const detachOld = registry.attach(() => false)
-    registry.attach(() => true)
+    const draft = (input: boolean) => ({
+      hasInput: () => input,
+      confirmLeave: async () => true,
+      discard: () => undefined,
+    })
+    const detachOld = registry.attach(draft(false))
+    registry.attach(draft(true))
 
     detachOld()
 
     expect(registry.hasDraft()).toBe(true)
+  })
+})
+
+/**
+ * Abmelden fragt wie der Seitenwechsel, der Inaktivitäts-Logout verwirft ohne Frage und protokolliert
+ * den Abbruch (core#1064). Beides läuft über die Registry, die die Shell kennt.
+ */
+describe('Kasse — Abmelden mit angefangener Bestellung (core#1064)', () => {
+  it('die Rückfrage vor dem Abmelden ist die des Seitenwechsels', async () => {
+    const { component, kasseDraft } = setup()
+    component.increaseLineItem(product('p-1'))
+    const confirm = vi.spyOn(component, 'confirmLeave').mockResolvedValue(false)
+
+    expect(await kasseDraft.confirmLeave()).toBe(false)
+    expect(confirm).toHaveBeenCalledTimes(1)
+  })
+
+  it('ein zweiter Tipp während der offenen Rückfrage öffnet keine zweite', async () => {
+    const registry = new KasseDraftRegistry()
+    let answer: (value: boolean) => void = () => undefined
+    const confirmLeave = vi.fn(() => new Promise<boolean>(resolve => (answer = resolve)))
+    registry.attach({ hasInput: () => true, confirmLeave, discard: () => undefined })
+
+    const first = registry.confirmLeave()
+    const second = registry.confirmLeave()
+    answer(true)
+
+    expect(await Promise.all([first, second])).toEqual([true, true])
+    expect(confirmLeave).toHaveBeenCalledTimes(1)
+  })
+
+  it('die Kasse protokolliert beim Inaktivitäts-Logout den Abbruch mit ihren Positionen und steht danach leer', () => {
+    const { component, kasseDraft, interactions } = setup()
+    component.increaseLineItem(product('p-1'))
+
+    kasseDraft.discardDraft()
+    kasseDraft.discardDraft()
+
+    expect(interactions).toEqual([
+      expect.objectContaining({ type: 'order-cancel', hadLineItems: true, lineItemCountAtCancel: 1 }),
+    ])
+    expect(component.lineItems).toEqual([])
+    expect(kasseDraft.hasDraft()).toBe(false)
+  })
+
+  it('nach „Bestellung verwerfen" vor dem Abmelden steht die Kasse leer — scheitert das Abmelden, gibt es keinen zweiten Abbruch', async () => {
+    const { component, kasseDraft } = setup()
+    component.increaseLineItem(product('p-1'))
+    vi.spyOn(component, 'confirmLeave').mockResolvedValue(true)
+
+    expect(await kasseDraft.confirmLeave()).toBe(true)
+
+    expect(component.lineItems).toEqual([])
+    expect(kasseDraft.hasDraft()).toBe(false)
+  })
+
+  it('ohne Kasse darf sofort abgemeldet werden', async () => {
+    expect(await new KasseDraftRegistry().confirmLeave()).toBe(true)
+  })
+
+  it('der Inaktivitäts-Logout protokolliert eine angefangene Bestellung als abgebrochen, eine leere nicht', () => {
+    const discard = vi.fn()
+    const registry = new KasseDraftRegistry()
+    let input = false
+    registry.attach({ hasInput: () => input, confirmLeave: async () => true, discard })
+
+    registry.discardDraft()
+    expect(discard).not.toHaveBeenCalled()
+
+    input = true
+    registry.discardDraft()
+    expect(discard).toHaveBeenCalledTimes(1)
   })
 })
 

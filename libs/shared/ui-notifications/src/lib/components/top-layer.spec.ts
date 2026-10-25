@@ -1,4 +1,4 @@
-import { JSDOM } from 'jsdom'
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -232,8 +232,11 @@ describe('openModalBounds (core#1087)', () => {
 })
 
 describe('MODAL_DIALOG_SELECTOR (core#1094)', () => {
-  const matches = (html: string) =>
-    new JSDOM(`<body>${html}</body>`).window.document.querySelectorAll(MODAL_DIALOG_SELECTOR).length
+  // Echter Selektor-Abgleich im DOM (jsdom-Umgebung dieser Datei), nicht ein Stringvergleich.
+  const matches = (html: string) => {
+    document.body.innerHTML = html
+    return document.querySelectorAll(MODAL_DIALOG_SELECTOR).length
+  }
 
   it('erkennt einen Material-Dialog, obwohl er aria-modal="false" trägt', () => {
     expect(

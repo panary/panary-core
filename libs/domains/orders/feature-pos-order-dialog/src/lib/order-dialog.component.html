@@ -568,7 +568,7 @@
           @for (functionButton of boardFunctionButtons; track functionButton._id) {
             <button
               type="button"
-              class="pnry-touch w-[var(--pnry-tile-min)] h-[6.5rem] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-xs tracking-wide uppercase px-2 transition-all active:scale-95"
+              class="pnry-touch w-[var(--pnry-tile-min)] h-[var(--pnry-tile-h)] shrink-0 rounded-xl border-2 flex flex-col items-center justify-center gap-1 font-bold text-xs tracking-wide uppercase px-2 transition-all active:scale-95"
               [ngClass]="functionButtonClasses(functionButton)"
               [attr.aria-pressed]="functionButton.pressed ?? null"
               (click)="functionButton.callback == undefined ? pass() : functionButton.callback()"
@@ -632,13 +632,13 @@
           </div>
         </div>
       }
-      <!-- Artikel-Raster: 12,5rem Mindestbreite, 6,5rem hoch (Konzept §4); scrollt allein -->
+      <!-- Artikel-Raster: Mindestbreite und Höhe aus `--pnry-tile-min`/`--pnry-tile-h` an `.kasse` (core#1020); scrollt allein -->
       <div class="flex-1 overflow-y-auto pt-1 pb-2 min-h-0">
         <div class="grid grid-cols-[repeat(auto-fill,minmax(var(--pnry-tile-min),1fr))] gap-3 content-start pb-4">
           @for (productButton of productButtons; let i = $index; track i) {
             <button
               type="button"
-              class="pnry-touch relative h-[6.5rem] bg-pos-key rounded-card border border-pos-key-line text-ink font-semibold text-sm px-3 py-2 flex items-center justify-center gap-1.5 shadow-card active:scale-[0.97] transition-transform"
+              class="pnry-touch relative h-[var(--pnry-tile-h)] bg-pos-key rounded-card border border-pos-key-line text-ink font-semibold text-sm px-2.5 py-1 flex items-center justify-center gap-1.5 shadow-card active:scale-[0.97] transition-transform"
               [style.background-color]="productButton.backgroundColor"
               [style.color]="productButton.fontColor"
               [class.ring-2]="productButton.pressed"
@@ -652,9 +652,10 @@
                 >
               }
               @if (!productButton.isFunctionButton && productButton.ui?.index != null) {
-                <!-- Nummer der Schnellauswahl; der Treffer der Ziffernleiste trägt Mint (Konzept §5) -->
+                <!-- Nummer der Schnellauswahl; der Treffer der Ziffernleiste trägt Mint (Konzept §5). Seit core#1020
+                     kleiner und enger an der Ecke — die niedrigere Kachel ließ sonst den Namen darunter laufen. -->
                 <span
-                  class="absolute top-1.5 left-1.5 text-[0.6875rem] font-bold min-w-[1.5rem] h-5 px-1.5 rounded-pill flex items-center justify-center tabular-nums"
+                  class="absolute top-1 left-1 text-[0.625rem] font-bold min-w-[1.25rem] h-4 px-1 rounded-pill flex items-center justify-center tabular-nums"
                   [ngClass]="
                     productButton.ui?.index === numpadNumber
                       ? 'bg-action text-on-action'

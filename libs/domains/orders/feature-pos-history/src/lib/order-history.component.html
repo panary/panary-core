@@ -119,20 +119,51 @@
         posSplitDetail
         class="flex-1 bg-surface-input rounded-2xl border border-line-soft overflow-hidden flex flex-col"
       >
-        <!-- Detail Header -->
-        <div class="p-4 border-b border-line flex justify-between items-center bg-surface-elevated">
-          <div>
-            <h2 class="font-bold text-lg text-ink">{{ 'HISTORY.DETAILS' | translate }}</h2>
-            <p class="text-xs text-ink-muted">
-              {{ 'HISTORY.RECEIPT' | translate }} #{{ selectedOrder()?.dailySequenceNumber }}
-            </p>
+        <!-- Detail Header: ID und Aktionen ohne Scrollen erreichbar (core#1024) -->
+        <div class="p-4 border-b border-line bg-surface-elevated flex flex-col gap-3" data-testid="detail-head">
+          <div class="flex justify-between items-start gap-3">
+            <div class="min-w-0">
+              <h2 class="font-bold text-lg text-ink">{{ 'HISTORY.DETAILS' | translate }}</h2>
+              <p class="text-xs text-ink-muted">
+                {{ 'HISTORY.RECEIPT' | translate }} #{{ selectedOrder()?.dailySequenceNumber }}
+              </p>
+              <p class="text-xs text-ink-faint truncate" data-testid="detail-id">
+                <span class="font-bold uppercase">ID</span>
+                <span class="font-mono select-all">{{ selectedOrder()?._id }}</span>
+              </p>
+            </div>
+            <button
+              (click)="selectedOrder.set(null)"
+              class="lg:hidden flex items-center justify-center w-10 h-10 text-ink-muted rounded-xl hover:bg-line-soft transition-colors"
+            >
+              <lib-icon name="x" class="text-[1.25rem]" />
+            </button>
           </div>
-          <button
-            (click)="selectedOrder.set(null)"
-            class="lg:hidden flex items-center justify-center w-10 h-10 text-ink-muted rounded-xl hover:bg-line-soft transition-colors"
-          >
-            <lib-icon name="x" class="text-[1.25rem]" />
-          </button>
+          <div class="grid grid-cols-2 gap-2" data-testid="detail-actions">
+            <button
+              (click)="printOrder()"
+              class="h-10 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink font-medium hover:bg-surface-bg dark:hover:bg-line active:scale-95 transition-all flex items-center justify-center gap-1.5"
+            >
+              <lib-icon name="printer" class="text-[1rem]" />
+              {{ 'HISTORY.PRINT' | translate }}
+            </button>
+            @if (selectedOrder()?.status === OrderStatus.ABORTED) {
+              <div
+                class="h-10 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium flex items-center justify-center gap-1.5"
+              >
+                <lib-icon name="prohibit" class="text-[1rem]" />
+                {{ 'CANCEL_ORDER.ALREADY_CANCELED' | translate }}
+              </div>
+            } @else {
+              <button
+                (click)="cancelOrder()"
+                class="h-10 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-medium hover:bg-red-100 dark:hover:bg-red-950/60 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              >
+                <lib-icon name="x-circle" class="text-[1rem]" />
+                {{ 'HISTORY.CANCEL' | translate }}
+              </button>
+            }
+          </div>
         </div>
 
         <!-- Detail Content -->
@@ -185,38 +216,6 @@
               <span>{{ 'COMMON.TOTAL' | translate }}</span>
               <span>{{ calculateTotal(selectedOrder()!) | eur }}</span>
             </div>
-          </div>
-
-          <!-- Metadata Actions -->
-          <div class="mt-6 grid grid-cols-2 gap-3">
-            <div class="col-span-2 p-3 bg-surface-elevated rounded-xl border border-line text-sm">
-              <span class="block text-xs font-bold text-ink-faint uppercase">ID</span>
-              <span class="font-mono truncate select-all">{{ selectedOrder()?._id }}</span>
-            </div>
-
-            <button
-              (click)="printOrder()"
-              class="h-10 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink font-medium hover:bg-surface-bg dark:hover:bg-line active:scale-95 transition-all flex items-center justify-center gap-1.5"
-            >
-              <lib-icon name="printer" class="text-[1rem]" />
-              {{ 'HISTORY.PRINT' | translate }}
-            </button>
-            @if (selectedOrder()?.status === OrderStatus.ABORTED) {
-              <div
-                class="h-10 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium flex items-center justify-center gap-1.5"
-              >
-                <lib-icon name="prohibit" class="text-[1rem]" />
-                {{ 'CANCEL_ORDER.ALREADY_CANCELED' | translate }}
-              </div>
-            } @else {
-              <button
-                (click)="cancelOrder()"
-                class="h-10 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-medium hover:bg-red-100 dark:hover:bg-red-950/60 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-              >
-                <lib-icon name="x-circle" class="text-[1rem]" />
-                {{ 'HISTORY.CANCEL' | translate }}
-              </button>
-            }
           </div>
         </div>
       </div>

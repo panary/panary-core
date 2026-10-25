@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#1062): [POS-Kasse — Bedienung](../domains/pos-bestelldialog-bedienung.md) — Abschnitt „Designstudie Bestellen“: gemessene Zeilen im Warenkorb bei 1366 × 768 (heute 9, gewählt 12), Michaels Wahl je Thema (eine Reihe, Farbkante oben, Schrittkopf mit Bewegung) und die Umsetzungs-Issues panary/panary-core#1067, #1068, #1069 und #1066.

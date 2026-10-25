@@ -91,7 +91,7 @@ Die Vorwarnung (`IdleWarningOverlayComponent`) ist ein Popover im Top-Layer (`po
 jedem CDK-Dialog, denn die CDK legt Dialoge seit core#1060 in den Top-Layer. Im Sichttest panary/panary-core#1077
 verdeckte die Rückfrage „Bestellung verwerfen?“ den Countdown vollständig. Abgemeldet wurde trotzdem, nur sah es
 niemand. Sie öffnet nach dem Dialog und liegt damit darüber. Einen Listener, der sie nach einem später geöffneten
-Popover wieder hochholt, gibt es nicht: Ein neuer Dialog braucht einen Tipp, und der beendet die Vorwarnung.
+Popover wieder hochholt, gibt es nicht: Ein neuer Dialog braucht meist einen Tipp, und der beendet die Vorwarnung. Ein Dialog, der ohne Eingriff aufgeht (Antwort einer laufenden Anfrage, Timer), verdeckt sie weiterhin. Das ist bewusst offen gelassen, denn ein Hochhol-Listener spränge mit dem der Meldungsebene hin und her.
 Ohne Popover-API bleibt `z-[1200]` als Rückfall.
 
 ## Aktivitätserfassung

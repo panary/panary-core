@@ -3374,6 +3374,7 @@ describe('Kasse — Schrittkopf und Ansichtswechsel (core#1069)', () => {
     const component = chain()
     component.selectDineLocation('OUTSIDE')
     byName(component.productButtons, '7').callback()
+    byName(component.productButtons, '3').callback()
     component.createProductButtons({ _id: 'g-1', name: 'Getränke' } as never)
 
     component.selectDineLocation('OUTSIDE')

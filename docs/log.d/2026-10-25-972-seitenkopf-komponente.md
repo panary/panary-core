@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#972): [POS-Navigation](../domains/pos-navigation.md) — neue Komponente `lib-page-header` (Seitenkopf nach Designstudie E6) in `ui-common`; Seiten stellen sie in ihren eigenen Issues ein.

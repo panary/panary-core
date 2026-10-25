@@ -81,17 +81,14 @@ describe('KassePageComponent — Rücksprung nach dem Bestellen (core#974)', () 
     expect(await page.canLeave()).toBe(true)
   })
 
-  it('der Hinweis bietet „Neue Bestellung" an und öffnet die Kasse wieder', async () => {
+  it('der Rücksprung zeigt keinen eigenen Hinweis — das Abschicken bestätigt der Bestelldialog (core#1087)', async () => {
     const { injector, navigations, notifications } = setup(true, '/pre-orders')
     pageOf(injector).onClosed('order-placed')
     await Promise.resolve()
     await Promise.resolve()
 
-    const [hint] = notifications.notifications()
-    expect(notifications.notifications()).toHaveLength(1)
-    expect(hint.action?.label).toBe('ACTIVE_ORDERS.NEW_ORDER')
-    notifications.runAction(hint.id)
-    expect(navigations).toEqual(['/pre-orders', '/kasse'])
+    expect(navigations).toEqual(['/pre-orders'])
+    expect(notifications.notifications()).toEqual([])
   })
 
   it('Schalter aus: man bleibt in der Kasse, sie wird frisch aufgebaut', () => {

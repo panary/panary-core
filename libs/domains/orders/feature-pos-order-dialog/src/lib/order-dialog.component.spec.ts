@@ -33,7 +33,7 @@ import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 import { KasseDraftRegistry } from './kasse-draft-registry'
-import { OrderDialogComponent } from './order-dialog.component'
+import { OrderDialogComponent, ORDER_PLACED_MESSAGE } from './order-dialog.component'
 
 /**
  * Charakterisierungs-Specs der Rabatt- und Checkout-Verdrahtung (#231).
@@ -1313,10 +1313,12 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
 
     await component.placeOrder()
 
-    expect(notices).toHaveLength(1)
-    expect(notices[0].message).toMatch(/^Rabattcode nicht eingelöst — /)
+    // Neben der Bestätigung „Bestellung abgeschickt" (core#1087) genau diese eine Meldung.
+    const codeNotices = notices.filter(n => n.message !== ORDER_PLACED_MESSAGE)
+    expect(codeNotices).toHaveLength(1)
+    expect(codeNotices[0].message).toMatch(/^Rabattcode nicht eingelöst — /)
     // Quittierpflichtig: kein Ablauf, nur das × schliesst sie.
-    expect(notices[0].sticky).toBe(true)
+    expect(codeNotices[0].sticky).toBe(true)
 
     // Gegenprobe: Die Infobox traegt die Meldung nicht (mehr) — sie waere unsichtbar.
     expect(component.infoBoxText).toBe('Bitte wählen Sie eine Produktkategorie')
@@ -1338,7 +1340,7 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
 
     await component.placeOrder()
 
-    expect(notices.map(c => [c.action, c.sticky])).toEqual([
+    expect(notices.filter(c => c.message !== ORDER_PLACED_MESSAGE).map(c => [c.action, c.sticky])).toEqual([
       ['Rückgängig', false],
       [undefined, true],
     ])
@@ -1360,7 +1362,8 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
 
     await component.placeOrder()
 
-    expect(notices).toHaveLength(0)
+    // Nur die Bestätigung des Abschickens (core#1087), keine Rabattcode-Meldung.
+    expect(notices.filter(n => n.message !== ORDER_PLACED_MESSAGE)).toHaveLength(0)
   })
 
   it('nach dem Abschicken ist der Rabattzustand leer', async () => {
@@ -3411,5 +3414,59 @@ describe('Kasse — Schrittkopf und Ansichtswechsel (core#1069)', () => {
     const vorher = component.viewKey
     component.selectDineLocation('OUTSIDE')
     expect(component.viewKey).not.toBe(vorher)
+  })
+})
+
+describe('OrderDialog — genau eine Meldung nach dem Abschicken (core#1087)', () => {
+  const cashier = { operationMode: 'pos-cashier' }
+  const flush = async () => {
+    for (let i = 0; i < 5; i++) await Promise.resolve()
+  }
+
+  it('ohne Kassenbetrieb: genau „Bestellung abgeschickt", sobald das Anlegen gelungen ist', async () => {
+    const { component, notices, releaseCreate } = setup({ operationMode: 'orders-only', holdCreate: true })
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+    // Geschlossen ist schon, bestätigt wird erst, wenn der Server angenommen hat.
+    expect(notices).toEqual([])
+
+    releaseCreate()
+    await flush()
+    expect(notices.map(n => n.message)).toEqual([ORDER_PLACED_MESSAGE])
+  })
+
+  it('kein Erfolg, wenn das Anlegen scheitert', async () => {
+    const { component, notices } = setup({ operationMode: 'orders-only', createOrderResult: null })
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+    await flush()
+
+    expect(notices.map(n => n.message)).not.toContain(ORDER_PLACED_MESSAGE)
+  })
+
+  it('im Kassenbetrieb: genau eine Meldung nach dem Kassieren, keine schon beim Anlegen', async () => {
+    const { component, notices } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+    await flush()
+    expect(notices).toEqual([])
+
+    await component.onCollect()
+    await flush()
+    expect(notices.map(n => n.message)).toEqual([ORDER_PLACED_MESSAGE])
+  })
+
+  it('„Offen lassen" bestätigt ebenfalls genau einmal', async () => {
+    const { component, notices } = setup(cashier)
+    component.increaseLineItem(product('p-1'))
+    await component.placeOrder()
+
+    component.onKeepOpen()
+    await flush()
+
+    expect(notices.map(n => n.message)).toEqual([ORDER_PLACED_MESSAGE])
   })
 })

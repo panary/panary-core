@@ -78,6 +78,14 @@ export class OrderSplitOfflineError extends Error {
   }
 }
 
+/** Realtime-Meldungen, die der POS für Bestellungen nicht zeigt (core#657, core#1087). */
+const SILENT_REALTIME_MESSAGES: ReadonlySet<string> = new Set([
+  'SNACKBAR.CHANGED',
+  'SNACKBAR.CHANGED_PLURAL',
+  'SNACKBAR.CREATED',
+  'SNACKBAR.CREATED_PLURAL',
+])
+
 @Injectable({
   providedIn: 'root',
 })
@@ -87,12 +95,14 @@ export class OrderService extends BaseService<Order> {
   protected override cacheStoreName = 'orders'
 
   /**
-   * Die generische Realtime-Meldung „Bestellung wurde geändert“ sagt dem Bediener nichts:
-   * Jede Bestellung wird am POS laufend gepatcht (Warenkorb, Storno, Zahlung), und die
-   * Aktion zeigt ihre eigene Erfolgsmeldung (core#657).
+   * Die generischen Realtime-Meldungen „Bestellung wurde geändert“ und „… erstellt“ sagen dem
+   * Bediener nichts: Jede Bestellung wird am POS laufend gepatcht (Warenkorb, Storno, Zahlung), und
+   * die Aktion zeigt ihre eigene Erfolgsmeldung (core#657). Das Anlegen bestätigt die Kasse selbst
+   * mit „Bestellung abgeschickt“; zusammen mit „erstellt“ und „Bestellungen aktualisiert“ standen nach
+   * jedem Abschicken drei Meldungen über dem Druckdialog (core#1087).
    */
   protected override showSnackbar(messageKey: string): void {
-    if (messageKey === 'SNACKBAR.CHANGED' || messageKey === 'SNACKBAR.CHANGED_PLURAL') return
+    if (SILENT_REALTIME_MESSAGES.has(messageKey)) return
     super.showSnackbar(messageKey)
   }
 
@@ -350,8 +360,8 @@ export class OrderService extends BaseService<Order> {
         // ist auf dem erstellenden Gerät nicht verlässlich; ohne dieses Reload
         // bliebe das #orders-Signal stale → Dashboard-Diagramm aktualisiert sich
         // erst nach komplettem Page-Reload. loadDocuments() setzt #orders neu
-        // (→ Chart-Effect) und zeigt den „Bestellungen aktualisiert"-Hinweis.
-        this.loadDocuments()
+        // (→ Chart-Effect). Still: Die Kasse bestätigt das Abschicken selbst (core#1087).
+        this.loadDocuments({ silent: true })
 
         // Druckdialog öffnen, wenn in den Settings aktiviert
         const showDialog = this.#locationService.activeLocation()?.settings?.printSettings?.showDialogAfterOrder ?? true

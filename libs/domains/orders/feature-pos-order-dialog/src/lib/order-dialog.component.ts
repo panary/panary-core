@@ -166,6 +166,12 @@ const IDLE_INFO_TEXTS: ReadonlySet<string> = new Set([IDLE_INFO_TEXT, `${IDLE_IN
 const NOTICE_MS = 4000
 const NOTICE_DANGER_MS = 6000
 
+/**
+ * Die eine Meldung nach dem Abschicken (core#1087). Vorher standen „Bestellung wurde erstellt“,
+ * „Bestellungen aktualisiert“ und „Bestellung abgeschickt · Neue Bestellung“ zugleich über dem Druckdialog.
+ */
+export const ORDER_PLACED_MESSAGE = 'Bestellung abgeschickt'
+
 @Component({
   selector: 'app-order-dialog',
   standalone: true,
@@ -3206,6 +3212,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
 
+    // Erst bestätigen, wenn der Server (oder offline die Outbox) die Bestellung angenommen hat — das Schließen
+    // wartet bewusst nicht darauf. Scheitert das Anlegen, meldet `handleError` den Fehler statt eines Erfolgs.
+    void created.then(
+      sequence => {
+        if (sequence !== null && sequence !== undefined) this.#notifications.success(ORDER_PLACED_MESSAGE)
+      },
+      () => undefined,
+    )
     this.deleteOrder()
     this.unselectProduct()
 
@@ -3257,6 +3271,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       })
       if (result === 'paid') {
         this.payment.set(null)
+        this.#notifications.success(ORDER_PLACED_MESSAGE)
         this.closed.emit('order-placed')
       } else if (result === 'cash-session-declined') {
         this.#notifications.warning('Kasse nicht freigegeben — die Bestellung bleibt offen')
@@ -3272,6 +3287,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   onKeepOpen(): void {
     if (this.paying()) return
     this.payment.set(null)
+    this.#notifications.success(ORDER_PLACED_MESSAGE)
     this.closed.emit('order-placed')
   }
 

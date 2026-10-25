@@ -459,6 +459,28 @@ describe('OrderService — Realtime-Meldung (#657)', () => {
     expect(open).not.toHaveBeenCalled()
   })
 
+  it('zeigt keine „erstellt“-Meldung — das Abschicken bestätigt die Kasse selbst (#1087)', () => {
+    const { service } = setup()
+    const open = spyOnOpen(service)
+
+    show(service, 'SNACKBAR.CREATED')
+    show(service, 'SNACKBAR.CREATED_PLURAL')
+
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('lädt nach dem eigenen Anlegen still nach — kein „Bestellungen aktualisiert“ (#1087)', async () => {
+    const { service } = setup()
+    const load = vi.spyOn(service as unknown as { loadDocuments: (o?: unknown) => Promise<void> }, 'loadDocuments')
+
+    await service.createOrder(baseInput)
+
+    expect(load).toHaveBeenCalledWith({ silent: true })
+    expect(load.mock.calls.every(([options]) => (options as { silent?: boolean } | undefined)?.silent === true)).toBe(
+      true,
+    )
+  })
+
   it('zeigt weiterhin die übrigen Meldungen', () => {
     const { service } = setup()
     const open = spyOnOpen(service)

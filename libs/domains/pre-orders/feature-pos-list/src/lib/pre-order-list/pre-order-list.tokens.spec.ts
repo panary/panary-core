@@ -14,6 +14,6 @@ describe('Vorbestellungen nutzen die App-Tokens (core#894)', () => {
 
   it('die Primärtasten sind Mint mit Navy-Schrift', () => {
     const source = readFileSync(fileURLToPath(new URL('./pre-order-list.component.ts', import.meta.url)), 'utf8')
-    expect(source.match(/bg-action text-on-action/g)?.length).toBe(5)
+    expect(source.match(/bg-action text-on-action/g)?.length).toBe(3)
   })
 })

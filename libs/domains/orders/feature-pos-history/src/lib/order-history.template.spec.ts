@@ -17,3 +17,10 @@ describe('Historie-Template (core#975)', () => {
     expect(source).toContain('listMaxWidth="51.25rem"')
   })
 })
+
+describe('Historie-Kopf (core#975)', () => {
+  it('nutzt den gemeinsamen Seitenkopf ohne eigenen Zurück-Pfeil', () => {
+    expect(source).toContain('<lib-page-header')
+    expect(source).not.toContain('goBack()')
+  })
+})

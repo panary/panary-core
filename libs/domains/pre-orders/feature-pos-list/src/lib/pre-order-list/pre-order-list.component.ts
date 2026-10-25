@@ -7,51 +7,26 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
 import { ExtendedParams } from '@panary/shared-common'
-import { ConfirmDialogComponent, EurPipe, IconComponent, PosSplitComponent } from '@panary/shared/ui-common'
+import {
+  ConfirmDialogComponent,
+  EurPipe,
+  IconComponent,
+  PageHeaderComponent,
+  PosSplitComponent,
+} from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({
   selector: 'lib-pre-order-list',
   standalone: true,
-  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule, PosSplitComponent],
+  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule, PageHeaderComponent, PosSplitComponent],
   template: `
-    <div class="h-full w-full bg-surface-bg p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
-      <!-- Header & Filters -->
-      <header class="flex-none flex flex-col gap-4 bg-surface-input rounded-2xl p-4 shadow-sm border border-line-soft">
-        <div class="flex flex-row items-center justify-between">
-          <div class="flex items-center gap-4">
-            <button
-              (click)="goBack()"
-              class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
-            >
-              <lib-icon name="arrow-left" class="text-[1.25rem]" />
-            </button>
-            <h1 class="text-xl font-bold text-ink flex items-center gap-2">
-              <lib-icon name="calendar-dots" class="text-[1.25rem] text-accent-ink" />
-              {{ 'PRE_ORDERS.TITLE' | translate }}
-            </h1>
-            <!-- Mobil: runder Icon-Button -->
-            <button
-              (click)="openKasse()"
-              class="ml-4 md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-action text-on-action hover:brightness-95 active:scale-95 transition-all"
-            >
-              <lib-icon name="plus" class="text-[1.375rem]" />
-            </button>
-            <!-- Desktop: Button mit Text -->
-            <button
-              (click)="openKasse()"
-              class="ml-4 hidden md:flex items-center gap-2 h-10 px-4 bg-action text-on-action rounded-xl font-medium hover:brightness-95 active:scale-95 transition-all"
-            >
-              <lib-icon name="plus-circle" class="text-[1.25rem]" />
-              {{ 'PRE_ORDERS.NEW_PRE_ORDER' | translate }}
-            </button>
-          </div>
-
-          <!-- Empty right side since button moved left -->
-          <div class="flex gap-2"></div>
-        </div>
-
-        <div class="relative">
+    <div class="h-full w-full bg-surface-bg flex flex-col overflow-hidden max-h-screen box-border">
+      <lib-page-header
+        [title]="'PRE_ORDERS.TITLE' | translate"
+        [subtitle]="orders().length ? '' + orders().length : ''"
+      >
+        <div class="relative ml-2 w-72 max-w-full">
           <lib-icon
             name="magnifying-glass"
             class="text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
@@ -61,19 +36,21 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             [(ngModel)]="searchQuery"
             (keyup.enter)="fetchOrders()"
             [placeholder]="'PRE_ORDERS.SEARCH_PLACEHOLDER' | translate"
-            class="w-full h-12 pl-10 pr-4 rounded-xl bg-surface-elevated border-none outline-none focus:ring-2 focus:ring-accent-line transition-all text-ink placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-ink-faint"
+            class="w-full h-11 pl-10 pr-3 rounded-xl bg-surface-input border border-line-soft outline-none focus:ring-2 focus:ring-accent-line transition-all text-ink text-sm placeholder:text-ink-faint"
           />
-          <button
-            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-action text-on-action rounded-lg shadow-sm hover:brightness-95 active:scale-95 transition-all"
-            (click)="fetchOrders()"
-          >
-            <lib-icon name="arrow-right" class="text-[1.25rem]" />
-          </button>
         </div>
-      </header>
+        <button
+          pageHeaderActions
+          (click)="openKasse()"
+          class="flex items-center gap-2 h-11 px-4 bg-action text-on-action rounded-xl font-medium hover:brightness-95 active:scale-95 transition-all"
+        >
+          <lib-icon name="plus-circle" class="text-[1.25rem]" />
+          {{ 'PRE_ORDERS.NEW_PRE_ORDER' | translate }}
+        </button>
+      </lib-page-header>
 
       <!-- Content -->
-      <lib-pos-split class="flex-1" [detailOpen]="selectedOrder() !== null">
+      <lib-pos-split class="flex-1 px-6 pb-6" [detailOpen]="selectedOrder() !== null">
         <!-- Order List -->
         <div posSplitList class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
           @if (loading()) {

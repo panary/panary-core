@@ -19,6 +19,7 @@ Designstudie POS-Screens v2 (E9), Anker panary/panary-core#819, Umsetzung panary
 - **Vorbestellungen:** Karten im Raster `repeat(auto-fill, minmax(20rem, 1fr))` — 2 Spalten bei 1366, 3 bei 1920; gruppiert nach Abholtag (Heute, Morgen, Datum).
 - **Historie:** Liste bis 820 px (`listMaxWidth`), kein Lila mehr (Akzent-Tokens).
 - **Leerzustände** nennen den Zeitraum; Historie „Heute" bietet „Gestern ansehen", Vorbestellungen „Neue Vorbestellung anlegen".
+- **Seitenköpfe:** beide Seiten nutzen `lib-page-header` (core#972), ohne Zurück-Pfeil; Suche im Kopf, Zeitraum-Tasten bzw. „Neue Vorbestellung" als Aktionen.
 - `reverse` vertauscht die Seiten; angeschlossen wird es mit der Bedienhand in panary/panary-core#976.
 
-**Offen:** das echte Sunmi-Maß (`innerWidth × innerHeight` am Gerät) liegt nicht vor; umgesetzt sind 1366 und 1920. Die Seitenköpfe wechseln erst auf die gemeinsame Kopfkomponente, wenn panary/panary-core#972 gemergt ist.
+**Offen:** das echte Sunmi-Maß (`innerWidth × innerHeight` am Gerät) liegt nicht vor; umgesetzt sind 1366 und 1920. `railSide` des Seitenkopfs bleibt auf dem Standard, bis die Spiegelung in panary/panary-core#976 angeschlossen wird.

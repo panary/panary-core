@@ -1,65 +1,6 @@
-<div class="h-full w-full bg-surface-bg p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
-  <!-- Header & Filters -->
-  <header class="flex-none flex flex-col gap-4 bg-surface-input rounded-2xl p-4 border border-line-soft">
-    <div class="flex flex-row items-center justify-between">
-      <div class="flex items-center gap-4">
-        <button
-          (click)="goBack()"
-          class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
-        >
-          <lib-icon name="arrow-left" class="text-[1.25rem]" />
-        </button>
-        <h1 class="text-xl font-bold text-ink flex items-center gap-2">
-          <lib-icon name="clock-counter-clockwise" class="text-[1.25rem] text-accent-ink" />
-          {{ 'HISTORY.TITLE' | translate }}
-        </h1>
-      </div>
-
-      <!-- Mobil: Dropdown -->
-      <select
-        class="md:hidden h-9 px-3 rounded-xl border border-line bg-surface-elevated text-sm text-accent-ink dark:text-ink font-medium focus:outline-none focus:ring-2 focus:ring-accent-line"
-        (change)="selectTimeRange($any($event.target).value)"
-      >
-        <option value="today" [selected]="selectedTimeRange() === 'today'">{{ 'HISTORY.TODAY' | translate }}</option>
-        <option value="yesterday" [selected]="selectedTimeRange() === 'yesterday'">
-          {{ 'HISTORY.YESTERDAY' | translate }}
-        </option>
-        <option value="week" [selected]="selectedTimeRange() === 'week'">{{ 'HISTORY.THIS_WEEK' | translate }}</option>
-      </select>
-
-      <!-- Desktop: Buttons -->
-      <div class="hidden md:flex gap-2">
-        <button
-          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
-          [class.bg-accent-soft]="selectedTimeRange() === 'today'"
-          [class.text-accent-ink]="selectedTimeRange() === 'today'"
-          [class.border-accent-line]="selectedTimeRange() === 'today'"
-          (click)="selectTimeRange('today')"
-        >
-          {{ 'HISTORY.TODAY' | translate }}
-        </button>
-        <button
-          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
-          [class.bg-accent-soft]="selectedTimeRange() === 'yesterday'"
-          [class.text-accent-ink]="selectedTimeRange() === 'yesterday'"
-          [class.border-accent-line]="selectedTimeRange() === 'yesterday'"
-          (click)="selectTimeRange('yesterday')"
-        >
-          {{ 'HISTORY.YESTERDAY' | translate }}
-        </button>
-        <button
-          class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
-          [class.bg-accent-soft]="selectedTimeRange() === 'week'"
-          [class.text-accent-ink]="selectedTimeRange() === 'week'"
-          [class.border-accent-line]="selectedTimeRange() === 'week'"
-          (click)="selectTimeRange('week')"
-        >
-          {{ 'HISTORY.THIS_WEEK' | translate }}
-        </button>
-      </div>
-    </div>
-
-    <div class="relative">
+<div class="h-full w-full bg-surface-bg flex flex-col overflow-auto box-border">
+  <lib-page-header [title]="'HISTORY.TITLE' | translate">
+    <div class="relative ml-2 w-72 max-w-full">
       <lib-icon
         name="magnifying-glass"
         class="text-[1.25rem] absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
@@ -69,19 +10,28 @@
         [(ngModel)]="searchQuery"
         (keyup.enter)="fetchOrders()"
         [placeholder]="'HISTORY.SEARCH_PLACEHOLDER' | translate"
-        class="w-full h-12 pl-10 pr-4 rounded-xl bg-surface-elevated border-none outline-none focus:ring-2 focus:ring-accent-line transition-all text-ink placeholder:text-[0.6875rem] placeholder:md:text-sm placeholder:text-ink-faint"
+        class="w-full h-11 pl-10 pr-3 rounded-xl bg-surface-input border border-line-soft outline-none focus:ring-2 focus:ring-accent-line transition-all text-ink text-sm placeholder:text-ink-faint"
       />
-      <button
-        class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-action text-on-action rounded-lg shadow-sm hover:brightness-95 active:scale-95 transition-all"
-        (click)="fetchOrders()"
-      >
-        <lib-icon name="arrow-right" class="text-[1.25rem]" />
-      </button>
     </div>
-  </header>
+    <div pageHeaderActions class="flex gap-2">
+      @for (range of timeRanges; track range.value) {
+        <button
+          class="px-4 h-11 rounded-xl border transition-colors"
+          [class]="
+            selectedTimeRange() === range.value
+              ? 'bg-accent-soft text-accent-ink border-accent-line font-medium'
+              : 'bg-surface-input text-ink border-line-soft hover:bg-line'
+          "
+          (click)="selectTimeRange(range.value)"
+        >
+          {{ range.label | translate }}
+        </button>
+      }
+    </div>
+  </lib-page-header>
 
   <!-- Content -->
-  <lib-pos-split class="flex-1" listMaxWidth="51.25rem" [detailOpen]="selectedOrder() !== null">
+  <lib-pos-split class="flex-1 px-6 pb-6" listMaxWidth="51.25rem" [detailOpen]="selectedOrder() !== null">
     <!-- Order List -->
     <div posSplitList class="flex-1 bg-surface-input rounded-2xl border border-line-soft overflow-hidden flex flex-col">
       @if (loading()) {

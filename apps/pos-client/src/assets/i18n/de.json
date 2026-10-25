@@ -658,6 +658,8 @@
     "CHANNEL_PHONE": "Telefon",
     "DISCOUNT": "Rabatt",
     "WITHOUT_DISCOUNT": "Ohne Rabatt",
+    "ARIA_STEPS": "Schritte",
+    "STEP_SKIPPED": "ohne",
     "LINE_DISCOUNT": "Pos.-Rab.",
     "PROMO_CODE": "Rabattcode",
     "OPTIONS": "Optionen",

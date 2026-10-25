@@ -119,6 +119,7 @@ import { BundleFlow } from './bundle-flow'
 import { KasseDraftRegistry } from './kasse-draft-registry'
 import { splitGroupBar } from './group-bar'
 import { revealCartSelection } from './cart-scroll'
+import { type ClosingStep, type ClosingStepView, closingStepViews, closingSteps } from './closing-flow'
 import {
   type CustomizeModel,
   REMOVED_INGREDIENT_PREFIX,
@@ -299,6 +300,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   })
   private _productButtons: PosButton[] = []
   private _table: string | undefined = undefined
+  /** Schritt der Abschlusskette, den das Raster gerade zeigt (core#1069). */
+  #closingStep: ClosingStep | null = null
   private _dineLocation: (typeof DineLocation)[keyof typeof DineLocation] | undefined = undefined
 
   /**
@@ -483,6 +486,24 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get selectedProductIndex() {
     return this._selectedProductIndex
+  }
+
+  /** Schrittkopf der Abschlusskette (core#1069); leer außerhalb von Pager, Tisch und Fertigungszeit. */
+  get closingStepViews(): ClosingStepView[] {
+    const steps = closingSteps({
+      showPagers: !!this.locationService.showPagers,
+      showTables: !!this.locationService.showTables,
+      takeOut: this._dineLocation === DineLocation.TAKE_OUT,
+    })
+    return closingStepViews(steps, this.#closingStep, { pager: this._pager, table: this._table })
+  }
+
+  /**
+   * Schlüssel der Ansicht im Raster. Ändert er sich, baut das Template den Inhalt neu auf, und er gleitet herein
+   * (core#1069). Ein Tipp auf eine Kachel derselben Ansicht ändert ihn nicht — sonst zuckte jedes Buchen.
+   */
+  get viewKey(): string {
+    return `${this._functionBlockLabel}|${this.#closingStep ?? ''}|${this.activeProductGroupId() ?? ''}`
   }
 
   get selectedCombinationIndex() {
@@ -779,6 +800,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._functionBlockLabel = ''
     this.corporateCustomers = []
     this.activeProductGroupId.set(null)
+    this.#closingStep = null
   }
 
   clearNumpad(_skipViewChange = false): void {
@@ -1023,6 +1045,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     })
     this._functionBlockLabel = 'Fertigungszeit'
+    this.#closingStep = 'time'
 
     this._productionTimes.forEach((value, index) => {
       this._productButtons.push({
@@ -1142,6 +1165,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.setInfoBoxText('Auf welchem Tisch befindet sich die Bestellung?')
     }
     this._functionBlockLabel = 'Tisch auswählen'
+    this.#closingStep = 'table'
     this._functionButtons.push({
       _id: 'noTables',
       externalId: this.#functionButtonExternalId,
@@ -1164,6 +1188,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         tenantId: this.authService.tenantId()?.toString() || '',
         index: index,
         iconName: 'table',
+        kindLabel: 'Tisch',
         name: table,
         productGroupExternalId: this._tableTopic,
         table: table,
@@ -1190,6 +1215,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.setInfoBoxText('Welche Pager-Nummer hat der Tisch?')
     }
     this._functionBlockLabel = 'Pager auswählen'
+    this.#closingStep = 'pager'
     this._functionButtons.push({
       _id: 'noPagers',
       externalId: this.#functionButtonExternalId,
@@ -1213,6 +1239,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         tenantId: this.authService.tenantId()?.toString() || '',
         index: index,
         iconName: 'device-mobile',
+        kindLabel: 'Pager',
         name: pager.toString(),
         productGroupExternalId: this._tableTopic,
         table: pager.toString(),

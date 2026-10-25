@@ -125,6 +125,30 @@
   }
 }
 
+/*
+ * Ansichtswechsel im Raster (core#1069): Der neue Inhalt gleitet 2rem von der Rasterseite herein, also vom Rand
+ * gegenüber dem Warenkorb — links bedient von rechts, rechts bedient von links. Der Titel des Funktionsblocks
+ * leuchtet einmal in Mint auf. Grund: Eine Erstnutzerin bemerkte nicht, dass auf die Pager- die Tischwahl folgte.
+ */
+.kasse {
+  --kasse-view-from: 2rem;
+}
+
+.kasse[data-hand='right'] {
+  --kasse-view-from: -2rem;
+}
+
+.kasse-view-enter {
+  animation: kasse-view-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.kasse-step-title {
+  margin-left: -0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-control, 0.5rem);
+  animation: kasse-title-flash 900ms ease-out both;
+}
+
 /* Hinweis statt Infozeile (core#908): über dem unteren Rasterrand, über einem offenen Sheet, ohne Platzbedarf. */
 .kasse__notice {
   position: absolute;
@@ -200,6 +224,27 @@
   }
 }
 
+@keyframes kasse-view-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--kasse-view-from));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes kasse-title-flash {
+  0% {
+    background-color: var(--primary);
+    color: var(--on-primary);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 @keyframes kasse-notice-in {
   from {
     opacity: 0;
@@ -230,12 +275,17 @@
   }
 }
 
-/* „Bewegung reduzieren": nur Einblenden in 120 ms, kein Gleiten, kein Impuls, statischer Rahmen. */
+/* „Bewegung reduzieren": nur Einblenden in 120 ms, kein Gleiten, kein Impuls, kein Aufleuchten, statischer Rahmen. */
 @media (prefers-reduced-motion: reduce) {
   .kasse-sheet-enter,
   .kasse-scrim-enter,
-  .kasse-notice-enter {
+  .kasse-notice-enter,
+  .kasse-view-enter {
     animation: kasse-fade-in 120ms linear both;
+  }
+
+  .kasse-step-title {
+    animation: none;
   }
 
   .kasse-line-customizing {

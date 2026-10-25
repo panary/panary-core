@@ -29,6 +29,8 @@ export interface PosButtonUiState {
   productGroupExternalId?: string
   /** Abzeichen oben rechts, z. B. „1/3" — gewählte Stück beim Kombinieren (#795) */
   countLabel?: string
+  /** Art der Kachel über dem Namen („Pager", „Tisch") — beide Raster zeigen sonst nur Zahlen (core#1069). */
+  kindLabel?: string
   /** Phosphor-Icon synthetischer Funktionstasten (`icon` bleibt das Emoji des Produkts). */
   iconName?: IconName
 }

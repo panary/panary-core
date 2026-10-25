@@ -1,6 +1,8 @@
+import { JSDOM } from 'jsdom'
 import { describe, expect, it } from 'vitest'
 
 import {
+  MODAL_DIALOG_SELECTOR,
   openModalBounds,
   placeBesideDialog,
   raiseAboveForeignPopovers,
@@ -226,5 +228,27 @@ describe('openModalBounds (core#1087)', () => {
         { closest: () => null, getBoundingClientRect: () => ({ top: 0, bottom: 0, width: 0, height: 0 }) },
       ]),
     ).toBeNull()
+  })
+})
+
+describe('MODAL_DIALOG_SELECTOR (core#1094)', () => {
+  const matches = (html: string) =>
+    new JSDOM(`<body>${html}</body>`).window.document.querySelectorAll(MODAL_DIALOG_SELECTOR).length
+
+  it('erkennt einen Material-Dialog, obwohl er aria-modal="false" trägt', () => {
+    expect(
+      matches('<mat-dialog-container class="mat-mdc-dialog-container cdk-dialog-container" aria-modal="false">'),
+    ).toBe(1)
+  })
+
+  it('erkennt einen CDK-Dialog und jedes Element mit aria-modal="true"', () => {
+    expect(matches('<cdk-dialog-container class="cdk-dialog-container"></cdk-dialog-container>')).toBe(1)
+    expect(matches('<div role="dialog" aria-modal="true"></div>')).toBe(1)
+  })
+
+  it('übersieht die Kassen-Sheets und die Auto-Logout-Vorwarnung', () => {
+    expect(
+      matches('<div role="dialog" class="kasse__sheet"></div><div popover="manual" role="alertdialog"></div>'),
+    ).toBe(0)
   })
 })

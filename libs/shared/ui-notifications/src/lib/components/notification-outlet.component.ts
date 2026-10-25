@@ -18,6 +18,7 @@ import { NotificationService } from '../services/notification.service'
 import type { Notification, NotificationType } from '../models/notification.types'
 import {
   type LayerPlacement,
+  MODAL_DIALOG_SELECTOR,
   openModalBounds,
   placeBesideDialog,
   raiseAboveForeignPopovers,
@@ -320,7 +321,7 @@ export class NotificationOutletComponent {
     const items = Array.from(layer.querySelectorAll<HTMLElement>(':scope > .notification'))
     const dialog =
       'showPopover' in layer
-        ? openModalBounds(Array.from(this.#doc.querySelectorAll<HTMLElement>('[aria-modal="true"]')))
+        ? openModalBounds(Array.from(this.#doc.querySelectorAll<HTMLElement>(MODAL_DIALOG_SELECTOR)))
         : null
     if (!dialog) {
       this.#placement.set(null)

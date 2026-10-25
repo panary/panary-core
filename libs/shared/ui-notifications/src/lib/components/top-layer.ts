@@ -111,7 +111,14 @@ export type ModalCandidate = {
 }
 
 /**
- * Rahmen des obersten offenen modalen Dialogs (`aria-modal="true"`) — `null`, wenn keiner offen ist.
+ * Was als offener Dialog gilt. `.cdk-dialog-container` trägt jeder CDK- und Material-Dialog; Material setzt an
+ * `mat-dialog-container` aber `aria-modal="false"` — mit `[aria-modal="true"]` allein fand die Ebene weder den
+ * Druckdialog noch „Kasse freigeben“ (core#1094).
+ */
+export const MODAL_DIALOG_SELECTOR = '[aria-modal="true"], .cdk-dialog-container'
+
+/**
+ * Rahmen des obersten offenen Dialogs (`MODAL_DIALOG_SELECTOR`) — `null`, wenn keiner offen ist.
  * Ein Dialog in einem geschlossenen Popover zählt nicht. `:popover-open` wirft in WebViews ohne Popover-API;
  * dort wird es deshalb gar nicht abgefragt.
  */

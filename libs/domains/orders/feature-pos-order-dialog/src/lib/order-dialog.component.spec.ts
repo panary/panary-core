@@ -14,6 +14,7 @@ import {
 } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { NotificationService } from '@panary/shared/ui-notifications'
+import { ALL_MODIFIERS_GROUP_ID } from './product-customize'
 import { TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
 
@@ -236,7 +237,8 @@ function setup(options: SetupOptions = {}) {
       {
         provide: ProductService,
         useValue: {
-          extras: signal([]),
+          // „Alle Modifier" im Sheet (#1085) liest die Modifier des Katalogs.
+          extras: () => (options.catalog ?? []).filter(p => p.productType === 'MODIFIER'),
           // Schließen des Anpassen-Panels führt zurück ins Raster der Produktgruppe (#639).
           getProductsByGroupId: () => [],
           findProductById: (id: string) => (options.catalog ?? []).find(p => p._id === id),
@@ -872,7 +874,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     expect(component.infoBoxText).not.toContain('ist kein Extra')
   })
 
-  it('das Extras-Raster kennzeichnet falsch typisierte Kacheln, bevor jemand tippt', () => {
+  it('das Anpassen-Sheet kennzeichnet falsch typisierte Optionen, bevor jemand tippt', () => {
     const mayo = product('mayo', { name: 'Mayo', productType: 'PRODUCT' } as Partial<ProductSchema>)
     const ketchup = product('ketchup', { name: 'Ketchup', productType: 'MODIFIER' } as Partial<ProductSchema>)
     const pommes = product('pommes', {
@@ -890,8 +892,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     const { component } = setup({ catalog: [pommes, mayo, ketchup] })
     component.increaseLineItem(pommes)
 
-    // Mit Optionsgruppen öffnet die Auswahl seit #639 das Panel; das Raster gibt es weiter
-    // über „Alle Modifier" (`grid = true`). Beide Wege müssen die Fehlkonfiguration zeigen.
+    // Das frühere Extras-Raster gibt es seit #1085 nicht mehr — die Kennzeichnung trägt allein das Sheet.
     component.selectProduct(0)
     expect(
       component
@@ -902,10 +903,6 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
       ['Ketchup', true],
     ])
 
-    component.setExtraSubButtons(undefined, undefined, false, true)
-    const tiles: Array<{ name: string; iconName?: string }> = component.productButtons
-    expect(tiles.find(t => t.name === 'Mayo')?.iconName).toBe('warning')
-    expect(tiles.find(t => t.name === 'Ketchup')?.iconName).toBeUndefined()
   })
 })
 
@@ -1677,21 +1674,21 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     const { component } = setup({ catalog: [p, cheese()] })
     component.increaseLineItem(p)
 
-    component.onCustomizeOptionDecreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionDecreased({ groupId: 'g-1', groupName: 'Extras', productId: 'cheese' })
     expect(component.lineItems[0].modifiers).toEqual([])
 
-    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
-    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionIncreased({ groupId: 'g-1', groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionIncreased({ groupId: 'g-1', groupName: 'Extras', productId: 'cheese' })
     expect(component.customizeModel()?.groups[0].selected).toBe(2)
 
     // maxSelections 2 erreicht — ein drittes Plus bucht nichts
-    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionIncreased({ groupId: 'g-1', groupName: 'Extras', productId: 'cheese' })
     expect(component.lineItems[0].modifiers.map((m: { amount: number; topic: string }) => [m.amount, m.topic])).toEqual(
       [[2, 'Extras']],
     )
 
-    component.onCustomizeOptionDecreased({ groupName: 'Extras', productId: 'cheese' })
-    component.onCustomizeOptionDecreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionDecreased({ groupId: 'g-1', groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionDecreased({ groupId: 'g-1', groupName: 'Extras', productId: 'cheese' })
     expect(component.lineItems[0].modifiers).toEqual([])
   })
 
@@ -1703,7 +1700,7 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     component.onCustomizeFinished()
     expect(component.customizeModel()).not.toBeNull()
 
-    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionIncreased({ groupId: 'g-1', groupName: 'Extras', productId: 'cheese' })
     component.onCustomizeFinished()
     expect(component.customizeModel()).toBeNull()
   })
@@ -1725,21 +1722,22 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     component.increaseLineItem(p) // Zeile 1, Panel offen
     component._selectedProductIndex = 0 // Auswahl wandert ohne Ansichtswechsel
 
-    component.onCustomizeOptionIncreased({ groupName: 'Extras', productId: 'cheese' })
+    component.onCustomizeOptionIncreased({ groupId: 'g-1', groupName: 'Extras', productId: 'cheese' })
 
     expect(component.lineItems[0].modifiers).toEqual([])
     expect(component.lineItems[1].modifiers.map((m: { name: string }) => m.name)).toEqual(['Käse'])
   })
 
-  it('wechselt die Auswahl per Pfeil, zieht das Panel mit oder schließt', () => {
+  it('wechselt die Auswahl per Pfeil, zieht das Panel mit — auch auf ein Produkt ohne Extras (#1085)', () => {
     const a = burger(true)
     const b = product('cola')
     const { component } = setup({ catalog: [a, b] })
     component.increaseLineItem(b)
     component.increaseLineItem(a) // Zeile 1, Panel offen
 
-    component.decreaseSelectedIndex() // auf Zeile 0 — nicht anpassbar
-    expect(component.customizeModel()).toBeNull()
+    component.decreaseSelectedIndex() // auf Zeile 0 — ohne Zutaten und Extras
+    expect(component.customizeModel()?.name).toBe('Artikel cola')
+    expect(component.customizeModel()?.empty).toBe(true)
     expect(component.selectedProductIndex).toBe(0)
 
     component.selectProduct(1)
@@ -1791,28 +1789,34 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
     expect(component.customizeModel()?.amount).toBe(2)
   })
 
-  it('ein Menü öffnet das Panel auch über den Warenkorb-Tipp nicht', () => {
+  it('ein Menü öffnet über den Warenkorb-Tipp das Sheet, aber ohne seine Menüschritte (#1085)', () => {
     const menu = product('menu', {
       isMenu: true,
       ingredientReferences: [ketchup()],
+      optionGroups: [
+        { id: 'g-drink', name: 'Getränk', minSelections: 1, maxSelections: 1, freeQuantity: 1, options: [{ productId: 'cola' }] },
+      ],
     } as never)
-    const { component } = setup({ catalog: [menu] })
+    const { component } = setup({ catalog: [menu, product('cola')] })
     component.increaseLineItem(menu)
     component._isBlocked = false
+    component.unselectProduct()
 
     component.selectProduct(0)
 
-    expect(component.customizeModel()).toBeNull()
+    // Bis #1085 zeigte ein Menü hier das alte Extras-Raster; Pflicht-Menüschritte im Sheet sperrten „Fertig".
+    expect(component.customizeModel()?.groups).toEqual([])
+    expect(component.customizeModel()?.canFinish).toBe(true)
   })
 
-  it('das Extras-Raster hat keine OHNE-Funktionstaste mehr', () => {
+  it('ohne Extras gibt es weder OHNE-Taste noch Raster — das Sheet zeigt den Leerzustand (#1085)', () => {
     const { component } = setup({ catalog: [product('pommes')] })
     component.increaseLineItem(product('pommes'))
 
     component.selectProduct(0)
 
     expect(component.functionButtons.map((b: { name: string }) => b.name)).not.toContain('OHNE')
-    expect(component.customizeModel()).toBeNull()
+    expect(component.customizeModel()?.empty).toBe(true)
   })
 })
 
@@ -2002,14 +2006,13 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
 
   describe('Review-Nachträge', () => {
     const cheese = () => product('cheese', { name: 'Käse', price: 0.5, productType: 'MODIFIER' } as never)
-    /** Tippt die Raster-Kachel des Extras an — derselbe Weg wie am Gerät. */
+    /** Plus am Extra in „Alle Modifier" im Sheet — seit #1085 der Weg, der das frühere Raster ersetzt. */
     function tapRasterExtra(component: any, id = 'cheese') {
-      component.setExtraSubButtons([`ext-${id}`])
-      const button = component.productButtons.find((b: { _id: string }) => b._id === id)
-      button.callback()
+      if (!component.customizeShowAll()) component.onCustomizeShowAllModifiers()
+      component.onCustomizeOptionIncreased({ groupId: ALL_MODIFIERS_GROUP_ID, groupName: 'Alle Modifier', productId: id })
     }
 
-    it('Fall 40: ein Raster-Extra an einer Mehrstück-Zeile spaltet ab, ein zweites auf den Rest führt zusammen', () => {
+    it('Fall 40: ein Extra aus „Alle Modifier" an einer Mehrstück-Zeile spaltet ab, ein zweites auf den Rest führt zusammen', () => {
       const pommes = product('pommes')
       const { component } = setup({ catalog: [pommes, cheese()] })
       component.increaseLineItem(pommes)
@@ -2025,10 +2028,12 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
 
       component.selectProduct(0)
       tapRasterExtra(component)
+      // Im Sheet führt erst „Fertig" zusammen; das Raster tat es nach jedem Tipp.
+      component.onCustomizeFinished()
       expect(shape(component)).toEqual([[2, 'Käse']])
     })
 
-    it('„Alle Modifier" nach „alle n" spaltet im Raster nicht ab', () => {
+    it('„Alle Modifier" nach „alle n" spaltet nicht ab', () => {
       const p = product('burger', { ui: ui(false), ingredientReferences: [ketchup()] } as never)
       const { component } = setup({ catalog: [p, cheese()] })
       component.increaseLineItem(p)
@@ -2041,7 +2046,7 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
       expect(shape(component)).toEqual([[2, 'Käse']])
     })
 
-    it('im Hinzufügen-Ablauf gilt ein Raster-Extra über „Alle Modifier" für alle Stück', () => {
+    it('im Hinzufügen-Ablauf gilt ein Extra aus „Alle Modifier" für alle Stück', () => {
       const p = burger(true)
       const { component } = setup({ catalog: [p, cheese()] })
       component.multiplier = 3
@@ -2108,8 +2113,10 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
       const menu = product('menu', { isMenu: true } as never)
       const { component } = setup({ catalog: [menu, cheese()] })
       component.increaseLineItem(menu)
-      component.selectProduct(0)
+      component.unselectProduct()
+      component.toggleProductSelection(0)
       component.increaseSelectedQuantity() // 2× Menü
+      component.customizeSelection() // Sheet mit „1 Stück" — mehrere Stück, nicht frisch
 
       tapRasterExtra(component)
       expect(shape(component)).toEqual([
@@ -3411,5 +3418,91 @@ describe('Kasse — Schrittkopf und Ansichtswechsel (core#1069)', () => {
     const vorher = component.viewKey
     component.selectDineLocation('OUTSIDE')
     expect(component.viewKey).not.toBe(vorher)
+  })
+})
+
+describe('OrderDialog — ein Anpassen-Sheet für jedes Produkt (#1085)', () => {
+  const cheese = () => product('cheese', { name: 'Käse', price: 0.5, productType: 'MODIFIER' } as never)
+  const bacon = () => product('bacon', { name: 'Bacon', price: 1.5, productType: 'MODIFIER' } as never)
+  /** Wie das Schnitzel am Gerät: keine abwählbare Zutat, keine Optionsgruppe. */
+  const schnitzel = () => product('schnitzel', { name: 'Schnitzel' } as never)
+  const pizza = () =>
+    product('pizza', {
+      name: 'Pizza',
+      optionGroups: [
+        { id: 'g-pizza', name: 'Belag', minSelections: 0, maxSelections: 3, freeQuantity: 0, options: [{ productId: 'cheese' }] },
+      ],
+    } as never)
+
+  it('„Anpassen" an einem Produkt ohne Zutaten und Extras öffnet das Sheet mit Leerzustand statt des alten Rasters', () => {
+    const { component } = setup({ catalog: [schnitzel()] })
+    component.increaseLineItem(schnitzel())
+    component.unselectProduct()
+    component.toggleProductSelection(0)
+
+    component.customizeSelection()
+
+    expect(component.customizeModel()?.name).toBe('Schnitzel')
+    expect(component.customizeModel()?.empty).toBe(true)
+    expect(component.functionBlockLabel).not.toBe('Extras auswählen')
+    expect(component.functionButtons.map((b: { name: string }) => b.name)).not.toContain('ABBRUCH')
+    expect(component.functionButtons.map((b: { name: string }) => b.name)).not.toContain('Alle Modifier anzeigen')
+  })
+
+  it('Schnitzel und Pizza öffnen dieselbe Ansicht — nur der Inhalt unterscheidet sich', () => {
+    const { component } = setup({ catalog: [schnitzel(), pizza(), cheese()] })
+    component.increaseLineItem(schnitzel())
+    component.increaseLineItem(pizza())
+
+    component.selectProduct(0)
+    expect(component.customizeModel()?.name).toBe('Schnitzel')
+    component.onCustomizeFinished()
+
+    component.selectProduct(1)
+    expect(component.customizeModel()?.name).toBe('Pizza')
+    expect(component.customizeModel()?.groups.map((g: { name: string }) => g.name)).toEqual(['Belag'])
+    expect(component.customizeModel()?.empty).toBe(false)
+  })
+
+  it('„Alle Modifier" blendet die Katalog-Modifier als Gruppe im Sheet ein und bucht sie unter dem Extra-Thema', () => {
+    const { component } = setup({ catalog: [pizza(), cheese(), bacon()] })
+    component.increaseLineItem(pizza())
+    component.selectProduct(0)
+
+    component.onCustomizeShowAllModifiers()
+    const all = component.customizeModel()?.groups.find((g: { id: string }) => g.id === ALL_MODIFIERS_GROUP_ID)
+    // Käse steht schon im Belag — doppelt zählte die Menge in beiden Gruppen.
+    expect(all?.options.map((o: { name: string }) => o.name)).toEqual(['Bacon'])
+    expect(component.customizeModel()?.showingAllModifiers).toBe(true)
+
+    component.onCustomizeOptionIncreased({ groupId: ALL_MODIFIERS_GROUP_ID, groupName: 'Alle Modifier', productId: 'bacon' })
+    const bacons = component.lineItems[0].modifiers.filter((m: { _id: string }) => m._id === 'bacon')
+    expect(bacons.map((m: { amount: number; topic: string }) => [m.amount, m.topic])).toEqual([[1, 'Extras']])
+
+    component.onCustomizeShowAllModifiers()
+    expect(component.customizeModel()?.showingAllModifiers).toBe(false)
+    expect(component.customizeModel()?.groups.map((g: { id: string }) => g.id)).toEqual(['g-pizza'])
+  })
+
+  it('ein Menü zeigt seine Menüschritte nicht als Extras', () => {
+    const cola = product('cola')
+    const menu = product('menu', {
+      name: 'Menü',
+      productType: 'BUNDLE',
+      optionGroups: [
+        { id: 'g-drink', name: 'Getränk', minSelections: 1, maxSelections: 1, freeQuantity: 1, options: [{ productId: 'cola' }] },
+      ],
+    } as never)
+    const { component } = setup({ catalog: [menu, cola] })
+    component.increaseLineItem(schnitzel())
+    // Zeile direkt anlegen: der Menü-Ablauf selbst ist hier nicht Gegenstand.
+    component.lineItems.push({ ...component.lineItems[0], _id: 'line-menu', externalId: 'ext-menu', name: 'Menü' })
+    component.unselectProduct()
+    component.toggleProductSelection(1)
+
+    component.customizeSelection()
+
+    expect(component.customizeModel()?.name).toBe('Menü')
+    expect(component.customizeModel()?.groups).toEqual([])
   })
 })

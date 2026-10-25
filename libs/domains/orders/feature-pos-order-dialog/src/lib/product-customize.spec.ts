@@ -4,6 +4,7 @@ import type { OrderLineItem } from '@panary/orders/data-access'
 import type { ProductSchema } from '@panary/products/domain'
 
 import {
+  ALL_MODIFIERS_GROUP_ID,
   buildCustomizeModel,
   hasCustomizableContent,
   opensCustomizeAutomatically,
@@ -235,5 +236,34 @@ describe('buildCustomizeModel', () => {
     expect(model.groups[0].options).toEqual([
       { productId: 'fries', name: 'Pommes', price: 3, amount: 0, isModifier: false },
     ])
+  })
+})
+
+describe('buildCustomizeModel — „Alle Modifier" und Leerzustand (#1085)', () => {
+  it('ein Produkt ohne abwählbare Zutat und ohne Extras ergibt den Leerzustand', () => {
+    const model = buildCustomizeModel(line({ ingredientReferences: [] }), product(), catalog)
+    expect(model.empty).toBe(true)
+    expect(model.canFinish).toBe(true)
+    expect(model.showingAllModifiers).toBe(false)
+  })
+
+  it('hängt die Katalog-Modifier als eigene Gruppe an, ohne die schon in einer Optionsgruppe stehenden', () => {
+    const model = buildCustomizeModel(
+      line({ modifiers: [{ _id: 'bacon', name: 'Bacon', amount: 2, price: 1.5 }] as never }),
+      product({ optionGroups: [extrasGroup({ options: [{ productId: 'cheese' }] })] } as never),
+      catalog,
+      [cheese, bacon],
+    )
+    const all = model.groups.find(g => g.id === ALL_MODIFIERS_GROUP_ID)
+    expect(all?.options).toEqual([{ productId: 'bacon', name: 'Bacon', price: 1.5, amount: 2, isModifier: true }])
+    expect(all?.maxSelections).toBeNull()
+    expect(model.summary).toBe('2× Bacon')
+    expect(model.showingAllModifiers).toBe(true)
+  })
+
+  it('bleibt leer, wenn auch der Katalog keine Modifier hat', () => {
+    const model = buildCustomizeModel(line({ ingredientReferences: [] }), product(), catalog, [])
+    expect(model.empty).toBe(true)
+    expect(model.showingAllModifiers).toBe(true)
   })
 })

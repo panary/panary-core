@@ -14,6 +14,13 @@ type IngredientReference = OrderLineItem['ingredientReferences'][number]
 /** Präfix des Modifiers, der eine abgewählte Zutat kennzeichnet (`docs/domains/modifier-ohne-marker.md`). */
 export const REMOVED_INGREDIENT_PREFIX = 'Ohne '
 
+/**
+ * Gruppe „Alle Modifier" im Sheet (#1085): alle Modifier des Katalogs, die nicht schon in einer
+ * Optionsgruppe des Produkts stehen. Ersetzt das frühere Extras-Raster mit ABBRUCH-Taste.
+ */
+export const ALL_MODIFIERS_GROUP_ID = 'all-modifiers'
+export const ALL_MODIFIERS_GROUP_NAME = 'Alle Modifier'
+
 /** Für wie viele Stück einer Zeile gilt eine Anpassung im Panel (#699)? */
 export type CustomizeScope = 'one' | 'all'
 
@@ -55,6 +62,10 @@ export interface CustomizeModel {
   /** Kurzform der Anpassungen, z. B. „ohne Ketchup · 2× Käse". */
   summary: string
   canFinish: boolean
+  /** Ist die Gruppe „Alle Modifier" eingeblendet? */
+  showingAllModifiers: boolean
+  /** Weder abwählbare Zutaten noch Extras — das Sheet zeigt einen Leerzustand (#1085). */
+  empty: boolean
 }
 
 export interface CustomizeCatalog {
@@ -132,10 +143,15 @@ function amountOf(lineItem: OrderLineItem, productId: string): number {
     .reduce((sum, mod) => sum + Math.max(0, mod.amount), 0)
 }
 
+/**
+ * `allModifiers` gesetzt = „Alle Modifier" ist eingeblendet. `product` ist bei einem Menü (BUNDLE)
+ * `undefined`: Dessen Optionsgruppen sind Menüschritte, keine Extras.
+ */
 export function buildCustomizeModel(
   lineItem: OrderLineItem,
   product: ProductSchema | undefined,
   catalog: CustomizeCatalog,
+  allModifiers?: readonly ProductSchema[],
 ): CustomizeModel {
   const references = lineItem.ingredientReferences ?? product?.ingredientReferences ?? []
   const ingredients: CustomizeIngredient[] = references
@@ -177,6 +193,31 @@ export function buildCustomizeModel(
     })
     .filter(group => group.options.length > 0)
 
+  if (allModifiers) {
+    const inProductGroups = new Set(groups.flatMap(group => group.options.map(option => option.productId)))
+    const options: CustomizeOption[] = allModifiers
+      .filter(modifier => !inProductGroups.has(modifier._id))
+      .map(modifier => ({
+        productId: modifier._id,
+        name: modifier.name,
+        price: modifier.price || 0,
+        amount: amountOf(lineItem, modifier._id),
+        isModifier: catalog.isModifier(modifier),
+      }))
+    if (options.length > 0) {
+      groups.push({
+        id: ALL_MODIFIERS_GROUP_ID,
+        name: ALL_MODIFIERS_GROUP_NAME,
+        minSelections: 0,
+        maxSelections: null,
+        selected: options.reduce((sum, option) => sum + option.amount, 0),
+        missing: 0,
+        full: false,
+        options,
+      })
+    }
+  }
+
   const parts = [
     ...ingredients.filter(ing => ing.removed).map(ing => `ohne ${ing.name}`),
     ...groups.flatMap(group =>
@@ -193,5 +234,7 @@ export function buildCustomizeModel(
     groups,
     summary: parts.join(' · '),
     canFinish: groups.every(group => group.missing === 0),
+    showingAllModifiers: !!allModifiers,
+    empty: ingredients.length === 0 && groups.length === 0,
   }
 }

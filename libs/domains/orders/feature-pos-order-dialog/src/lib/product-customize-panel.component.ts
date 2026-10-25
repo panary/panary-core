@@ -4,6 +4,7 @@ import { EurPipe, IconComponent } from '@panary/shared/ui-common'
 import type { CustomizeGroup, CustomizeModel, CustomizeScope } from './product-customize'
 
 export interface CustomizeOptionEvent {
+  groupId: string
   groupName: string
   productId: string
 }
@@ -132,6 +133,24 @@ export interface CustomizeOptionEvent {
              gescrollt wird senkrecht. Die Spalten-Liste aus #795 füllte die erste Spalte bis unten und setzte den
              Rest rechts daneben — das las sich als Liste neben einem Raster (MacBook-Test von pos-v26.10.25). -->
         <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-testid="customize-extras">
+          <!-- Leerzustand (#1085): Ein Produkt ohne abwählbare Zutat und ohne Extras bekam bis dahin ein
+               altes Raster mit ABBRUCH statt dieses Sheets. -->
+          @if (m.empty) {
+            <div
+              class="flex h-full min-h-32 flex-col items-center justify-center gap-2 px-6 text-center"
+              data-testid="customize-empty"
+            >
+              <lib-icon name="sliders-horizontal" class="!text-[2rem] text-ink-faint" aria-hidden="true" />
+              <p class="text-base font-semibold text-ink">
+                {{ m.showingAllModifiers ? 'Im Katalog gibt es keine Modifier' : 'Keine Extras hinterlegt' }}
+              </p>
+              @if (!m.showingAllModifiers) {
+                <p class="max-w-sm text-sm text-ink-muted">
+                  Weitere Extras findest du unter „Alle Modifier“. Zutaten und Extras pflegst du im Katalog.
+                </p>
+              }
+            </div>
+          }
           <div class="flex flex-col gap-5">
             @for (group of m.groups; track group.id) {
               <section [attr.aria-labelledby]="'customize-group-' + group.id">
@@ -177,7 +196,7 @@ export interface CustomizeOptionEvent {
                         class="pnry-touch flex h-12 w-12 items-center justify-center rounded-xl border border-line-strong text-ink-muted dark:text-ink transition-all active:scale-95 disabled:opacity-30"
                         [disabled]="option.amount === 0"
                         [attr.aria-label]="option.name + ' entfernen'"
-                        (click)="optionDecreased.emit({ groupName: group.name, productId: option.productId })"
+                        (click)="optionDecreased.emit({ groupId: group.id, groupName: group.name, productId: option.productId })"
                       >
                         <lib-icon name="minus" aria-hidden="true" />
                       </button>
@@ -191,7 +210,7 @@ export interface CustomizeOptionEvent {
                         class="pnry-touch flex h-12 w-12 items-center justify-center rounded-xl border-2 border-teal-200 bg-teal-50 text-teal-700 transition-all active:scale-95 disabled:opacity-30 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300"
                         [disabled]="group.full || !option.isModifier"
                         [attr.aria-label]="option.name + ' hinzufügen'"
-                        (click)="optionIncreased.emit({ groupName: group.name, productId: option.productId })"
+                        (click)="optionIncreased.emit({ groupId: group.id, groupName: group.name, productId: option.productId })"
                       >
                         <lib-icon name="plus" aria-hidden="true" />
                       </button>
@@ -220,7 +239,14 @@ export interface CustomizeOptionEvent {
         </button>
         <button
           type="button"
-          class="pnry-touch flex h-14 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[0.5625rem] font-bold uppercase leading-tight active:scale-95 @2xl:w-auto @2xl:tracking-wide @2xl:flex-row @2xl:gap-2 @2xl:px-4 @2xl:text-xs border border-line text-ink-muted dark:text-ink"
+          data-testid="customize-all-modifiers"
+          class="pnry-touch flex h-14 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[0.5625rem] font-bold uppercase leading-tight active:scale-95 @2xl:w-auto @2xl:tracking-wide @2xl:flex-row @2xl:gap-2 @2xl:px-4 @2xl:text-xs"
+          [class]="
+            m.showingAllModifiers
+              ? 'border-2 border-teal-400 bg-teal-100 text-teal-800 dark:border-teal-700 dark:bg-teal-900/50 dark:text-teal-200'
+              : 'border border-line text-ink-muted dark:text-ink'
+          "
+          [attr.aria-pressed]="m.showingAllModifiers"
           (click)="showAllModifiers.emit()"
         >
           <lib-icon name="squares-four" class="!text-[1.25rem]" aria-hidden="true" />

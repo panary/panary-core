@@ -46,7 +46,7 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
    MacBook brachen die breiten Felder lange Namen um, und die zweite Zeile kostete eine Rasterzeile.
    *Nachgeschärft ([core#1019](https://github.com/panary/panary-core/issues/1019)):* Die Inhaltsbreite
    kostete auf der Sunmi Gruppen in der Zeile. Seither ist jede Gruppe gleich breit (`--pnry-group-chip`,
-   5,5rem), lange Namen brechen in zwei Zeilen um, mit Silbentrennung nur in dieser Taste. Die Aufteilung
+   5,25rem), lange Namen brechen in zwei Zeilen um, mit Silbentrennung nur in dieser Taste. Die Aufteilung
    misst weiter, statt die Breite als Konstante zu wiederholen.
 5. **Spiegelung je Mitarbeiter** über `grid-template-areas` und `data-hand` aus `posHandedness`
    ([core#827](https://github.com/panary/panary-core/issues/827)). Gespiegelt werden Zonen

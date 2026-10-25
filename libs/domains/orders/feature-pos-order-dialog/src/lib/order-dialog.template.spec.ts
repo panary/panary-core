@@ -244,7 +244,7 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     const name = template.slice(template.indexOf('<ng-template #groupChip'), template.indexOf('</ng-template>'))
     expect(name).toContain('line-clamp-2')
     expect(name).not.toContain('truncate')
-    expect(scss).toMatch(/\.kasse \{[^}]*--pnry-group-chip: 5\.5rem;/)
+    expect(scss).toMatch(/\.kasse \{[^}]*--pnry-group-chip: 5\.25rem;/)
   })
 
   it('misst Leiste und Messzeile mit derselben Gruppen-Vorlage, Farbe als Punkt statt Unterkante', () => {

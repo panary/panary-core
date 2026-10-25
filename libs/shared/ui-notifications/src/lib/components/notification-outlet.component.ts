@@ -2,11 +2,13 @@ import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   DOCUMENT,
   effect,
   ElementRef,
   inject,
+  signal,
   untracked,
   viewChild,
 } from '@angular/core'
@@ -14,7 +16,34 @@ import { iconPath, type IconName } from '@panary/shared/util-helpers'
 
 import { NotificationService } from '../services/notification.service'
 import type { Notification, NotificationType } from '../models/notification.types'
-import { raiseAboveForeignPopovers, syncTopLayer, type TopLayerElement } from './top-layer'
+import {
+  type DialogBounds,
+  type LayerPlacement,
+  placeBesideDialog,
+  raiseAboveForeignPopovers,
+  syncTopLayer,
+  type TopLayerElement,
+} from './top-layer'
+
+/** Höhe einer Meldung, die gerade nicht gezeigt wird (`min-height` 3,5rem). */
+const FALLBACK_NOTIFICATION_HEIGHT = 56
+/** Abstand zwischen zwei Meldungen (`gap` 0,375rem). */
+const NOTIFICATION_GAP = 6
+/** Die CDK lässt Dialoge hereinwachsen; nach dieser Zeit steht der Rahmen fest. */
+const DIALOG_SETTLE_MS = 250
+
+/** Rahmen des obersten offenen modalen Dialogs — `null`, wenn keiner offen ist. */
+function openModalBounds(doc: Document): DialogBounds | null {
+  const dialogs = Array.from(doc.querySelectorAll<HTMLElement>('[aria-modal="true"]'))
+  for (let i = dialogs.length - 1; i >= 0; i--) {
+    // `:popover-open` wirft in WebViews ohne Popover-API — dort gibt es auch keinen geschlossenen Popover-Dialog.
+    const popoverHost = dialogs[i].closest('[popover]')
+    if (popoverHost && 'showPopover' in popoverHost && !popoverHost.matches(':popover-open')) continue
+    const rect = dialogs[i].getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0) return { top: rect.top, bottom: rect.bottom }
+  }
+  return null
+}
 
 const ICONS: Record<NotificationType, IconName> = {
   success: 'check-circle',
@@ -47,9 +76,9 @@ const ICONS: Record<NotificationType, IconName> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #layer class="notification-layer" popover="manual">
-      @for (n of notifications(); track n.id) {
+      @for (n of notifications(); track n.id; let i = $index) {
         <div
-          [class]="'notification notification--' + n.type"
+          [class]="'notification notification--' + n.type + (i < shownCount() ? '' : ' notification--held')"
           [attr.role]="n.type === 'warning' || n.type === 'error' ? 'alert' : 'status'"
           [attr.data-sticky]="n.duration === 0 ? '' : null"
           tabindex="0"
@@ -133,6 +162,10 @@ const ICONS: Record<NotificationType, IconName> = {
       color: var(--surface-bg);
       cursor: pointer;
       animation: notification-in 180ms ease-out;
+    }
+    /* Neben einem offenen Dialog ohne Platz (core#1087): bleibt im Dienst, wird nur nicht gezeigt. */
+    .notification--held {
+      display: none;
     }
     .notification:focus-visible {
       outline: 3px solid var(--primary);
@@ -220,23 +253,61 @@ export class NotificationOutletComponent {
   protected readonly notifications = this.service.notifications
   protected readonly closeIcon = iconPath('x')
   readonly #host: ElementRef<HTMLElement> = inject(ElementRef)
+  readonly #doc = inject(DOCUMENT)
   private readonly layer = viewChild<ElementRef<HTMLElement>>('layer')
+  /** Lage neben einem offenen modalen Dialog (core#1087); `null` = gewohnte Stelle, alle Meldungen. */
+  readonly #placement = signal<LayerPlacement | null>(null)
+  protected readonly shownCount = computed(() => this.#placement()?.count ?? this.notifications().length)
 
   constructor() {
-    const top = (): number => this.#host.nativeElement.getBoundingClientRect().top + 8
+    const anchorTop = (): number => this.#host.nativeElement.getBoundingClientRect().top + 8
+    const top = (): number => untracked(this.#placement)?.top ?? anchorTop()
+    const visible = (): boolean => untracked(this.notifications).length > 0 && untracked(this.shownCount) > 0
     effect(() => {
-      const visible = this.notifications().length > 0
+      this.notifications()
+      this.shownCount()
       const layer = this.layer()?.nativeElement as TopLayerElement | undefined
-      if (layer) untracked(() => syncTopLayer(layer, visible, top()))
+      if (layer) untracked(() => syncTopLayer(layer, visible(), top()))
     })
-    const doc = inject(DOCUMENT)
+    // Nach jeder neuen Meldung neu ausrichten: erst gerendert sind die Höhen messbar.
+    effect(() => {
+      this.notifications()
+      untracked(() => this.#doc.defaultView?.requestAnimationFrame(() => this.#place(anchorTop)))
+    })
     const destroyRef = inject(DestroyRef)
     afterNextRender(() => {
       const layer = this.layer()?.nativeElement as TopLayerElement | undefined
       if (!layer) return
-      const stop = raiseAboveForeignPopovers(doc, layer, () => untracked(this.notifications).length > 0, top)
+      const onDialogChange = (): void => {
+        this.#place(anchorTop)
+        setTimeout(() => this.#place(anchorTop), DIALOG_SETTLE_MS)
+      }
+      const stop = raiseAboveForeignPopovers(this.#doc, layer, visible, top, onDialogChange)
       destroyRef.onDestroy(stop)
     })
+  }
+
+  /** Richtet die Ebene am obersten offenen modalen Dialog aus (`placeBesideDialog`). */
+  #place(anchorTop: () => number): void {
+    const layer = this.layer()?.nativeElement
+    if (!layer) return
+    const items = Array.from(layer.querySelectorAll<HTMLElement>(':scope > .notification'))
+    const dialog = openModalBounds(this.#doc)
+    if (!dialog) {
+      this.#placement.set(null)
+    } else {
+      this.#placement.set(
+        placeBesideDialog({
+          anchorTop: anchorTop(),
+          viewportHeight: this.#doc.defaultView?.innerHeight ?? 0,
+          dialog,
+          heights: items.map(item => item.offsetHeight || FALLBACK_NOTIFICATION_HEIGHT),
+          gap: NOTIFICATION_GAP,
+        }),
+      )
+    }
+    if ('showPopover' in layer && layer.matches(':popover-open'))
+      layer.style.top = `${this.#placement()?.top ?? anchorTop()}px`
   }
 
   protected icon(type: NotificationType): string {

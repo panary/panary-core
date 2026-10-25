@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { raiseAboveForeignPopovers, syncTopLayer, type ToggleTarget, type TopLayerElement } from './top-layer'
+import {
+  placeBesideDialog,
+  raiseAboveForeignPopovers,
+  syncTopLayer,
+  type ToggleTarget,
+  type TopLayerElement,
+} from './top-layer'
 
 /** Popover-Attrappe: zeichnet Öffnen/Schließen in Reihenfolge auf. */
 function fakeLayer(supported = true) {
@@ -124,5 +130,64 @@ describe('raiseAboveForeignPopovers (core#1060)', () => {
     stop()
 
     expect(listeners).toHaveLength(0)
+  })
+})
+
+describe('placeBesideDialog (core#1087)', () => {
+  const base = { anchorTop: 52, viewportHeight: 768, gap: 6 }
+
+  it('ohne Dialog: gewohnte Stelle, alle Meldungen', () => {
+    expect(placeBesideDialog({ ...base, dialog: null, heights: [56, 56, 56] })).toEqual({ top: 52, count: 3 })
+  })
+
+  it('bleibt oben, solange der Stapel über den Dialog passt', () => {
+    // Druckdialog mittig: Oberkante 200 px — Platz für zwei Meldungen (56 + 6 + 56 = 118 ≤ 140).
+    expect(placeBesideDialog({ ...base, dialog: { top: 200, bottom: 560 }, heights: [56, 56] })).toEqual({
+      top: 52,
+      count: 2,
+    })
+  })
+
+  it('weicht unter den Dialog aus, wenn oben kein Platz ist', () => {
+    expect(placeBesideDialog({ ...base, dialog: { top: 90, bottom: 500 }, heights: [56, 56] })).toEqual({
+      top: 508,
+      count: 2,
+    })
+  })
+
+  it('zeigt im größeren Streifen nur so viele der neuesten, wie hineinpassen', () => {
+    // Oben 130 px (zwei Meldungen), unten 760 − 698 = 62 px (eine): oben gewinnt.
+    expect(placeBesideDialog({ ...base, dialog: { top: 190, bottom: 690 }, heights: [56, 56, 56] })).toEqual({
+      top: 52,
+      count: 2,
+    })
+  })
+
+  it('zeigt keine Meldung, solange ein fensterhoher Dialog offen ist', () => {
+    expect(placeBesideDialog({ ...base, dialog: { top: 40, bottom: 760 }, heights: [56] })).toEqual({
+      top: 52,
+      count: 0,
+    })
+  })
+})
+
+describe('raiseAboveForeignPopovers — Dialogwechsel (core#1087)', () => {
+  it('meldet jedes fremde Öffnen und Schließen, auch ohne Meldungen, nie die eigene Ebene', () => {
+    const { layer } = fakeLayer()
+    const { doc, toggle } = fakeDocument()
+    const changes: string[] = []
+    raiseAboveForeignPopovers(
+      doc,
+      layer,
+      () => false,
+      () => 8,
+      () => changes.push('x'),
+    )
+
+    toggle(layer, 'open')
+    toggle({ dialog: true }, 'open')
+    toggle({ dialog: true }, 'closed')
+
+    expect(changes).toHaveLength(2)
   })
 })

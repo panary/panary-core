@@ -103,12 +103,10 @@ export class PosHandednessService {
   readonly #connection = inject(ConnectionService)
 
   /** Gewählt in dieser Sitzung (bestätigt oder offen) — gewinnt über den geladenen User-Datensatz. */
-  readonly #chosen = signal<Readonly<Record<string, PosHandedness>>>(
-    {
-      ...readLocal(),
-      ...Object.fromEntries(readPending().map(entry => [entry.userId, entry.posHandedness])),
-    },
-  )
+  readonly #chosen = signal<Readonly<Record<string, PosHandedness>>>({
+    ...readLocal(),
+    ...Object.fromEntries(readPending().map(entry => [entry.userId, entry.posHandedness])),
+  })
 
   /** Verbindung zum Edge. Die Shell sendet gemerkte Wahlen nach, sobald sie zurückkommt. */
   readonly online = computed(() => {

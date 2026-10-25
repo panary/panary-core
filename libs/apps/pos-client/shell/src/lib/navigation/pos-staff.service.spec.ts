@@ -16,7 +16,7 @@ function setup(
     suspended?: boolean
     stampingId?: string | null
     cartSide?: 'left' | 'right'
-    choose?: () => Promise<'saved' | 'pending'>
+    choose?: () => Promise<'saved' | 'pending' | 'local'>
   } = {},
 ) {
   const user = { _id: 'u-olga', firstName: 'Olga', lastName: 'Owner', stampingId: state.stampingId ?? null }

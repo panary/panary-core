@@ -479,6 +479,9 @@ describe('Kasse — markierte Zeile in den Sichtbereich (core#1021)', () => {
     expect(component).toContain("viewChild<ElementRef<HTMLElement>>('selectionToolbar')")
     expect(component).toContain('effect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))')
     expect(tag.match(/class="([^"]*)"/)?.[1].split(/\s+/)).toContain('scroll-mb-2')
+  })
+})
+
 // core#1020: Auf der Sunmi passten nur 3×4 Produkte. Kachel und Funktionstaste schrumpfen auf rund 0,6 der Fläche,
 // bleiben aber gemeinsam ein Maß (code-style.md §9.1) und ein Touch-Ziel ≥ 48 px.
 describe('Kasse — Kachelmaß (core#1020)', () => {

@@ -154,8 +154,8 @@ Regeln:
   Blick als das Raster. Vollton trägt nur die **Primärtaste** (Mint mit Navy-Schrift). Keine
   Inline-Styles (`backgroundColor`/`fontColor`) auf Funktionstasten.
 - **Kachelmaß = Produktkachel:** Breite `var(--pnry-tile-min)` (an `.kasse` 9,5rem), Höhe
-  `var(--pnry-tile-h)` (5,25rem), beides als Token, nie fest im Template. Bis core#1020 12,5 × 6,5rem —
-  auf der Sunmi passten so nur 3×4 Produkte. Icon über Text, linksbündig **vor** dem Raster, außerhalb des Scroll-Containers (beim Scrollen
+  `var(--pnry-tile-h)` (5,25rem), beides als Token, nie fest im Template. Bis core#1020
+  12,5 × 6,5rem — auf der Sunmi passten so nur 3×4 Produkte. Icon über Text, linksbündig **vor** dem Raster, außerhalb des Scroll-Containers (beim Scrollen
   immer sichtbar). Layout der Kasse: ADR 0059.
 - **Keine Nummern auf Funktionstasten** — Artikelnummern-Badges nur auf Produktkacheln.
 - **Pressed-Zustand** nur für echte Toggles: kräftigere Tönung + dunklerer Rahmen +

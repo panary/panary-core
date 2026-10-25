@@ -902,7 +902,6 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
       ['Mayo', false],
       ['Ketchup', true],
     ])
-
   })
 })
 
@@ -1794,7 +1793,14 @@ describe('OrderDialog — Anpassen-Panel (#639)', () => {
       isMenu: true,
       ingredientReferences: [ketchup()],
       optionGroups: [
-        { id: 'g-drink', name: 'Getränk', minSelections: 1, maxSelections: 1, freeQuantity: 1, options: [{ productId: 'cola' }] },
+        {
+          id: 'g-drink',
+          name: 'Getränk',
+          minSelections: 1,
+          maxSelections: 1,
+          freeQuantity: 1,
+          options: [{ productId: 'cola' }],
+        },
       ],
     } as never)
     const { component } = setup({ catalog: [menu, product('cola')] })
@@ -2009,7 +2015,11 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
     /** Plus am Extra in „Alle Modifier" im Sheet — seit #1085 der Weg, der das frühere Raster ersetzt. */
     function tapRasterExtra(component: any, id = 'cheese') {
       if (!component.customizeShowAll()) component.onCustomizeShowAllModifiers()
-      component.onCustomizeOptionIncreased({ groupId: ALL_MODIFIERS_GROUP_ID, groupName: 'Alle Modifier', productId: id })
+      component.onCustomizeOptionIncreased({
+        groupId: ALL_MODIFIERS_GROUP_ID,
+        groupName: 'Alle Modifier',
+        productId: id,
+      })
     }
 
     it('Fall 40: ein Extra aus „Alle Modifier" an einer Mehrstück-Zeile spaltet ab, ein zweites auf den Rest führt zusammen', () => {
@@ -3430,7 +3440,14 @@ describe('OrderDialog — ein Anpassen-Sheet für jedes Produkt (#1085)', () => 
     product('pizza', {
       name: 'Pizza',
       optionGroups: [
-        { id: 'g-pizza', name: 'Belag', minSelections: 0, maxSelections: 3, freeQuantity: 0, options: [{ productId: 'cheese' }] },
+        {
+          id: 'g-pizza',
+          name: 'Belag',
+          minSelections: 0,
+          maxSelections: 3,
+          freeQuantity: 0,
+          options: [{ productId: 'cheese' }],
+        },
       ],
     } as never)
 
@@ -3475,7 +3492,11 @@ describe('OrderDialog — ein Anpassen-Sheet für jedes Produkt (#1085)', () => 
     expect(all?.options.map((o: { name: string }) => o.name)).toEqual(['Bacon'])
     expect(component.customizeModel()?.showingAllModifiers).toBe(true)
 
-    component.onCustomizeOptionIncreased({ groupId: ALL_MODIFIERS_GROUP_ID, groupName: 'Alle Modifier', productId: 'bacon' })
+    component.onCustomizeOptionIncreased({
+      groupId: ALL_MODIFIERS_GROUP_ID,
+      groupName: 'Alle Modifier',
+      productId: 'bacon',
+    })
     const bacons = component.lineItems[0].modifiers.filter((m: { _id: string }) => m._id === 'bacon')
     expect(bacons.map((m: { amount: number; topic: string }) => [m.amount, m.topic])).toEqual([[1, 'Extras']])
 
@@ -3490,7 +3511,14 @@ describe('OrderDialog — ein Anpassen-Sheet für jedes Produkt (#1085)', () => 
       name: 'Menü',
       productType: 'BUNDLE',
       optionGroups: [
-        { id: 'g-drink', name: 'Getränk', minSelections: 1, maxSelections: 1, freeQuantity: 1, options: [{ productId: 'cola' }] },
+        {
+          id: 'g-drink',
+          name: 'Getränk',
+          minSelections: 1,
+          maxSelections: 1,
+          freeQuantity: 1,
+          options: [{ productId: 'cola' }],
+        },
       ],
     } as never)
     const { component } = setup({ catalog: [menu, cola] })

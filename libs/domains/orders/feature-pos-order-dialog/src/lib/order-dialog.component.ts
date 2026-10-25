@@ -156,9 +156,6 @@ export class AbsPipe implements PipeTransform {
   }
 }
 
-/** Funktionstaste „Herauslösen" (#795) — die Beschriftung folgt dem Multiplikator. */
-const RELEASE_BUTTON_ID = 'releaseFromCombination'
-
 /** Leerlauf-Text der früheren Infozeile — als Hinweis wäre er nur Rauschen (core#908). */
 const IDLE_INFO_TEXT = 'Bitte wählen Sie eine Produktkategorie'
 const IDLE_INFO_TEXTS: ReadonlySet<string> = new Set([IDLE_INFO_TEXT, `${IDLE_INFO_TEXT}!`])
@@ -1480,11 +1477,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** „Alle Modifier" im Sheet: alle Modifier des Katalogs ohne die für diese Zeile ausgeschlossenen. */
   #allModifiersFor(line: OrderLineItem): ProductSchema[] {
-    return this.productService.extras().filter(
-      (product: ProductSchema) =>
-        !(line.parentId && (product as any).excludedButtons?.includes(line.parentId)) &&
-        !(line.externalId && (product as any).excludedSubButtons?.includes(line.externalId)),
-    )
+    return this.productService
+      .extras()
+      .filter(
+        (product: ProductSchema) =>
+          !(line.parentId && (product as any).excludedButtons?.includes(line.parentId)) &&
+          !(line.externalId && (product as any).excludedSubButtons?.includes(line.externalId)),
+      )
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -1603,31 +1602,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Wie viele Stück „Herauslösen" nimmt: der Multiplikator, höchstens die Stückzahl der Position (#795). */
   #releaseCount(line: OrderLineItem): number {
     return Math.min(Math.max(this.multiplier, 1), line.amount)
-  }
-
-  /** „Herauslösen" als Funktionstaste — für Positionen in einer Kombination, die kein Anpassen-Panel haben. */
-  #pushReleaseButton(): void {
-    const label = this.releaseLabel()
-    if (!label) return
-    this._functionButtons.push({
-      _id: RELEASE_BUTTON_ID,
-      externalId: this.#functionButtonExternalId,
-      locationId: this.userService.currentUser()?.activeLocationId || '',
-      tenantId: this.authService.tenantId()?.toString() || '',
-      name: label,
-      index: -1,
-      isFunctionButton: true,
-      variant: 'skip',
-      iconName: 'arrows-split',
-      callback: () => this.releaseFromCombination(),
-    })
-  }
-
-  /** Die Taste nennt die Zahl, die sie nimmt — sie zieht deshalb mit jedem Ziffernblock-Tipp mit. */
-  #refreshReleaseButton(): void {
-    const button = this._functionButtons.find(b => b._id === RELEASE_BUTTON_ID)
-    const label = this.releaseLabel()
-    if (button && label) button.name = label
   }
 
   /** Beschriftung der Taste „Herauslösen" mit der Zahl, die sie nimmt — `null`, wenn es nichts zu lösen gibt. */
@@ -3620,7 +3594,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   numpadAction(number: number): void {
     this.concatMultiplier(number)
     this.concatProductSearch(number)
-    this.#refreshReleaseButton()
   }
 
   private concatMultiplier(number: number) {
@@ -3680,7 +3653,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   numpadReset(): void {
     this.resetMultiplier()
     this.resetProductSearch()
-    this.#refreshReleaseButton()
   }
 
   private resetMultiplier() {

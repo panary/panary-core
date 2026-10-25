@@ -196,7 +196,13 @@ export interface CustomizeOptionEvent {
                         class="pnry-touch flex h-12 w-12 items-center justify-center rounded-xl border border-line-strong text-ink-muted dark:text-ink transition-all active:scale-95 disabled:opacity-30"
                         [disabled]="option.amount === 0"
                         [attr.aria-label]="option.name + ' entfernen'"
-                        (click)="optionDecreased.emit({ groupId: group.id, groupName: group.name, productId: option.productId })"
+                        (click)="
+                          optionDecreased.emit({
+                            groupId: group.id,
+                            groupName: group.name,
+                            productId: option.productId,
+                          })
+                        "
                       >
                         <lib-icon name="minus" aria-hidden="true" />
                       </button>
@@ -210,7 +216,13 @@ export interface CustomizeOptionEvent {
                         class="pnry-touch flex h-12 w-12 items-center justify-center rounded-xl border-2 border-teal-200 bg-teal-50 text-teal-700 transition-all active:scale-95 disabled:opacity-30 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300"
                         [disabled]="group.full || !option.isModifier"
                         [attr.aria-label]="option.name + ' hinzufügen'"
-                        (click)="optionIncreased.emit({ groupId: group.id, groupName: group.name, productId: option.productId })"
+                        (click)="
+                          optionIncreased.emit({
+                            groupId: group.id,
+                            groupName: group.name,
+                            productId: option.productId,
+                          })
+                        "
                       >
                         <lib-icon name="plus" aria-hidden="true" />
                       </button>

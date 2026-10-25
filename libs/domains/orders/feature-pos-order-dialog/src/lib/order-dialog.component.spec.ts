@@ -3302,3 +3302,114 @@ describe('Kasse — aktive Produktgruppe (core#1068)', () => {
     expect(component.activeProductGroupId()).toBeNull()
   })
 })
+
+// core#1069: Schrittkopf der Abschlusskette, beschriftete Pager- und Tischkacheln, Ansichtsschlüssel für das Hereingleiten.
+describe('Kasse — Schrittkopf und Ansichtswechsel (core#1069)', () => {
+  const byName = (buttons: Array<{ name: string }>, name: string) => buttons.find(b => b.name === name) as any
+  const states = (component: any) =>
+    component.closingStepViews.map((s: any) => `${s.key}:${s.state}${s.value ? `=${s.value}` : ''}`)
+
+  function chain() {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.locationService.showPagers = true
+    component.locationService.showTables = true
+    component.locationService.pagers = [7, 8]
+    component.locationService.tables = ['3', '4']
+    return component
+  }
+
+  it('führt Pager → Tisch → Zeit außer Haus mit den gewählten Werten', () => {
+    const component = chain()
+
+    component.selectDineLocation('OUTSIDE')
+    expect(states(component)).toEqual(['pager:current', 'table:next', 'time:next'])
+
+    byName(component.productButtons, '7').callback()
+    expect(states(component)).toEqual(['pager:done=Pager 7', 'table:current', 'time:next'])
+
+    byName(component.productButtons, '3').callback()
+    expect(states(component)).toEqual(['pager:done=Pager 7', 'table:done=Tisch 3', 'time:current'])
+  })
+
+  it('zeigt im Haus keinen Zeit-Schritt', () => {
+    const component = chain()
+
+    component.selectDineLocation('INSIDE')
+
+    expect(states(component)).toEqual(['pager:current', 'table:next'])
+  })
+
+  it('vergisst den Schritt, sobald eine andere Ansicht das Raster übernimmt', () => {
+    const component = chain()
+    component.selectDineLocation('OUTSIDE')
+
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke' } as never)
+
+    expect(component.closingStepViews).toEqual([])
+  })
+
+  it('beschriftet Pager- und Tischkacheln mit ihrer Art', () => {
+    const component = chain()
+    component.selectDineLocation('OUTSIDE')
+    expect(byName(component.productButtons, '7').kindLabel).toBe('Pager')
+
+    byName(component.productButtons, '7').callback()
+    expect(byName(component.productButtons, '3').kindLabel).toBe('Tisch')
+  })
+
+  it('hält den Ansichtsschlüssel, solange das Anpassen-Sheet offen ist', () => {
+    const { component } = setup()
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke' } as never)
+    const vorher = component.viewKey
+
+    component.customizeModel.set({} as never)
+    component.clearButtons()
+    component.customizeModel.set({} as never)
+
+    expect(component.viewKey).toBe(vorher)
+  })
+
+  it('beginnt jede Kette ohne Pager und Tisch eines abgebrochenen Versuchs', () => {
+    const component = chain()
+    component.selectDineLocation('OUTSIDE')
+    byName(component.productButtons, '7').callback()
+    byName(component.productButtons, '3').callback()
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke' } as never)
+
+    component.selectDineLocation('OUTSIDE')
+    expect(states(component)).toEqual(['pager:current', 'table:next', 'time:next'])
+    byName(component.functionButtons, 'KEIN PAGER').callback()
+
+    expect(states(component)).toEqual(['pager:done', 'table:done', 'time:current'])
+  })
+
+  it('vergisst den Pager bei „KEIN PAGER", auch wenn er schon gewählt war', () => {
+    const component = chain()
+    component.selectDineLocation('OUTSIDE')
+    ;(component as unknown as { _pager: number })._pager = 8
+
+    byName(component.functionButtons, 'KEIN PAGER').callback()
+
+    expect(states(component)[0]).toBe('pager:done')
+  })
+
+  it('wechselt den Ansichtsschlüssel mit Schritt und Gruppe, nicht beim Buchen', () => {
+    const { component } = setup()
+    component['productService'].getProductsByGroupId = () => [product('p-1')]
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke' } as never)
+    const gruppe1 = component.viewKey
+
+    component.increaseLineItem(product('p-1'))
+    expect(component.viewKey).toBe(gruppe1)
+
+    component.createProductButtons({ _id: 'g-2', name: 'Speisen' } as never)
+    expect(component.viewKey).not.toBe(gruppe1)
+
+    component.locationService.showPagers = true
+    component.locationService.pagers = [7]
+    const vorher = component.viewKey
+    component.selectDineLocation('OUTSIDE')
+    expect(component.viewKey).not.toBe(vorher)
+  })
+})

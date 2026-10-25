@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: Fertigungszeit am POS — „Sofort", die Abschlusskette und die Kodierung der Null
-description: Wie der Bestelldialog die Fertigungszeit erfragt, warum Innen sie überspringt und Außen eine Sofort-Kachel im Funktionsblock bekommt, was estimatedDuration = 0 bedeutet und wie die Abholzeit einer Vorbestellung die Konvertierung überlebt.
+description: Wie der Bestelldialog die Fertigungszeit erfragt, warum Innen sie überspringt und Außen eine Sofort-Kachel im Funktionsblock bekommt, wie der Schrittkopf die Kette Pager → Tisch → Zeit zeigt, was estimatedDuration = 0 bedeutet und wie die Abholzeit einer Vorbestellung die Konvertierung überlebt.
 tags: [orders, pre-orders, pos-client, locations]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-09-21T00:00:00.000Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:00:00Z }
 ---
 
 Die Fertigungszeit ist die Minutenzahl, die der Kassierer am Ende einer Bestellung
@@ -36,6 +36,23 @@ kappt die Pager- und Tischabfrage mit.
 ⚠️ Der **Vorbestell**-Dialog (`pre-order-quick-dialog.component.ts`) ist ein
 eigener 3-Schritt-Stepper und kennt weder `_productionTime` noch diese Kette. Er
 befüllt `PreOrder.scheduledFor`.
+
+## Schrittkopf und Wechsel (core#1069)
+
+Pager, Tisch und Fertigungszeit erscheinen im selben Raster, und Pager- wie Tischkacheln tragen nur
+eine Zahl. Eine Erstnutzerin bemerkte am 2026-10-25 nicht, dass auf die Pager- die Tischwahl folgte.
+Seit [core#1069](https://github.com/panary/panary-core/issues/1069) (Designstudie
+[core#1062](https://github.com/panary/panary-core/issues/1062)) gilt:
+
+| Element | Verhalten |
+| --- | --- |
+| Schrittkopf | Über dem Funktionsblock die Folge der Kette als Pillen, z. B. „1 Pager · 2 Tisch · 3 Zeit". Erledigte Schritte zeigen ihren Wert („Pager 7") oder „ohne", der aktuelle ist Mint (`aria-current="step"`). Die Folge kommt aus `closingSteps()` (`closing-flow.ts`): Tisch nur mit Pager, weil die Tischwahl nur über einen gewählten Pager erreicht wird; Zeit nur Außer Haus. Bei nur einem Schritt keine Pillen |
+| Titel | Der Funktionsblock-Titel (`functionBlockLabel`) steht groß über den Funktionstasten, in jedem Ablauf, nicht nur in der Kette. Vorher 10 px grau neben den Tasten |
+| Kacheln | Pager- und Tischkacheln nennen ihre Art über der Zahl (`kindLabel`: „PAGER", „TISCH") |
+| Wechsel | Der Rasterinhalt hängt an `viewKey` (Funktionsblock, Kettenschritt, Gruppe). Ändert er sich, gleitet der Inhalt in 220 ms 2rem von der Rasterseite herein (gespiegelt mit `data-hand`), und der Titel leuchtet einmal in Mint auf. Ein Tipp auf eine Kachel derselben Ansicht ändert den Schlüssel nicht |
+| Bewegung reduzieren | Nur Einblenden in 120 ms, kein Gleiten, kein Aufleuchten; Schrittkopf und Beschriftung tragen allein |
+
+Ein `KEIN PAGER` springt direkt zur Fertigungszeit; der Tisch-Schritt steht dann als „ohne" im Kopf. Jede neue Kette (`selectDineLocation`) beginnt ohne Pager und Tisch, `KEIN PAGER`/`KEIN TISCH` leeren den jeweiligen Wert — vorher trug eine Bestellung nach einem abgebrochenen Versuch still den alten Pager oder Tisch. Während das Anpassen-Sheet offen ist, bleibt `viewKey` stehen; nach dem Schließen kehrt das Raster ohne erneutes Hereingleiten zurück.
 
 ## Innen: keine Abfrage
 

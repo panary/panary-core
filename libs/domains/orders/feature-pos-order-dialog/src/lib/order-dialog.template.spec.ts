@@ -622,3 +622,55 @@ describe('Kasse-Template — gewählte Gruppe hinter dem Burger (core#1068)', ()
     expect(menue).toMatch(/@if \(activeProductGroupId\(\) === productGroup\._id\) \{\s*<lib-icon name="check"/)
   })
 })
+
+// core#1069: Schrittkopf statt 10-px-Beschriftung, Ansichtswechsel mit Bewegung, „Bewegung reduzieren" blendet nur ein.
+describe('Kasse-Template — Schrittkopf und Ansichtswechsel (core#1069)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  const rasterStart = template.indexOf('class="kasse__grid')
+  const raster = template.slice(rasterStart, template.indexOf('<!-- Hinweis statt Infozeile', rasterStart))
+
+  it('findet das Raster im Template', () => {
+    expect(rasterStart).toBeGreaterThan(-1)
+    expect(raster.length).toBeGreaterThan(0)
+  })
+
+  it('baut den Rasterinhalt je Ansichtsschlüssel neu auf und lässt ihn hereingleiten', () => {
+    expect(raster).toMatch(/@for \(view of \[viewKey\]; track view\) \{\s*<div class="kasse__view kasse-view-enter/)
+  })
+
+  it('lässt das Anpassen-Sheet nur den Inhalt nehmen, nicht den Rahmen der Ansicht', () => {
+    const rahmen = raster.indexOf('<div class="kasse__view')
+    const sheet = raster.indexOf('@if (!customizeModel())')
+    expect(rahmen).toBeGreaterThan(-1)
+    expect(sheet).toBeGreaterThan(rahmen)
+    expect(scss).toMatch(/\.kasse__view \{\s*overflow-x: clip;/)
+  })
+
+  it('zeigt den Titel groß im Schrittkopf, die Schritte nur bei mehr als einem', () => {
+    const kopf = raster.slice(raster.indexOf('data-testid="step-head"'))
+    expect(raster.indexOf('data-testid="step-head"')).toBeGreaterThan(-1)
+    expect(kopf).toContain('@if (closingStepViews.length > 1)')
+    expect(kopf).toMatch(/class="kasse-step-title[^"]*text-xl[^"]*"/)
+    expect(kopf).toContain(`[attr.aria-current]="step.state === 'current' ? 'step' : null"`)
+    expect(raster).not.toContain('text-[0.625rem] tracking-widest uppercase font-semibold text-ink-faint')
+  })
+
+  it('beschriftet Kacheln mit ihrer Art über dem Namen', () => {
+    expect(raster).toMatch(
+      /@if \(productButton\.kindLabel\) \{[\s\S]*?productButton\.kindLabel[\s\S]*?productButton\.name/,
+    )
+  })
+
+  it('gleitet von der Rasterseite herein und leuchtet den Titel auf', () => {
+    expect(scss).toMatch(/\.kasse \{\s*--kasse-view-from: 2rem;/)
+    expect(scss).toMatch(/\.kasse\[data-hand='right'\] \{\s*--kasse-view-from: -2rem;/)
+    expect(scss).toMatch(/\.kasse-view-enter \{\s*animation: kasse-view-in 220ms/)
+    expect(scss).toMatch(/\.kasse-step-title \{[^}]*animation: kasse-title-flash 900ms/)
+  })
+
+  it('blendet bei „Bewegung reduzieren" nur ein und lässt das Aufleuchten weg', () => {
+    const reduziert = scss.slice(scss.indexOf('@media (prefers-reduced-motion: reduce)'))
+    expect(reduziert).toMatch(/\.kasse-view-enter \{\s*animation: kasse-fade-in 120ms/)
+    expect(reduziert).toMatch(/\.kasse-step-title \{\s*animation: none;/)
+  })
+})

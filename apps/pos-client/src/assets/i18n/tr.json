@@ -658,6 +658,8 @@
     "CHANNEL_PHONE": "Telefon",
     "DISCOUNT": "İndirim",
     "WITHOUT_DISCOUNT": "İndirimsiz",
+    "ARIA_STEPS": "Adımlar",
+    "STEP_SKIPPED": "yok",
     "LINE_DISCOUNT": "Kalem ind.",
     "PROMO_CODE": "İndirim kodu",
     "OPTIONS": "Seçenekler",

@@ -60,3 +60,21 @@ describe('Vorbestellungen: ID und Aktionen im Detailkopf (core#1024)', () => {
     expect(inhalt).not.toContain('cancelOrder(')
   })
 })
+
+// core#1054: „ID" klebte an der Nummer, die Kopftasten brachen bei 400 px Detailbreite zweizeilig um.
+describe('Vorbestellungen: Detailkopf einzeilig (core#1054)', () => {
+  const source = readFileSync(fileURLToPath(new URL('./pre-order-list.component.ts', import.meta.url)), 'utf8')
+  const kopf = source.slice(source.indexOf('data-testid="detail-head"'), source.indexOf('<!-- Detail Content -->'))
+
+  it('die ID-Beschriftung hat Abstand zur Nummer', () => {
+    expect(kopf).toContain('<span class="font-bold uppercase mr-1">ID</span>')
+  })
+
+  it('die Kopftasten tragen kurze Beschriftungen, umbrechen nicht und nennen die volle Aktion für Screenreader', () => {
+    expect(kopf).toContain("{{ 'PRE_ORDERS.HEAD_CONVERT' | translate }}")
+    expect(kopf).toContain("{{ 'PRE_ORDERS.HEAD_CANCEL' | translate }}")
+    expect(kopf.match(/whitespace-nowrap/g)?.length).toBe(2)
+    expect(kopf).toContain(`[attr.aria-label]="'PRE_ORDERS.CREATE_ORDER' | translate"`)
+    expect(kopf).toContain(`[attr.aria-label]="'PRE_ORDERS.CANCEL_ORDER' | translate"`)
+  })
+})

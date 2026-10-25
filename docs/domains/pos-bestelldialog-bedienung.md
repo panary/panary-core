@@ -77,7 +77,7 @@ Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-s
 | Was | Wo |
 | --- | --- |
 | Auswählen, Abwählen | Tipp auf die Zeile, zweiter Tipp hebt auf |
-| −, Menge, +, Anpassen bzw. Kombi lösen, Löschen | Steuerleiste direkt unter der markierten Zeile, Position oder Kombination, je 3,5rem; − bei Menge 1 aus, Menge und Löschen mit Rückgängig |
+| −, Menge, +, Anpassen bzw. Kombi lösen, Löschen | Steuerleiste direkt unter der markierten Zeile, Position oder Kombination, je 3,5rem; − bei Menge 1 aus, Menge und Löschen mit Rückgängig. Nach dem Markieren scrollt der Warenkorb die Leiste samt Außenabstand in den Sichtbereich (`block: 'nearest'`, nur so weit wie nötig; `cart-scroll.ts`, [core#1021](https://github.com/panary/panary-core/issues/1021)) |
 | Rabatt, Kombination, Optionen | Leiste unter der Summe; Kombination öffnet die Kombinationsansicht (core#965) |
 | Pos.-Rab. (nur mit Auswahl), Personalessen, Firmenkunde, Rabattcode, Preise ein/aus, Weitere Aktionen | „Optionen" unter der Summe; „Weitere Aktionen" öffnet „Bestellung leeren" und „Kunde entfernen"; ein geprüfter Code steht am Eintrag ([core#908](https://github.com/panary/panary-core/issues/908)) |
 | Funktionstasten über dem Raster | keine im Hauptbereich; nur laufende Abläufe setzen welche (`boardFunctionButtons`, core#965) |

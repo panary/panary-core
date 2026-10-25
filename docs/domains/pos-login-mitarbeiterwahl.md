@@ -21,7 +21,7 @@ Verbindung und das Slide-in der Zeiterfassung bleiben wie bisher.
 ## Schritt 1 — Mitarbeiterwahl (geteilte Geräte)
 
 Überschrift „Wer kassiert?", darunter alle Personen als alphabetisches Kartenraster (Nachname, dann Vorname):
-Karten mit Kontur (`pos-key`), Initialen-Kreis und Kurzname (`Anna A.`), Spalten nach Breite
+Karten mit Kontur (`pos-key`), Initialen-Kreis (Farbe je Person aus der ID, `monogramStyle`, siehe [Design-Tokens](../architecture/design-tokens.md)) und Kurzname (`Anna A.`), Spalten nach Breite
 (`auto-fill`, mindestens 9,5 rem), Höhe 5,25 rem. Es gibt bewusst **keine Suche, keine Buchstabengruppen und
 kein „Zuletzt hier"** — sie wurden mit panary/panary-core#835 eingeführt und nach dem Test auf dem MacBook
 (panary/panary-core#906) wieder entfernt. Der Login legt seither keine Personenangaben mehr im `localStorage` ab;
@@ -42,8 +42,8 @@ Der Gerätename in der Panelzeile ist der Name aus der Kopplung (`panary_device_
 
 ## Schritt 2 — PIN
 
-Großer Name, Ziffernblock und die Taste „Andere Person" (zurück zu Schritt 1; auf einem Ein-Personen-Gerät
-ausgeblendet). `verifyPin`, `changePin`, die Re-Verifikation und die Rate-Limits sind unverändert.
+Großer Name, Ziffernblock und der Zurück-Pfeil (zurück zu Schritt 1; auf einem Ein-Personen-Gerät
+ausgeblendet). Eine zweite Taste „Andere Person" gibt es seit core#963 nicht mehr. `verifyPin`, `changePin`, die Re-Verifikation und die Rate-Limits sind unverändert.
 
 ## Grenzen
 

@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#966): POS-Rail — der Eintrag „Kasse“ heißt „Bestellen“ (en „Order“, tr „Sipariş“), weil es Bestell- und Kassenbetrieb gibt. Route `/kasse`, Eintrags-ID und Schlüssel `POS_NAV.KASSE` bleiben (Lesezeichen, Guards, Specs); geändert sind nur die Texte in `apps/pos-client/src/assets/i18n/`.

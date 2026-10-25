@@ -7,7 +7,7 @@
   },
   "POS_NAV": {
     "LABEL": "Hauptnavigation",
-    "KASSE": "Kasse",
+    "KASSE": "Bestellen",
     "OPEN": "Offen",
     "OPEN_COUNT": "{{count}} offene Bestellungen",
     "PRE_ORDERS": "Vorbest.",

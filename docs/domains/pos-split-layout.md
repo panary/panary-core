@@ -20,6 +20,6 @@ Designstudie POS-Screens v2 (E9), Anker panary/panary-core#819, Umsetzung panary
 - **Historie:** Liste bis 820 px (`listMaxWidth`), kein Lila mehr (Akzent-Tokens).
 - **Leerzustände** nennen den Zeitraum; Historie „Heute" bietet „Gestern ansehen", Vorbestellungen „Neue Vorbestellung anlegen".
 - **Seitenköpfe:** beide Seiten nutzen `lib-page-header` (core#972), ohne Zurück-Pfeil; Suche im Kopf, Zeitraum-Tasten bzw. „Neue Vorbestellung" als Aktionen.
-- `reverse` vertauscht die Seiten; angeschlossen wird es mit der Bedienhand in panary/panary-core#976.
+- **Spiegelung mit der Bedienhand** (panary/panary-core#976): Die Shell setzt `data-rail-side` (`left`/`right`) auf `#app-frame`. Das Detail mit den Aktionen sitzt an der Rail, die Auswahl gegenüber; sitzt die Rail links, kehren `lib-pos-split`, `lib-page-header` (Aktionen an die Rail) und die Einstellungs-Navigation per `:host-context` bzw. `[[data-rail-side=left]_&]:flex-row-reverse` die Reihenfolge um. Text bleibt linksbündig. Features lesen nur das Attribut und importieren die Shell nicht.
 
-**Offen:** das echte Sunmi-Maß (`innerWidth × innerHeight` am Gerät) liegt nicht vor; umgesetzt sind 1366 und 1920. `railSide` des Seitenkopfs bleibt auf dem Standard, bis die Spiegelung in panary/panary-core#976 angeschlossen wird.
+**Offen:** das echte Sunmi-Maß (`innerWidth × innerHeight` am Gerät) liegt nicht vor; umgesetzt sind 1366 und 1920.

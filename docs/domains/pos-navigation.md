@@ -22,6 +22,12 @@ Login landet man seit [core#907](https://github.com/panary/panary-core/issues/90
 Test von `pos-v26.10.25` — Vorbestellungen und Kennzahlen (auch für die Betrugsauswertung) sollen beim
 Anmelden im Blick sein. Vorlage: Konzept §3 und Mockup 2.7 in `sandbox/design-studie/konzept.html` (Workbench).
 
+Die Start-/Übersichtsseite ([core#977](https://github.com/panary/panary-core/issues/977)) zeigt ein Balkendiagramm
+„Bestellungen je Stunde" nur über die Öffnungszeit des Tages (aufgeweitet um Stunden mit Bestellungen; ohne gepflegte
+Öffnungszeit 08–20 Uhr), die aktuelle Stunde in der Akzentfarbe, künftige Stunden leer. Die Kachel „Offene
+Bestellungen" öffnet `/orders/active`, daneben listet „Als Nächstes abholen" die nächsten Vorbestellungen. Zahlen
+laufen über `formatDecimal` (`@panary/shared/util-helpers`, de-DE: „0,6" statt „0.6", core#969).
+
 ## Aufbau
 
 | Platz | Einträge |

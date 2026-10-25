@@ -358,7 +358,13 @@
     "EMPLOYEE": "Mitarbeiter",
     "PRE_ORDERS_TODAY": "Heute vorbestellt",
     "ITEMS": "Artikel",
-    "NEXT_PRE_ORDER": "Nächste:"
+    "NEXT_PRE_ORDER": "Nächste:",
+    "KPI_PER_HOUR": "Ø pro Stunde",
+    "ORDERS_PER_HOUR": "Bestellungen je Stunde",
+    "OPENING_WINDOW": "Öffnungszeit {{window}} Uhr · aktuelle Stunde grün",
+    "PICKUP_NEXT": "Als Nächstes abholen",
+    "PICKUP_NONE": "Keine Vorbestellungen mehr für heute.",
+    "PICKUP_ALL": "Alle Vorbestellungen"
   },
   "ACTIVE_ORDERS": {
     "TITLE": "Offene Bestellungen",

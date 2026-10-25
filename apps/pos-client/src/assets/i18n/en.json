@@ -358,7 +358,13 @@
     "EMPLOYEE": "Employee",
     "PRE_ORDERS_TODAY": "Pre-orders today",
     "ITEMS": "items",
-    "NEXT_PRE_ORDER": "Next pre-order at"
+    "NEXT_PRE_ORDER": "Next pre-order at",
+    "KPI_PER_HOUR": "Avg per hour",
+    "ORDERS_PER_HOUR": "Orders per hour",
+    "OPENING_WINDOW": "Opening hours {{window}} · current hour highlighted",
+    "PICKUP_NEXT": "Next pickups",
+    "PICKUP_NONE": "No more pre-orders today.",
+    "PICKUP_ALL": "All pre-orders"
   },
   "ACTIVE_ORDERS": {
     "TITLE": "Open orders",

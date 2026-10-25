@@ -220,19 +220,19 @@ export class NotificationOutletComponent {
   protected readonly notifications = this.service.notifications
   protected readonly closeIcon = iconPath('x')
   readonly #host: ElementRef<HTMLElement> = inject(ElementRef)
-  readonly #layer = viewChild<ElementRef<HTMLElement>>('layer')
+  private readonly layer = viewChild<ElementRef<HTMLElement>>('layer')
 
   constructor() {
     const top = (): number => this.#host.nativeElement.getBoundingClientRect().top + 8
     effect(() => {
       const visible = this.notifications().length > 0
-      const layer = this.#layer()?.nativeElement as TopLayerElement | undefined
+      const layer = this.layer()?.nativeElement as TopLayerElement | undefined
       if (layer) untracked(() => syncTopLayer(layer, visible, top()))
     })
     const doc = inject(DOCUMENT)
     const destroyRef = inject(DestroyRef)
     afterNextRender(() => {
-      const layer = this.#layer()?.nativeElement as TopLayerElement | undefined
+      const layer = this.layer()?.nativeElement as TopLayerElement | undefined
       if (!layer) return
       const stop = raiseAboveForeignPopovers(doc, layer, () => untracked(this.notifications).length > 0, top)
       destroyRef.onDestroy(stop)

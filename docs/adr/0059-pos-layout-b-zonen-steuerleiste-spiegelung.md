@@ -39,7 +39,7 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
    Angepasst wird über die Steuerleiste. Bis dahin öffnete der Tipp das Panel sofort und nahm das
    Raster weg, auch wenn nur die Menge zu ändern war.
 4. **Gruppenleiste ohne Wischen, eine Zeile** (seit [core#908](https://github.com/panary/panary-core/issues/908)):
-   Jede Gruppe ist so breit wie ihr Name, die Gruppenfarbe ist ein Punkt davor. Was nicht passt, liegt
+   Jede Gruppe ist gleich breit (seit core#1019, unten), die Gruppenfarbe ist ein Punkt davor. Was nicht passt, liegt
    hinter einem Burger-Button am Zeilenende. `group-bar.ts` teilt nach den Breiten auf, die eine unsichtbare
    Messzeile mit allen Gruppen liefert; die Reihenfolge bleibt, keine Gruppe rückt in eine Lücke vor.
    *Vorher (core#829):* `minmax(9rem, 1fr)` in höchstens zwei Zeilen, danach „Weitere (n)". Auf dem

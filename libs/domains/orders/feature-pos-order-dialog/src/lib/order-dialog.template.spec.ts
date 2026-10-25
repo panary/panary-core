@@ -203,6 +203,8 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
     expect(ohneChip).not.toMatch(/hyphens/)
     expect(ohneChip).not.toMatch(/lang="de"/)
     expect(chip.match(/hyphens/g)).toHaveLength(1)
+    // Ohne `lang` trennt der Browser nicht: Das Dokument ist `lang="en"` (apps/pos-client/src/index.html).
+    expect(chip).toContain('lang="de"')
   })
 
   it('hat keine Spalte 2 mehr', () => {

@@ -8,6 +8,7 @@ import {
   Injector,
   runInInjectionContext,
   signal,
+  ɵAfterRenderManager,
   ɵChangeDetectionScheduler,
   ɵEffectScheduler,
 } from '@angular/core'
@@ -298,6 +299,12 @@ function setup(options: SetupOptions = {}) {
       {
         provide: ɵEffectScheduler,
         useValue: { add: () => undefined, schedule: () => undefined, remove: () => undefined },
+      },
+      // `afterRenderEffect` (Warenkorb-Scroll, core#1047) meldet sich beim AfterRenderManager an — derselbe Fall wie
+      // die Scheduler oben: angelegt, nie ausgefuehrt, weil hier nichts rendert.
+      {
+        provide: ɵAfterRenderManager,
+        useValue: { impl: { register: () => undefined, unregister: () => undefined }, execute: () => undefined },
       },
       { provide: DestroyRef, useValue: { onDestroy: () => () => undefined } },
     ],

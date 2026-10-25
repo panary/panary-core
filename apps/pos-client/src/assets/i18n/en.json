@@ -125,7 +125,6 @@
     "WELCOME": "Welcome",
     "WHO_PAYS": "Who is on the till?",
     "SELECT_ACCOUNT": "Select your account",
-    "OTHER_PERSON": "Someone else",
     "ENTER_PIN": "Enter PIN",
     "WRONG_PIN": "Wrong PIN. Please try again.",
     "IDLE_LOGOUT_TITLE": "Signed out due to inactivity",

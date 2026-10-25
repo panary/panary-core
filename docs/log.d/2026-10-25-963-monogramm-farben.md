@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#963): [Design-Tokens](../architecture/design-tokens.md) — Monogramm-Palette `--mono-1…8`/`--mono-ink`; die Farbe einer Person kommt aus ihrer ID und ist in Mitarbeiterwahl, PIN-Schritt, Rail und Avatar-Menü gleich. Im PIN-Schritt entfällt die Taste „Andere Person“, der Zurück-Pfeil bleibt.

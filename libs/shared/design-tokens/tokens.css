@@ -100,6 +100,17 @@
   --touch-min: 3rem;
   --touch: 3.5rem;
   --touch-primary: 4rem;
+
+  /* Monogramme (core#963): Farbe je Person aus der ID, Initialen in --mono-ink (>= 4,5:1) */
+  --mono-1: #0e7490;
+  --mono-2: #047857;
+  --mono-3: #6d28d9;
+  --mono-4: #b45309;
+  --mono-5: #be185d;
+  --mono-6: #1d4ed8;
+  --mono-7: #b91c1c;
+  --mono-8: #4d7c0f;
+  --mono-ink: #ffffff;
 }
 
 :root[data-theme='dark'] {
@@ -144,6 +155,16 @@
   --shell-bg: #15130f;
   --shell-nav: #15130f;
   --auth-dot: #4a4339;
+
+  --mono-1: #22d3ee;
+  --mono-2: #34d399;
+  --mono-3: #a78bfa;
+  --mono-4: #fbbf24;
+  --mono-5: #f472b6;
+  --mono-6: #60a5fa;
+  --mono-7: #f87171;
+  --mono-8: #a3e635;
+  --mono-ink: #1c1a17;
 
   --elevation-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35);
 }
@@ -191,6 +212,16 @@
     --shell-bg: #15130f;
     --shell-nav: #15130f;
     --auth-dot: #4a4339;
+
+    --mono-1: #22d3ee;
+    --mono-2: #34d399;
+    --mono-3: #a78bfa;
+    --mono-4: #fbbf24;
+    --mono-5: #f472b6;
+    --mono-6: #60a5fa;
+    --mono-7: #f87171;
+    --mono-8: #a3e635;
+    --mono-ink: #1c1a17;
 
     --elevation-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35);
   }

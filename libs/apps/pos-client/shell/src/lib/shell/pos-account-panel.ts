@@ -4,6 +4,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { IconComponent, type IconName } from '@panary/shared/ui-common'
 import type { ScreenSide } from '../navigation/pos-navigation'
+import { monogramStyle } from '@panary/users/domain'
 import { PosStaffService } from '../navigation/pos-staff.service'
 
 interface HandOption {
@@ -42,7 +43,8 @@ const THEME_OPTIONS: readonly ThemeOption[] = [
   template: `
     <div class="flex items-center gap-3 px-3 py-2.5">
       <span
-        class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-[0.9375rem] font-bold text-surface-panel"
+        class="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[0.9375rem] font-bold"
+        [style]="monogram(staff.userId())"
         >{{ staff.initials() }}</span
       >
       <div class="min-w-0">
@@ -96,6 +98,7 @@ const THEME_OPTIONS: readonly ThemeOption[] = [
 })
 export class PosAccountPanel {
   protected readonly staff = inject(PosStaffService)
+  protected readonly monogram = monogramStyle
   protected readonly theme = inject(ThemeServiceService)
   protected readonly hands = HAND_OPTIONS
   protected readonly themes = THEME_OPTIONS

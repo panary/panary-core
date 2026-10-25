@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { monogramStyle } from '@panary/users/domain'
 import { shortStaffName, sortStaff, type StaffPerson } from './staff-picker.logic'
 
 export interface StaffPickerPerson extends StaffPerson {
   initials: string
-  color: string
   staffRole?: string
 }
 
@@ -27,4 +27,5 @@ export class StaffPickerComponent {
 
   protected readonly sorted = computed(() => sortStaff(this.users()))
   protected readonly shortName = shortStaffName
+  protected readonly monogram = monogramStyle
 }

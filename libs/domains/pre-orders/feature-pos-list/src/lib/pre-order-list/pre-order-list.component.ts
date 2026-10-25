@@ -81,9 +81,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
             @for (group of groups(); track group.key) {
               <div class="text-xs font-bold uppercase tracking-wider text-ink-muted px-0.5 pt-1">
                 @if (group.kind === 'date') {
-                  {{ group.date | date: 'EEEE, dd.MM.' }}
+                  {{ group.weekday }}, {{ group.date | date: 'dd.MM.' }}
                 } @else {
-                  {{ 'PRE_ORDERS.GROUP_' + group.kind.toUpperCase() | translate }} · {{ group.date | date: 'EEEE' }}
+                  {{ 'PRE_ORDERS.GROUP_' + group.kind.toUpperCase() | translate }} · {{ group.weekday }}
                 }
               </div>
               <div class="grid gap-2.5 grid-cols-[repeat(auto-fill,minmax(20rem,1fr))]">
@@ -265,19 +265,34 @@ export class PreOrderListComponent implements OnInit {
   loading: WritableSignal<boolean> = signal(false)
   selectedOrder: WritableSignal<PreOrder | null> = signal(null)
 
+  // Wochentag über Intl: der date-Pipe folgt LOCALE_ID (en-US) und lieferte „Sunday".
   // Nach Abholtag gruppiert (Heute, Morgen, Datum); die Liste kommt bereits aufsteigend sortiert.
   groups = computed(() => {
     const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
     const today = new Date()
     const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-    const result: { key: string; kind: 'today' | 'tomorrow' | 'date'; date: Date; orders: PreOrder[] }[] = []
+    const locale =
+      ({ de: 'de-DE', en: 'en-US', tr: 'tr-TR' } as Record<string, string>)[this.#translate.currentLang] ?? 'de-DE'
+    const result: {
+      key: string
+      kind: 'today' | 'tomorrow' | 'date'
+      date: Date
+      weekday: string
+      orders: PreOrder[]
+    }[] = []
     for (const order of this.orders()) {
       const date = new Date(order.scheduledFor)
       const key = dayKey(date)
       let group = result.find(g => g.key === key)
       if (!group) {
         const kind = key === dayKey(today) ? 'today' : key === dayKey(tomorrow) ? 'tomorrow' : 'date'
-        group = { key, kind, date, orders: [] }
+        group = {
+          key,
+          kind,
+          date,
+          weekday: new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date),
+          orders: [],
+        }
         result.push(group)
       }
       group.orders.push(order)

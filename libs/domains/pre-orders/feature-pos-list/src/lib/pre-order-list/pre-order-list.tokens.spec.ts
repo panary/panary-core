@@ -17,3 +17,12 @@ describe('Vorbestellungen nutzen die App-Tokens (core#894)', () => {
     expect(source.match(/bg-action text-on-action/g)?.length).toBe(3)
   })
 })
+
+// core#975: der date-Pipe folgt LOCALE_ID (en-US); Wochentage kommen deshalb über Intl.
+describe('Vorbestellungen: Wochentag in der App-Sprache (core#975)', () => {
+  it('formatiert den Wochentag nicht über die date-Pipe', () => {
+    const source = readFileSync(fileURLToPath(new URL('./pre-order-list.component.ts', import.meta.url)), 'utf8')
+    expect(source).not.toContain("date: 'EEEE")
+    expect(source).toContain("weekday: 'long'")
+  })
+})

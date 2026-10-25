@@ -57,7 +57,8 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
    nach rechts, − steht vor +. Fehlt das Feld, gilt links, also die Position wie bisher. Keine
    `dir="rtl"`-Tricks.
 6. **Spalte 2 entfällt.** Die Leiste unter der Summe heißt Rabatt · Kombination · Optionen
-   (core#965). Kombination ist eine Mint-Taste dort (unter „Optionen" kostete sie zwei Tipps); Positionsrabatt
+   (core#965; seit [core#1067](https://github.com/panary/panary-core/issues/1067) stehen die drei Tasten mit der
+   Primärtaste in einer Reihe unter dem Warenkorb, die Summenzeile ist entfallen). Kombination ist eine Mint-Taste dort (unter „Optionen" kostete sie zwei Tipps); Positionsrabatt
    (nur mit markierter Zeile), Personalessen, Firmenkunde, Rabattcode, Preise ein/aus und „Weitere Aktionen"
    liegen unter „Optionen". Der Hauptbereich zeigt initial keine Funktionstasten, nur Abläufe setzen welche. Der Kanal Kasse/Telefon ist ein Schalter im
    Warenkorbkopf, sein Zustand ist ohne Antippen ablesbar.

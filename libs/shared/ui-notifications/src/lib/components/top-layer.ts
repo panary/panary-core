@@ -140,5 +140,8 @@ export function openModalBounds(candidates: readonly ModalCandidate[]): DialogBo
 export function touchesDialog(node: Node): boolean {
   if (node.nodeType !== 1) return false
   const element = node as Element
-  return element.matches(MODAL_DIALOG_SELECTOR) || element.querySelector(MODAL_DIALOG_SELECTOR) !== null
+  if (element.matches(MODAL_DIALOG_SELECTOR)) return true
+  // Den Teilbaum nur bei CDK-Overlays durchsuchen: Der Beobachter sieht jede DOM-Änderung der Kasse
+  // (Warenkorbzeilen, Uhr), ein querySelector je Knoten wäre dort teuer.
+  return element.className.toString().includes('cdk-') && element.querySelector(MODAL_DIALOG_SELECTOR) !== null
 }

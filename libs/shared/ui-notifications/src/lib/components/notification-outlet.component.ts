@@ -78,6 +78,7 @@ const ICONS: Record<NotificationType, IconName> = {
           [class]="'notification notification--' + n.type + (isHeld(n, i) ? ' notification--held' : '')"
           [attr.role]="n.type === 'warning' || n.type === 'error' ? 'alert' : 'status'"
           [attr.data-sticky]="n.duration === 0 ? '' : null"
+          [attr.data-id]="n.id"
           tabindex="0"
           (click)="onSurface(n)"
           (keydown.enter)="onSurfaceKey($event, n)"
@@ -284,10 +285,14 @@ export class NotificationOutletComponent {
     afterNextRender(() => {
       const layer = this.layer()?.nativeElement as TopLayerElement | undefined
       if (!layer) return
+      let settle: ReturnType<typeof setTimeout> | undefined
       const onDialogChange = (): void => {
         this.#place(anchorTop)
-        setTimeout(() => this.#place(anchorTop), DIALOG_SETTLE_MS)
+        // Observer und `toggle` melden dasselbe Öffnen oft beide — ein Nachlauf genügt.
+        clearTimeout(settle)
+        settle = setTimeout(() => this.#place(anchorTop), DIALOG_SETTLE_MS)
       }
+      destroyRef.onDestroy(() => clearTimeout(settle))
       const stop = raiseAboveForeignPopovers(this.#doc, layer, visible, top, onDialogChange)
       destroyRef.onDestroy(stop)
       const view = this.#doc.defaultView
@@ -326,7 +331,6 @@ export class NotificationOutletComponent {
   #place(anchorTop: () => number): void {
     const layer = this.layer()?.nativeElement
     if (!layer) return
-    const items = Array.from(layer.querySelectorAll<HTMLElement>(':scope > .notification'))
     // Gerechnet wird über die Liste des Dienstes, nicht über das DOM: Läuft das vor Angulars Render, fehlen
     // die neuen Elemente noch — mit `count: 0` blieben dann alle verborgen (core#1094, im Sichttest gemessen).
     const list = untracked(this.notifications)
@@ -342,7 +346,12 @@ export class NotificationOutletComponent {
           anchorTop: anchorTop(),
           viewportHeight: this.#doc.defaultView?.innerHeight ?? 0,
           dialog,
-          heights: list.map((_, i) => items[i]?.offsetHeight || FALLBACK_NOTIFICATION_HEIGHT),
+          // Nach ID, nicht nach Index: Neue Meldungen stehen vorn, vor dem Render verschöbe sich sonst jede Höhe.
+          heights: list.map(
+            n =>
+              layer.querySelector<HTMLElement>(`:scope > [data-id="${n.id}"]`)?.offsetHeight ||
+              FALLBACK_NOTIFICATION_HEIGHT,
+          ),
           gap: NOTIFICATION_GAP,
         }),
       )

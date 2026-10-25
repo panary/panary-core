@@ -4,7 +4,7 @@ title: Test-Target an einer Nx-Lib nachrüsten
 description: Anleitung, wie eine Lib ohne `test`-Target eines per Plugin-Inferenz bekommt — inklusive der fünf Fallen (Config-Drift, TS5069, fehlender JIT-Compiler, `effect()` ohne Scheduler, Cross-Lib-Import lädt dist-`.d.ts`) und des TestBed-freien Musters für Angular-Klassen.
 tags: [nx, vitest, testing, ci]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-09-26T09:30:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-26T00:10:00Z }
 ---
 
 # Test-Target an einer Nx-Lib nachrüsten
@@ -208,8 +208,10 @@ Für jede Lib mit `tsconfig.lib.json` gilt der Regelfall oben.
 
 ## 3. Angular-Klassen ohne TestBed instanziieren
 
-Der Workspace fährt für Lib-Specs durchgängig `environment: 'node'` — kein jsdom, kein
-`@angular/build:unit-test`. Services **und** Komponenten-Klassen lassen sich damit
+Der Workspace fährt für Lib-Specs `environment: 'node'` — kein `@angular/build:unit-test`. Einzige
+Ausnahme: Specs, die einen CSS-Selektor gegen echtes DOM prüfen, schalten je Datei mit dem Kopf-Kommentar
+`// @vitest-environment jsdom` um (`jsdom` ist Root-devDependency; Vorlage
+`libs/shared/ui-notifications/src/lib/components/top-layer.spec.ts`, core#1094). Services **und** Komponenten-Klassen lassen sich damit
 trotzdem testen, solange nichts gerendert wird:
 
 ```ts

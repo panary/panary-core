@@ -274,6 +274,10 @@ describe('touchesDialog (core#1094)', () => {
     expect(touchesDialog(node('<mat-dialog-container class="cdk-dialog-container"></mat-dialog-container>'))).toBe(true)
   })
 
+  it('durchsucht keinen fremden Teilbaum — nur CDK-Overlays', () => {
+    expect(touchesDialog(node('<div class="kasse__cart"><div class="cdk-dialog-container"></div></div>'))).toBe(false)
+  })
+
   it('übergeht Text und fremde Elemente', () => {
     expect(touchesDialog(document.createTextNode('x'))).toBe(false)
     expect(touchesDialog(node('<div class="notification"></div>'))).toBe(false)

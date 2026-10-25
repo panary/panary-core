@@ -236,10 +236,14 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     expect(Number(burger) * 0.25).toBe(GROUP_BURGER_WIDTH_REM)
   })
 
-  it('gibt jeder Gruppe dieselbe feste Breite, lange Namen brechen in zwei Zeilen um (core#1019)', () => {
+  // core#1046: Mit fester Breite kürzte „ALKOHOLFREIE GETRÄNKE" und trennte „DES-SERTS", obwohl die halbe Leiste frei
+  // war. Gezählt wird weiter mit dem Grundmaß, sichtbar wachsen die Tasten in den Rest — die Messzeile nicht.
+  it('gibt jeder Gruppe dasselbe Grundmaß, lässt sie in den freien Platz wachsen und bricht lange Namen um', () => {
     const chip = klassen('(click)="createProductButtons(productGroup)"\n      [disabled]')
-    expect(chip).toContain('w-[var(--pnry-group-chip)]')
-    expect(chip.filter(k => /^(min-w|max-w)-/.test(k))).toEqual([])
+    expect(chip).toEqual(expect.arrayContaining(['basis-[var(--pnry-group-chip)]', 'grow', 'shrink-0', 'max-w-[8.5rem]']))
+    expect(chip.filter(k => /^(min-w|w)-/.test(k))).toEqual([])
+    const messzeile = template.match(/#productGroupMeasure\s+class="([^"]*)"/)?.[1].split(/\s+/) ?? []
+    expect(messzeile).toContain('*:grow-0')
     expect(chip).not.toContain('whitespace-nowrap')
     const name = template.slice(template.indexOf('<ng-template #groupChip'), template.indexOf('</ng-template>'))
     expect(name).toContain('line-clamp-2')

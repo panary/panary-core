@@ -53,7 +53,12 @@
 
     <!-- Messzeile: alle Gruppen in ihrer gerenderten Breite, unsichtbar und ohne Platzbedarf. Sie liefert die Breiten, nach
          denen calculateVisibleProductGroups() aufteilt; unsichtbare Tasten sind weder antipp- noch fokussierbar. -->
-    <div #productGroupMeasure class="invisible absolute left-0 top-0 flex gap-2 pointer-events-none" aria-hidden="true">
+    <!-- `*:grow-0`: In der Messzeile bleibt jede Gruppe beim Grundmaß — gezählt wird mit der Mindestbreite (core#1046). -->
+    <div
+      #productGroupMeasure
+      class="invisible absolute left-0 top-0 flex gap-2 pointer-events-none *:grow-0"
+      aria-hidden="true"
+    >
       @for (productGroup of productGroups; track productGroup._id) {
         <ng-container [ngTemplateOutlet]="groupChip" [ngTemplateOutletContext]="{ $implicit: productGroup }" />
       }
@@ -63,13 +68,15 @@
   <ng-template #groupChip let-productGroup>
     <button
       type="button"
-      class="pnry-touch h-12 w-[var(--pnry-group-chip)] shrink-0 rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase shadow-card flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+      class="pnry-touch h-12 basis-[var(--pnry-group-chip)] grow shrink-0 max-w-[8.5rem] rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase shadow-card flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
       (click)="createProductButtons(productGroup)"
       [disabled]="sheetOpen()"
     >
-      <!-- Feste Breite statt Inhaltsbreite (core#1019): Breite Namen kosteten auf der Sunmi Gruppen in der Zeile.
-           Silbentrennung statt break-words, sonst bricht „HAUPTGERICHTE" hinter dem T um (#795). Der Punkt steht im
-           Textfluss, damit er die zweite Zeile nicht einrückt. -->
+      <!-- Grundmaß statt Inhaltsbreite (core#1019): Breite Namen kosteten auf der Sunmi Gruppen in der Zeile. Gezählt
+           wird mit `--pnry-group-chip`; was in der Zeile frei bleibt, verteilen die Tasten bis 8,5rem unter sich
+           (core#1046) — so passt „• HAUPTGERICHTE" (118 px) in eine Zeile, statt mit 84 px getrennt oder gekürzt zu
+           werden. Silbentrennung erst, wenn es eng wird; sonst bräche „HAUPTGERICHTE" hinter dem T um (#795). Der
+           Punkt steht im Textfluss, damit er die zweite Zeile nicht einrückt. -->
       <span class="w-full text-center leading-tight line-clamp-2 [hyphens:auto]" lang="de"
         ><span
           class="mr-1.5 inline-block h-2.5 w-2.5 rounded-full align-[-0.0625rem]"

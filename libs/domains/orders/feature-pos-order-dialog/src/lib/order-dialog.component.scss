@@ -9,8 +9,9 @@
      Dichte skaliert über die Root-Schrift mit, hier wird nichts zusätzlich verkleinert. */
   --pnry-tile-min: 9.5rem;
   --pnry-tile-h: 5.25rem;
-  /* Gruppentaste: feste Breite, Namen brechen um (core#1019). 5,25rem ist die Mindestbreite vor dem Redesign
-     (pos-v26.10.24): Trotz Rail passen auf 1366 px wieder 13 Gruppen und der Burger in die Zeile. */
+  /* Gruppentaste: Grundmaß der Zählung, Namen brechen um (core#1019). 5,25rem ist die Mindestbreite vor dem Redesign
+     (pos-v26.10.24): Trotz Rail passen auf 1366 px wieder 13 Gruppen und der Burger in die Zeile. Freien Platz
+     teilen die Tasten bis 8,5rem unter sich (core#1046). */
   --pnry-group-chip: 5.25rem;
 
   display: grid;

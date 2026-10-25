@@ -56,7 +56,7 @@ keine Navigation: Der Warenkorb der Kasse bleibt unberührt.
 | --- | --- |
 | Anlegen scheitert | keine Bezahlansicht, Warenkorb bleibt |
 | Kassieren scheitert (Server lehnt ab) | Ansicht bleibt, `handleError` hat gemeldet, neuer Versuch möglich |
-| Kassen-Freigabe verweigert | Snackbar „Kasse nicht freigegeben", Ansicht bleibt, Bestellung bleibt offen |
+| Kassen-Freigabe verweigert | Warnung „Kasse nicht freigegeben", Ansicht bleibt, Bestellung bleibt offen |
 | Abbruch nach dem Anlegen, vor dem Kassieren (Netz, Neustart) | offene Bestellung in „Offene Bestellungen" |
 | Zwei schnelle Tipps auf INNEN/Sofort | genau eine Bestellung (`placing` sperrt, bis das Anlegen fertig ist) |
 | Anlegen scheitert nach Code-Einlösung, zweiter Versuch | dieselbe Einlösung und ID, der Code wird nicht doppelt verbraucht |

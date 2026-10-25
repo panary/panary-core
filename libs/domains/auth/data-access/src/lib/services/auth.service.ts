@@ -1,5 +1,4 @@
 import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { Router } from '@angular/router'
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { catchError, Observable, throwError } from 'rxjs'
@@ -23,8 +22,6 @@ type LoginBody = {
 })
 export class AuthService {
   /** STATIC PROPERTIES */
-  static readonly SNACKBAR_DURATION: number = 2000
-  static readonly SNACKBAR_ACTION: string = 'OK'
   static readonly DEFAULT_BOOLEAN = false
   static readonly DEFAULT_UNDEFINED: undefined = undefined
   static readonly DEFAULT_FULL_NAME = 'Unknown User'
@@ -32,7 +29,6 @@ export class AuthService {
 
   /** INJECTION */
   #notificationService: NotificationService = inject(NotificationService)
-  #matSnackBar: MatSnackBar = inject(MatSnackBar)
   #router: Router = inject(Router)
   #httpClient: HttpClient = inject(HttpClient)
   #appConfigService: AppConfigService = inject(AppConfigService)
@@ -179,7 +175,7 @@ export class AuthService {
    */
   private handleError(httpError: HttpErrorResponse | unknown): Observable<never> {
     const err = httpError as Record<string, unknown>
-    this.#notificationService.show('error', this.parseError(httpError), 5000, err?.['name'] as string)
+    this.#notificationService.error(this.parseError(httpError), { title: err?.['name'] as string | undefined })
 
     this.logErrorDetails(httpError)
 
@@ -224,9 +220,7 @@ export class AuthService {
   private handleAuthentication(authenticationItem: AuthenticationItem): void {
     if (authenticationItem.authentication.strategy === 'smartcard') {
       if (this.isLoggedIn() && authenticationItem.user._id === this.#authenticationItem()?.user._id) {
-        this.#matSnackBar.open('Sie sind bereits angemeldet', AuthService.SNACKBAR_ACTION, {
-          duration: AuthService.SNACKBAR_DURATION,
-        })
+        this.#notificationService.info('Sie sind bereits angemeldet')
         return
       }
 
@@ -234,9 +228,7 @@ export class AuthService {
         this.storeAuthentication(authenticationItem)
 
         const snackBarMessage = `Benutzer ${authenticationItem.user.loginname} erfolgreich angemeldet`
-        this.#matSnackBar.open(snackBarMessage, AuthService.SNACKBAR_ACTION, {
-          duration: AuthService.SNACKBAR_DURATION,
-        })
+        this.#notificationService.success(snackBarMessage)
 
         this.#router.navigateByUrl('/home').then()
       })
@@ -244,7 +236,7 @@ export class AuthService {
       this.storeAuthentication(authenticationItem)
 
       const snackBarMessage = `Benutzer ${authenticationItem.user.loginname} erfolgreich angemeldet`
-      this.#matSnackBar.open(snackBarMessage, AuthService.SNACKBAR_ACTION, { duration: AuthService.SNACKBAR_DURATION })
+      this.#notificationService.success(snackBarMessage)
 
       this.#router.navigateByUrl('/home').then()
     }
@@ -313,7 +305,7 @@ export class AuthService {
     clearPosOperatorToken()
 
     const snackBarMessage = 'Benutzer erfolgreich abgemeldet'
-    this.#matSnackBar.open(snackBarMessage, AuthService.SNACKBAR_ACTION, { duration: AuthService.SNACKBAR_DURATION })
+    this.#notificationService.success(snackBarMessage)
 
     if (redirect) return this.#router.navigate(['/login'], { replaceUrl: true })
     else return Promise.resolve(true)

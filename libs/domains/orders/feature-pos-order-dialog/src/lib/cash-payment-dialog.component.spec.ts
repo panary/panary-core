@@ -3,7 +3,7 @@ import '@angular/compiler'
 import { describe, expect, it, vi } from 'vitest'
 import { Injector, runInInjectionContext, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { OrderCheckoutService, type PayCashInput, type PayCashResult } from '@panary/orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
@@ -22,7 +22,8 @@ function setup(payCash: (input: PayCashInput) => Promise<PayCashResult>) {
   const payCashMock = vi.fn(payCash)
   const close = vi.fn()
   const open = vi.fn()
-  const snackOpen = vi.fn()
+  const notifications = new NotificationService()
+  const notify = vi.spyOn(notifications, 'notify')
   const injector = Injector.create({
     providers: [
       { provide: MAT_DIALOG_DATA, useValue: DATA },
@@ -31,7 +32,7 @@ function setup(payCash: (input: PayCashInput) => Promise<PayCashResult>) {
       { provide: MatDialog, useValue: { open } },
       { provide: LocationService, useValue: { activeLocation: signal(undefined) } },
       { provide: UserService, useValue: { users: signal([]) } },
-      { provide: MatSnackBar, useValue: { open: snackOpen } },
+      { provide: NotificationService, useValue: notifications },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
     ],
   })
@@ -40,7 +41,7 @@ function setup(payCash: (input: PayCashInput) => Promise<PayCashResult>) {
     onKeepOpen(): void
     paying(): boolean
   }
-  return { dialog, payCashMock, close, snackOpen }
+  return { dialog, payCashMock, close, notify }
 }
 
 describe('CashPaymentDialogComponent (core#834)', () => {
@@ -53,19 +54,21 @@ describe('CashPaymentDialogComponent (core#834)', () => {
     expect(dialog.paying()).toBe(false)
   })
 
-  it('bleibt bei einem abgelehnten Abschluss offen, ohne Snackbar (handleError hat gemeldet)', async () => {
-    const { dialog, close, snackOpen } = setup(async () => 'failed')
+  it('bleibt bei einem abgelehnten Abschluss offen, ohne Meldung (handleError hat gemeldet)', async () => {
+    const { dialog, close, notify } = setup(async () => 'failed')
     await dialog.onCollect()
     expect(close).not.toHaveBeenCalled()
-    expect(snackOpen).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
     expect(dialog.paying()).toBe(false)
   })
 
   it('meldet eine verweigerte Kassen-Freigabe und bleibt offen', async () => {
-    const { dialog, close, snackOpen } = setup(async () => 'cash-session-declined')
+    const { dialog, close, notify } = setup(async () => 'cash-session-declined')
     await dialog.onCollect()
     expect(close).not.toHaveBeenCalled()
-    expect(snackOpen).toHaveBeenCalledWith('ORDER_DIALOG.PAYMENT_CASH_SESSION_DECLINED', 'OK', { duration: 5000 })
+    expect(notify.mock.calls.map(([type, message]) => [type, message])).toEqual([
+      ['warning', 'ORDER_DIALOG.PAYMENT_CASH_SESSION_DECLINED'],
+    ])
   })
 
   it('ein zweiter Tipp während des Abschlusses löst keinen zweiten payCash aus', async () => {

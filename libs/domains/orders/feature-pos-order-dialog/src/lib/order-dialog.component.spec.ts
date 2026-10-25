@@ -13,9 +13,9 @@ import {
   ɵEffectScheduler,
 } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
-import { Subject, of } from 'rxjs'
+import { of } from 'rxjs'
 
 import { OrderCheckoutService, OrderInteractionService, OrderService } from '@panary/orders/data-access'
 import type { AppliedDiscount } from '@panary/orders/domain'
@@ -128,12 +128,24 @@ function setup(options: SetupOptions = {}) {
   const kasseDraft = new KasseDraftRegistry()
   /** Protokollierte Interaktionen (Abbruch u. a.) — `orderInteractionService.create`. */
   const interactions: Array<Record<string, unknown>> = []
-  /** Was ueber `MatSnackBar` gemeldet wurde — der einzige Meldeweg, der den Dialogschluss ueberlebt. */
-  const snackBarCalls: Array<{ message: string; action?: string }> = []
-  /** Die geoeffneten Snackbars — `triggerAction()` spielt den Klick auf „Rueckgaengig" nach. */
-  const snackBarRefs: Array<{ triggerAction: () => void; dismissed: boolean }> = []
-  /** Aufrufe von `matSnackBar.dismiss()` — schliesst „die gerade offene", wer immer das ist (core#531). */
-  const snackBarDismissAll = { count: 0 }
+  /** Echte Meldungsquelle (core#1026) — der einzige Meldeweg, der den Dialogschluss ueberlebt. */
+  const notifications = new NotificationService()
+  /** Was gemeldet wurde, in Aufrufreihenfolge. */
+  const notices: Array<{ message: string; action?: string; sticky: boolean }> = []
+  /** Die gezeigten Meldungen — `triggerAction()` spielt den Klick auf „Rueckgaengig" nach. */
+  const noticeRefs: Array<{ triggerAction: () => void; readonly dismissed: boolean }> = []
+  const notify = notifications.notify.bind(notifications)
+  vi.spyOn(notifications, 'notify').mockImplementation((type, message, options) => {
+    notices.push({ message, action: options?.action?.label, sticky: options?.sticky === true })
+    const ref = notify(type, message, options)
+    noticeRefs.push({
+      triggerAction: () => notifications.runAction(ref.id),
+      get dismissed() {
+        return !notifications.notifications().some(n => n.id === ref.id)
+      },
+    })
+    return ref
+  })
   /** Was `matDialog.open()` als Auswahl zurueckgibt — pro Test gesetzt. */
   const dialogResult = { value: undefined as unknown }
 
@@ -244,29 +256,7 @@ function setup(options: SetupOptions = {}) {
         },
       },
       { provide: KasseDraftRegistry, useValue: kasseDraft },
-      {
-        provide: MatSnackBar,
-        useValue: {
-          open: (message: string, action?: string) => {
-            snackBarCalls.push({ message, action })
-            const actions = new Subject<void>()
-            const ref = {
-              afterDismissed: () => of(undefined),
-              onAction: () => actions.asObservable(),
-              dismissed: false,
-              dismiss: () => {
-                ref.dismissed = true
-              },
-              triggerAction: () => actions.next(),
-            }
-            snackBarRefs.push(ref)
-            return ref
-          },
-          dismiss: () => {
-            snackBarDismissAll.count++
-          },
-        },
-      },
+      { provide: NotificationService, useValue: notifications },
       {
         provide: OrderInteractionService,
         useValue: {
@@ -327,9 +317,8 @@ function setup(options: SetupOptions = {}) {
     closeCalls,
     kasseDraft,
     interactions,
-    snackBarCalls,
-    snackBarRefs,
-    snackBarDismissAll,
+    notices,
+    noticeRefs,
     dialogResult,
     suspended,
     chosenHandedness,
@@ -471,7 +460,7 @@ describe('OrderDialog — Reset-Pfade der Positionsrabatte', () => {
  */
 describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung (#269)', () => {
   it('ohne Markierung sind alle drei Tasten deaktiviert und die Methoden No-Ops', () => {
-    const { component, snackBarCalls } = setup()
+    const { component, notices } = setup()
     component.increaseLineItem(product('p-1'))
 
     expect(component.canMutateSelection()).toBe(false)
@@ -483,20 +472,20 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
 
     expect(component.lineItems).toHaveLength(1)
     expect(component.lineItems[0].amount).toBe(1)
-    expect(snackBarCalls).toHaveLength(0)
+    expect(notices).toHaveLength(0)
   })
 
   it('+ auf die markierte Zeile erhoeht die Menge und bietet „Rueckgaengig" an', () => {
-    const { component, snackBarCalls, snackBarRefs } = setup()
+    const { component, notices, noticeRefs } = setup()
     component.increaseLineItem(product('p-1'))
     component.selectProduct(0)
 
     component.increaseSelectedQuantity()
 
     expect(component.lineItems[0].amount).toBe(2)
-    expect(snackBarCalls).toEqual([{ message: 'Menge: 2× Artikel p-1', action: 'Rückgängig' }])
+    expect(notices).toEqual([{ message: 'Menge: 2× Artikel p-1', action: 'Rückgängig', sticky: false }])
 
-    snackBarRefs[0].triggerAction()
+    noticeRefs[0].triggerAction()
 
     expect(component.lineItems[0].amount).toBe(1)
   })
@@ -504,24 +493,34 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
   it('ein verfallenes „Rueckgaengig" tut nichts mehr', () => {
     // Zwei Faelle: ein neueres Angebot loest das aeltere ab, und nach dem Leeren
     // des Warenkorbs (placeOrder ruft deleteOrder) darf nichts zurueckkommen.
-    const { component, snackBarRefs } = setup()
+    const { component, noticeRefs } = setup()
     component.increaseLineItem(product('p-1'))
     component.selectProduct(0)
     component.increaseSelectedQuantity() // -> 2
     component.increaseSelectedQuantity() // -> 3
 
-    snackBarRefs[0].triggerAction() // das aeltere Angebot
+    noticeRefs[0].triggerAction() // das aeltere Angebot
 
     expect(component.lineItems[0].amount).toBe(3)
 
     component.deleteOrder()
-    snackBarRefs[1].triggerAction()
+    noticeRefs[1].triggerAction()
 
     expect(component.lineItems).toHaveLength(0)
   })
 
+  it('ein neues „Rueckgaengig" schliesst das aeltere — es steht hoechstens eines (core#1026)', () => {
+    const { component, noticeRefs } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.selectProduct(0)
+    component.increaseSelectedQuantity() // -> 2
+    component.increaseSelectedQuantity() // -> 3
+
+    expect(noticeRefs.map(ref => ref.dismissed)).toEqual([true, false])
+  })
+
   it('Minus bei Menge 1 ist deaktiviert und loescht NICHT', () => {
-    const { component, snackBarCalls } = setup()
+    const { component, notices } = setup()
     component.increaseLineItem(product('p-1'))
     component.selectProduct(0)
 
@@ -532,11 +531,11 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
 
     expect(component.lineItems).toHaveLength(1)
     expect(component.lineItems[0].amount).toBe(1)
-    expect(snackBarCalls).toHaveLength(0)
+    expect(notices).toHaveLength(0)
   })
 
   it('„Rueckgaengig" nach dem Loeschen bringt die Zeile MIT Rabatt zurueck und nimmt das item-delete mit', async () => {
-    const { component, createdOrders, snackBarRefs } = setup()
+    const { component, createdOrders, noticeRefs } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-2'))
     const id = discountLine(component, 0)
@@ -547,7 +546,7 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
     expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel p-2'])
     expect(component.lineDiscounts()).toEqual({})
 
-    snackBarRefs[0].triggerAction()
+    noticeRefs[0].triggerAction()
 
     // An der alten Stelle, nicht hinten angehaengt.
     expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Artikel p-1', 'Artikel p-2'])
@@ -576,7 +575,7 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
   })
 
   it('markierte Kombination: + wirkt auf alle Positionen, Loeschen entfernt sie ganz', () => {
-    const { component, snackBarRefs } = setup()
+    const { component, noticeRefs } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-2'))
     component.combineAllArticles()
@@ -590,7 +589,7 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
 
     expect(component.lineItems).toHaveLength(0)
 
-    snackBarRefs[1].triggerAction()
+    noticeRefs[1].triggerAction()
 
     expect(component.lineItems).toHaveLength(2)
     expect(component.combinations).toHaveLength(1)
@@ -612,7 +611,7 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
   })
 
   it('markierte Position IN der Kombination: Tasten wirken nur auf sie', () => {
-    const { component, snackBarRefs } = setup()
+    const { component, noticeRefs } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-2'))
     component.combineAllArticles()
@@ -629,7 +628,7 @@ describe('OrderDialog — Funktionsleiste: Menge und Loeschen auf die Markierung
     expect(component.combinations).toHaveLength(0)
     expect(component.lineItems[0].bundleNumber).toBeNull()
 
-    snackBarRefs[1].triggerAction()
+    noticeRefs[1].triggerAction()
 
     // … und nach „Rueckgaengig" wieder da, mit beiden Positionen.
     expect(component.combinations).toHaveLength(1)
@@ -1308,17 +1307,16 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     // tut das nicht — `unselectProduct()` ueberschreibt sie noch in `placeOrder`,
     // und `close()` nimmt sie mit. Beides wird hier mitgeprueft, damit ein Rueckbau
     // auf `setInfoBoxText` auffaellt statt still zu passieren.
-    const { component, closeCalls, snackBarCalls } = setup({ redeemResult: { ok: false, reason: 'exhausted' } })
+    const { component, closeCalls, notices } = setup({ redeemResult: { ok: false, reason: 'exhausted' } })
     component.increaseLineItem(product('p-1'))
     component.appliedCodeDiscount.set({ ok: true, code: 'AUFGEBRAUCHT' })
 
     await component.placeOrder()
 
-    expect(snackBarCalls).toHaveLength(1)
-    expect(snackBarCalls[0].message).toMatch(/^Rabattcode nicht eingelöst — /)
-    // Ohne `duration` bleibt die Snackbar bis zur Quittierung stehen; die Aktion ist
-    // der einzige Weg, sie zu schliessen.
-    expect(snackBarCalls[0].action).toBe('OK')
+    expect(notices).toHaveLength(1)
+    expect(notices[0].message).toMatch(/^Rabattcode nicht eingelöst — /)
+    // Quittierpflichtig: kein Ablauf, nur das × schliesst sie.
+    expect(notices[0].sticky).toBe(true)
 
     // Gegenprobe: Die Infobox traegt die Meldung nicht (mehr) — sie waere unsichtbar.
     expect(component.infoBoxText).toBe('Bitte wählen Sie eine Produktkategorie')
@@ -1328,9 +1326,9 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
   it('das Undo-Aufraeumen beim Abschluss schliesst die Rabattcode-Meldung nicht (core#531)', async () => {
     // `placeOrder` meldet den gescheiterten Code und ruft danach `deleteOrder()`, das ein
     // offenes „Rueckgaengig" verfallen laesst. Bis core#531 tat es das per
-    // `matSnackBar.dismiss()` — und das schliesst die gerade offene Snackbar, also genau
+    // `matSnackBar.dismiss()` — und das schloss die gerade offene Snackbar, also genau
     // die Rabattcode-Meldung. Sie war damit in JEDEM Fall sofort weg.
-    const { component, snackBarCalls, snackBarRefs, snackBarDismissAll } = setup({
+    const { component, notices, noticeRefs } = setup({
       redeemResult: { ok: false, reason: 'exhausted' },
     })
     component.increaseLineItem(product('p-1'))
@@ -1340,14 +1338,16 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
 
     await component.placeOrder()
 
-    expect(snackBarCalls.map(c => c.action)).toEqual(['Rückgängig', 'OK'])
-    expect(snackBarDismissAll.count).toBe(0)
-    expect(snackBarRefs[0].dismissed).toBe(true) // das Undo-Angebot verfaellt
-    expect(snackBarRefs[1].dismissed).toBe(false) // die Rabattcode-Meldung bleibt
+    expect(notices.map(c => [c.action, c.sticky])).toEqual([
+      ['Rückgängig', false],
+      [undefined, true],
+    ])
+    expect(noticeRefs[0].dismissed).toBe(true) // das Undo-Angebot verfaellt
+    expect(noticeRefs[1].dismissed).toBe(false) // die Rabattcode-Meldung bleibt
   })
 
   it('eine geglueckte Einloesung meldet nichts', async () => {
-    const { component, snackBarCalls } = setup({
+    const { component, notices } = setup({
       redeemResult: {
         ok: true,
         code: 'SOMMER',
@@ -1360,7 +1360,7 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
 
     await component.placeOrder()
 
-    expect(snackBarCalls).toHaveLength(0)
+    expect(notices).toHaveLength(0)
   })
 
   it('nach dem Abschicken ist der Rabattzustand leer', async () => {
@@ -1536,14 +1536,14 @@ describe('OrderDialog — Fertigungszeit „Sofort" (#343)', () => {
 
 describe('OrderDialog — Mandantensperre (#489)', () => {
   it('placeOrder bucht bei gesperrtem Mandanten nichts und meldet es', async () => {
-    const { component, createdOrders, snackBarCalls, suspended, closeCalls } = setup()
+    const { component, createdOrders, notices, suspended, closeCalls } = setup()
     component.increaseLineItem(product('p-1'))
     suspended.set(true)
 
     await component.placeOrder()
 
     expect(createdOrders).toHaveLength(0)
-    expect(snackBarCalls.map(c => c.message)).toEqual(['Konto gesperrt — bitte den Inhaber kontaktieren'])
+    expect(notices.map(c => c.message)).toEqual(['Konto gesperrt — bitte den Inhaber kontaktieren'])
     // Der Warenkorb bleibt stehen: Nach dem Ende der Sperre geht derselbe Bon durch.
     expect(component.lineItems).toHaveLength(1)
     // Die Kasse bleibt mit dem Warenkorb offen (core#828).
@@ -2077,7 +2077,7 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
 
     it('ein offenes „Rückgängig" der Menge verfällt, sobald ein Stück abgespalten wird', () => {
       const p = burger()
-      const { component, snackBarRefs } = setup({ catalog: [p] })
+      const { component, noticeRefs } = setup({ catalog: [p] })
       component.multiplier = 3
       component.increaseLineItem(p)
       component.selectProduct(0) // Panel offen, 3×, „1 Stück"
@@ -2085,7 +2085,7 @@ describe('OrderDialog — Zeilen aufspalten und zusammenführen (#699)', () => {
       component.onCustomizeIngredientToggled(KETCHUP) // spaltet ab: 1× + 1× ohne
 
       // Ohne Verfall setzte das Undo die Restzeile auf 3 — vier Burger statt zwei.
-      snackBarRefs[0].triggerAction()
+      noticeRefs[0].triggerAction()
       expect(shape(component)).toEqual([
         [1, ''],
         [1, 'Ohne Ketchup'],
@@ -2457,7 +2457,7 @@ describe('OrderDialog — markierte Kombination in der Steuerleiste (core#829)',
   })
 
   it('Löschen entfernt die ganze Kombination, mit Rückgängig', () => {
-    const { component, snackBarRefs } = setup()
+    const { component, noticeRefs } = setup()
     combinedPair(component)
     component.toggleCombinationSelection(0)
     expect(component.canMutateSelection()).toBe(true)
@@ -2465,7 +2465,7 @@ describe('OrderDialog — markierte Kombination in der Steuerleiste (core#829)',
     component.deleteSelection()
 
     expect(component.lineItems).toHaveLength(0)
-    snackBarRefs[snackBarRefs.length - 1].triggerAction()
+    noticeRefs[noticeRefs.length - 1].triggerAction()
     expect(component.combinations).toHaveLength(1)
   })
 
@@ -2865,13 +2865,13 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
   })
 
   it('meldet eine verweigerte Kassen-Freigabe und lässt die Bestellung offen stehen', async () => {
-    const { component, snackBarCalls, closeCalls } = setup({ ...cashier, payCashResult: 'cash-session-declined' })
+    const { component, notices, closeCalls } = setup({ ...cashier, payCashResult: 'cash-session-declined' })
     component.increaseLineItem(product('p-1'))
     await component.placeOrder()
 
     await component.onCollect()
 
-    expect(snackBarCalls.map(c => c.message)).toEqual(['Kasse nicht freigegeben — die Bestellung bleibt offen'])
+    expect(notices.map(c => c.message)).toEqual(['Kasse nicht freigegeben — die Bestellung bleibt offen'])
     expect(component.payment()).not.toBeNull()
     expect(closeCalls).toEqual([])
   })

@@ -109,7 +109,7 @@ Tag eröffnen und Tagesabschluss sind damit nur im Cloud-Modus ohne aktive Koppl
 gewollt ([core#838](https://github.com/panary/panary-core/issues/838)): Bei gekoppelter Edge laufen
 beide im Cloud-Admin.
 
-Ein **gesperrter** Rail-Eintrag bleibt antippbar und meldet den Grund per Snackbar — ein
+Ein **gesperrter** Rail-Eintrag bleibt antippbar und meldet den Grund als Warnung ([POS-Meldungen](../architecture/pos-meldungen.md)) — ein
 `disabled`-Knopf nähme am Touchgerät jeden Hinweis mit. Im „Mehr"-Menü steht der Grund zusätzlich unter
 dem Eintrag. Die Mandantensperre geht im Hinweis vor „offline", weil sie bleibt, wenn die Verbindung
 zurückkommt.
@@ -117,7 +117,7 @@ zurückkommt.
 **Stempeln und Abmelden** folgen ihren bisherigen Regeln: Kommen, Pause und Gehen sind offline und bei
 Mandantensperre gesperrt (`timeTrackingBlockedHintKey`, Kontosperre vor „offline"), Abmelden ist
 offline gesperrt (`PosSessionService.isOffline`). Gehen meldet danach ab. Gesperrte Stempeltasten und
-Abmelden bleiben wie die übrigen Rail-Einträge antippbar und nennen den Grund per Snackbar.
+Abmelden bleiben wie die übrigen Rail-Einträge antippbar und nennen den Grund als Warnung.
 
 **Abgelehntes Bediener-Token** ([core#923](https://github.com/panary/panary-core/issues/923)). Seit
 [core#903](https://github.com/panary/panary-core/issues/903) bindet der Edge die Zeiterfassung an das
@@ -127,7 +127,8 @@ leert dann weder `sessionStorage` noch zeigt es einen Toast, sondern reicht den 
 (`isPosOperatorRejection`, `@panary/shared/data-access`). `PosStaffService` beendet die Bediener-Sitzung über
 `PosSessionService.endSession` und zeigt **danach** den Hinweis, sich erneut mit PIN anzumelden — vorher
 ersetzte ihn die Snackbar „Benutzer erfolgreich abgemeldet“ aus `AuthService.logout()` sofort
-([core#937](https://github.com/panary/panary-core/issues/937)). Nach der PIN ist die
+([core#937](https://github.com/panary/panary-core/issues/937)). Seit #1026 stapeln sich Meldungen; die
+Reihenfolge bleibt, damit der Hinweis oben steht. Nach der PIN ist die
 Stempelung wiederholbar; es wurde nichts gestempelt. Jeden anderen `401` behandelt `ServiceHelper` wie bisher.
 
 **Keine Rechteprüfung im UI.** `allowedRoles` war an keiner Kachel gesetzt und ist entfallen. Was ein

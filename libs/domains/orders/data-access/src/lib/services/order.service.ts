@@ -1,6 +1,5 @@
 import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { PrintDialogComponent } from '../components/print-dialog.component'
 import { OrderChannel } from '../enums/order-chanel.enum'
 import { Id, Paginated, Params } from '@feathersjs/feathers'
@@ -99,8 +98,6 @@ export class OrderService extends BaseService<Order> {
 
   /** STATIC PROPERTIES */
   protected readonly QUERY_LIMIT: number = 200
-  protected readonly SNACKBAR_ACTION: string = 'OK'
-  protected readonly SNACKBAR_DURATION: number = 2000
   /** Coalesced Reconcile: EIN silent-Voll-Reload pro Event-Burst (Drift-Schutz, s. #scheduleReconcile). */
   protected readonly RECONCILE_DELAY_MS: number = 45000
 
@@ -109,7 +106,6 @@ export class OrderService extends BaseService<Order> {
   protected connectionService: ConnectionService = inject(ConnectionService)
   #outbox: OfflineOutboxPort | null = inject(OFFLINE_OUTBOX, { optional: true })
   #provisionalSequenceCursor = 0
-  #matSnackBar: MatSnackBar = inject(MatSnackBar)
   #matDialog: MatDialog = inject(MatDialog)
   #orderIndex = 1
   #productionTimes: Array<number> = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
@@ -291,9 +287,7 @@ export class OrderService extends BaseService<Order> {
       }
       // silent = Reconcile-Reload im Hintergrund — keine Snackbar alle 45s
       if (!options?.silent) {
-        this.#matSnackBar.open(`Bestellungen aktualisiert`, OrderService.SNACKBAR_ACTION, {
-          duration: OrderService.SNACKBAR_DURATION,
-        })
+        this.notifications.success('Bestellungen aktualisiert')
       }
     })
 
@@ -475,7 +469,7 @@ export class OrderService extends BaseService<Order> {
 
   async #patchOffline(id: string, data: Partial<Order>, operatorToken: string | null): Promise<Order> {
     if (data.payment?.transactions?.some(t => t.method !== TransactionMethod.CASH)) {
-      this.#matSnackBar.open('Offline ist nur Barzahlung möglich.', 'OK', { duration: 3000 })
+      this.notifications.warning('Offline ist nur Barzahlung möglich.')
       throw new Error('OFFLINE_CASH_ONLY')
     }
 
@@ -530,14 +524,8 @@ export class OrderService extends BaseService<Order> {
     this.service
       .multiPatchStatus(OrderStatus.COMPLETED, { query: { status: OrderStatus.ACTIVE } })
       .then((orders: Order[]): void => {
-        this.#matSnackBar
-          .open(`${orders.length} Bestellungen wurden als erledigt markiert`, OrderService.SNACKBAR_ACTION, {
-            duration: OrderService.SNACKBAR_DURATION,
-          })
-          .afterDismissed()
-          .subscribe((): void => {
-            this.loadDocuments()
-          })
+        this.notifications.success(`${orders.length} Bestellungen wurden als erledigt markiert`)
+        this.loadDocuments()
       })
       .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
   }
@@ -617,7 +605,7 @@ export class OrderService extends BaseService<Order> {
 
   complete(id: Id | undefined) {
     if (!id) {
-      this.#matSnackBar.open('Bitte geben Sie eine gültige Bestell-Id ein', 'OK', { duration: 2000 })
+      this.notifications.warning('Bitte geben Sie eine gültige Bestell-Id ein')
       return
     }
 
@@ -626,7 +614,7 @@ export class OrderService extends BaseService<Order> {
 
   async toggleStatus(id: Id | undefined) {
     if (!id) {
-      this.#matSnackBar.open('Bitte geben Sie eine gültige Bestell-Id ein', 'OK', { duration: 2000 })
+      this.notifications.warning('Bitte geben Sie eine gültige Bestell-Id ein')
       return
     }
 
@@ -634,7 +622,7 @@ export class OrderService extends BaseService<Order> {
       return orderItem._id === id
     })
     if (!order) {
-      this.#matSnackBar.open(`Bestellung mit der Id (${id}) konnte nicht gefunden werden`, 'OK', { duration: 2000 })
+      this.notifications.error(`Bestellung mit der Id (${id}) konnte nicht gefunden werden`)
       return
     }
 

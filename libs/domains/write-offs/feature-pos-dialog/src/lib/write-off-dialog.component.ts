@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms'
 import { MatDialogRef, MatDialogModule, MatDialog } from '@angular/material/dialog'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { WriteOff, WriteOffItemType, WriteOffReason, WasteType } from '@panary/write-offs/domain'
 import { WriteOffService } from '@panary/write-offs/data-access'
 import { ProductSchema } from '@panary/products/domain'
@@ -46,7 +46,7 @@ export class PosWriteOffDialogComponent {
   protected readonly businessDayService = inject(BusinessDayService)
   protected readonly locationService = inject(LocationService)
   protected readonly deviceConfigService = inject(DeviceConfigService)
-  protected readonly matSnackBar = inject(MatSnackBar)
+  readonly #notifications = inject(NotificationService)
   protected readonly translate = inject(TranslateService)
 
   // Enums for Template
@@ -175,7 +175,7 @@ export class PosWriteOffDialogComponent {
   async save() {
     if (this.saving()) return
     if (!this.selectedItem()) {
-      this.matSnackBar.open(this.translate.instant('WRITE_OFF.SELECT_ITEM_FIRST'), 'OK', { duration: 3000 })
+      this.#notifications.warning(this.translate.instant('WRITE_OFF.SELECT_ITEM_FIRST'))
       return
     }
 
@@ -185,7 +185,7 @@ export class PosWriteOffDialogComponent {
 
     // Error only if NO Location ID is present at all
     if (!locationId) {
-      this.matSnackBar.open(this.translate.instant('WRITE_OFF.NO_LOCATION'), 'OK', { duration: 3000 })
+      this.#notifications.warning(this.translate.instant('WRITE_OFF.NO_LOCATION'))
       return
     }
 
@@ -199,7 +199,7 @@ export class PosWriteOffDialogComponent {
 
     // Ohne Geschäftstag lehnt der Edge die Abschreibung ab (Pflichtfeld) — gleich sagen, warum.
     if (!businessDayId) {
-      this.matSnackBar.open(this.translate.instant('WRITE_OFF.NO_BUSINESS_DAY'), 'OK', { duration: 4000 })
+      this.#notifications.warning(this.translate.instant('WRITE_OFF.NO_BUSINESS_DAY'))
       return
     }
 
@@ -217,7 +217,7 @@ export class PosWriteOffDialogComponent {
     }
 
     if (!userId) {
-      this.matSnackBar.open(this.translate.instant('WRITE_OFF.USER_NOT_IDENTIFIED'), 'OK', { duration: 3000 })
+      this.#notifications.warning(this.translate.instant('WRITE_OFF.USER_NOT_IDENTIFIED'))
       return
     }
 
@@ -249,13 +249,13 @@ export class PosWriteOffDialogComponent {
     this.saving.set(true)
     try {
       await withTimeout(this.writeOffService.create(writeOff as WriteOff))
-      this.matSnackBar.open(this.translate.instant('WRITE_OFF.SAVED'), 'OK', { duration: 2000 })
+      this.#notifications.success(this.translate.instant('WRITE_OFF.SAVED'))
       this.matDialogRef.close(true)
     } catch (error) {
       // Dialog bleibt offen: Die Abschreibung ist NICHT gespeichert, der Bediener kann es erneut versuchen.
       console.error('Error saving write-off', error)
       const message = writeOffErrorMessage(error, key => this.translate.instant(key))
-      if (message) this.matSnackBar.open(message, 'OK', { duration: 6000 })
+      if (message) this.#notifications.error(message)
     } finally {
       this.saving.set(false)
     }

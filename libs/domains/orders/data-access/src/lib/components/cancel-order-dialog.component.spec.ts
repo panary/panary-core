@@ -4,7 +4,7 @@ import '@angular/compiler'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Injector, runInInjectionContext, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { UserService } from '@panary/users/data-access'
@@ -60,7 +60,7 @@ function setup(opts: {
         provide: ConnectionService,
         useValue: { usersService: { find: opts.authorizingUsers ?? (async () => []), verifyPin } },
       },
-      { provide: MatSnackBar, useValue: { open: vi.fn() } },
+      { provide: NotificationService, useValue: new NotificationService() },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
     ],
   })

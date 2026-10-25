@@ -1,0 +1,99 @@
+---
+type: Architecture
+title: 'POS-Meldungen — Arten, Dauer, Stapel und Position'
+description: 'Wie der POS Meldungen zeigt: NotificationService mit vier Arten und fester Dauer, Quittierpflicht, Stapel aus drei, Zählung gleicher Meldungen, Anzeige oben mittig über Dialogen.'
+tags: [pos-client, ui, notifications, design-system]
+status: stable
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T14:00:00Z }
+sources:
+  - { id: adr-0061, resource: '../adr/0061-pos-meldungen-statt-material-snackbar.md', title: 'ADR 0061' }
+---
+
+# POS-Meldungen — Arten, Dauer, Stapel und Position
+
+Seit [#1026](https://github.com/panary/panary-core/issues/1026) zeigt der POS jede Meldung über
+den [`NotificationService`](../../libs/shared/ui-notifications/src/lib/services/notification.service.ts).
+Die Anzeige übernimmt der
+[`notification-outlet`](../../libs/shared/ui-notifications/src/lib/components/notification-outlet.component.ts)
+in `apps/pos-client/src/app/app.ts`. Warum es keine Material-Snackbar mehr gibt, steht in
+[ADR 0061](../adr/0061-pos-meldungen-statt-material-snackbar.md).
+
+## Benutzung
+
+```ts
+readonly #notifications = inject(NotificationService)
+
+this.#notifications.success('Abschreibung gespeichert')
+this.#notifications.warning('Kasse nicht freigegeben — die Bestellung bleibt offen')
+this.#notifications.error(`Rabattcode nicht eingelöst — ${grund}`, { sticky: true })
+this.#undoRef = this.#notifications.info('Bauernbrot entfernt', {
+  action: { label: 'Rückgängig', run: () => this.restore() },
+})
+this.#undoRef?.dismiss()
+```
+
+Weitere Optionen: `title` (fett vor dem Text, z. B. „Fehler HTTP-Code 500" aus `handleError`) und
+`duration` für Ausnahmen.
+
+## Arten und Dauer
+
+| Art | Wann | Dauer | Fläche (hell / dunkel) |
+|---|---|---|---|
+| `success` | etwas ist erledigt | 3 s | `--accent-ink`: Grün / Mint |
+| `info` | Hinweis, ggf. mit Aktion | 4 s, mit Aktion 6 s | `--text-primary`: Navy / Creme |
+| `warning` | ging nicht, nichts verloren | 6 s | `--warn-ink`: dunkles Bernstein / Bernstein |
+| `error` | ist schiefgegangen | 8 s | `--danger-ink`: Rot / Hellrot |
+| `sticky: true` | muss gesehen werden | bis × | Farbe der Art |
+
+Die Schrift ist immer `--surface-bg`. In Dunkel drehen sich Fläche und Schrift über dieselben
+Tokens um, deshalb gibt es keine eigenen Meldungs-Tokens.
+
+## Verhalten
+
+- **Stapel:** höchstens drei, die neueste oben. Eine weitere verdrängt die älteste mit Ablauf.
+  Quittierpflichtige werden nie verdrängt, die gerade neue auch nicht; stehen schon drei
+  quittierpflichtige, wächst der Stapel.
+- **Gleiche Meldung** (Art, Titel, Text): Sie erscheint nicht doppelt, sondern zählt „×2" und
+  beginnt ihren Ablauf neu. Eine quittierpflichtige bleibt quittierpflichtig, eine Aktion bleibt,
+  wenn die Wiederholung keine mitbringt, und eine angehaltene Meldung bleibt angehalten.
+- **Ein „Rückgängig" zur Zeit** im Bestelldialog: Ein neues Angebot schließt das vorige.
+- **Ein Tipp schließt** die Meldung, außer bei quittierpflichtigen, die nur das × schließt. Die
+  Aktionstaste führt ihre Aktion aus und schließt die Meldung. Aktionstaste und × sind 48px groß;
+  Enter/Leertaste auf der Fläche schließen, Enter auf der Aktionstaste löst die Aktion aus.
+- **Finger auf der Meldung** hält den Ablauf an (`pause`/`resume`).
+- **Vorlesen:** `success`/`info` als `role="status"`, `warning`/`error` als `role="alert"`.
+
+## Position
+
+Der Outlet steht in der Spalte des App-Rahmens zwischen Cloud-Status-Streifen und Inhalt und ist
+0 hoch. Die Ebene darin ist absolut positioniert und beginnt deshalb immer direkt unter dem
+Streifen, ohne dessen Höhe zu kennen. Waagrecht ist sie mittig über dem Arbeitsbereich: Die Rail
+(3.875rem) verschiebt dessen Mitte, `styles.scss` setzt `--notification-shift` je
+`data-rail-side`. Der Host trägt `z-index: 2000` und liegt damit über dem CDK-Overlay (1000), also
+über Dialogen und Sheets.
+
+## Was entfallen ist
+
+- `PosSnackBar` und `providePosSnackBar()` aus core#531. Deren Rangfolge ergibt sich jetzt aus dem
+  Stapel: Die quittierpflichtige Meldung bleibt stehen, Kurzmeldungen erscheinen darüber.
+  Dokumentation des Vorgängers: [POS-Snackbar-Rangfolge](pos-snackbar-rangfolge.md) (deprecated).
+- Die Snackbar-Styles in `apps/pos-client/src/styles.scss`.
+- Die Snackbar-Konstanten `SNACKBAR_ACTION`/`SNACKBAR_DURATION` in `BaseService`, `ServiceHelper`,
+  `AuthService` und `OrderService`. Die i18n-Schlüssel `SNACKBAR.*` und der Methodenname
+  `showSnackbar` sind geblieben.
+
+## Grenzen
+
+- Ein Benutzerwechsel beendet offene Meldungen nicht. Eine quittierpflichtige gilt dem Gerät.
+- Zwei Aufrufe derselben Meldung mit verschiedener Aktion werden zusammengelegt; es gilt die
+  Aktion des letzten Aufrufs, der eine mitbringt.
+- Das × trägt das feste Label „Schließen" (deutsch), nicht über i18n.
+- Der Admin-Client rendert keinen Outlet. Er braucht keinen, solange er weder `BaseService` noch
+  `ServiceHelper` benutzt.
+
+## Tests
+
+`libs/shared/ui-notifications/src/lib/services/notification.service.spec.ts` prüft Dauer, Stapel,
+Zählung, Aktion, Pause und Verdrängung mit Fake-Timern. Die Aufrufer-Specs benutzen den echten
+Dienst und beobachten `notify` per `vi.spyOn`; so prüft z. B. die Bestelldialog-Spec, dass das
+Undo-Aufräumen die Rabattcode-Meldung stehen lässt.

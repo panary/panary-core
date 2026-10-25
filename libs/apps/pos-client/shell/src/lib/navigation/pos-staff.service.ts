@@ -1,5 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService, type NotificationType } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
 import {
@@ -32,7 +32,7 @@ export class PosStaffService {
   readonly #session = inject(PosSessionService)
   readonly #suspension = inject(TenantSuspensionService)
   readonly #handedness = inject(PosHandednessService)
-  readonly #snackBar = inject(MatSnackBar)
+  readonly #notifications = inject(NotificationService)
   readonly #translate = inject(TranslateService)
 
   readonly isOffline = this.#session.isOffline
@@ -154,11 +154,11 @@ export class PosStaffService {
     const next = this.cartSide() === PosHandedness.LEFT ? PosHandedness.RIGHT : PosHandedness.LEFT
     try {
       const outcome = await this.#handedness.choose(user._id, next)
-      if (outcome === 'pending') this.#notify('POS_NAV.CART_SIDE_PENDING')
-      if (outcome === 'local') this.#notify('POS_NAV.CART_SIDE_LOCAL', 8000)
+      if (outcome === 'pending') this.#notify('POS_NAV.CART_SIDE_PENDING', 'info')
+      if (outcome === 'local') this.#notify('POS_NAV.CART_SIDE_LOCAL')
     } catch (error) {
       console.error('Set cart side failed:', error)
-      this.#notify('POS_NAV.CART_SIDE_FAILED')
+      this.#notify('POS_NAV.CART_SIDE_FAILED', 'error')
     }
   }
 
@@ -194,23 +194,23 @@ export class PosStaffService {
       // Bediener-Token abgelehnt (abgelaufen, fremdes Gerät): Das Gerät bleibt angemeldet, nur der
       // Bediener muss neu per PIN. Danach ist die Stempelung wiederholbar (panary/panary-core#923).
       if (isPosOperatorRejection(error)) {
-        // Erst abmelden, dann der Hinweis: `AuthService.logout()` öffnet eine eigene Snackbar
-        // („Benutzer erfolgreich abgemeldet“), die ihn sonst sofort ersetzt (panary/panary-core#937).
+        // Erst abmelden, dann der Hinweis: `AuthService.logout()` meldet sich selbst
+        // („Benutzer erfolgreich abgemeldet“); der Hinweis soll oben im Stapel stehen (panary/panary-core#937).
         // `finally`: Auch wenn das Abmelden scheitert, erscheint der Hinweis, und `#run` wirft nicht.
         try {
           await this.#session.endSession('button')
         } catch (logoutError) {
           console.error('End session after operator rejection failed:', logoutError)
         } finally {
-          this.#notify('POS_NAV.OPERATOR_PIN_REQUIRED', 8000)
+          this.#notify('POS_NAV.OPERATOR_PIN_REQUIRED')
         }
       }
       return false
     }
   }
 
-  #notify(key: string, duration = 4000): void {
-    this.#snackBar.open(this.#translate.instant(key), undefined, { duration })
+  #notify(key: string, type: NotificationType = 'warning'): void {
+    this.#notifications.notify(type, this.#translate.instant(key))
   }
 }
 

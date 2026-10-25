@@ -12,7 +12,7 @@ import {
 import { formatEur, formatEurCents } from '@panary/shared/util-helpers'
 import { CommonModule } from '@angular/common'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { uuidv7 } from 'uuidv7'
 import {
   CASH_PAYMENT_DIALOG_CONFIG,
@@ -112,7 +112,7 @@ export class ActiveOrdersComponent {
   #authService = inject(AuthService)
   #locationService = inject(LocationService)
   #matDialog = inject(MatDialog)
-  #snackBar = inject(MatSnackBar)
+  #notifications = inject(NotificationService)
   #userService = inject(UserService)
   #corporateCustomerService = inject(CorporateCustomerService)
   #discountService = inject(DiscountService)
@@ -276,7 +276,7 @@ export class ActiveOrdersComponent {
     if (!order._id) {
       // Ohne ID kann der Service nicht aufgerufen werden — der User braucht trotzdem
       // ein Feedback, sonst wirkt der Klick wie ein toter Button (siehe Bug-Report).
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.FINALIZE_INVALID_ORDER'), 'OK', { duration: 3000 })
+      this.#notifications.error(this.#translate.instant('ACTIVE_ORDERS.FINALIZE_INVALID_ORDER'))
       return
     }
 
@@ -299,7 +299,7 @@ export class ActiveOrdersComponent {
     const performedById = this.#resolveCashierId()
     if (!performedById) {
       // Reiner Client-Abbruch ohne Service-Call → eigenes Feedback nötig.
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.FINALIZE_NO_USER'), 'OK', { duration: 3000 })
+      this.#notifications.warning(this.#translate.instant('ACTIVE_ORDERS.FINALIZE_NO_USER'))
       return
     }
 
@@ -387,12 +387,10 @@ export class ActiveOrdersComponent {
       this.selectedOrderId.set(null)
       this.overlayView.set('actions')
       this.staffEligibleUsers.set([])
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_BOOKED', { name: userName }), undefined, {
-        duration: 2500,
-      })
+      this.#notifications.success(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_BOOKED', { name: userName }))
     } catch (e) {
       console.error(e)
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_ERROR'), 'OK', { duration: 3000 })
+      this.#notifications.error(this.#translate.instant('ACTIVE_ORDERS.STAFF_MEAL_ERROR'))
     }
   }
 
@@ -477,13 +475,11 @@ export class ActiveOrdersComponent {
       if (!result) return
       this.resetOverlay()
       this.#highlight([result.sourceOrderId, result.targetOrderId])
-      this.#snackBar.open(
+      this.#notifications.success(
         this.#translate.instant('SPLIT_ORDER.SUCCESS', {
           source: order.dailySequenceNumber,
           target: result.targetSequenceNumber ?? '',
         }),
-        undefined,
-        { duration: 3000 },
       )
     })
   }
@@ -542,14 +538,10 @@ export class ActiveOrdersComponent {
         ],
       } as never)
       this.resetOverlay()
-      this.#snackBar.open(
-        this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_APPLIED', { name: discount.name }),
-        undefined,
-        { duration: 2500 },
-      )
+      this.#notifications.success(this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_APPLIED', { name: discount.name }))
     } catch (e) {
       console.error(e)
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_ERROR'), 'OK', { duration: 3000 })
+      this.#notifications.error(this.#translate.instant('ACTIVE_ORDERS.DISCOUNT_ERROR'))
     }
   }
 
@@ -596,14 +588,10 @@ export class ActiveOrdersComponent {
     try {
       await this.#orderService.patch(order._id, patch)
       this.resetOverlay()
-      this.#snackBar.open(
-        this.#translate.instant('ACTIVE_ORDERS.COMPANY_ASSIGNED', { name: customer.name1 }),
-        undefined,
-        { duration: 2500 },
-      )
+      this.#notifications.success(this.#translate.instant('ACTIVE_ORDERS.COMPANY_ASSIGNED', { name: customer.name1 }))
     } catch (e) {
       console.error(e)
-      this.#snackBar.open(this.#translate.instant('ACTIVE_ORDERS.COMPANY_ERROR'), 'OK', { duration: 3000 })
+      this.#notifications.error(this.#translate.instant('ACTIVE_ORDERS.COMPANY_ERROR'))
     }
   }
 

@@ -1,6 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import { filter, map } from 'rxjs'
@@ -32,7 +32,7 @@ export class PosNavigationService {
   readonly #orders = inject(OrderService)
   readonly #kasse = inject(KasseDraftRegistry)
   readonly #dayActions = inject(PosDayActionsService)
-  readonly #snackBar = inject(MatSnackBar)
+  readonly #notifications = inject(NotificationService)
   readonly #translate = inject(TranslateService)
 
   readonly context = computed<PosNavContext>(() => {
@@ -88,7 +88,7 @@ export class PosNavigationService {
   open(item: PosNavItem): void {
     if (this.locked()) return
     if (item.block) {
-      this.#snackBar.open(this.#translate.instant(item.block), undefined, { duration: 4000 })
+      this.#notifications.warning(this.#translate.instant(item.block))
       return
     }
     const { target } = item.entry

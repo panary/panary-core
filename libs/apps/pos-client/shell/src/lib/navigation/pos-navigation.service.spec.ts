@@ -2,7 +2,7 @@
 import '@angular/compiler'
 import { describe, expect, it, vi } from 'vitest'
 import { Injector, runInInjectionContext, signal } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { Router, UrlTree } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import { Subject } from 'rxjs'
@@ -23,7 +23,8 @@ function setup(state: { offline?: boolean; sheetOpen?: boolean } = {}) {
     parseUrl: () => new UrlTree(),
   }
   const dayActions = { run: vi.fn() }
-  const snackBar = { open: vi.fn() }
+  const notifications = new NotificationService()
+  const notify = vi.spyOn(notifications, 'notify')
   const injector = Injector.create({
     providers: [
       { provide: Router, useValue: router },
@@ -40,7 +41,7 @@ function setup(state: { offline?: boolean; sheetOpen?: boolean } = {}) {
       { provide: OrderService, useValue: { ordersActive: signal([{}, {}]) } },
       { provide: KasseDraftRegistry, useValue: { sheetOpen: signal(!!state.sheetOpen) } },
       { provide: PosDayActionsService, useValue: dayActions },
-      { provide: MatSnackBar, useValue: snackBar },
+      { provide: NotificationService, useValue: notifications },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
     ],
   })
@@ -51,7 +52,7 @@ function setup(state: { offline?: boolean; sheetOpen?: boolean } = {}) {
     if (!found) throw new Error(`${id} nicht sichtbar`)
     return found
   }
-  return { service, router, dayActions, snackBar, item }
+  return { service, router, dayActions, notify, item }
 }
 
 describe('PosNavigationService (core#832)', () => {
@@ -84,12 +85,12 @@ describe('PosNavigationService (core#832)', () => {
   })
 
   it('ein gesperrter Eintrag meldet den Grund und tut nichts', () => {
-    const { service, router, dayActions, snackBar, item } = setup({ offline: true })
+    const { service, router, dayActions, notify, item } = setup({ offline: true })
     service.open(item('history'))
     service.open(item('write-off'))
     expect(router.navigate).not.toHaveBeenCalled()
     expect(dayActions.run).not.toHaveBeenCalled()
-    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual([
+    expect(notify.mock.calls.map(call => call[1])).toEqual([
       'DASHBOARD.ACTION_OFFLINE_BLOCKED',
       'DASHBOARD.ACTION_OFFLINE_BLOCKED',
     ])

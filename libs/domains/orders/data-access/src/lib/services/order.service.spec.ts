@@ -4,9 +4,8 @@ import '@angular/compiler'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Injector, NgZone, runInInjectionContext, signal } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
-import { of } from 'rxjs'
 import {
   DineLocation,
   isSyntheticSettlementScope,
@@ -116,7 +115,7 @@ function setup(options: SetupOptions = {}) {
         },
       },
       { provide: ServiceHelper, useValue: { handleError: vi.fn() } },
-      { provide: MatSnackBar, useValue: { open: () => ({ afterDismissed: () => of(undefined) }) } },
+      { provide: NotificationService, useValue: new NotificationService() },
       { provide: MatDialog, useValue: { open: vi.fn() } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       { provide: NgZone, useValue: { run: (fn: () => unknown) => fn() } },
@@ -442,10 +441,10 @@ describe('OrderService — Bediener-Token', () => {
 })
 
 // core#657: Der Storno am POS zeigte „Bestellung wurde geändert“ neben der Erfolgsmeldung.
-describe('OrderService — Realtime-Snackbar (#657)', () => {
+describe('OrderService — Realtime-Meldung (#657)', () => {
   const spyOnOpen = (service: OrderService) => {
-    const matSnackBar = (service as unknown as { matSnackBar: MatSnackBar }).matSnackBar
-    return vi.spyOn(matSnackBar, 'open')
+    const notifications = (service as unknown as { notifications: NotificationService }).notifications
+    return vi.spyOn(notifications, 'notify')
   }
   const show = (service: OrderService, key: string) =>
     (service as unknown as { showSnackbar: (k: string) => void }).showSnackbar(key)

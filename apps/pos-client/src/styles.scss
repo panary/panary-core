@@ -140,7 +140,6 @@ html:root {
 .mat-mdc-table,
 .mat-mdc-header-cell,
 .mat-mdc-cell,
-.mat-mdc-snack-bar-container,
 .mat-mdc-select,
 .mat-mdc-option,
 .mat-mdc-menu-panel,
@@ -152,23 +151,13 @@ html:root {
   font-family: var(--font-family-sans) !important;
 }
 
-/* SnackBar: Helles Card-Design passend zum Layout der POS-App */
-.mat-mdc-snack-bar-container {
-  /* Korrekte Angular-Material-21-Token-Namen (mat-snack-bar-*, nicht mdc-snackbar-*) */
-  --mat-snack-bar-container-color: var(--surface-panel-elevated);
-  --mat-snack-bar-supporting-text-color: var(--text-primary);
-  --mat-snack-bar-supporting-text-size: 0.875rem;
-  --mat-snack-bar-supporting-text-weight: 500;
-  --mat-snack-bar-container-shape: 1rem;
-  --mat-snack-bar-button-color: var(--accent-ink);
-
-  /* Border + Schatten direkt auf der MDC-Surface */
-  .mdc-snackbar__surface {
-    border: 1px solid var(--border-default) !important;
-    box-shadow:
-      0 10px 25px -5px rgb(0 0 0 / 0.08),
-      0 4px 6px -2px rgb(0 0 0 / 0.04) !important;
-  }
+/* Meldungen (core#1026): Die Ebene steht mittig über dem Arbeitsbereich, nicht über dem ganzen
+   Fenster. Die Rail (3.875rem) verschiebt dessen Mitte um ihre halbe Breite zur anderen Seite. */
+body:has(#app-frame[data-rail-side='left']) {
+  --notification-shift: 1.9375rem;
+}
+body:has(#app-frame[data-rail-side='right']) {
+  --notification-shift: -1.9375rem;
 }
 
 /* MatSelect: Dropdown-Panel Styling */

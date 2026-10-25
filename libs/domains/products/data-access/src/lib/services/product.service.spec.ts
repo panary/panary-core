@@ -3,9 +3,8 @@
 import '@angular/compiler'
 import { describe, expect, it, vi } from 'vitest'
 import { Injector, NgZone, runInInjectionContext } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
-import { of } from 'rxjs'
 import type { Pricelist } from '@panary/products/domain'
 import { ConnectionService, DATA_ACCESS_AUTO_LOAD, ServiceHelper } from '@panary/shared/data-access'
 import { AuthService } from '@panary/auth/data-access'
@@ -36,7 +35,8 @@ function setup(options: SetupOptions = {}) {
   const patch = vi.fn(options.patchImpl ?? ((id: unknown) => Promise.resolve({ _id: id })))
   // Kein `on` am Mock → BaseService.configureSocketListeners() ueberspringt die Socket-Listener.
   const feathersProductService = { patch }
-  const snackOpen = vi.fn(() => ({ afterDismissed: () => of(undefined) }))
+  const notifications = new NotificationService()
+  const notify = vi.spyOn(notifications, 'notify')
   const handleError = vi.fn()
 
   const injector = Injector.create({
@@ -44,7 +44,7 @@ function setup(options: SetupOptions = {}) {
       { provide: ConnectionService, useValue: { productService: feathersProductService } },
       { provide: AuthService, useValue: { fullName: () => 'Testi Tester' } },
       { provide: ServiceHelper, useValue: { handleError } },
-      { provide: MatSnackBar, useValue: { open: snackOpen } },
+      { provide: NotificationService, useValue: notifications },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       { provide: NgZone, useValue: { run: (fn: () => unknown) => fn() } },
       { provide: DATA_ACCESS_AUTO_LOAD, useValue: false },
@@ -52,7 +52,7 @@ function setup(options: SetupOptions = {}) {
   })
 
   const service = runInInjectionContext(injector, () => new ProductService())
-  return { service, patch, snackOpen, handleError }
+  return { service, patch, notify, handleError }
 }
 
 function makePricelist(productPrices: Pricelist['productPrices']): Pricelist {
@@ -104,8 +104,8 @@ describe('ProductService.applyPrices — partielle Fehler', () => {
     expect(handleError).toHaveBeenCalledTimes(1)
   })
 
-  it('Snackbar meldet auch dann Erfolg, wenn alle Patches fehlschlagen (Ist-Verhalten, Befund)', async () => {
-    const { service, snackOpen } = setup({
+  it('Meldung sagt auch dann Erfolg, wenn alle Patches fehlschlagen (Ist-Verhalten, Befund)', async () => {
+    const { service, notify } = setup({
       patchImpl: () => Promise.reject(new Error('offline')),
     })
     const pricelist = makePricelist([{ productId: 'p1', newPrice: 2.5 }])
@@ -115,8 +115,9 @@ describe('ProductService.applyPrices — partielle Fehler', () => {
     expect(result.productPrices[0].updateStatus).toBe('offline')
     // "Preise erfolgreich angewendet" ist unabhaengig vom Ergebnis — der
     // Fehlerstatus ist nur pro Zeile in der Preislisten-UI sichtbar.
-    expect(snackOpen).toHaveBeenCalledTimes(1)
-    expect(snackOpen).toHaveBeenCalledWith('Preise erfolgreich angewendet', 'OK', { duration: 2500 })
+    expect(notify.mock.calls.map(([type, message]) => [type, message])).toEqual([
+      ['success', 'Preise erfolgreich angewendet'],
+    ])
   })
 })
 
@@ -144,13 +145,13 @@ describe('ProductService.applyPrices — Falsy-Skip von newPrice', () => {
     expect(result.productPrices[2].updateStatus).toBe('UPDATED')
   })
 
-  it('leere Preisliste: kein Patch, aber Erfolgs-Snackbar', async () => {
-    const { service, patch, snackOpen } = setup()
+  it('leere Preisliste: kein Patch, aber Erfolgsmeldung', async () => {
+    const { service, patch, notify } = setup()
 
     await service.applyPrices(makePricelist([]))
 
     expect(patch).not.toHaveBeenCalled()
-    expect(snackOpen).toHaveBeenCalledTimes(1)
+    expect(notify).toHaveBeenCalledTimes(1)
   })
 })
 

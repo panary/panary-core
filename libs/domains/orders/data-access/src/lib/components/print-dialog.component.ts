@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { LocationService } from '@panary/locations/data-access'
 import { OrderPrintService } from '../services/order-print.service'
@@ -150,7 +150,7 @@ export class PrintDialogComponent {
   private dialogRef = inject(MatDialogRef<PrintDialogComponent>)
   private locationService = inject(LocationService)
   private orderPrintService = inject(OrderPrintService)
-  private snackBar = inject(MatSnackBar)
+  #notifications = inject(NotificationService)
   private translate = inject(TranslateService)
   order: Order = inject(MAT_DIALOG_DATA)
 
@@ -159,7 +159,7 @@ export class PrintDialogComponent {
   async printAll() {
     try {
       await this.orderPrintService.printOrder(this.order)
-      this.snackBar.open(this.translate.instant('PRINT.SENT_ALL'), undefined, { duration: 2000 })
+      this.#notifications.success(this.translate.instant('PRINT.SENT_ALL'))
       this.dialogRef.close(true)
     } catch (err: unknown) {
       this.showPrintError(err)
@@ -169,7 +169,7 @@ export class PrintDialogComponent {
   async printTo(printer: Printer) {
     try {
       await this.orderPrintService.printOrder(this.order, [printer.pid])
-      this.snackBar.open(this.translate.instant('PRINT.SENT_TO', { name: printer.name }), undefined, { duration: 2000 })
+      this.#notifications.success(this.translate.instant('PRINT.SENT_TO', { name: printer.name }))
     } catch (err: unknown) {
       this.showPrintError(err)
     }
@@ -188,7 +188,7 @@ export class PrintDialogComponent {
     const message = detail
       ? this.translate.instant('PRINT.ERROR_DETAIL', { reason: detail })
       : this.translate.instant('PRINT.ERROR')
-    this.snackBar.open(message, 'OK', { duration: 6000 })
+    this.#notifications.error(message)
   }
 
   close() {

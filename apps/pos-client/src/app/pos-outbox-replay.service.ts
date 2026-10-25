@@ -1,5 +1,5 @@
 import { effect, inject, Injectable, OnDestroy, untracked } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import type { Params } from '@feathersjs/feathers'
 import { ConnectionService, withPosOperatorToken } from '@panary/shared/data-access'
@@ -37,7 +37,7 @@ const REPLAY_POLL_MS = 30_000
 export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
   readonly #connection = inject(ConnectionService)
   readonly #outbox = inject(OutboxStore)
-  readonly #snackBar = inject(MatSnackBar)
+  readonly #notifications = inject(NotificationService)
   readonly #translate = inject(TranslateService)
   #replaying = false
   #pollTimer: ReturnType<typeof setInterval> | null = null
@@ -103,8 +103,8 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
     // sichtbar) → Operator aktiv informieren.
     const newlyRejected = this.#outbox.rejectedCount() - rejectedBefore
     if (newlyRejected > 0) {
-      this.#snackBar.open(this.#translate.instant('SETTINGS.OUTBOX_REPLAY_REJECTED', { count: newlyRejected }), 'OK', {
-        duration: 6000,
+      this.#notifications.error(this.#translate.instant('SETTINGS.OUTBOX_REPLAY_REJECTED', { count: newlyRejected }), {
+        sticky: true,
       })
     }
   }

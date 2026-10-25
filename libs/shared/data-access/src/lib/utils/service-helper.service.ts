@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { FeathersError } from '@feathersjs/errors'
 import { httpErrorCodesDE } from '@panary/util-error-handling'
 import { NotificationService } from '@panary/shared/ui-notifications'
@@ -11,12 +10,8 @@ import { isPosOperatorRejection } from './pos-operator-token'
   providedIn: 'root',
 })
 export class ServiceHelper {
-  static readonly SNACKBAR_ACTION: string = 'OK'
-  static readonly SNACKBAR_DURATION: number = 2500
-
   protected readonly notificationService: NotificationService = inject(NotificationService)
   protected readonly router: Router = inject(Router)
-  protected readonly matSnackBar: MatSnackBar = inject(MatSnackBar)
   protected readonly tenantSuspension: TenantSuspensionService = inject(TenantSuspensionService)
 
   /** Zeigt den Fehler an. Wirft nur bei abgelehntem Bediener-Token (`isPosOperatorRejection`) weiter. */
@@ -118,7 +113,7 @@ export class ServiceHelper {
       .filter(Boolean)
       .join('\n')
 
-    this.notificationService.show('error', notificationMessage, 7000, `Fehler HTTP-Code ${code}`)
+    this.notificationService.error(notificationMessage, { title: `Fehler HTTP-Code ${code}` })
 
     if (code === 401) {
       sessionStorage.clear()
@@ -126,11 +121,5 @@ export class ServiceHelper {
     }
 
     console.error(`Service "${serviceName}" hat einen Fehler:`, error)
-  }
-
-  showSnackbar(message: string): void {
-    this.matSnackBar.open(message, ServiceHelper.SNACKBAR_ACTION, {
-      duration: ServiceHelper.SNACKBAR_DURATION,
-    })
   }
 }

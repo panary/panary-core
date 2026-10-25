@@ -86,11 +86,7 @@
   <!-- Content -->
   <lib-pos-split class="flex-1" listMaxWidth="51.25rem" [detailOpen]="selectedOrder() !== null">
     <!-- Order List -->
-    <div
-      posSplitList
-      class="flex-1 bg-surface-input rounded-2xl border border-line-soft overflow-hidden flex flex-col"
-    >
-
+    <div posSplitList class="flex-1 bg-surface-input rounded-2xl border border-line-soft overflow-hidden flex flex-col">
       @if (loading()) {
         <div class="flex-1 flex justify-center items-center flex-col gap-4">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-ink"></div>

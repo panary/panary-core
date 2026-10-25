@@ -4,7 +4,7 @@ title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
 description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-23T04:40:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T14:20:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -90,7 +90,7 @@ Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-s
 | --- | --- |
 | Zonen | Grid aus Gruppenleiste, Warenkorb, Raster, Primärtaste, Ziffernleiste; `data-hand` aus `posHandedness` spiegelt Warenkorb ↔ Raster und Primärtaste ↔ Ziffernleiste, ohne Wahl links ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-spiegelung.md)) |
 | Warenkorb | fest 25rem |
-| Gruppenleiste | eine Zeile, Gruppen in Inhaltsbreite (4,5–13rem, Name einzeilig gekürzt) mit Farbpunkt; der Rest hinter dem Burger am Zeilenende. `group-bar.ts` teilt nach den Breiten einer unsichtbaren Messzeile auf; Abstand (`gap-2`) und Burger-Breite (`w-12`) stehen dort mit, beide zusammen ändern ([core#908](https://github.com/panary/panary-core/issues/908)) |
+| Gruppenleiste | eine Zeile, Gruppen gleich breit (`--pnry-group-chip` an `.kasse`, 5,5rem), lange Namen brechen in zwei Zeilen um, mit Silbentrennung (`lang="de"`, nur hier — Kacheln trennen nicht); Farbpunkt vor dem Namen im Textfluss; der Rest hinter dem Burger am Zeilenende ([core#1019](https://github.com/panary/panary-core/issues/1019), vorher Inhaltsbreite 4,5–13rem einzeilig gekürzt). `group-bar.ts` teilt nach den Breiten einer unsichtbaren Messzeile auf; Abstand (`gap-2`) und Burger-Breite (`w-12`) stehen dort mit, beide zusammen ändern ([core#908](https://github.com/panary/panary-core/issues/908)) |
 | Produkt-/Funktionskacheln | Mindestbreite 12,5rem (`--pnry-tile-min` an `.kasse`), 6,5rem hoch, Namen bis drei Zeilen, ohne Silbentrennung; der Treffer der Ziffernleiste trägt ein Mint-Abzeichen |
 | Panel-Kopf | Umschalter „1 Stück · alle n" neben dem Titel, Zusammenfassung einzeilig |
 | Extras im Panel | je Gruppe ein Raster gleich breiter Spalten (`repeat(auto-fill, minmax(16rem, 1fr))`), Überschrift über die volle Breite, senkrecht scrollbar ([core#909](https://github.com/panary/panary-core/issues/909); vorher Spalten-Liste mit `column-fill: auto`) |

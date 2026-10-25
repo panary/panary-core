@@ -15,7 +15,8 @@
         (click)="picked.emit(user)"
       >
         <span
-          class="size-10 rounded-full flex items-center justify-center bg-brand-navy text-white text-sm font-bold"
+          class="size-10 rounded-full flex items-center justify-center text-sm font-bold"
+          [style]="monogram(user._id)"
           >{{ user.initials }}</span
         >
         <span class="w-full truncate text-center">{{ shortName(user) }}</span>

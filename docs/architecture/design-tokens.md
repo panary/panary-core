@@ -45,6 +45,7 @@ Dunkel gilt bei `<html data-theme="dark">` oder bei System-Dunkel ohne `data-the
 | Akzent | `--accent`, `--accent-dark`, `--accent-ink`, `--accent-soft`, `--accent-border` | cloud; `--accent-ink` #157a4e hell / #2dd4a4 dunkel für Text |
 | Status | `--danger`, `--danger-ink\|soft\|line`, `--warn-*`, `--info-*` | Konzept |
 | Kasse | `--pos-key`, `--pos-key-line` | Konzept |
+| Monogramm | `--mono-1…8`, `--mono-ink` | Personenfarbe (core#963): `monogramStyle(userId)` aus `@panary/users/domain` wählt den Platz deterministisch aus der ID (FNV-1a); Mitarbeiterwahl, PIN-Schritt, Rail-Avatar und Avatar-Menü nutzen dieselbe Funktion. Initialen `--mono-ink` auf jedem Platz ≥ 4,5:1, hell und dunkel (Spec) |
 | Admin-Shell | `--shell-bg\|nav\|ink\|muted\|hover\|active\|active-ink`, `--auth-dot` | cloud `--color-frame-bg` / `.l-shell-nav`, Konzept 2.8; dunkel in beiden Themes, Navigation = Rahmenfarbe; `--auth-dot` + Utility `auth-dots` = Punktraster der Anmeldeseiten (cloud `auth-shell`) |
 | Schrift | `--font-family-sans\|mono`, `--font-size-xs…2xl` (rem) | cloud, in rem damit sie mit der Wurzelschrift (Dichte) skalieren |
 | Form | `--r-control` 0,5rem, `--r-card` 0,75rem, `--r-pill`, `--elevation-card` | Konzept |

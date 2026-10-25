@@ -6,7 +6,7 @@ import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
 import { ConnectionService, OFFLINE_OUTBOX, storePosOperatorToken } from '@panary/shared/data-access'
-import { POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
+import { monogramStyle, POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
 import { StaffPickerComponent, type StaffPickerPerson } from './staff-picker/staff-picker.component'
@@ -27,7 +27,6 @@ interface PosUser {
   employeeNumber?: string
   avatar?: string
   initials: string
-  color: string
   staffRole?: string
 }
 
@@ -188,18 +187,7 @@ export class LoginComponent implements OnInit {
   //#endregion
   //#endregion
 
-  //#region Avatar Colors
-  private readonly avatarColors = [
-    '#00B8D4', // Panary Aqua
-    '#10B981', // Emerald
-    '#8B5CF6', // Purple
-    '#F59E0B', // Amber
-    '#EC4899', // Pink
-    '#06B6D4', // Cyan
-    '#EF4444', // Red
-    '#84CC16', // Lime
-  ]
-  //#endregion
+  protected readonly monogram = monogramStyle
 
   //#region Lifecycle
   ngOnInit(): void {
@@ -400,7 +388,7 @@ export class LoginComponent implements OnInit {
       const users = Array.isArray(result) ? result : (result as { data: unknown[] }).data || []
 
       this.posUsers.set(
-        users.map((user: unknown, index: number) => {
+        users.map((user: unknown) => {
           const u = user as {
             _id: string
             firstName: string
@@ -414,7 +402,6 @@ export class LoginComponent implements OnInit {
           return {
             ...u,
             initials: this.getInitials(u.firstName, u.lastName),
-            color: this.avatarColors[index % this.avatarColors.length],
           }
         }),
       )

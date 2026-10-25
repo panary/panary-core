@@ -68,7 +68,8 @@
   }}</span>
   <button
     type="button"
-    class="relative mt-1 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-[0.9375rem] font-bold text-surface-panel disabled:opacity-40"
+    class="relative mt-1 grid h-11 w-11 shrink-0 place-items-center rounded-full text-[0.9375rem] font-bold disabled:opacity-40"
+    [style]="monogram(staff.userId())"
     [disabled]="nav.locked()"
     [attr.aria-label]="(staff.isOffline() ? 'POS_NAV.ACCOUNT_OFFLINE' : 'POS_NAV.ACCOUNT_ONLINE') | translate"
     [cdkMenuTriggerFor]="accountMenu"

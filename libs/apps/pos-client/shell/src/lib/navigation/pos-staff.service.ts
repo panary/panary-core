@@ -59,6 +59,12 @@ export class PosStaffService {
     return this.#translate.instant('DASHBOARD.EMPLOYEE')
   })
 
+  /** ID der angemeldeten Person — Grundlage der Monogramm-Farbe (core#963). */
+  readonly userId = computed(() => {
+    posOperatorSession()
+    return this.currentUser()?._id ?? storedPosUser()?._id
+  })
+
   readonly initials = computed(() =>
     this.displayName()
       .split(/\s+/)

@@ -5,6 +5,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent, PanaryLogoComponent } from '@panary/shared/ui-common'
 import type { ScreenSide } from '../navigation/pos-navigation'
 import { PosNavigationService } from '../navigation/pos-navigation.service'
+import { monogramStyle } from '@panary/users/domain'
 import { PosStaffService } from '../navigation/pos-staff.service'
 import { PosAccountPanel } from './pos-account-panel'
 import { PosTimeClock } from './pos-time-clock'
@@ -36,6 +37,7 @@ import { PosTimeClock } from './pos-time-clock'
 export class PosRail {
   protected readonly nav = inject(PosNavigationService)
   protected readonly staff = inject(PosStaffService)
+  protected readonly monogram = monogramStyle
 
   /** Menüs öffnen neben dem Eintrag zur Mitte hin, oben bündig; reicht der Platz nicht, unten bündig. */
   protected readonly menuPositions = computed(() => besides(8, this.staff.railSide()))

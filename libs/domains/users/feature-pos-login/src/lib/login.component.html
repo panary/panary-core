@@ -190,8 +190,8 @@
                     (click)="selectUser(user)"
                   >
                     <div
-                      class="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-white font-bold shadow-md"
-                      [style.background-color]="user.color"
+                      class="w-11 h-11 shrink-0 rounded-full flex items-center justify-center font-bold shadow-md"
+                      [style]="monogram(user._id)"
                     >
                       {{ user.initials }}
                     </div>
@@ -236,8 +236,8 @@
               }
 
               <div
-                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md"
-                [style.background-color]="selectedUser()!.color"
+                class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-md"
+                [style]="monogram(selectedUser()!._id)"
               >
                 {{ selectedUser()!.initials }}
               </div>
@@ -249,16 +249,6 @@
                 <p class="text-xs text-ink-muted">{{ 'LOGIN.ENTER_PIN' | translate }}</p>
               </div>
             </div>
-
-            @if (!isSingleUserDevice()) {
-              <button
-                type="button"
-                class="pnry-touch mx-auto mb-4 flex items-center rounded-xl px-5 text-sm font-semibold text-accent-ink hover:bg-line-soft transition-colors"
-                (click)="backToUsers()"
-              >
-                {{ 'LOGIN.OTHER_PERSON' | translate }}
-              </button>
-            }
 
             @if (pinError()) {
               <p class="text-center text-red-500 text-sm mb-4 animate-[shake_0.3s_ease-out]">

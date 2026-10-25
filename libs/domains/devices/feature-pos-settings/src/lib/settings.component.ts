@@ -6,7 +6,13 @@ import { ThemeServiceService, UiScaleService } from '@panary/shared/data-access-
 import { UiDensity, type UiDensityLevel } from '@panary/devices/domain'
 import { POS_PIN_LENGTH } from '@panary/users/domain'
 import { LocationService } from '@panary/locations/data-access'
-import { ConnectionService, LanguageService, OFFLINE_OUTBOX, OFFLINE_REPLAY } from '@panary/shared/data-access'
+import {
+  ConnectionService,
+  LanguageService,
+  OFFLINE_OUTBOX,
+  OFFLINE_REPLAY,
+  ReturnAfterOrderService,
+} from '@panary/shared/data-access'
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { LogService } from '@panary/shared/data-access-updater'
@@ -80,6 +86,7 @@ export class SettingsComponent implements OnInit {
   protected readonly deviceAssignment = inject(DeviceAssignmentService)
   uiScaleService = inject(UiScaleService)
   languageService = inject(LanguageService)
+  protected readonly returnAfterOrder = inject(ReturnAfterOrderService)
   locationService = inject(LocationService)
   connectionService = inject(ConnectionService)
   deviceConfigService = inject(DeviceConfigService)

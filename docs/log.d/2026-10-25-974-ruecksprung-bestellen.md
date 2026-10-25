@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#974): [Kasse als Route](../domains/pos-kasse-route.md) — nach dem Abschicken einer Bestellung oder Vorbestellung geht es zur Ausgangsseite zurück (Hinweis mit „Neue Bestellung"); abschaltbar in Einstellungen › Allgemein, gerätelokal, Standard an. Verwerfen führt weiter zur Übersicht.

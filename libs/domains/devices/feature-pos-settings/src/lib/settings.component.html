@@ -351,6 +351,26 @@
           </h2>
 
           <div class="flex flex-col gap-6">
+            <!-- Rücksprung nach dem Bestellen (core#974, je Gerät gespeichert) -->
+            <div class="bg-surface-elevated rounded-2xl border border-line p-6">
+              <label class="flex items-center justify-between gap-4 cursor-pointer">
+                <span>
+                  <span class="block font-bold text-ink">{{ 'SETTINGS.RETURN_AFTER_ORDER' | translate }}</span>
+                  <span class="block text-sm text-ink-muted mt-1">{{
+                    'SETTINGS.RETURN_AFTER_ORDER_DESC' | translate
+                  }}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  data-testid="return-after-order"
+                  class="h-6 w-6 shrink-0 accent-[var(--primary)]"
+                  [checked]="returnAfterOrder.enabled()"
+                  (change)="returnAfterOrder.set($any($event.target).checked)"
+                />
+              </label>
+            </div>
+
             <!-- Location Query -->
             <div class="bg-surface-elevated rounded-2xl border border-line p-6">
               <h3 class="font-bold text-ink mb-4 flex items-center gap-2">

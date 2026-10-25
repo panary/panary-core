@@ -3,11 +3,15 @@ type: Architecture
 title: 'POS-Snackbar — Rangfolge quittierpflichtiger Meldungen'
 description: 'PosSnackBar ersetzt MatSnackBar im POS-Client app-weit: Eine Meldung ohne duration mit Aktion bleibt bis zum Tipp auf ihre Aktion und kehrt zurück, wenn eine Kurzmeldung oder dismiss() sie verdrängt.'
 tags: [pos, ui, snackbar, notifications]
-status: stable
+status: deprecated
 generated: { by: claude-code/opus-5.5, at: 2026-10-03T23:30:00Z }
 ---
 
 # POS-Snackbar — Rangfolge quittierpflichtiger Meldungen
+
+> **Abgelöst** seit [#1026](https://github.com/panary/panary-core/issues/1026): Der POS benutzt keine
+> `MatSnackBar` mehr, `PosSnackBar` ist entfernt. Nachfolger: [POS-Meldungen](pos-meldungen.md),
+> Entscheidung in [ADR 0061](../adr/0061-pos-meldungen-statt-material-snackbar.md).
 
 `MatSnackBar` zeigt immer nur **eine** Meldung. Jede neue verdrängt die laufende, und
 `MatSnackBar.dismiss()` schließt, was gerade offen ist, ganz gleich, wer es geöffnet hat.

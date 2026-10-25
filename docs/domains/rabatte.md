@@ -380,6 +380,9 @@ Weitere Regeln:
   Seit #531 schließt das Undo-Aufräumen nur sein eigenes Angebot, und die
   [POS-Snackbar-Rangfolge](../architecture/pos-snackbar-rangfolge.md) holt eine
   quittierpflichtige Meldung zurück, sobald eine Kurzmeldung abgelaufen ist.
+  Seit #1026 ist die Meldung eine quittierpflichtige `error`-Meldung (`sticky: true`) der
+  [POS-Meldungen](../architecture/pos-meldungen.md): Sie bleibt im Stapel stehen, bis das ×
+  getippt wird, Kurzmeldungen erscheinen darüber.
 - Der Snapshot trägt `method: 'code'`, `code`, `discountCodeId` und `discountId`;
   `computedAmountCents` füllt wie überall die kanonische Engine.
 - **Die Einlösung kennt ihre Bestellung.** Der POS vergibt die Order-`_id` (uuidv7)

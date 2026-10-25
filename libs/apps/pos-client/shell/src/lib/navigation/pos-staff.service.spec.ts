@@ -229,6 +229,12 @@ describe('PosStaffService (core#832)', () => {
     expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_PENDING'])
   })
 
+  it('Warenkorb-Seite nur lokal (kein Token, Edge ohne Methode): Hinweis statt Fehler (core#964)', async () => {
+    const { service, snackBar } = setup({ choose: () => Promise.resolve('local') })
+    await service.toggleCartSide()
+    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_LOCAL'])
+  })
+
   it('Warenkorb-Seite abgelehnt: Fehlermeldung statt stiller Rücknahme', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const { service, snackBar } = setup({ choose: () => Promise.reject(new Error('401')) })

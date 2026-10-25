@@ -23,6 +23,7 @@
     "OFFLINE": "Offline",
     "CART_SIDE_PENDING": "Saved offline — will be sent when connected.",
     "CART_SIDE_FAILED": "Cart side could not be saved.",
+    "CART_SIDE_LOCAL": "Applies to this device only — the edge did not save the choice. Please sign in again with your PIN.",
     "OPERATOR_PIN_REQUIRED": "Your till sign-in has expired. Please sign in again with your PIN and repeat the action.",
     "CLOCK_STATE_OUT": "Clocked out — tap to clock in",
     "CLOCK_STATE_IN": "Clocked in — tap for break or clock out",

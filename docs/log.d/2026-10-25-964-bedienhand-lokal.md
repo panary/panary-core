@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#964): [Bedienhand am POS](../domains/pos-bedienhand.md) — Umschalten wirkt auch ohne Bediener-Token oder an einer Edge ohne `setPosHandedness` sofort und bleibt gerätelokal erhalten (Hinweis statt stillem Abbruch).

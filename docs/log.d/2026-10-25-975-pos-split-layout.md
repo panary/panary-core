@@ -1,0 +1,1 @@
+* **Neu** (panary/panary-core#975): [POS-Split-Layout](../domains/pos-split-layout.md) — `lib-pos-split`, Vorbestellungen als Kartenraster nach Abholtag, Historie bis 820 px ohne Lila, Leerzustände mit Zeitraum und Aktion.

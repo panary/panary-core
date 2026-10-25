@@ -107,7 +107,12 @@ export class WorkingTimeHistoryComponent {
     // der Abruf selbst läuft untracked, sonst hängt er an den Monats-Signalen.
     const userId = computed(() => this.currentUser()?._id)
     effect(() => {
-      if (userId()) untracked(() => void this.fetchData())
+      const id = userId()
+      untracked(() => {
+        if (id) void this.fetchData()
+        // Die Benutzerliste gehört dem POS nicht von selbst: ohne sie bleibt `currentUser()` leer.
+        else if (this.#userService.users().length === 0) void this.#userService.find({})
+      })
     })
   }
 

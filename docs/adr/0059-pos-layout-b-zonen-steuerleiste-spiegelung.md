@@ -49,10 +49,10 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
    (Warenkorb ↔ Raster, Primärtaste ↔ Ziffernleiste), nie Inhalte: Die Ziffern laufen 0–9 von links
    nach rechts, − steht vor +. Fehlt das Feld, gilt links, also die Position wie bisher. Keine
    `dir="rtl"`-Tricks.
-6. **Spalte 2 entfällt.** Rabatt und Positionsrabatt sind Tasten unter der Summe. Personalessen,
-   Firmenkunde, Rabattcode, Preise ein/aus und „Weitere Aktionen" liegen unter „Optionen". Die
-   Kombination ist eine Mint-Funktionstaste über dem Raster, solange keine Ansicht eigene Tasten setzt
-   (core#908; unter „Optionen" kostete sie zwei Tipps). Der Kanal Kasse/Telefon ist ein Schalter im
+6. **Spalte 2 entfällt.** Die Leiste unter der Summe heißt Rabatt · Kombination · Optionen
+   (core#965). Kombination ist eine Mint-Taste dort (unter „Optionen" kostete sie zwei Tipps); Positionsrabatt
+   (nur mit markierter Zeile), Personalessen, Firmenkunde, Rabattcode, Preise ein/aus und „Weitere Aktionen"
+   liegen unter „Optionen". Der Hauptbereich zeigt initial keine Funktionstasten, nur Abläufe setzen welche. Der Kanal Kasse/Telefon ist ein Schalter im
    Warenkorbkopf, sein Zustand ist ohne Antippen ablesbar.
 7. **Farbcode der Funktionstasten:** `confirm` ist Mint (`accent-*`) statt Teal, die Primärtaste Mint
    mit Navy-Schrift (`bg-action`/`text-on-action`). Amber bleibt „überspringt", Rot „verwirft"
@@ -76,8 +76,8 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
   (`increaseSelectedQuantity`, `decreaseSelectedQuantity`, `deleteSelection`). Multiplier und
   `product.ui.index` bleiben wie gehabt (Konzept §5), neu ist nur, dass die Kachel des Treffers ein
   Mint-Abzeichen trägt.
-- Die Kombinations-Funktionstasten über dem Raster (#795) waren mit core#829 weg; seit core#908 steht dort
-  wieder der Einstieg „Kombination". Das Raster bleibt bei markierter Kombination stehen, ein Kacheltap legt
+- Die Kombinations-Funktionstasten über dem Raster (#795) waren mit core#829 weg; seit core#965 steht der
+  Einstieg „Kombination" in der Warenkorb-Leiste (core#908 hatte ihn kurz als Kachel über dem Raster). Das Raster bleibt bei markierter Kombination stehen, ein Kacheltap legt
   dort weiter ab ([#271](https://github.com/panary/panary-core/issues/271)).
 - Die Primärtaste heißt in beiden Betriebsarten „Bestellen", bis die Bezahlansicht
   ([core#830](https://github.com/panary/panary-core/issues/830)) wirklich kassiert.

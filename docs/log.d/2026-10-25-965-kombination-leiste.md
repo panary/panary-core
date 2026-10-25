@@ -1,0 +1,2 @@
+* **Update** (panary/panary-core#965): [POS-Kasse — Bedienung](../domains/pos-bestelldialog-bedienung.md) — Die Warenkorb-Leiste heißt Rabatt · Kombination · Optionen; Positionsrabatt wandert unter „Optionen", der Hauptbereich zeigt keine Funktionstasten mehr (ADR 0059 Punkt 6 nachgezogen).
+* **Update** (panary/panary-core#965): Mutationsprobe: Kombinations-Taste ohne `setCombiSubButtons()` → 1 rot, `[disabled]` am Positionsrabatt entfernt → 1 rot, `boardFunctionButtons` mit Standardtaste → 3 rot; Kontrolllauf 369/369 grün, Arbeitsbaum sauber.

@@ -33,7 +33,6 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 import { KasseDraftRegistry } from './kasse-draft-registry'
 import { OrderDialogComponent } from './order-dialog.component'
-import type { PosButton } from './pos-button.model'
 
 /**
  * Charakterisierungs-Specs der Rabatt- und Checkout-Verdrahtung (#231).
@@ -3146,34 +3145,33 @@ describe('Kasse — Hinweis statt Infozeile (core#908)', () => {
   })
 })
 
-// core#908: „Kombination" steht wieder als Funktionstaste auf dem Hauptbildschirm statt unter „Optionen".
-describe('Kasse — Kombination als Funktionstaste (core#908)', () => {
-  it('zeigt ohne eigene Tasten der Ansicht die Kombination in Mint', () => {
+// core#965: Der Hauptbildschirm zeigt keine Funktionstasten; „Kombination" sitzt in der Warenkorb-Leiste.
+describe('Kasse — Hauptbereich ohne Funktionstasten (core#965)', () => {
+  it('zeigt ohne laufenden Ablauf keine Funktionstasten', () => {
     const { component } = setup()
 
     expect(component.functionButtons).toEqual([])
-    expect(component.boardFunctionButtons.map((b: PosButton) => [b.name, b.variant])).toEqual([
-      ['Kombination', 'confirm'],
-    ])
+    expect(component.boardFunctionButtons).toEqual([])
   })
 
-  it('öffnet über die Taste die Kombinationsansicht, deren Tasten dann allein stehen', () => {
+  it('öffnet setCombiSubButtons die Kombinationsansicht, deren Tasten dann allein stehen', () => {
     const { component } = setup()
     component.increaseLineItem(product('p-1'))
     component.increaseLineItem(product('p-2'))
 
-    component.boardFunctionButtons[0].callback?.()
+    component.setCombiSubButtons()
 
     expect(component.functionBlockLabel).toBe('Kombination')
     expect(component.boardFunctionButtons).toBe(component.functionButtons)
-    expect(component.boardFunctionButtons.map((b: PosButton) => b._id)).not.toContain('main-combination')
+    expect(component.boardFunctionButtons.length).toBeGreaterThan(0)
   })
 
-  it('meldet über die Taste, wenn für eine Kombination Artikel fehlen', () => {
+  it('meldet über setCombiSubButtons, wenn für eine Kombination Artikel fehlen', () => {
     const { component } = setup()
 
-    component.boardFunctionButtons[0].callback?.()
+    component.setCombiSubButtons()
 
     expect(component.notice()).toEqual({ text: 'Für die Kombination werden min. 2 Artikel benötigt.', tone: 'danger' })
+    expect(component.boardFunctionButtons).toEqual([])
   })
 })

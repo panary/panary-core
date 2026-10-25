@@ -4,7 +4,7 @@ title: POS-Anpassen-Panel — Zutaten abwählen, Extras hinzufügen
 description: 'Beim Antippen eines Produkts mit ui.showOptionsAuto (oder über „Anpassen“ an jeder Warenkorb-Position) zeigt der Bestelldialog ein Sheet über Raster und Ziffernleiste mit abwählbaren Zutaten, Extras je Optionsgruppe und „Alle Modifier“; ohne beides mit Leerzustand. Das alte Extras-Raster ist seit core#1085 entfallen.'
 tags: [orders, pos, products]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T22:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T22:20:00Z }
 ---
 
 # POS-Anpassen-Panel
@@ -33,8 +33,8 @@ Spalten (`auto-fill`, 16rem), die Überschrift über die volle Breite; gescrollt
 - **Sichtbar bleiben** Gruppenleiste und Warenkorb, beide ungedimmt. Die angepasste Zeile trägt im
   Warenkorb den Hinweis „wird angepasst" und pulsiert zweimal je 600 ms.
 - **Gesperrt** sind, solange das Sheet offen ist: Primärtaste, Ziffernleiste samt Feld und Popup, die
-  Gruppenleiste samt Burger-Menü (`sheetOpen()`). Der Warenkorb bleibt bedienbar — das Panel
-  folgt der Auswahl (`#followSelectionInPanel`).
+  Gruppenleiste samt Burger-Menü (`sheetOpen()`). Der Warenkorb bleibt bedienbar: Ein Tipp auf eine
+  Zeile beendet die Anpassung (siehe unten, core#1086).
 - **Schließen** nur über „Fertig" oder „Abbrechen". Ein Tipp auf den Scrim tut nichts, damit eine
   Anpassung nicht versehentlich verworfen wird. Auch jeder Ansichtswechsel schließt das Sheet
   (`clearButtons`).
@@ -135,8 +135,15 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
   Die Zeile selbst bleibt: Abbrechen verwirft die Anpassung, nicht das Produkt.
 - Jeder andere Ansichtswechsel (Produktgruppe, Auswahl aufheben) schließt das Panel und **behält**
   die Änderungen.
-- **Wechselt die Auswahl** bei offenem Panel (Kombinations-Position, Pfeiltasten), zieht das Panel
-  zur neuen Zeile mit, seit core#1085 auch auf eine ohne Extras (Leerzustand). Plus und
+- **Tipp auf eine Warenkorb-Zeile** bei offenem Sheet (freie Zeile, Position oder Kopf einer Kombination)
+  beendet die Anpassung wie „Fertig": Die Änderungen bleiben, gleiche Zeilen werden zusammengeführt, das
+  Sheet schließt, und die getippte Zeile ist markiert, auch wenn das Zusammenführen ihren Index verschoben
+  hat (`#selectFromCart`, [core#1086](https://github.com/panary/panary-core/issues/1086)). Der Tipp auf die
+  angepasste Zeile selbst schließt das Sheet und hebt die Markierung auf. Bis core#1086 zog das Sheet zur
+  neuen Zeile mit; auf der Sunmi war dann nicht zu erkennen, welches Produkt man gerade bearbeitete.
+  Eine offene Pflichtgruppe hält den Tipp nicht auf, wie bei jedem anderen Ansichtswechsel.
+- **Pfeiltasten** ziehen das Sheet weiter zur neuen Zeile mit (`#followSelectionInPanel`), seit core#1085
+  auch auf eine ohne Extras (Leerzustand). Plus und
   Minus buchen ohnehin auf die Zeile des Panels, nie auf die gerade markierte.
 - **Änderungen von außen** kommen im Panel an: Menge per Steuerleiste oder Undo zieht „gilt für n×"
   nach, und das Löschen der Zeile schließt das Panel.

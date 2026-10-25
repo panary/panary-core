@@ -3628,6 +3628,81 @@ describe('OrderDialog — Zeilen-Tipp bei offenem Anpassen (#1086)', () => {
     expect(component.selectedProductIndex).toBe(1)
   })
 
+  it('Tipp auf eine Position oder den Kopf einer Kombination schließt das Sheet und markiert sie', () => {
+    const { component } = setup({ catalog: [schnitzel(), pizza(), cheese(), product('cola')] })
+    component.increaseLineItem(schnitzel())
+    component.increaseLineItem(product('cola'))
+    component.combineAllArticles()
+    component.unselectProduct()
+    component.increaseLineItem(pizza())
+    component.unselectProduct()
+    component.selectProduct(component.lineItems.findIndex((l: { name: string }) => l.name === 'Pizza'))
+    expect(component.customizeModel()?.name).toBe('Pizza')
+
+    component.selectCombinationByIndex(0, 1)
+    expect(component.customizeModel()).toBeNull()
+    expect(component.selectedCombinationIndex).toEqual([0, 1])
+
+    component.customizeSelection()
+    expect(component.customizeModel()?.name).toBe('Artikel cola')
+    component.toggleCombinationSelection(0)
+    expect(component.customizeModel()).toBeNull()
+    expect(component.selectedCombinationIndex).toEqual([0, null])
+    expect(component.infoBoxText).toBe('Kombination 1 ausgewählt')
+  })
+
+  it('„1 Stück": Tipp auf die Restzeile führt das unveränderte Stück zurück und markiert die Restzeile', () => {
+    const { component } = setup({ catalog: [pizza(), cheese(), schnitzel()] })
+    component.increaseLineItem(pizza())
+    component.increaseLineItem(pizza())
+    component.increaseLineItem(schnitzel())
+    component.selectProduct(0) // „1 Stück", das erste Plus spaltet ab
+    component.onCustomizeOptionIncreased({ groupId: 'g-pizza', groupName: 'Belag', productId: 'cheese' })
+    expect(component.lineItems.map((l: { amount: number }) => l.amount)).toEqual([1, 1, 1])
+
+    component.toggleProductSelection(0)
+
+    expect(component.customizeModel()).toBeNull()
+    // Das Stück mit Käse bleibt eigene Zeile, die Markierung steht auf der getippten Restzeile.
+    expect(
+      component.lineItems.map((l: { name: string; modifiers: Array<{ name: string }> }) => [
+        l.name,
+        l.modifiers.map(m => m.name),
+      ]),
+    ).toEqual([
+      ['Pizza', []],
+      ['Pizza', ['Käse']],
+      ['Schnitzel', []],
+    ])
+    expect(component.selectedProductIndex).toBe(0)
+  })
+
+  it('eine offene Pflichtgruppe hält den Tipp nicht auf — wie jeder Ansichtswechsel', () => {
+    const pflicht = product('pflicht', {
+      name: 'Pflicht',
+      optionGroups: [
+        {
+          id: 'g-p',
+          name: 'Sauce',
+          minSelections: 1,
+          maxSelections: 1,
+          freeQuantity: 0,
+          options: [{ productId: 'cheese' }],
+        },
+      ],
+    } as never)
+    const { component } = setup({ catalog: [pflicht, cheese(), schnitzel()] })
+    component.increaseLineItem(schnitzel())
+    component.increaseLineItem(pflicht)
+    component.selectProduct(1)
+    expect(component.customizeModel()?.canFinish).toBe(false)
+
+    component.toggleProductSelection(0)
+
+    expect(component.customizeModel()).toBeNull()
+    expect(component.selectedProductIndex).toBe(0)
+  })
+
   it('der Tipp auf die angepasste Zeile selbst schließt das Sheet und hebt die Markierung auf', () => {
     const { component } = setup({ catalog: [schnitzel(), pizza(), cheese()] })
     component.increaseLineItem(schnitzel())

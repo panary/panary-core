@@ -882,7 +882,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       productIndex: null,
       combinationIndex: wholeSelected ? [null, null] : [combinationIndex, null],
     })
-    if (!wholeSelected) this.setInfoBoxText(`Kombination ${combinationIndex + 1} ausgewählt`)
+    // Nach dem Index, den die Markierung jetzt trägt — das Schließen eines Sheets kann ihn verschoben haben.
+    const selected = this._selectedCombinationIndex[0]
+    if (!wholeSelected && selected !== null) this.setInfoBoxText(`Kombination ${selected + 1} ausgewählt`)
   }
 
   /** Stückzahl im Warenkorb für „Gesamt · n Artikel" — Zeilen samt Positionen in Kombinationen. */
@@ -957,13 +959,22 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._selectedCombinationIndex = [selection.combinationIndex[0], selection.combinationIndex[1]]
     // Die Markierung hängt an der Zeile, nicht am Index: Das Zusammenführen kann Zeilen davor entfernen.
     const target = this.getCurrentSelectedLineItem()
-    const wholeCombination = this.isWholeCombinationSelected() ? selection.combinationIndex[0] : null
+    // Eine ganze Kombination merkt sich über ihre Zeilen: Das Zusammenführen kann Kombinationen davor
+    // auflösen (`#resolveSingletonBundles`), dann zeigte der alte Index daneben. Was in ihr zusammenfällt,
+    // geht in einer ihrer eigenen Zeilen auf — die Kombination nennt den Schlüssel der Zeile (`bundleNumber`).
+    const combinationLines = this.isWholeCombinationSelected()
+      ? [...(this.combinations[selection.combinationIndex[0] ?? -1] ?? [])]
+      : []
     this.#freshLine = null
     const follow = this.#mergeLines(target)
     this.#closeCustomize()
     // `#closeCustomize` stellt das Raster der Gruppe wieder her und hebt dabei die Auswahl auf.
-    if (follow) this.#selectLine(follow)
-    else if (wholeCombination !== null) this._selectedCombinationIndex = [wholeCombination, null]
+    if (follow) {
+      this.#selectLine(follow)
+    } else if (combinationLines.length > 0) {
+      const combination = this.combinations.findIndex(bundle => bundle.some(line => combinationLines.includes(line)))
+      if (combination !== -1) this._selectedCombinationIndex = [combination, null]
+    }
   }
 
   private applyBoardSelection(selection: BoardSelection): void {

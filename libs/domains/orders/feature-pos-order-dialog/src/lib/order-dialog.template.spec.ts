@@ -442,3 +442,22 @@ describe('Bezahlansicht-Template — Karte und Gutschein (core#831)', () => {
     expect(view).toContain('[disabled]="busy() || !canCollect()"')
   })
 })
+
+// core#1021: Die Steuerleiste einer unteren Zeile lag halb unter dem Listenrand. Gerendert wird hier nichts (Node),
+// deshalb prüft die Spec die Verdrahtung an der Quelle; was der Helfer tut, prüft cart-scroll.spec.ts.
+describe('Kasse — markierte Zeile in den Sichtbereich (core#1021)', () => {
+  const component = readFileSync(fileURLToPath(new URL('./order-dialog.component.ts', import.meta.url)), 'utf8')
+  const leiste = template.slice(template.indexOf('<ng-template #steuerleiste>'))
+
+  it('markiert die eine Steuerleiste, die alle Zeilenarten teilen', () => {
+    expect(template.match(/#selectionToolbar\b/g)).toHaveLength(1)
+    expect(leiste.slice(0, leiste.indexOf('role="toolbar"'))).toContain('#selectionToolbar')
+    expect(template.match(/\[ngTemplateOutlet\]="steuerleiste"/g)).toHaveLength(3)
+  })
+
+  it('scrollt nach jedem neuen Rendern der Leiste, mit ihrem Außenabstand', () => {
+    expect(component).toContain("viewChild<ElementRef<HTMLElement>>('selectionToolbar')")
+    expect(component).toContain('effect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))')
+    expect(leiste.slice(0, leiste.indexOf('role="toolbar"'))).toContain('scroll-mb-2')
+  })
+})

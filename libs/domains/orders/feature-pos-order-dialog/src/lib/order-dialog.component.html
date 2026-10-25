@@ -882,8 +882,11 @@
   <!-- Steuerleiste der markierten Zeile, Position oder Kombination (core#829, ADR 0034 P1–P4): eine eigene
        Fläche unter der Zeile, je Taste 3,5rem. Minus bei Menge 1 aus (P3), Menge und Löschen mit Rückgängig (P4). -->
   <ng-template #steuerleiste>
+    <!-- #selectionToolbar: Die Kasse scrollt die Leiste nach dem Antippen in den Sichtbereich (core#1021); scroll-mb-2
+         nimmt den Außenabstand mit, sonst klebt sie am Rand der Liste. -->
     <div
-      class="grid grid-cols-5 gap-1.5 mx-1 mt-1 mb-2 p-1.5 rounded-control bg-surface-rail"
+      #selectionToolbar
+      class="grid grid-cols-5 gap-1.5 mx-1 mt-1 mb-2 scroll-mb-2 p-1.5 rounded-control bg-surface-rail"
       role="toolbar"
       [attr.aria-label]="'ORDER_DIALOG.ARIA_SELECTION_TOOLBAR' | translate"
     >

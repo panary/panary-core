@@ -838,13 +838,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Tipp auf eine Warenkorbzeile: wählt sie aus, der zweite Tipp hebt die Auswahl auf (core#829).
    * Darunter klappt die Steuerleiste auf; das Anpassen öffnet erst deren Taste. Bis dahin öffnete
    * der Tipp das Panel sofort und nahm das Raster weg, auch wenn nur die Menge zu ändern war.
-   * Ist das Panel schon offen, zieht es mit der Auswahl mit (`#followSelectionInPanel`).
+   * Ist das Sheet offen, schließt der Tipp es (`#selectFromCart`, core#1086).
    */
   toggleProductSelection(index: number) {
     if (this._isBlocked) return
 
     this.#freshLine = null
-    this.applyBoardSelection({
+    this.#selectFromCart({
       productIndex: this._selectedProductIndex === index ? null : index,
       combinationIndex: [null, null],
     })
@@ -864,7 +864,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this._isBlocked) return
 
     // Wie eine freie Zeile: Der Tipp wählt nur aus, angepasst wird über die Steuerleiste (core#829).
-    this.applyBoardSelection(toggleCombinationSelection(this.boardSelection(), combinationIndex, articleIndex))
+    this.#selectFromCart(toggleCombinationSelection(this.boardSelection(), combinationIndex, articleIndex))
   }
 
   /**
@@ -878,11 +878,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const wholeSelected =
       this._selectedCombinationIndex[0] === combinationIndex && this._selectedCombinationIndex[1] === null
-    this.applyBoardSelection({
+    this.#selectFromCart({
       productIndex: null,
       combinationIndex: wholeSelected ? [null, null] : [combinationIndex, null],
     })
-    if (!wholeSelected) this.setInfoBoxText(`Kombination ${combinationIndex + 1} ausgewählt`)
+    // Nach dem Index, den die Markierung jetzt trägt — das Schließen eines Sheets kann ihn verschoben haben.
+    const selected = this._selectedCombinationIndex[0]
+    if (!wholeSelected && selected !== null) this.setInfoBoxText(`Kombination ${selected + 1} ausgewählt`)
   }
 
   /** Stückzahl im Warenkorb für „Gesamt · n Artikel" — Zeilen samt Positionen in Kombinationen. */
@@ -938,6 +940,40 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return {
       productIndex: this._selectedProductIndex,
       combinationIndex: [this._selectedCombinationIndex[0], this._selectedCombinationIndex[1]],
+    }
+  }
+
+  /**
+   * Auswahl per Tipp in den Warenkorb (core#1086). Bei offenem Sheet endet die Anpassung wie mit „Fertig“:
+   * Die Änderungen bleiben, gleiche Zeilen werden zusammengeführt, das Sheet schließt, und die getippte
+   * Zeile ist markiert. Vorher zog das Sheet zur neuen Zeile mit (oder schloss, wenn sie nichts zum
+   * Anpassen hatte) — auf der Sunmi war dann nicht zu erkennen, welches Produkt man gerade bearbeitete.
+   * Die Pfeiltasten ziehen weiter mit (`#followSelectionInPanel`).
+   */
+  #selectFromCart(selection: BoardSelection): void {
+    if (!this.#customizeLine) {
+      this.applyBoardSelection(selection)
+      return
+    }
+    this._selectedProductIndex = selection.productIndex
+    this._selectedCombinationIndex = [selection.combinationIndex[0], selection.combinationIndex[1]]
+    // Die Markierung hängt an der Zeile, nicht am Index: Das Zusammenführen kann Zeilen davor entfernen.
+    const target = this.getCurrentSelectedLineItem()
+    // Eine ganze Kombination merkt sich über ihre Zeilen: Das Zusammenführen kann Kombinationen davor
+    // auflösen (`#resolveSingletonBundles`), dann zeigte der alte Index daneben. Was in ihr zusammenfällt,
+    // geht in einer ihrer eigenen Zeilen auf — die Kombination nennt den Schlüssel der Zeile (`bundleNumber`).
+    const combinationLines = this.isWholeCombinationSelected()
+      ? [...(this.combinations[selection.combinationIndex[0] ?? -1] ?? [])]
+      : []
+    this.#freshLine = null
+    const follow = this.#mergeLines(target)
+    this.#closeCustomize()
+    // `#closeCustomize` stellt das Raster der Gruppe wieder her und hebt dabei die Auswahl auf.
+    if (follow) {
+      this.#selectLine(follow)
+    } else if (combinationLines.length > 0) {
+      const combination = this.combinations.findIndex(bundle => bundle.some(line => combinationLines.includes(line)))
+      if (combination !== -1) this._selectedCombinationIndex = [combination, null]
     }
   }
 

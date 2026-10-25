@@ -432,6 +432,8 @@
     "CONVERTED_SUCCESS": "Kasaya başarıyla aktarıldı",
     "CONVERT_ERROR": "Aktarma hatası",
     "CANCEL_ORDER": "Siparişi iptal et",
+    "HEAD_CONVERT": "Aktar",
+    "HEAD_CANCEL": "İptal et",
     "CANCEL_MESSAGE": "Bu işlem geri alınamaz. Ön sipariş kalıcı olarak iptal edilecektir.",
     "CANCEL_CONFIRM": "Kalıcı olarak iptal et",
     "CANCELED_SUCCESS": "Ön sipariş iptal edildi",

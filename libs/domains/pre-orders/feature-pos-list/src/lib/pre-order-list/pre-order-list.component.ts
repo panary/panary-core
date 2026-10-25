@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal, WritableSignal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, WritableSignal } from '@angular/core'
 import { formatEur } from '@panary/shared/util-helpers'
 import { Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
@@ -7,13 +7,13 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
 import { ExtendedParams } from '@panary/shared-common'
-import { ConfirmDialogComponent, EurPipe, IconComponent } from '@panary/shared/ui-common'
+import { ConfirmDialogComponent, EurPipe, IconComponent, PosSplitComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({
   selector: 'lib-pre-order-list',
   standalone: true,
-  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule],
+  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule, PosSplitComponent],
   template: `
     <div class="h-full w-full bg-surface-bg p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
       <!-- Header & Filters -->
@@ -73,102 +73,94 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
       </header>
 
       <!-- Content -->
-      <div class="flex-1 flex gap-6 min-h-0">
+      <lib-pos-split class="flex-1" [detailOpen]="selectedOrder() !== null">
         <!-- Order List -->
-        <div
-          class="flex-1 bg-surface-input rounded-2xl shadow-sm border border-line-soft overflow-hidden flex flex-col"
-          [class.hidden]="selectedOrder() !== null"
-          [class.lg:flex]="true"
-        >
+        <div posSplitList class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
           @if (loading()) {
-            <div class="flex-1 flex justify-center items-center flex-col gap-4">
+            <div
+              class="flex-1 bg-surface-input rounded-2xl border border-line-soft flex justify-center items-center flex-col gap-4"
+            >
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-ink"></div>
               <span class="text-ink-faint text-sm">{{ 'PRE_ORDERS.LOADING' | translate }}</span>
             </div>
           } @else if (orders().length === 0) {
-            <div class="flex-1 flex justify-center items-center flex-col gap-4 text-empty-icon">
-              <lib-icon name="calendar-x" class="text-[4rem]" />
-              <span class="font-medium">{{ 'PRE_ORDERS.NONE_FOUND' | translate }}</span>
-            </div>
-          } @else {
-            <div class="overflow-y-auto p-2 space-y-2">
-              @for (order of orders(); track order._id) {
-                <div
-                  class="p-4 rounded-xl border border-line-soft bg-surface-input hover:bg-surface-elevated hover:shadow-md cursor-pointer transition-all group"
-                  [class.ring-2]="selectedOrder()?._id === order._id"
-                  [class.ring-accent-line]="selectedOrder()?._id === order._id"
-                  (click)="toggleOrderSelection(order)"
-                  (keydown.enter)="toggleOrderSelection(order)"
-                  tabindex="0"
-                  role="button"
+            <div
+              class="flex-1 bg-surface-input rounded-2xl border border-line-soft flex justify-center items-center flex-col gap-3 text-ink-muted text-center p-6"
+            >
+              <lib-icon name="calendar-x" class="text-[3rem]" />
+              <span class="font-medium">
+                {{ (searchQuery().trim() ? 'PRE_ORDERS.NONE_FOUND' : 'PRE_ORDERS.NONE_YET') | translate }}
+              </span>
+              @if (!searchQuery().trim()) {
+                <button
+                  (click)="openKasse()"
+                  class="h-10 px-4 rounded-xl bg-action text-on-action font-medium hover:brightness-95 active:scale-95 transition-all"
                 >
-                  <div class="flex justify-between items-start mb-2">
-                    <div class="flex items-center gap-2">
-                      <span class="font-bold text-ink-muted bg-line-soft px-2 py-0.5 rounded text-xs">
-                        {{ order.scheduledFor | date: 'dd.MM' }}
-                      </span>
-                      <span class="text-xs font-bold text-accent-ink">
-                        {{ 'PRE_ORDERS.TIME_OCLOCK' | translate: { time: (order.scheduledFor | date: 'HH:mm') } }}
-                      </span>
-                    </div>
-                    <span class="font-bold text-ink">{{ calculateTotal(order) | eur }}</span>
-                  </div>
-
-                  <div class="font-medium text-ink truncate group-hover:text-accent-ink transition-colors">
-                    {{ order.customerContact.name }}
-                  </div>
-                  <div class="text-xs text-ink-muted flex items-center gap-1 mt-1">
-                    <lib-icon name="phone" class="text-[0.75rem]" />
-                    {{ order.customerContact.phone }}
-                  </div>
-
-                  <div class="flex justify-between items-center mt-3">
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-xs text-ink-muted bg-line-soft px-2 py-0.5 rounded-full">
-                        {{ order.lineItems.length }} {{ 'COMMON.ITEMS' | translate }}
-                      </span>
-                      @if ($any(order).dineLocation === 'dine-in') {
-                        <span
-                          class="text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full"
-                        >
-                          🍽 {{ 'PRE_ORDERS.DINE_IN' | translate }}
-                        </span>
-                      } @else {
-                        <span
-                          class="text-xs font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded-full"
-                        >
-                          🥡 {{ 'PRE_ORDERS.TAKE_OUT' | translate }}
-                        </span>
-                      }
-                    </div>
-
-                    @if (order.status === 'converted') {
-                      <span
-                        class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1"
-                      >
-                        <lib-icon name="check" class="text-[0.75rem]" />
-                        {{ 'COMMON.DONE' | translate }}
-                      </span>
-                    } @else if (order.status === 'cancelled') {
-                      <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
-                        {{ 'COMMON.CANCELED' | translate }}
-                      </span>
-                    } @else {
-                      <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                        {{ 'COMMON.OPEN' | translate }}
-                      </span>
-                    }
-                  </div>
-                </div>
+                  {{ 'PRE_ORDERS.NONE_YET_ACTION' | translate }}
+                </button>
               }
             </div>
+          } @else {
+            @for (group of groups(); track group.key) {
+              <div class="text-xs font-bold uppercase tracking-wider text-ink-muted px-0.5 pt-1">
+                @if (group.kind === 'date') {
+                  {{ group.date | date: 'EEEE, dd.MM.' }}
+                } @else {
+                  {{ 'PRE_ORDERS.GROUP_' + group.kind.toUpperCase() | translate }} · {{ group.date | date: 'EEEE' }}
+                }
+              </div>
+              <div class="grid gap-2.5 grid-cols-[repeat(auto-fill,minmax(20rem,1fr))]">
+                @for (order of group.orders; track order._id) {
+                  <div
+                    class="p-4 rounded-xl border border-line-soft bg-surface-input hover:bg-surface-elevated cursor-pointer transition-all group"
+                    [class.ring-2]="selectedOrder()?._id === order._id"
+                    [class.ring-accent-line]="selectedOrder()?._id === order._id"
+                    (click)="toggleOrderSelection(order)"
+                    (keydown.enter)="toggleOrderSelection(order)"
+                    tabindex="0"
+                    role="button"
+                  >
+                    <div class="flex justify-between items-start gap-2 font-bold text-ink">
+                      <span class="truncate">{{ order.customerContact.name }}</span>
+                      <span class="font-mono tabular-nums">{{ order.scheduledFor | date: 'HH:mm' }}</span>
+                    </div>
+                    <div class="text-xs text-ink-muted flex items-center gap-1 mt-1">
+                      <lib-icon name="phone" class="text-[0.75rem]" />
+                      {{ order.customerContact.phone }}
+                    </div>
+                    <div class="flex justify-between items-center mt-3 gap-2">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-ink-muted bg-line-soft px-2 py-0.5 rounded-full">
+                          {{ order.lineItems.length }} {{ 'COMMON.ITEMS' | translate }}
+                        </span>
+                        @if ($any(order).dineLocation === 'dine-in') {
+                          <span
+                            class="text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full"
+                          >
+                            🍽 {{ 'PRE_ORDERS.DINE_IN' | translate }}
+                          </span>
+                        } @else {
+                          <span
+                            class="text-xs font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded-full"
+                          >
+                            🥡 {{ 'PRE_ORDERS.TAKE_OUT' | translate }}
+                          </span>
+                        }
+                      </div>
+                      <span class="font-bold text-ink">{{ calculateTotal(order) | eur }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           }
         </div>
 
         <!-- Order Detail -->
         @if (selectedOrder()) {
           <div
-            class="flex-1 lg:max-w-[28.125rem] bg-surface-input rounded-2xl shadow-sm border border-line-soft overflow-hidden flex flex-col"
+            posSplitDetail
+            class="flex-1 bg-surface-input rounded-2xl shadow-sm border border-line-soft overflow-hidden flex flex-col"
           >
             <!-- Detail Header -->
             <div class="p-4 border-b border-line-soft flex justify-between items-center bg-surface-elevated">
@@ -263,13 +255,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
         <!-- Placeholder -->
         @if (!selectedOrder()) {
           <div
-            class="hidden lg:flex flex-1 max-w-[28.125rem] bg-surface-bg/50 border border-dashed border-line rounded-2xl justify-center items-center text-ink-faint flex-col gap-2"
+            posSplitDetail
+            class="hidden lg:flex flex-1 bg-surface-bg/50 border border-dashed border-line rounded-2xl justify-center items-center text-ink-faint flex-col gap-2"
           >
             <lib-icon name="calendar-dots" class="text-[3rem] opacity-20" />
             <span class="text-sm font-medium opacity-50">{{ 'PRE_ORDERS.SELECT_PRE_ORDER' | translate }}</span>
           </div>
         }
-      </div>
+      </lib-pos-split>
     </div>
   `,
   styles: [
@@ -295,9 +288,25 @@ export class PreOrderListComponent implements OnInit {
   loading: WritableSignal<boolean> = signal(false)
   selectedOrder: WritableSignal<PreOrder | null> = signal(null)
 
-  constructor() {
-    // Optional: Effect to reload if needed
-  }
+  // Nach Abholtag gruppiert (Heute, Morgen, Datum); die Liste kommt bereits aufsteigend sortiert.
+  groups = computed(() => {
+    const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+    const today = new Date()
+    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    const result: { key: string; kind: 'today' | 'tomorrow' | 'date'; date: Date; orders: PreOrder[] }[] = []
+    for (const order of this.orders()) {
+      const date = new Date(order.scheduledFor)
+      const key = dayKey(date)
+      let group = result.find(g => g.key === key)
+      if (!group) {
+        const kind = key === dayKey(today) ? 'today' : key === dayKey(tomorrow) ? 'tomorrow' : 'date'
+        group = { key, kind, date, orders: [] }
+        result.push(group)
+      }
+      group.orders.push(order)
+    }
+    return result
+  })
 
   ngOnInit() {
     this.fetchOrders()

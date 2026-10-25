@@ -86,7 +86,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
               <span class="text-ink-faint text-sm">{{ 'PRE_ORDERS.LOADING' | translate }}</span>
             </div>
           } @else if (orders().length === 0) {
-            <div class="flex-1 flex justify-center items-center flex-col gap-4 text-line-strong">
+            <div class="flex-1 flex justify-center items-center flex-col gap-4 text-empty-icon">
               <lib-icon name="calendar-x" class="text-[4rem]" />
               <span class="font-medium">{{ 'PRE_ORDERS.NONE_FOUND' | translate }}</span>
             </div>

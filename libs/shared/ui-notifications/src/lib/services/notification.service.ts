@@ -6,18 +6,19 @@ export const MAX_VISIBLE_NOTIFICATIONS = 3
 
 /**
  * Anzeigedauer je Art in ms. Eine Meldung mit Aktion steht länger, damit die Taste
- * noch erreichbar ist, nachdem man sie gelesen hat.
+ * noch erreichbar ist, nachdem man sie gelesen hat. Seit core#1065 deutlich länger als zuvor
+ * (3/4/6/8 s): Eine Erstnutzerin konnte die Meldungen auf der Sunmi-Kasse nicht zu Ende lesen.
  */
 export function notificationDuration(type: NotificationType, hasAction: boolean): number {
   switch (type) {
     case 'success':
-      return 3000
+      return 5000
     case 'info':
-      return hasAction ? 6000 : 4000
+      return hasAction ? 9000 : 7000
     case 'warning':
-      return 6000
+      return 9000
     case 'error':
-      return 8000
+      return 12000
   }
 }
 

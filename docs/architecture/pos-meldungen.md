@@ -4,7 +4,7 @@ title: 'POS-Meldungen — Arten, Dauer, Stapel und Position'
 description: 'Wie der POS Meldungen zeigt: NotificationService mit vier Arten und fester Dauer, Quittierpflicht, Stapel aus drei, Zählung gleicher Meldungen, Anzeige oben mittig über Dialogen.'
 tags: [pos-client, ui, notifications, design-system]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T14:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:45:00Z }
 sources:
   - { id: adr-0061, resource: '../adr/0061-pos-meldungen-statt-material-snackbar.md', title: 'ADR 0061' }
 ---
@@ -39,11 +39,18 @@ Weitere Optionen: `title` (fett vor dem Text, z. B. „Fehler HTTP-Code 500" aus
 
 | Art | Wann | Dauer | Fläche (hell / dunkel) |
 |---|---|---|---|
-| `success` | etwas ist erledigt | 3 s | `--accent-ink`: Grün / Mint |
-| `info` | Hinweis, ggf. mit Aktion | 4 s, mit Aktion 6 s | `--text-primary`: Navy / Creme |
-| `warning` | ging nicht, nichts verloren | 6 s | `--warn-ink`: dunkles Bernstein / Bernstein |
-| `error` | ist schiefgegangen | 8 s | `--danger-ink`: Rot / Hellrot |
+| `success` | etwas ist erledigt | 5 s | `--accent-ink`: Grün / Mint |
+| `info` | Hinweis, ggf. mit Aktion | 7 s, mit Aktion 9 s | `--text-primary`: Navy / Creme |
+| `warning` | ging nicht, nichts verloren | 9 s | `--warn-ink`: dunkles Bernstein / Bernstein |
+| `error` | ist schiefgegangen | 12 s | `--danger-ink`: Rot / Hellrot |
 | `sticky: true` | muss gesehen werden | bis × | Farbe der Art |
+
+Die Dauern gelten seit [#1065](https://github.com/panary/panary-core/issues/1065). Vorher waren es 3/4 (6)/6/8 s.
+Beim zweiten Test auf der Sunmi-Kasse (2026-10-25) konnte eine Erstnutzerin die Meldungen nicht zu Ende lesen.
+Antippen schließt weiterhin sofort, und solange der Finger auf der Meldung liegt, pausiert ihr Ablauf. Die längere
+Standzeit bremst also niemanden, der schon gelesen hat. Der Admin-Client nutzt denselben Dienst und übernimmt die
+Dauern mit. Nicht betroffen ist der Hinweis unten im Raster der Kasse (`setInfoBoxText`, 4 s / rot 6 s). Er ist
+keine Meldung dieses Dienstes.
 
 Die Schrift ist immer `--surface-bg`. In Dunkel drehen sich Fläche und Schrift über dieselben
 Tokens um, deshalb gibt es keine eigenen Meldungs-Tokens.

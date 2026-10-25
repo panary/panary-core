@@ -5,7 +5,7 @@ description: 'Der POS zeigt alle Meldungen über den ausgebauten NotificationSer
 tags: [pos-client, ui, notifications, design-system]
 status: stable
 decision: accepted
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T14:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:45:00Z }
 sources:
   - { id: issue-1026, resource: 'https://github.com/panary/panary-core/issues/1026', title: 'POS: eigene Snackbar statt Material-Snackbar' }
 ---
@@ -42,6 +42,8 @@ Variante A gewählt.
 - **Farbe:** Vollton je Art (Erfolg, Hinweis, Warnung, Fehler) aus den `*-ink`-Tokens, Schrift in
   `--surface-bg`. Keine Meldung sieht wie ein Dialog aus.
 - **Dauer je Art** statt je Aufruf. Quittierpflichtige Meldungen (`sticky`) laufen nicht ab.
+  *Nachtrag [#1065](https://github.com/panary/panary-core/issues/1065):* Die Dauern sind nach dem Sunmi-Test auf
+  5/7 (9)/9/12 s angehoben. Die Werte stehen in [POS-Meldungen](../architecture/pos-meldungen.md).
 - **Stapel** aus höchstens drei. Gleiche Meldungen zählen hoch, Quittierpflichtige werden nie
   verdrängt.
 - `MatSnackBar`, `PosSnackBar` und die Snackbar-Styles verschwinden aus dem POS. Die geteilten

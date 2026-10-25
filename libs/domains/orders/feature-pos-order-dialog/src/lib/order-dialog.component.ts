@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  afterRenderEffect,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -548,8 +549,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     inject(DestroyRef).onDestroy(kasse.attachSheet(this.sheetOpen))
 
     // Jede neue Markierung rendert ihre eigene Leiste; das Signal folgt ihr, egal über welchen Weg markiert wurde
-    // (Zeile, Position oder Kopf einer Kombination). Gescrollt wird erst, wenn die Leiste im DOM steht.
-    effect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))
+    // (Zeile, Position oder Kopf einer Kombination). `afterRenderEffect` statt `effect` (core#1047): Ein View-Effekt
+    // dieser OnPush-Komponente lief erst im nächsten Durchlauf (Uhr-Takt), gemessen ≈ 1,6 s nach dem Antippen. Nach
+    // dem Rendern steht die Leiste im DOM, und gescrollt wird im selben Durchlauf.
+    afterRenderEffect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))
 
     this._productionTimes = this.orderService.productionTimes
 

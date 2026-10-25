@@ -460,3 +460,29 @@ describe('Bezahlansicht-Template — Karte und Gutschein (core#831)', () => {
     expect(view).toContain('[disabled]="busy() || !canCollect()"')
   })
 })
+
+// core#1020: Auf der Sunmi passten nur 3×4 Produkte. Kachel und Funktionstaste schrumpfen auf rund 0,6 der Fläche,
+// bleiben aber gemeinsam ein Maß (code-style.md §9.1) und ein Touch-Ziel ≥ 48 px.
+describe('Kasse — Kachelmaß (core#1020)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  const kasse = scss.slice(scss.indexOf('.kasse {'), scss.indexOf("&[data-hand='right']"))
+  const rem = (token: string) => Number(kasse.match(new RegExp(`--${token}: (\\d+(?:\\.\\d+)?)rem;`))?.[1])
+
+  it('verkleinert die Kachel gegenüber 12,5 × 6,5rem auf etwa 0,6 der Fläche', () => {
+    const anteil = (rem('pnry-tile-min') * rem('pnry-tile-h')) / (12.5 * 6.5)
+    expect(anteil).toBeGreaterThanOrEqual(0.55)
+    expect(anteil).toBeLessThanOrEqual(0.65)
+  })
+
+  it('hält Breite und Höhe über 48 px bei Dichte 1', () => {
+    expect(rem('pnry-tile-min') * 16).toBeGreaterThanOrEqual(48)
+    expect(rem('pnry-tile-h') * 16).toBeGreaterThanOrEqual(48)
+  })
+
+  it('gibt Produktkachel und Funktionstaste dieselbe Höhe aus dem Token, ohne festes Maß daneben', () => {
+    expect(template.match(/h-\[var\(--pnry-tile-h\)\]/g)).toHaveLength(2)
+    expect(template).toContain('w-[var(--pnry-tile-min)] h-[var(--pnry-tile-h)]')
+    expect(template).toContain('minmax(var(--pnry-tile-min),1fr)')
+    expect(template).not.toMatch(/h-\[6\.5rem\]/)
+  })
+})

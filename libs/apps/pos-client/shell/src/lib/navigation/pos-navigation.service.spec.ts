@@ -67,13 +67,13 @@ describe('PosNavigationService (core#832)', () => {
     expect(service.openOrdersCount()).toBe(2)
   })
 
-  it('navigiert Routen-Einträge samt Abschnitt der Einstellungen', () => {
+  it('navigiert Routen-Einträge, Einstellungen direkt ohne Abschnitt', () => {
     const { service, router, item } = setup()
     service.open(item('history'))
-    service.open(item('settings-printer'))
+    service.open(item('settings'))
     expect(router.navigate.mock.calls).toEqual([
       [['/orders/history'], { queryParams: undefined }],
-      [['/settings'], { queryParams: { section: 'printer' } }],
+      [['/settings'], { queryParams: undefined }],
     ])
   })
 

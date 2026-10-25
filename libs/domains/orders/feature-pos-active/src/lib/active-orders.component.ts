@@ -11,7 +11,6 @@ import {
 } from '@angular/core'
 import { formatEur, formatEurCents } from '@panary/shared/util-helpers'
 import { CommonModule } from '@angular/common'
-import { Router } from '@angular/router'
 import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { uuidv7 } from 'uuidv7'
@@ -82,6 +81,24 @@ interface OrderCardVm {
   itemsGapClass: string
 }
 
+const ZOOM_STORAGE_KEY = 'pos_active_orders_zoom'
+const ZOOM_DEFAULT = 0.85
+const ZOOM_MIN = 0.5
+const ZOOM_MAX = 1.2
+const ZOOM_STEP = 0.1
+
+// Rundung auf 2 Stellen: 0.85 + 0.1 würde sonst als 0.9500000000000001 gespeichert
+const clampZoom = (value: number) => Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value)) * 100) / 100
+
+const readStoredZoom = (): number => {
+  try {
+    const stored = Number(localStorage.getItem(ZOOM_STORAGE_KEY))
+    return Number.isFinite(stored) && stored > 0 ? clampZoom(stored) : ZOOM_DEFAULT
+  } catch {
+    return ZOOM_DEFAULT
+  }
+}
+
 @Component({
   selector: 'lib-active-orders',
   standalone: true,
@@ -92,7 +109,6 @@ interface OrderCardVm {
 })
 export class ActiveOrdersComponent {
   #orderService = inject(OrderService)
-  #router = inject(Router)
   #authService = inject(AuthService)
   #locationService = inject(LocationService)
   #matDialog = inject(MatDialog)
@@ -117,14 +133,13 @@ export class ActiveOrdersComponent {
   orders = this.sortedOrders
   protected readonly OrderStatus = OrderStatus
 
-  zoomLevel: WritableSignal<number> = signal(0.85)
-  zoomOpen = signal(false)
+  zoomLevel: WritableSignal<number> = signal(readStoredZoom())
   selectedOrderId: WritableSignal<string | null> = signal(null)
 
   // max-height der Karte in CSS-Koordinaten, korrigiert um den Zoom-Faktor:
-  // Verfügbare visuelle Höhe = 100dvh − Main-Padding(3rem) (kein Page-Header mehr)
+  // Verfügbare visuelle Höhe = 100dvh − Main-Padding(3rem) − Seitenkopf(3.5rem)
   // Im Zoom-Koordinatensystem: ÷ zoom − Buttons(3rem) − Gap(0.5rem)
-  cardMaxHeight = computed(() => `calc((100dvh - 3rem) / ${this.zoomLevel()} - 3.5rem)`)
+  cardMaxHeight = computed(() => `calc((100dvh - 3rem - 3.5rem) / ${this.zoomLevel()} - 3.5rem)`)
 
   // Steuert aktive Sub-Ansicht im Overlay
   overlayView: WritableSignal<OverlayView> = signal('actions')
@@ -211,11 +226,21 @@ export class ActiveOrdersComponent {
   }
 
   increaseZoom() {
-    this.zoomLevel.update(z => Math.min(z + 0.1, 1.2))
+    this.#setZoom(this.zoomLevel() + ZOOM_STEP)
   }
 
   decreaseZoom() {
-    this.zoomLevel.update(z => Math.max(z - 0.1, 0.5))
+    this.#setZoom(this.zoomLevel() - ZOOM_STEP)
+  }
+
+  #setZoom(value: number) {
+    const clamped = clampZoom(value)
+    this.zoomLevel.set(clamped)
+    try {
+      localStorage.setItem(ZOOM_STORAGE_KEY, String(clamped))
+    } catch {
+      // Speicher gesperrt: Zoom gilt dann nur bis zum Neuladen
+    }
   }
 
   toggleSelection(orderId: string) {
@@ -228,10 +253,6 @@ export class ActiveOrdersComponent {
       this.selectedOrderId.set(orderId)
       this.overlayView.set('actions')
     }
-  }
-
-  openQuickOrder() {
-    this.#router.navigate(['/kasse'])
   }
 
   // Actions
@@ -630,10 +651,6 @@ export class ActiveOrdersComponent {
     this.overlayView.set('actions')
     this.staffEligibleUsers.set([])
     this.corporateCustomers.set([])
-  }
-
-  goBack() {
-    this.#router.navigate(['/dashboard'])
   }
 
   formatPrice(price: number): string {

@@ -40,3 +40,22 @@ describe('Offene Bestellungen — Abschließen (core#834)', () => {
     expect(finalize.indexOf('!this.#isCashierMode()')).toBeLessThan(finalize.indexOf('#orderService.complete'))
   })
 })
+
+// core#973: Auf „Offen" entfällt die schwebende Leiste (sie verdeckte Rail und Avatar); die Kartengröße
+// sitzt im Seitenkopf und wird je Gerät gespeichert.
+describe('Offene Bestellungen — Kopf statt Leiste (core#973)', () => {
+  const template = read('./active-orders.component.html')
+  const component = read('./active-orders.component.ts')
+
+  it('hat keine schwebende Leiste mehr, die Kartengröße steht im Seitenkopf', () => {
+    expect(template).not.toMatch(/fixed bottom-6 right-6/)
+    const header = template.slice(template.indexOf('<header'), template.indexOf('</header>'))
+    expect(header).toMatch(/decreaseZoom\(\)/)
+    expect(header).toMatch(/increaseZoom\(\)/)
+  })
+
+  it('speichert die Kartengröße in localStorage und liest sie beim Start', () => {
+    expect(component).toMatch(/localStorage\.setItem\(ZOOM_STORAGE_KEY/)
+    expect(component).toMatch(/signal\(readStoredZoom\(\)\)/)
+  })
+})

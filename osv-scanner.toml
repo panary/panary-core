@@ -38,33 +38,33 @@ reason = "Kein Fix: betroffen ist <= 4.2.0, und 4.2.0 ist die neueste http-cache
 
 [[IgnoredVulns]]
 id = "GHSA-333x-w4r6-6crp"  # fast-uri: Scheme-Injection (CVSS 3.7)
-ignoreUntil = 2026-10-27
-reason = "Karenz, nicht fehlender Fix: Fix 3.1.9 ist seit 2026-10-19 23:05 UTC publiziert, die Supply-Chain-Karenz (minimumReleaseAge 10080) laesst sie erst ab 2026-10-26 23:05 UTC zu. PROD-Abhaengigkeit der Edge (pnpm why fast-uri --prod: ajv -> @feathersjs/schema -> authentication); ajv nutzt fast-uri zum Aufloesen von Schema-$id/$ref, nicht zur Verarbeitung von Request-URIs. Eingetragen 2026-10-25 (panary/panary-core#952); nach Ablauf der Karenz fast-uri-Override auf ^3.1.9 heben und die vier Eintraege entfernen."
+ignoreUntil = 2026-11-02
+reason = "Karenz, nicht fehlender Fix: Fix 3.1.9 ist seit 2026-10-19 23:05 UTC publiziert, die Supply-Chain-Karenz (minimumReleaseAge 10080) laesst sie erst ab 2026-10-26 23:05 UTC zu. PROD-Abhaengigkeit der Edge (pnpm why fast-uri --prod: ajv -> @feathersjs/schema -> authentication); ajv nutzt fast-uri zum Aufloesen von Schema-$id/$ref, nicht zur Verarbeitung von Request-URIs. Eingetragen 2026-10-25 (panary/panary-core#952, Pendant panary/panary-cloud#1450); nach Ablauf der Karenz fast-uri-Override auf ^3.1.9 heben und die vier Eintraege entfernen."
 
 [[IgnoredVulns]]
 id = "GHSA-w74x-v6f9-j3xg"  # fast-uri: URI-Scheme-Spoofing (CVSS 6.1)
-ignoreUntil = 2026-10-27
-reason = "Karenz, nicht fehlender Fix: siehe GHSA-333x-w4r6-6crp (gleiche Version, gleicher Fix 3.1.9, ab 2026-10-26 23:05 UTC karenzfrei). PROD-Abhaengigkeit der Edge; Eintrag mit den anderen fast-uri-Eintraegen entfernen (panary/panary-core#952)."
+ignoreUntil = 2026-11-02
+reason = "Karenz, nicht fehlender Fix: siehe GHSA-333x-w4r6-6crp (gleiche Version, gleicher Fix 3.1.9, ab 2026-10-26 23:05 UTC karenzfrei). PROD-Abhaengigkeit der Edge; Eintrag mit den anderen fast-uri-Eintraegen entfernen (panary/panary-core#952, Pendant panary/panary-cloud#1450)."
 
 [[IgnoredVulns]]
 id = "GHSA-wjr9-j795-jxcr"  # fast-uri: Host-Confusion (CVSS 4.8)
-ignoreUntil = 2026-10-27
-reason = "Karenz, nicht fehlender Fix: siehe GHSA-333x-w4r6-6crp (gleiche Version, gleicher Fix 3.1.9, ab 2026-10-26 23:05 UTC karenzfrei). PROD-Abhaengigkeit der Edge; Eintrag mit den anderen fast-uri-Eintraegen entfernen (panary/panary-core#952)."
+ignoreUntil = 2026-11-02
+reason = "Karenz, nicht fehlender Fix: siehe GHSA-333x-w4r6-6crp (gleiche Version, gleicher Fix 3.1.9, ab 2026-10-26 23:05 UTC karenzfrei). PROD-Abhaengigkeit der Edge; Eintrag mit den anderen fast-uri-Eintraegen entfernen (panary/panary-core#952, Pendant panary/panary-cloud#1450)."
 
 [[IgnoredVulns]]
 id = "GHSA-xhq7-xmqj-769h"  # fast-uri: Pfad-Aequivalenz (CVSS 3.7)
-ignoreUntil = 2026-10-27
-reason = "Karenz, nicht fehlender Fix: siehe GHSA-333x-w4r6-6crp (gleiche Version, gleicher Fix 3.1.9, ab 2026-10-26 23:05 UTC karenzfrei). PROD-Abhaengigkeit der Edge; Eintrag mit den anderen fast-uri-Eintraegen entfernen (panary/panary-core#952)."
+ignoreUntil = 2026-11-02
+reason = "Karenz, nicht fehlender Fix: siehe GHSA-333x-w4r6-6crp (gleiche Version, gleicher Fix 3.1.9, ab 2026-10-26 23:05 UTC karenzfrei). PROD-Abhaengigkeit der Edge; Eintrag mit den anderen fast-uri-Eintraegen entfernen (panary/panary-core#952, Pendant panary/panary-cloud#1450)."
 
 [[IgnoredVulns]]
 id = "GHSA-27r3-jxmh-p828"  # body-parser: DoS durch Restbytes nach komprimiertem Body (CVSS 7.5)
-ignoreUntil = 2026-10-30
-reason = "Karenz, nicht fehlender Fix: Fixes 1.20.9 und 2.4.0 sind seit 2026-10-22 11:38/11:39 UTC publiziert, die Supply-Chain-Karenz laesst sie erst ab 2026-10-29 11:39 UTC zu. Nur Dev-Abhaengigkeit (pnpm why body-parser --prod ist leer; Dev-Server-Stack), nicht im Edge-Image. Eingetragen 2026-10-25 (panary/panary-core#952); nach Ablauf der Karenz body-parser per Override auf 1.20.9 bzw. 2.4.0 heben und Eintrag entfernen."
+ignoreUntil = 2026-11-02
+reason = "Karenz, nicht fehlender Fix: Fixes 1.20.9 und 2.4.0 sind seit 2026-10-22 11:38/11:39 UTC publiziert, die Supply-Chain-Karenz laesst sie erst ab 2026-10-29 11:39 UTC zu. Nur Dev-Abhaengigkeit (pnpm why body-parser --prod ist leer; Dev-Server-Stack), nicht im Edge-Image. Eingetragen 2026-10-25 (panary/panary-core#952, Pendant panary/panary-cloud#1450); nach Ablauf der Karenz body-parser per Override auf 1.20.9 bzw. 2.4.0 heben und Eintrag entfernen."
 
 [[IgnoredVulns]]
 id = "GHSA-m5mm-p8h7-m29v"  # serialize-javascript: XSS durch unescaptes </script am Ende eines Funktionsbodys (CVSS 2.1)
-ignoreUntil = 2026-10-30
-reason = "Karenz, nicht fehlender Fix: Fix 7.1.3 ist seit 2026-10-22 21:24 UTC publiziert, die Supply-Chain-Karenz laesst sie erst ab 2026-10-29 21:24 UTC zu. Nur Dev-Abhaengigkeit (pnpm why serialize-javascript --prod ist leer), nicht im Edge-Image. Eingetragen 2026-10-25 (panary/panary-core#952); nach Ablauf der Karenz Override auf ^7.1.3 heben und Eintrag entfernen."
+ignoreUntil = 2026-11-02
+reason = "Karenz, nicht fehlender Fix: Fix 7.1.3 ist seit 2026-10-22 21:24 UTC publiziert, die Supply-Chain-Karenz laesst sie erst ab 2026-10-29 21:24 UTC zu. Nur Dev-Abhaengigkeit (pnpm why serialize-javascript --prod ist leer), nicht im Edge-Image. Eingetragen 2026-10-25 (panary/panary-core#952, Pendant panary/panary-cloud#1450); nach Ablauf der Karenz Override auf ^7.1.3 heben und Eintrag entfernen."
 
 # Zuletzt entfernt am 2026-09-26: GHSA-5p2g-fcmc-qvqq (JXL/HEIF) und
 # GHSA-w3rx-r6r6-pgpr (ICNS) zu image-size. Seit dem 2026-09-24 erfassen beide

@@ -23,6 +23,7 @@
     "OFFLINE": "Offline",
     "CART_SIDE_PENDING": "Offline gespeichert — wird bei Verbindung übertragen.",
     "CART_SIDE_FAILED": "Warenkorb-Seite konnte nicht gespeichert werden.",
+    "CART_SIDE_LOCAL": "Gilt nur auf diesem Gerät — der Edge hat die Wahl nicht gespeichert. Bitte erneut per PIN anmelden.",
     "OPERATOR_PIN_REQUIRED": "Deine Anmeldung an der Kasse ist abgelaufen. Bitte erneut mit PIN anmelden und noch einmal stempeln.",
     "CLOCK_STATE_OUT": "Ausgestempelt — tippen zum Kommen",
     "CLOCK_STATE_IN": "Eingestempelt — tippen für Pause oder Gehen",

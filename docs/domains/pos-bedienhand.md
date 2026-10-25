@@ -94,6 +94,11 @@ Die Offline-Outbox der Bestellungen trägt `users` nicht (`pos-outbox-replay.ser
   gekennzeichnete Token-Ablehnung der Methode (`NotAuthenticated` mit `data.reason:
   POS_OPERATOR_REQUIRED`, etwa Token nach 12 h abgelaufen). Ein `401` der abgelaufenen
   Geräte-Sitzung zählt nicht dazu — die Wahl bleibt gemerkt.
+- **Nur lokal (core#964):** Fehlt das Bediener-Token (abgelaufen, Edge ohne Token-Ausgabe) oder kennt der
+  Edge die Methode nicht (`404`/`405`, Edge vor v26.10.26), wirkt die Wahl trotzdem sofort. Sie wird
+  in `localStorage.pnry_pos_handedness_local` gehalten (überlebt Neuladen und schlägt den Datensatz),
+  der Bediener bekommt einen Hinweis. Ein späteres erfolgreiches Speichern räumt den Eintrag ab. Vorher
+  warf `choose` ohne Token, bevor etwas umschaltete — der Schalter wirkte dann gar nicht.
 - Eine neue Wahl wartet auf ein laufendes Nachsenden; sonst käme der ältere Wert zuletzt an.
 - Bis zum Neuladen gewinnt die Wahl dieser Sitzung über den geladenen Datensatz: Die Kasse hält
   den Mitarbeiter als Momentaufnahme. Ändert ein Admin den Wert in der Cloud, sieht der POS ihn

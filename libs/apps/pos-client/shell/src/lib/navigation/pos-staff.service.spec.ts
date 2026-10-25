@@ -16,7 +16,7 @@ function setup(
     suspended?: boolean
     stampingId?: string | null
     cartSide?: 'left' | 'right'
-    choose?: () => Promise<'saved' | 'pending'>
+    choose?: () => Promise<'saved' | 'pending' | 'local'>
   } = {},
 ) {
   const user = { _id: 'u-olga', firstName: 'Olga', lastName: 'Owner', stampingId: state.stampingId ?? null }
@@ -227,6 +227,12 @@ describe('PosStaffService (core#832)', () => {
     const { service, snackBar } = setup({ choose: () => Promise.resolve('pending') })
     await service.toggleCartSide()
     expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_PENDING'])
+  })
+
+  it('Warenkorb-Seite nur lokal (kein Token, Edge ohne Methode): Hinweis statt Fehler (core#964)', async () => {
+    const { service, snackBar } = setup({ choose: () => Promise.resolve('local') })
+    await service.toggleCartSide()
+    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_LOCAL'])
   })
 
   it('Warenkorb-Seite abgelehnt: Fehlermeldung statt stiller Rücknahme', async () => {

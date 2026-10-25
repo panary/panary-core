@@ -23,6 +23,7 @@
     "OFFLINE": "Çevrimdışı",
     "CART_SIDE_PENDING": "Çevrimdışı kaydedildi — bağlantı kurulunca gönderilecek.",
     "CART_SIDE_FAILED": "Sepet tarafı kaydedilemedi.",
+    "CART_SIDE_LOCAL": "Yalnızca bu cihazda geçerli — Edge seçimi kaydetmedi. Lütfen PIN ile yeniden giriş yapın.",
     "OPERATOR_PIN_REQUIRED": "Kasa oturumunuzun süresi doldu. Lütfen PIN ile yeniden giriş yapıp işlemi tekrarlayın.",
     "CLOCK_STATE_OUT": "Çıkış yapıldı — giriş için dokunun",
     "CLOCK_STATE_IN": "Giriş yapıldı — mola veya çıkış için dokunun",

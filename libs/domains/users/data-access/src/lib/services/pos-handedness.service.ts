@@ -13,15 +13,14 @@ export interface PendingPosHandedness {
 
 export const POS_HANDEDNESS_PENDING_STORAGE_KEY = 'pnry_pos_handedness_pending'
 
-/** Ergebnis einer Wahl: am Edge gespeichert oder gerätelokal gemerkt und später nachgesendet. */
-export type PosHandednessOutcome = 'saved' | 'pending'
+/** Wahlen, die der Edge nie speichern kann (kein Token, Edge ohne Methode) — nur dieses Gerät kennt sie. */
+export const POS_HANDEDNESS_LOCAL_STORAGE_KEY = 'pnry_pos_handedness_local'
 
-/** Ohne Bediener-Token kann der Edge die Wahl niemandem zuordnen (ADR 0053). */
-export class PosHandednessNoOperatorError extends Error {
-  constructor() {
-    super('POS_HANDEDNESS_NO_OPERATOR')
-  }
-}
+/**
+ * Ergebnis einer Wahl: am Edge gespeichert, gerätelokal gemerkt und später nachgesendet, oder nur auf
+ * diesem Gerät wirksam, weil der Edge sie nicht annehmen kann (kein Bediener-Token, Edge ohne Methode).
+ */
+export type PosHandednessOutcome = 'saved' | 'pending' | 'local'
 
 /** Kennung der Token-Ablehnung von `users.setPosHandedness` (Gegenstück in `apps/api-edge/.../users.ts`). */
 export const POS_OPERATOR_REQUIRED = 'POS_OPERATOR_REQUIRED'
@@ -34,6 +33,35 @@ export const POS_OPERATOR_REQUIRED = 'POS_OPERATOR_REQUIRED'
 export const isFinalHandednessRejection = (error: unknown): boolean => {
   const { code, data } = (error ?? {}) as { code?: unknown; data?: { reason?: unknown } }
   return code === 400 || (code === 401 && data?.reason === POS_OPERATOR_REQUIRED)
+}
+
+/** Der Edge kennt `users.setPosHandedness` nicht (Edge vor v26.10.26): `404`/`405` statt einer Antwort. */
+const isMethodMissing = (error: unknown): boolean => {
+  const { code } = (error ?? {}) as { code?: unknown }
+  return code === 404 || code === 405
+}
+
+const readLocal = (): Record<string, PosHandedness> => {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(POS_HANDEDNESS_LOCAL_STORAGE_KEY) ?? '{}')
+    if (!parsed || typeof parsed !== 'object') return {}
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) => Object.values(PosHandedness).includes(value as PosHandedness)),
+    ) as Record<string, PosHandedness>
+  } catch {
+    return {}
+  }
+}
+
+const writeLocal = (userId: string, value: PosHandedness | undefined): void => {
+  try {
+    const { [userId]: _dropped, ...rest } = readLocal()
+    const next = value ? { ...rest, [userId]: value } : rest
+    if (Object.keys(next).length === 0) localStorage.removeItem(POS_HANDEDNESS_LOCAL_STORAGE_KEY)
+    else localStorage.setItem(POS_HANDEDNESS_LOCAL_STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    // Ohne Speicher gilt die Wahl bis zum Neuladen — besser als ein Abbruch.
+  }
 }
 
 const readPending = (): PendingPosHandedness[] => {
@@ -75,9 +103,10 @@ export class PosHandednessService {
   readonly #connection = inject(ConnectionService)
 
   /** Gewählt in dieser Sitzung (bestätigt oder offen) — gewinnt über den geladenen User-Datensatz. */
-  readonly #chosen = signal<Readonly<Record<string, PosHandedness>>>(
-    Object.fromEntries(readPending().map(entry => [entry.userId, entry.posHandedness])),
-  )
+  readonly #chosen = signal<Readonly<Record<string, PosHandedness>>>({
+    ...readLocal(),
+    ...Object.fromEntries(readPending().map(entry => [entry.userId, entry.posHandedness])),
+  })
 
   /** Verbindung zum Edge. Die Shell sendet gemerkte Wahlen nach, sobald sie zurückkommt. */
   readonly online = computed(() => {
@@ -95,11 +124,13 @@ export class PosHandednessService {
   }
 
   async choose(userId: string, posHandedness: PosHandedness): Promise<PosHandednessOutcome> {
-    const operatorToken = currentPosOperatorToken()
-    if (!operatorToken) throw new PosHandednessNoOperatorError()
-
     const previous = this.#chosen()[userId]
     this.#setChosen(userId, posHandedness)
+
+    // Ohne Token (abgelaufen, Edge ohne Token-Ausgabe) gibt es keinen Menschen, dem der Edge die Wahl
+    // zuordnen könnte. Die Wahl gilt trotzdem sofort — sonst wirkt der Schalter gar nicht (core#964).
+    const operatorToken = currentPosOperatorToken()
+    if (!operatorToken) return this.#keepLocal(userId, posHandedness)
     await this.#flushRun
 
     const pending: PendingPosHandedness = { userId, posHandedness, operatorToken }
@@ -111,8 +142,10 @@ export class PosHandednessService {
     try {
       await this.#send(pending)
       this.#forget(userId)
+      writeLocal(userId, undefined)
       return 'saved'
     } catch (error) {
+      if (isMethodMissing(error)) return this.#keepLocal(userId, posHandedness)
       if (!isFinalHandednessRejection(error)) {
         this.#remember(pending)
         return 'pending'
@@ -133,9 +166,11 @@ export class PosHandednessService {
       try {
         await this.#send(entry)
         this.#forget(entry.userId)
+        writeLocal(entry.userId, undefined)
       } catch (error) {
         if (!isFinalHandednessRejection(error)) return
         this.#forget(entry.userId)
+        writeLocal(entry.userId, undefined)
         this.#setChosen(entry.userId, undefined)
       }
     }
@@ -150,6 +185,12 @@ export class PosHandednessService {
       { posHandedness: entry.posHandedness },
       withPosOperatorToken({}, entry.operatorToken),
     )
+  }
+
+  #keepLocal(userId: string, posHandedness: PosHandedness): PosHandednessOutcome {
+    this.#forget(userId)
+    writeLocal(userId, posHandedness)
+    return 'local'
   }
 
   #setChosen(userId: string, value: PosHandedness | undefined): void {

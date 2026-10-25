@@ -5,7 +5,7 @@ import { Injector, runInInjectionContext, signal } from '@angular/core'
 import { ConnectionService, POS_OPERATOR_TOKEN_STORAGE_KEY } from '@panary/shared/data-access'
 import {
   POS_HANDEDNESS_PENDING_STORAGE_KEY,
-  PosHandednessNoOperatorError,
+  POS_HANDEDNESS_LOCAL_STORAGE_KEY,
   PosHandednessService,
   type PendingPosHandedness,
 } from './pos-handedness.service'
@@ -108,13 +108,40 @@ describe('PosHandednessService (core#833)', () => {
     expect(pending()).toEqual([])
   })
 
-  it('ohne Bediener-Token: keine Wahl, nichts gesendet', async () => {
-    const { service, send } = setup({ token: null })
+  it('ohne Bediener-Token: sofort wirksam, nur lokal, nichts gesendet (core#964)', async () => {
+    const { service, send, pending } = setup({ token: null })
 
-    await expect(service.choose(anna._id, 'right')).rejects.toBeInstanceOf(PosHandednessNoOperatorError)
+    await expect(service.choose(anna._id, 'right')).resolves.toBe('local')
 
-    expect(service.effective(anna)).toBe('left')
+    expect(service.effective(anna)).toBe('right')
     expect(send).not.toHaveBeenCalled()
+    expect(pending()).toEqual([])
+  })
+
+  it('lokale Wahl überlebt ein Neuladen und schlägt den Datensatz', async () => {
+    const { service } = setup({ token: null })
+    await service.choose(anna._id, 'right')
+    expect(localStorage.getItem(POS_HANDEDNESS_LOCAL_STORAGE_KEY)).not.toBeNull()
+
+    const reloaded = runInInjectionContext(
+      Injector.create({
+        providers: [{ provide: ConnectionService, useValue: { connectionState: () => ({ status: 'authenticated' }) } }],
+      }),
+      () => new PosHandednessService(),
+    )
+
+    expect(reloaded.effective({ ...anna, posHandedness: 'left' })).toBe('right')
+  })
+
+  it('Edge ohne die Methode (404): sofort wirksam, lokal, nicht endlos nachgesendet', async () => {
+    const { service, send, pending } = setup()
+    send.mockRejectedValue({ code: 404 })
+
+    await expect(service.choose(anna._id, 'right')).resolves.toBe('local')
+
+    expect(service.effective(anna)).toBe('right')
+    expect(pending()).toEqual([])
+    expect(localStorage.getItem(POS_HANDEDNESS_LOCAL_STORAGE_KEY)).toContain('right')
   })
 
   it('flush sendet jede gemerkte Wahl mit dem Token ihrer Sitzung und vergisst sie danach', async () => {

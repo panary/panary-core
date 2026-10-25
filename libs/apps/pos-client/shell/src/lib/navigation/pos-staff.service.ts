@@ -139,14 +139,17 @@ export class PosStaffService {
 
   /**
    * Warenkorb auf die andere Seite (core#833). Wirkt sofort; der Edge speichert über das
-   * Bediener-Token, offline merkt der POS die Wahl und sendet sie nach.
+   * Bediener-Token, offline merkt der POS die Wahl und sendet sie nach. Kann der Edge sie nicht annehmen
+   * (kein Token, Edge ohne Methode), gilt sie nur auf diesem Gerät — mit Hinweis (core#964).
    */
   async toggleCartSide(): Promise<void> {
     const user = this.currentUser()
     if (!user) return
     const next = this.cartSide() === PosHandedness.LEFT ? PosHandedness.RIGHT : PosHandedness.LEFT
     try {
-      if ((await this.#handedness.choose(user._id, next)) === 'pending') this.#notify('POS_NAV.CART_SIDE_PENDING')
+      const outcome = await this.#handedness.choose(user._id, next)
+      if (outcome === 'pending') this.#notify('POS_NAV.CART_SIDE_PENDING')
+      if (outcome === 'local') this.#notify('POS_NAV.CART_SIDE_LOCAL', 8000)
     } catch (error) {
       console.error('Set cart side failed:', error)
       this.#notify('POS_NAV.CART_SIDE_FAILED')

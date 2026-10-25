@@ -22,6 +22,7 @@
   --color-line: var(--border-default);
   --color-line-soft: var(--border-soft);
   --color-line-strong: var(--border-strong);
+  --color-empty-icon: var(--empty-icon);
 
   --color-ink: var(--text-primary);
   --color-ink-muted: var(--text-muted);

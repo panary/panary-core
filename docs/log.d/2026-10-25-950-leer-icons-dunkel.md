@@ -1,0 +1,1 @@
+* **Fix** (panary/panary-core#950): Leerzustands-Icons der POS-Listen und Dialoge nutzen den neuen Token `--empty-icon` (`text-empty-icon`): hell unverändert (`#d8d4cb`), dunkel `#8a8174` statt des zu dunklen `--border-strong`.

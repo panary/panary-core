@@ -69,7 +69,7 @@ export interface DiscountPickerData {
           </div>
         } @else if (discounts().length === 0) {
           <div class="h-full flex flex-col items-center justify-center gap-2 text-center">
-            <lib-icon name="tag" class="text-[2.5rem] text-line-strong" />
+            <lib-icon name="tag" class="text-[2.5rem] text-empty-icon" />
             <span class="text-sm font-medium text-ink-muted dark:text-ink">Keine Rabatte verfügbar</span>
             <span class="text-xs text-ink-faint max-w-xs">
               Aktive manuelle Rabatte für den Kassen-Kanal werden in der Cloud verwaltet und synchronisiert.

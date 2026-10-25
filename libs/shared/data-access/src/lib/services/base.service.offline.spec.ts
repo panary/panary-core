@@ -3,9 +3,8 @@
 import '@angular/compiler'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Injector, NgZone, runInInjectionContext, signal } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
-import { of } from 'rxjs'
 import type { BaseDocument } from '@panary/shared-common'
 import { ServiceHelper } from '../utils/service-helper.service'
 import { BaseService } from './base.service'
@@ -61,7 +60,7 @@ function setup(options: {
         useValue: { connectionState: signal({ status: options.offline ? 'disconnected' : 'authenticated' }) },
       },
       { provide: ServiceHelper, useValue: { handleError: vi.fn() } },
-      { provide: MatSnackBar, useValue: { open: () => ({ afterDismissed: () => of(undefined) }) } },
+      { provide: NotificationService, useValue: new NotificationService() },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       { provide: NgZone, useValue: { run: (fn: () => unknown) => fn() } },
       { provide: DATA_ACCESS_AUTO_LOAD, useValue: false },

@@ -26,7 +26,7 @@ import { firstValueFrom } from 'rxjs'
 import { ConfirmDialogComponent, type ConfirmDialogData, EurPipe, IconComponent } from '@panary/shared/ui-common'
 import { MatMenuModule } from '@angular/material/menu'
 import { A11yModule } from '@angular/cdk/a11y'
-import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar'
+import { NotificationService, type NotificationRef } from '@panary/shared/ui-notifications'
 import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 // UUID als String-Alias (node:crypto UUID ist ein branded type – für Migration vereinfacht)
@@ -198,7 +198,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly matDialog: MatDialog = inject(MatDialog)
   // Meldeweg für alles, was das Abschließen der Bestellung überleben muss — die Infobox
   // gehört zur Bestellung und ist mit ihr weg (siehe #placeOrder, Rabattcode-Fehlschlag).
-  protected readonly matSnackBar: MatSnackBar = inject(MatSnackBar)
+  readonly #notifications = inject(NotificationService)
   protected readonly orderInteractionService: OrderInteractionService = inject(OrderInteractionService)
   protected readonly deviceConfigService: DeviceConfigService = inject(DeviceConfigService)
   protected readonly preOrderService: PreOrderService = inject(PreOrderService)
@@ -234,7 +234,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   #undoSerial = 0
   /** Die Snackbar des letzten „Rückgängig"-Angebots — `#invalidateUndo` schließt nur sie. */
-  #undoRef: MatSnackBarRef<TextOnlySnackBar> | null = null
+  #undoRef: NotificationRef | null = null
   /** Zeilenindex → Stückzahl, die in die neue Kombination geht (#795: Kachel zählt hoch). */
   private _articlesToCombine = new Map<number, number>()
   private _isBlocked = false
@@ -2397,30 +2397,33 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * Bietet „Rückgängig" für die letzte Mengenänderung bzw. das letzte Löschen an.
    *
-   * Snackbar statt Infobox: Die Infobox überschreibt jeder nächste Schritt
+   * Meldung statt Infobox: Die Infobox überschreibt jeder nächste Schritt
    * (siehe `placeOrder`, #234). Mit `duration`, anders als die Rabattcode-Meldung
    * dort — das ist keine Fehlermeldung, die quittiert werden muss, sondern ein
    * Angebot, das nach kurzer Zeit verfallen darf.
    */
   #offerUndo(message: string, restore: () => void): void {
     const serial = ++this.#undoSerial
-    const ref = this.matSnackBar.open(message, 'Rückgängig', { duration: 6000 })
-    this.#undoRef = ref
-    ref.onAction().subscribe(() => {
-      if (serial !== this.#undoSerial) return
-      this.#undoSerial++
-      restore()
-      // Kommt von außerhalb des Templates (Overlay) — OnPush erfährt sonst nichts davon.
-      this.#cdr.markForCheck()
+    this.#undoRef = this.#notifications.info(message, {
+      action: {
+        label: 'Rückgängig',
+        run: () => {
+          if (serial !== this.#undoSerial) return
+          this.#undoSerial++
+          restore()
+          // Kommt von außerhalb des Templates (Meldungsebene) — OnPush erfährt sonst nichts davon.
+          this.#cdr.markForCheck()
+        },
+      },
     })
   }
 
   /**
    * Lässt ein offenes „Rückgängig" verfallen — die Bestellung ist weg oder abgeschickt.
    *
-   * Schließt nur die eigene Undo-Snackbar, nie „die gerade offene": `placeOrder` meldet
+   * Schließt nur die eigene Undo-Meldung, nie „die gerade offene": `placeOrder` meldet
    * einen gescheiterten Rabattcode unmittelbar vor `deleteOrder()`, und ein
-   * `matSnackBar.dismiss()` hier schloss genau diese Meldung wieder (core#531).
+   * globales Schließen hier schloss genau diese Meldung wieder (core#531).
    */
   #invalidateUndo(): void {
     this.#undoSerial++
@@ -2962,7 +2965,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Mandant in der Cloud gesperrt: der Bon liefe sicher in den 403. Der Warenkorb bleibt
     // stehen, die Meldung ist ein globales Overlay (core#489).
     if (this.#tenantSuspension.suspended()) {
-      this.matSnackBar.open('Konto gesperrt — bitte den Inhaber kontaktieren', 'OK', { duration: 6000 })
+      this.#notifications.error('Konto gesperrt — bitte den Inhaber kontaktieren')
       return
     }
     let staffMealDetails: StaffPaymentInfo | undefined = undefined
@@ -3072,11 +3075,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         //
         // Bewusst KEINE Infobox: die überschreibt `unselectProduct()` rund 25
         // Zeilen weiter unten, und das Ende der Bestellung nimmt sie ohnehin mit
-        // (#234, belegt in der Spec). Die Snackbar ist ein globales Overlay und
-        // überlebt beides. Ohne `duration` bleibt sie bis zur Quittierung stehen
+        // (#234, belegt in der Spec). Die Meldung liegt auf der globalen Ebene und
+        // überlebt beides. Quittierpflichtig (`sticky`) bleibt sie bis zum × stehen
         // — eine Meldung, die von selbst verschwindet, ist im Kassenbetrieb
         // genauso übersehbar wie gar keine.
-        this.matSnackBar.open(`Rabattcode nicht eingelöst — ${codeResultMessage(outcome.reason)}`, 'OK')
+        this.#notifications.error(`Rabattcode nicht eingelöst — ${codeResultMessage(outcome.reason)}`, { sticky: true })
         this.appliedCodeDiscount.set(null)
       }
     }
@@ -3177,7 +3180,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.payment.set(null)
         this.closed.emit('order-placed')
       } else if (result === 'cash-session-declined') {
-        this.matSnackBar.open('Kasse nicht freigegeben — die Bestellung bleibt offen', 'OK', { duration: 5000 })
+        this.#notifications.warning('Kasse nicht freigegeben — die Bestellung bleibt offen')
       }
       // `failed`: `handleError` hat schon gemeldet, die Ansicht bleibt für einen neuen Versuch stehen.
     } finally {

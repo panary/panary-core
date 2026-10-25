@@ -6,7 +6,7 @@ import type { Id, Paginated, Params } from '@feathersjs/feathers'
 import { cloneDeep } from 'lodash'
 import { BaseDocument, ExtendedParams } from '@panary/shared-common'
 import { ServiceHelper } from '../utils/service-helper.service'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { REALTIME_SCOPE_GUARD, RealtimeScopeGuard } from './realtime-scope-guard'
 import { CachePolicy, normalizeToRecords, OfflineCachePort } from '@panary/shared-common'
@@ -26,13 +26,9 @@ export type PaginatedOrArray<T> = Promise<Paginated<T> | T[]>
  * @return {Promise<T | T[]>} A promise that resolves to the created resource(s).
  */
 export abstract class BaseService<T> {
-  /** STATIC PROPERTIES */
-  static readonly SNACKBAR_ACTION: string | undefined = 'OK'
-  static readonly SNACKBAR_DURATION: number = 2500
-
   /** INJECTION */
   protected helper: ServiceHelper = inject(ServiceHelper)
-  protected matSnackBar: MatSnackBar = inject(MatSnackBar)
+  protected notifications: NotificationService = inject(NotificationService)
   protected translate: TranslateService = inject(TranslateService)
   protected ngZone: NgZone = inject(NgZone)
 
@@ -214,14 +210,10 @@ export abstract class BaseService<T> {
     }
   }
 
-  /** Zeigt eine übersetzte Snackbar-Nachricht mit dem Entitätsnamen */
+  /** Zeigt eine übersetzte Erfolgsmeldung mit dem Entitätsnamen (Realtime-Ereignisse). */
   protected showSnackbar(messageKey: string): void {
     const entity = this.translate.instant(this.entityLabelKey)
-    const message = this.translate.instant(messageKey, { entity })
-    const action = this.translate.instant('SNACKBAR.OK')
-    this.matSnackBar.open(message, action, {
-      duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,
-    })
+    this.notifications.success(this.translate.instant(messageKey, { entity }))
   }
 
   protected generateUniqueId(): string {
@@ -515,9 +507,7 @@ export abstract class BaseService<T> {
         throw error
       })
     } catch (error) {
-      this.matSnackBar.open('Artikel konnte nicht dupliziert werden!', 'OK', {
-        duration: (this.constructor as typeof BaseService).SNACKBAR_DURATION,
-      })
+      this.notifications.error('Artikel konnte nicht dupliziert werden!')
       throw error // Re-throw the error after logging
     }
   }

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import { ReturnAfterOrderService } from '@panary/shared/data-access'
@@ -41,7 +41,7 @@ export function kasseOrigin(url: string | null | undefined): string | null {
 })
 export class KassePageComponent {
   readonly #router = inject(Router)
-  readonly #snackBar = inject(MatSnackBar)
+  readonly #notifications = inject(NotificationService)
   readonly #translate = inject(TranslateService)
   readonly #returnAfterOrder = inject(ReturnAfterOrderService)
 
@@ -83,14 +83,12 @@ export class KassePageComponent {
         this.run.update(n => n + 1)
         return
       }
-      this.#snackBar
-        .open(
-          this.#translate.instant('SETTINGS.RETURN_AFTER_ORDER_HINT'),
-          this.#translate.instant('ACTIVE_ORDERS.NEW_ORDER'),
-          { duration: 5000 },
-        )
-        .onAction()
-        .subscribe(() => void this.#router.navigateByUrl(KASSE_URL))
+      this.#notifications.info(this.#translate.instant('SETTINGS.RETURN_AFTER_ORDER_HINT'), {
+        action: {
+          label: this.#translate.instant('ACTIVE_ORDERS.NEW_ORDER'),
+          run: () => void this.#router.navigateByUrl(KASSE_URL),
+        },
+      })
     })
   }
 

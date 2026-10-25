@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { OrderCheckoutService } from '@panary/orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
@@ -56,7 +56,7 @@ export class CashPaymentDialogComponent {
   readonly #matDialog = inject(MatDialog)
   readonly #locationService = inject(LocationService)
   readonly #userService = inject(UserService)
-  readonly #snackBar = inject(MatSnackBar)
+  readonly #notifications = inject(NotificationService)
   readonly #translate = inject(TranslateService)
 
   protected readonly paying = signal(false)
@@ -82,9 +82,7 @@ export class CashPaymentDialogComponent {
         return
       }
       if (result === 'cash-session-declined') {
-        this.#snackBar.open(this.#translate.instant('ORDER_DIALOG.PAYMENT_CASH_SESSION_DECLINED'), 'OK', {
-          duration: 5000,
-        })
+        this.#notifications.warning(this.#translate.instant('ORDER_DIALOG.PAYMENT_CASH_SESSION_DECLINED'))
       }
       // `failed`: `handleError` hat schon gemeldet, die Ansicht bleibt für einen neuen Versuch stehen.
     } finally {

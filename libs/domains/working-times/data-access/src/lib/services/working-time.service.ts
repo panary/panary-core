@@ -1,6 +1,5 @@
 import { inject, Injectable } from '@angular/core'
 import { WorkingTime } from '@panary/working-times/domain'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { User, UserService } from '@panary/users/data-access'
 import { BaseService, ConnectionService } from '@panary/shared/data-access'
 import { Observer } from 'rxjs'
@@ -12,7 +11,6 @@ export class WorkingTimeService extends BaseService<WorkingTime> {
   protected override entityLabelKey = 'ENTITY.WORKING_TIME'
 
   /** INJECTION */
-  #matSnackBar: MatSnackBar = inject(MatSnackBar)
   #userService: UserService = inject(UserService)
 
   /** PRIVATE PROPERTIES */
@@ -27,29 +25,17 @@ export class WorkingTimeService extends BaseService<WorkingTime> {
     const user: undefined | User = this.#userService
       .users()
       .find((element: User): boolean => element._id === document.userId)
-    this.#matSnackBar.open(
-      `Arbeitszeiterfassung für "${user ? user.loginname : 'einen Benutzer'}" wurde gestartet`,
-      WorkingTimeService.SNACKBAR_ACTION,
-      { duration: WorkingTimeService.SNACKBAR_DURATION },
-    )
+    this.notifications.success(`Arbeitszeiterfassung für "${user ? user.loginname : 'einen Benutzer'}" wurde gestartet`)
   }
 
   protected override handleItemUpdated(document: WorkingTime) {
     const user = this.#userService.users().find((element: User): boolean => element._id === document.userId)
-    this.#matSnackBar.open(
-      `Arbeitszeit für "${user ? user.loginname : 'einen Benutzer'}" wurde aktualisiert`,
-      WorkingTimeService.SNACKBAR_ACTION,
-      { duration: WorkingTimeService.SNACKBAR_DURATION },
-    )
+    this.notifications.success(`Arbeitszeit für "${user ? user.loginname : 'einen Benutzer'}" wurde aktualisiert`)
   }
 
   protected override handleItemRemoved(document: WorkingTime) {
     const user = this.#userService.users().find((element: User): boolean => element._id === document.userId)
-    this.#matSnackBar.open(
-      `Arbeitszeiterfassung für "${user ? user.loginname : 'einen Benutzer'}" wurde beendet`,
-      WorkingTimeService.SNACKBAR_ACTION,
-      { duration: WorkingTimeService.SNACKBAR_DURATION },
-    )
+    this.notifications.success(`Arbeitszeiterfassung für "${user ? user.loginname : 'einen Benutzer'}" wurde beendet`)
   }
 
   protected override loadDocuments() {

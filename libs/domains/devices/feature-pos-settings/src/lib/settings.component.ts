@@ -21,7 +21,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { toSignal } from '@angular/core/rxjs-interop'
 
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
@@ -105,7 +105,7 @@ export class SettingsComponent implements OnInit {
   // Connect-Tier: nur in der POS-App belegt (admin liefert keinen Provider → null).
   #outbox = inject(OFFLINE_OUTBOX, { optional: true })
   #replay = inject(OFFLINE_REPLAY, { optional: true })
-  #snackBar = inject(MatSnackBar)
+  #notifications = inject(NotificationService)
   #logService = inject(LogService)
 
   readonly #route = inject(ActivatedRoute)
@@ -262,9 +262,7 @@ export class SettingsComponent implements OnInit {
       const count = await this.#outbox.requeueRejected()
       await this.#replay?.replayNow()
       await this.#loadRejected()
-      this.#snackBar.open(this.translateService.instant('SETTINGS.OUTBOX_RETRY_DONE', { count }), 'OK', {
-        duration: 4000,
-      })
+      this.#notifications.success(this.translateService.instant('SETTINGS.OUTBOX_RETRY_DONE', { count }))
     } finally {
       this.isRetrying.set(false)
     }
@@ -281,9 +279,7 @@ export class SettingsComponent implements OnInit {
     try {
       const count = await this.#outbox.resetPendingBackoff()
       await this.#replay?.replayNow()
-      this.#snackBar.open(this.translateService.instant('SETTINGS.OUTBOX_SYNC_NOW_DONE', { count }), 'OK', {
-        duration: 4000,
-      })
+      this.#notifications.success(this.translateService.instant('SETTINGS.OUTBOX_SYNC_NOW_DONE', { count }))
     } finally {
       this.isRetrying.set(false)
     }
@@ -300,9 +296,7 @@ export class SettingsComponent implements OnInit {
     try {
       const count = await this.#outbox.clearRejected()
       await this.#loadRejected()
-      this.#snackBar.open(this.translateService.instant('SETTINGS.OUTBOX_DISCARD_DONE', { count }), 'OK', {
-        duration: 4000,
-      })
+      this.#notifications.success(this.translateService.instant('SETTINGS.OUTBOX_DISCARD_DONE', { count }))
     } finally {
       this.isRetrying.set(false)
     }
@@ -439,14 +433,14 @@ export class SettingsComponent implements OnInit {
     try {
       await this.#logService.openLogDirectory()
     } catch {
-      this.#snackBar.open(this.translateService.instant('SETTINGS.LOGS_EXPORT_ERROR'), '', { duration: 3000 })
+      this.#notifications.error(this.translateService.instant('SETTINGS.LOGS_EXPORT_ERROR'))
     }
   }
 
   protected async copyLogs(): Promise<void> {
     try {
       await navigator.clipboard.writeText(this.logContent())
-      this.#snackBar.open(this.translateService.instant('SETTINGS.LOGS_COPIED'), '', { duration: 2000 })
+      this.#notifications.success(this.translateService.instant('SETTINGS.LOGS_COPIED'))
     } catch {
       /* Clipboard nicht verfügbar — still ignorieren */
     }

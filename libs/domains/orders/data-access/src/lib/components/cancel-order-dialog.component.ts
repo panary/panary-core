@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import type { Params } from '@feathersjs/feathers'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService, currentPosOperatorToken, posOperatorParams } from '@panary/shared/data-access'
 import { UserService } from '@panary/users/data-access'
@@ -240,7 +240,7 @@ export class CancelOrderDialogComponent {
   #orderInteractionService = inject(OrderInteractionService)
   #userService = inject(UserService)
   #connectionService = inject(ConnectionService)
-  #snackBar = inject(MatSnackBar)
+  #notifications = inject(NotificationService)
   #translate = inject(TranslateService)
 
   order: Order = inject(MAT_DIALOG_DATA)
@@ -427,7 +427,7 @@ export class CancelOrderDialogComponent {
         params,
       )
       this.#recordCancelJournal(authorizer._id, params)
-      this.#snackBar.open(this.#translate.instant('CANCEL_ORDER.SUCCESS'), undefined, { duration: 2500 })
+      this.#notifications.success(this.#translate.instant('CANCEL_ORDER.SUCCESS'))
       this.#dialogRef.close({ success: true, canceledBy: name })
     } catch (error) {
       // Der Edge verlangt seit #619 die belegte Freigabe eines Managers. Lehnt er
@@ -440,7 +440,7 @@ export class CancelOrderDialogComponent {
         this.step.set('select-user')
         return
       }
-      this.#snackBar.open(this.#translate.instant('CANCEL_ORDER.ERROR'), 'OK', { duration: 3000 })
+      this.#notifications.error(this.#translate.instant('CANCEL_ORDER.ERROR'))
     } finally {
       this.#cancelling = false
     }

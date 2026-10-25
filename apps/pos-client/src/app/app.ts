@@ -19,8 +19,8 @@ import { NotificationOutletComponent } from '@panary/shared/ui-notifications'
     @if (!isSetupRoute()) {
       <lib-cloud-status-banner layout="strip" [banner]="banner()" (action)="onBannerAction($event)" />
     }
-    <!-- Globaler Toast-Outlet: zeigt NotificationService-Meldungen (u.a. aus
-         handleError). Außerhalb des Setup-Guards, damit auch dort Fehler sichtbar sind. -->
+    <!-- Meldungsebene (core#1026): alle NotificationService-Meldungen, oben mittig direkt unter
+         dem Streifen. Außerhalb des Setup-Guards, damit auch dort Fehler sichtbar sind. -->
     <lib-notification-outlet />
     <router-outlet></router-outlet>
   `,

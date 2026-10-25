@@ -15,7 +15,6 @@ import { APP_CONFIG } from '@panary/shared/data-access-config'
 import { UiScaleService } from '@panary/shared/data-access-theme'
 import { providePosRealtimeScopeGuard } from './realtime-scope-guard.provider'
 import { providePosOfflineCache } from './offline-cache.provider'
-import { providePosSnackBar } from './pos-snack-bar'
 import { EDGE_URL } from './edge-url'
 import packageJson from '../../../../package.json'
 
@@ -39,9 +38,6 @@ export const appConfig: ApplicationConfig = {
     }),
     providePosRealtimeScopeGuard(),
     providePosOfflineCache(),
-    // Quittierpflichtige Meldungen (ohne duration, mit Aktion) kehren zurück, statt von
-    // einer Kurzmeldung oder `dismiss()` verdrängt zu werden (core#531).
-    providePosSnackBar(),
     // Fluide UI-Skalierung (PNRY-FEAT-POS-UI-SCALE-001): beim Boot
     // instanziieren, damit gespeicherte Dichte VOR dem ersten Paint auf
     // <html> angewendet wird — nur im POS-Client.

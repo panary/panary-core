@@ -18,7 +18,6 @@
     "recipes-data-access",
     "shared-data-access-theme",
     "shared-ui-cloud-status",
-    "shared-ui-notifications",
     "shared-util-error-handling",
     "tse-gateway",
     "user-preferences-data-access",

@@ -370,10 +370,7 @@ export class ProductService extends BaseService<ProductSchema> {
       }
     }
 
-    await this.matSnackBar
-      .open('Preise erfolgreich angewendet', BaseService.SNACKBAR_ACTION, { duration: BaseService.SNACKBAR_DURATION })
-      .afterDismissed()
-      .toPromise()
+    this.notifications.success('Preise erfolgreich angewendet')
 
     return pricelist
   }

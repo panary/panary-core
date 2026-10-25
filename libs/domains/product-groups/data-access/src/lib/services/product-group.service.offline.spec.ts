@@ -11,9 +11,8 @@ import {
   ɵChangeDetectionScheduler,
   ɵEffectScheduler,
 } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
-import { of } from 'rxjs'
 import { ConnectionService, DATA_ACCESS_AUTO_LOAD, OFFLINE_CACHE, ServiceHelper } from '@panary/shared/data-access'
 import { ProductGroupService } from './product-group.service'
 
@@ -73,7 +72,7 @@ function setup() {
         },
       },
       { provide: ServiceHelper, useValue: { handleError: vi.fn() } },
-      { provide: MatSnackBar, useValue: { open: () => ({ afterDismissed: () => of(undefined) }) } },
+      { provide: NotificationService, useValue: new NotificationService() },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       { provide: NgZone, useValue: { run: (fn: () => unknown) => fn() } },
       { provide: DATA_ACCESS_AUTO_LOAD, useValue: true },

@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { OutboxStore, type OutboxEntry } from '@panary/shared/offline-cache'
@@ -49,7 +49,7 @@ function setupReplay(entries: OutboxEntry[]) {
         provide: ConnectionService,
         useValue: { connectionState: signal({ status: 'authenticated' }), orderService: { create, patch } },
       },
-      { provide: MatSnackBar, useValue: { open: vi.fn() } },
+      { provide: NotificationService, useValue: new NotificationService() },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
     ],
   })

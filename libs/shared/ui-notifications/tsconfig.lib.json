@@ -6,7 +6,10 @@
     "declarationMap": true,
     "sourceMap": true,
     "inlineSources": true,
-    "types": []
+    "types": [],
+    "paths": {
+      "@panary/shared/util-helpers": ["../util-helpers/dist/index.d.ts"]
+    }
   },
   "angularCompilerOptions": {
     "compilationMode": "partial"

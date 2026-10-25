@@ -3,7 +3,7 @@ import { formatEur } from '@panary/shared/util-helpers'
 import { Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
 import { ExtendedParams } from '@panary/shared-common'
@@ -256,7 +256,7 @@ export class PreOrderListComponent implements OnInit {
   #preOrderService = inject(PreOrderService)
   #router = inject(Router)
   #dialog = inject(MatDialog)
-  #snackBar = inject(MatSnackBar)
+  #notifications = inject(NotificationService)
   #translate = inject(TranslateService)
 
   // Signals
@@ -397,12 +397,12 @@ export class PreOrderListComponent implements OnInit {
 
     try {
       await this.#preOrderService.convert(order._id)
-      this.#snackBar.open(this.#translate.instant('PRE_ORDERS.CONVERTED_SUCCESS'), undefined, { duration: 2500 })
+      this.#notifications.success(this.#translate.instant('PRE_ORDERS.CONVERTED_SUCCESS'))
       this.fetchOrders()
       this.#router.navigate(['/orders/active'])
     } catch (e) {
       console.error(e)
-      this.#snackBar.open(this.#translate.instant('PRE_ORDERS.CONVERT_ERROR'), 'OK', { duration: 3000 })
+      this.#notifications.error(this.#translate.instant('PRE_ORDERS.CONVERT_ERROR'))
     }
   }
 
@@ -425,12 +425,12 @@ export class PreOrderListComponent implements OnInit {
 
     try {
       await this.#preOrderService.patch(order._id, { status: 'cancelled' })
-      this.#snackBar.open(this.#translate.instant('PRE_ORDERS.CANCELED_SUCCESS'), undefined, { duration: 2500 })
+      this.#notifications.success(this.#translate.instant('PRE_ORDERS.CANCELED_SUCCESS'))
       this.fetchOrders()
       this.selectedOrder.set(null)
     } catch (e) {
       console.error(e)
-      this.#snackBar.open(this.#translate.instant('PRE_ORDERS.CANCEL_ERROR'), 'OK', { duration: 3000 })
+      this.#notifications.error(this.#translate.instant('PRE_ORDERS.CANCEL_ERROR'))
     }
   }
 

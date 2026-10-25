@@ -3,10 +3,9 @@ import '@angular/compiler'
 import { describe, expect, it } from 'vitest'
 import { Injector, runInInjectionContext, signal } from '@angular/core'
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { ReturnAfterOrderService, TenantSuspensionService } from '@panary/shared/data-access'
-import { Subject } from 'rxjs'
 
 import { KASSE_EXIT_URL, KassePageComponent, kasseOrigin } from './kasse-page.component'
 import { kasseBookingGuard, kasseLeaveGuard } from './kasse.guards'
@@ -15,7 +14,7 @@ import { KasseDraftRegistry } from './kasse-draft-registry'
 function setup(navigationSucceeds = true, previousUrl?: string, returnEnabled = true) {
   const navigations: string[] = []
   const suspended = signal(false)
-  const snacks: Array<{ message: string; action: string; onAction: Subject<void> }> = []
+  const notifications = new NotificationService()
   const router = {
     currentNavigation: () => (previousUrl ? { previousNavigation: { finalUrl: previousUrl } } : null),
     navigateByUrl: (url: string) => {
@@ -30,19 +29,10 @@ function setup(navigationSucceeds = true, previousUrl?: string, returnEnabled = 
       { provide: TenantSuspensionService, useValue: { suspended } },
       { provide: ReturnAfterOrderService, useValue: { enabled: () => returnEnabled } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
-      {
-        provide: MatSnackBar,
-        useValue: {
-          open: (message: string, action: string) => {
-            const onAction = new Subject<void>()
-            snacks.push({ message, action, onAction })
-            return { onAction: () => onAction }
-          },
-        },
-      },
+      { provide: NotificationService, useValue: notifications },
     ],
   })
-  return { injector, navigations, suspended, snacks }
+  return { injector, navigations, suspended, notifications }
 }
 
 const state = (url: string) => ({ url }) as RouterStateSnapshot
@@ -92,14 +82,15 @@ describe('KassePageComponent — Rücksprung nach dem Bestellen (core#974)', () 
   })
 
   it('der Hinweis bietet „Neue Bestellung" an und öffnet die Kasse wieder', async () => {
-    const { injector, navigations, snacks } = setup(true, '/pre-orders')
+    const { injector, navigations, notifications } = setup(true, '/pre-orders')
     pageOf(injector).onClosed('order-placed')
     await Promise.resolve()
     await Promise.resolve()
 
-    expect(snacks).toHaveLength(1)
-    expect(snacks[0].action).toBe('ACTIVE_ORDERS.NEW_ORDER')
-    snacks[0].onAction.next()
+    const [hint] = notifications.notifications()
+    expect(notifications.notifications()).toHaveLength(1)
+    expect(hint.action?.label).toBe('ACTIVE_ORDERS.NEW_ORDER')
+    notifications.runAction(hint.id)
     expect(navigations).toEqual(['/pre-orders', '/kasse'])
   })
 
@@ -132,7 +123,7 @@ describe('KassePageComponent — Rücksprung nach dem Bestellen (core#974)', () 
   })
 
   it('scheitert die Rückkehr, bleibt die Kasse offen und frisch', async () => {
-    const { injector, snacks } = setup(false, '/orders/active')
+    const { injector, notifications } = setup(false, '/orders/active')
     const page = pageOf(injector)
 
     page.onClosed('order-placed')
@@ -140,7 +131,7 @@ describe('KassePageComponent — Rücksprung nach dem Bestellen (core#974)', () 
     await Promise.resolve()
 
     expect(page.run()).toBe(1)
-    expect(snacks).toHaveLength(0)
+    expect(notifications.notifications()).toHaveLength(0)
   })
 
   it('kasseOrigin kennt nur die Rail-Seiten', () => {

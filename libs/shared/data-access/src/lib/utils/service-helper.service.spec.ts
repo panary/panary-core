@@ -1,6 +1,5 @@
 import '@angular/compiler'
 import { Injector } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { Router } from '@angular/router'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
@@ -17,9 +16,8 @@ function setup() {
   const navigate = vi.fn().mockResolvedValue(true)
   const injector = Injector.create({
     providers: [
-      { provide: NotificationService, useValue: { show } },
+      { provide: NotificationService, useValue: { error: show } },
       { provide: Router, useValue: { navigate } },
-      { provide: MatSnackBar, useValue: { open: vi.fn() } },
       { provide: TenantSuspensionService, useClass: TenantSuspensionService },
       { provide: ServiceHelper, useClass: ServiceHelper, deps: [] },
     ],

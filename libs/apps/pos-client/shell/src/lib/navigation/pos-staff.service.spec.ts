@@ -2,7 +2,7 @@
 import '@angular/compiler'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Injector, runInInjectionContext, signal } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, PosSessionService } from '@panary/auth/data-access'
 import { clearPosOperatorToken, storePosOperatorToken, TenantSuspensionService } from '@panary/shared/data-access'
@@ -29,7 +29,8 @@ function setup(
     endBreak: vi.fn().mockResolvedValue(user),
   }
   const session = { isOffline: signal(!!state.offline), endSession: vi.fn().mockResolvedValue(true) }
-  const snackBar = { open: vi.fn() }
+  const notifications = new NotificationService()
+  const notify = vi.spyOn(notifications, 'notify')
   const handedness = {
     effective: () => state.cartSide ?? 'left',
     choose: vi.fn(state.choose ?? (() => Promise.resolve('saved' as const))),
@@ -40,32 +41,32 @@ function setup(
       { provide: AuthService, useValue: { fullName: signal('Olga Owner') } },
       { provide: PosSessionService, useValue: session },
       { provide: TenantSuspensionService, useValue: { suspended: signal(!!state.suspended) } },
-      { provide: MatSnackBar, useValue: snackBar },
+      { provide: NotificationService, useValue: notifications },
       { provide: PosHandednessService, useValue: handedness },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
     ],
   })
   const service = runInInjectionContext(injector, () => new PosStaffService())
-  return { service, users, session, snackBar, handedness }
+  return { service, users, session, notify, handedness }
 }
 
 describe('PosStaffService (core#832)', () => {
   it('stempelt online ein', async () => {
-    const { service, users, snackBar } = setup()
+    const { service, users, notify } = setup()
     await service.clockIn()
     expect(users.checkin.mock.calls).toEqual([['u-olga', {}]])
-    expect(snackBar.open).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
   })
 
   it('sperrt Stempeln offline mit Hinweis und ruft den Server nicht', async () => {
-    const { service, users, snackBar } = setup({ offline: true, stampingId: 'wt-1' })
+    const { service, users, notify } = setup({ offline: true, stampingId: 'wt-1' })
     await service.clockIn()
     await service.startBreak()
     await service.clockOut()
     expect(users.checkin).not.toHaveBeenCalled()
     expect(users.startBreak).not.toHaveBeenCalled()
     expect(users.checkout).not.toHaveBeenCalled()
-    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual([
+    expect(notify.mock.calls.map(call => call[1])).toEqual([
       'DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED',
       'DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED',
       'DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED',
@@ -73,10 +74,10 @@ describe('PosStaffService (core#832)', () => {
   })
 
   it('nennt bei Mandantensperre die Sperre, auch wenn zugleich offline', async () => {
-    const { service, users, snackBar } = setup({ offline: true, suspended: true })
+    const { service, users, notify } = setup({ offline: true, suspended: true })
     await service.clockIn()
     expect(users.checkin).not.toHaveBeenCalled()
-    expect(snackBar.open.mock.calls[0][0]).toBe('CLOUD_STATUS.TENANT_SUSPENDED')
+    expect(notify.mock.calls[0][1]).toBe('CLOUD_STATUS.TENANT_SUSPENDED')
   })
 
   it('Gehen meldet nach Erfolg ab, nach Fehlschlag nicht', async () => {
@@ -120,18 +121,18 @@ describe('PosStaffService (core#832)', () => {
   it('abgelehntes Bediener-Token: Hinweis und kontrollierte PIN-Abfrage statt stummem Login (core#923)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const rejection = Object.assign(new Error('abgelehnt'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
-    const { service, users, session, snackBar } = setup({ stampingId: 'wt-1' })
+    const { service, users, session, notify } = setup({ stampingId: 'wt-1' })
     users.checkout.mockRejectedValue(rejection)
     await service.clockOut()
-    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.OPERATOR_PIN_REQUIRED'])
+    expect(notify.mock.calls.map(call => call[1])).toEqual(['POS_NAV.OPERATOR_PIN_REQUIRED'])
     // Genau einmal: Gehen meldet nach einem Fehlschlag nicht noch zusätzlich ab.
     expect(session.endSession.mock.calls).toEqual([['button']])
   })
 
-  it('Hinweis erst nach dem Abmelden — die Abmelde-Snackbar überschreibt ihn sonst (core#937)', async () => {
+  it('Hinweis erst nach dem Abmelden — sonst stünde die Abmelde-Meldung über ihm (core#937)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const rejection = Object.assign(new Error('abgelehnt'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
-    const { service, users, session, snackBar } = setup()
+    const { service, users, session, notify } = setup()
     const order: string[] = []
     let finishLogout: (value: boolean) => void = () => undefined
     session.endSession.mockImplementation(
@@ -144,7 +145,10 @@ describe('PosStaffService (core#832)', () => {
           }
         }),
     )
-    snackBar.open.mockImplementation(() => void order.push('hint'))
+    notify.mockImplementation(() => {
+      order.push('hint')
+      return { id: 0, dismiss: () => undefined }
+    })
     users.checkin.mockRejectedValue(rejection)
     const done = service.clockIn()
     await vi.waitFor(() => expect(order).toEqual(['endSession']))
@@ -156,21 +160,21 @@ describe('PosStaffService (core#832)', () => {
   it('scheitert das Abmelden, erscheint der Hinweis trotzdem und Stempeln wirft nicht (core#937)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const rejection = Object.assign(new Error('abgelehnt'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
-    const { service, users, session, snackBar } = setup()
+    const { service, users, session, notify } = setup()
     session.endSession.mockRejectedValue(new Error('Navigation fehlgeschlagen'))
     users.checkin.mockRejectedValue(rejection)
     await expect(service.timeClock('clock-in')).resolves.toBeUndefined()
-    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.OPERATOR_PIN_REQUIRED'])
+    expect(notify.mock.calls.map(call => call[1])).toEqual(['POS_NAV.OPERATOR_PIN_REQUIRED'])
     expect(service.timeClockBusy()).toBe(false)
   })
 
   it('anderer Fehler beim Stempeln: keine PIN-Abfrage, kein Hinweis (core#923)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const { service, users, session, snackBar } = setup()
+    const { service, users, session, notify } = setup()
     users.checkin.mockRejectedValue(Object.assign(new Error('jwt expired'), { code: 401 }))
     await service.clockIn()
     expect(session.endSession).not.toHaveBeenCalled()
-    expect(snackBar.open).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
   })
 
   it('Bedienhand aus dem Avatar-Menü: dieselbe Seite ändert nichts, die andere wird gespeichert (core#942)', async () => {
@@ -193,19 +197,19 @@ describe('PosStaffService (core#832)', () => {
   it('Sperr-Hinweis der Stempeltaste: nur gesperrt eine Meldung, ohne Server-Aufruf (core#942)', () => {
     const blocked = setup({ offline: true, stampingId: 'wt-1' })
     expect(blocked.service.notifyTimeTrackingBlocked()).toBe(true)
-    expect(blocked.snackBar.open.mock.calls.map(call => call[0])).toEqual(['DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'])
+    expect(blocked.notify.mock.calls.map(call => call[1])).toEqual(['DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED'])
     expect(blocked.users.startBreak).not.toHaveBeenCalled()
 
     const free = setup({ stampingId: 'wt-1' })
     expect(free.service.notifyTimeTrackingBlocked()).toBe(false)
-    expect(free.snackBar.open).not.toHaveBeenCalled()
+    expect(free.notify).not.toHaveBeenCalled()
   })
 
   it('sperrt Abmelden offline mit Hinweis', () => {
-    const { service, session, snackBar } = setup({ offline: true })
+    const { service, session, notify } = setup({ offline: true })
     service.logout()
     expect(session.endSession).not.toHaveBeenCalled()
-    expect(snackBar.open.mock.calls[0][0]).toBe('DASHBOARD.LOGOUT_OFFLINE_BLOCKED')
+    expect(notify.mock.calls[0][1]).toBe('DASHBOARD.LOGOUT_OFFLINE_BLOCKED')
   })
 
   it('bildet die Initialen aus dem Namen', () => {
@@ -216,7 +220,7 @@ describe('PosStaffService (core#832)', () => {
     const left = setup({ cartSide: 'left' })
     await left.service.toggleCartSide()
     expect(left.handedness.choose.mock.calls).toEqual([['u-olga', 'right']])
-    expect(left.snackBar.open).not.toHaveBeenCalled()
+    expect(left.notify).not.toHaveBeenCalled()
 
     const right = setup({ cartSide: 'right' })
     await right.service.toggleCartSide()
@@ -224,22 +228,22 @@ describe('PosStaffService (core#832)', () => {
   })
 
   it('Warenkorb-Seite offline gemerkt: Hinweis aufs Nachsenden', async () => {
-    const { service, snackBar } = setup({ choose: () => Promise.resolve('pending') })
+    const { service, notify } = setup({ choose: () => Promise.resolve('pending') })
     await service.toggleCartSide()
-    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_PENDING'])
+    expect(notify.mock.calls.map(call => call[1])).toEqual(['POS_NAV.CART_SIDE_PENDING'])
   })
 
   it('Warenkorb-Seite nur lokal (kein Token, Edge ohne Methode): Hinweis statt Fehler (core#964)', async () => {
-    const { service, snackBar } = setup({ choose: () => Promise.resolve('local') })
+    const { service, notify } = setup({ choose: () => Promise.resolve('local') })
     await service.toggleCartSide()
-    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_LOCAL'])
+    expect(notify.mock.calls.map(call => call[1])).toEqual(['POS_NAV.CART_SIDE_LOCAL'])
   })
 
   it('Warenkorb-Seite abgelehnt: Fehlermeldung statt stiller Rücknahme', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const { service, snackBar } = setup({ choose: () => Promise.reject(new Error('401')) })
+    const { service, notify } = setup({ choose: () => Promise.reject(new Error('401')) })
     await service.toggleCartSide()
-    expect(snackBar.open.mock.calls.map(call => call[0])).toEqual(['POS_NAV.CART_SIDE_FAILED'])
+    expect(notify.mock.calls.map(call => call[1])).toEqual(['POS_NAV.CART_SIDE_FAILED'])
   })
 
   it('Bedienerwechsel ohne users-Event: currentUser, Name und Stempeln folgen dem neuen Bediener (core#902)', async () => {
@@ -266,7 +270,7 @@ describe('PosStaffService (core#832)', () => {
         { provide: AuthService, useValue: { fullName: signal('Unknown User') } },
         { provide: PosSessionService, useValue: { isOffline: signal(false), endSession: vi.fn() } },
         { provide: TenantSuspensionService, useValue: { suspended: signal(false) } },
-        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: NotificationService, useValue: new NotificationService() },
         { provide: PosHandednessService, useValue: { effective: () => 'left', choose: vi.fn() } },
         { provide: TranslateService, useValue: { instant: (key: string) => key } },
       ],

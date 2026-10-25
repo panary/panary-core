@@ -1,14 +1,14 @@
 import { ActivatedRouteSnapshot, CanActivateFn, RouterStateSnapshot } from '@angular/router'
 import { inject } from '@angular/core'
 import { AuthService } from '../services/auth.service'
-import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 
 export const preventAccessGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
   state: RouterStateSnapshot,
 ): boolean => {
   const authService: AuthService = inject(AuthService)
-  const matSnackBar: MatSnackBar = inject(MatSnackBar)
+  const notifications = inject(NotificationService)
 
   if (authService.isAdmin() || !authService.user()) {
     return true
@@ -23,14 +23,7 @@ export const preventAccessGuard: CanActivateFn = (
     }
   }
 
-  //#region Initializing the popup control (Material Snack Bar)
-  const snackBarConfig: MatSnackBarConfig<any> = new MatSnackBarConfig()
-  // snackBarConfig.verticalPosition = 'top'                // Positioning the snack bar popup
-  snackBarConfig.duration = 6000 // Snack bar popup display duration
-  snackBarConfig.panelClass = ['bg-red-600', 'text-white'] // Snack bar popup applied class for styling
-  //#endregion
-
-  matSnackBar.open('Sie sind nicht berechtigt, auf diese Seite zuzugreifen!', 'Schließen', snackBarConfig)
+  notifications.error('Sie sind nicht berechtigt, auf diese Seite zuzugreifen!')
 
   return false
 }

@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import { BaseService, ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { CacheEntity, OfflineOutboxPort } from '@panary/shared-common'
@@ -28,7 +28,7 @@ export class PreOrderService extends BaseService<PreOrder> {
   #outbox: OfflineOutboxPort | null = inject(OFFLINE_OUTBOX, { optional: true })
   #locationService = inject(LocationService)
   #connection = inject(ConnectionService)
-  #snackBar = inject(MatSnackBar)
+  #notifications = inject(NotificationService)
   #translate = inject(TranslateService)
 
   protected override loadDocuments(): void {
@@ -75,7 +75,7 @@ export class PreOrderService extends BaseService<PreOrder> {
    */
   async convert(id: string): Promise<Order> {
     if (this.#shouldQueueOffline()) {
-      this.#snackBar.open(this.#translate.instant('PRE_ORDERS.CONVERT_OFFLINE_BLOCKED'), 'OK', { duration: 4000 })
+      this.#notifications.warning(this.#translate.instant('PRE_ORDERS.CONVERT_OFFLINE_BLOCKED'))
       throw new Error('OFFLINE_CONVERT_BLOCKED')
     }
     return (this.service as unknown as PreOrdersCustomService).convert(id)

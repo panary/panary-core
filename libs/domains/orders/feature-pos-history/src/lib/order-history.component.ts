@@ -35,7 +35,6 @@ export class OrderHistoryComponent {
   #router = inject(Router)
   #translate = inject(TranslateService)
   #dialog = inject(MatDialog)
-  // MatSnackBar wird im CancelOrderDialogComponent verwendet, nicht hier direkt
 
   protected readonly timeRanges: { value: TimeRange; label: string }[] = [
     { value: 'today', label: 'HISTORY.TODAY' },

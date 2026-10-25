@@ -9,7 +9,7 @@
 import '@angular/compiler'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Injector, NgZone, runInInjectionContext } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
+import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import {
   ConnectionService,
@@ -40,7 +40,7 @@ function setup(token: string | null) {
     providers: [
       { provide: ConnectionService, useValue: { cashSessionService: { openAuthorized, find, get } } },
       { provide: ServiceHelper, useValue: { handleError: vi.fn() } },
-      { provide: MatSnackBar, useValue: { open: vi.fn() } },
+      { provide: NotificationService, useValue: new NotificationService() },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       { provide: NgZone, useValue: { run: (fn: () => unknown) => fn() } },
       { provide: DATA_ACCESS_AUTO_LOAD, useValue: false },

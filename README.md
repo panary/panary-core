@@ -53,7 +53,7 @@ Domain libraries export via `@panary/[domain]/domain`. Apps import from libs —
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) v22+
+- [Node.js](https://nodejs.org/) v26.12.1+ (`.nvmrc`; ältere Stände enthalten den Brotli-Decoder-Fehler CVE-2026-111497)
 - [pnpm](https://pnpm.io/) v9+
 - [Nx](https://nx.dev/) v22+ (installed via `pnpm`)
 

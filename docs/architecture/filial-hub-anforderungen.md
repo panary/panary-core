@@ -79,7 +79,7 @@ Appliance-Charakter.
 
 ## 3. Software / Runtime
 
-- Node 22 (glibc) — bereits containerisiert (`node:22-bookworm-slim`)
+- Node 26 (glibc) — bereits containerisiert (`node:26.12.1-bookworm-slim`)
 - Container-Runtime (Docker/Podman) **oder** gehärteter Bare-Metal-Service
 - SQLite (better-sqlite3, nativ), MQTT-Broker, Auto-Update-Agent
 - Secrets über das vorhandene **BWS-Pattern** (Bitwarden Secrets) — kein Klartext auf dem Gerät

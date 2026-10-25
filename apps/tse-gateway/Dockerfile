@@ -4,7 +4,7 @@
 #   pnpm nx build tse-gateway   →   dist/apps/tse-gateway/main.js (self-contained Bundle)
 # Image bauen:
 #   docker build -f apps/tse-gateway/Dockerfile -t panary-tse-gateway dist/apps/tse-gateway
-FROM node:22-bookworm-slim
+FROM node:26.12.1-bookworm-slim
 WORKDIR /app
 COPY . ./
 # Container laeuft als non-root (`node`-User aus dem Base-Image). Schuetzt

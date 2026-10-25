@@ -55,7 +55,7 @@
   },
   "private": true,
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=26.12.1"
   },
   "devDependencies": {
     "@angular-devkit/core": "21.2.26",
@@ -106,7 +106,7 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/lodash": "^4.17.26",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^25.9.9",
+    "@types/node": "^26.6.5",
     "@typescript-eslint/utils": "^8.71.1",
     "@vitest/coverage-v8": "^4.1.11",
     "altcha-lib": "2.6.0",
@@ -160,7 +160,7 @@
     "@point-of-sale/receipt-printer-encoder": "^3.0.3",
     "async-mutex": "^0.5.0",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^12.11.1",
     "bonjour-service": "^1.4.4",
     "bson": "^7.3.2",
     "feathers-hooks-common": "^8.2.1",

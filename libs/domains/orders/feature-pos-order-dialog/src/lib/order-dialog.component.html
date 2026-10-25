@@ -722,7 +722,7 @@
            schon angelegt, geschlossen wird nur über „Bar kassieren" oder „Offen lassen". -->
       @if (payment(); as pending) {
         <div class="kasse__scrim kasse-scrim-enter" aria-hidden="true"></div>
-        <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line shadow-card" role="dialog">
+        <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line" role="dialog">
           <lib-cash-payment
             [total]="pending.total"
             [busy]="paying()"
@@ -737,7 +737,7 @@
            die Anpassung nicht verwirft. Schließen nur über Übernehmen/Abbrechen im Panel. -->
       @if (customizeModel(); as model) {
         <div class="kasse__scrim kasse-scrim-enter" aria-hidden="true"></div>
-        <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line shadow-card">
+        <div class="kasse__sheet kasse-sheet-enter bg-surface-panel border border-line">
           <lib-product-customize-panel
             class="flex min-h-0 flex-1 flex-col pb-3"
             [model]="model"

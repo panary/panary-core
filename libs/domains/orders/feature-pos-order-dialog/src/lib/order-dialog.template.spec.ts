@@ -689,7 +689,9 @@ describe('Kasse-Template — Modifier-Sheet als Ebene (core#1066)', () => {
 
   it('trägt Griffleiste und Schatten nach oben', () => {
     expect(sheet).toMatch(/&::before \{[^}]*width: 2\.5rem;[^}]*height: 0\.25rem;/)
-    expect(sheet).toMatch(/box-shadow: 0 -0\.5rem/)
+    expect(sheet).toMatch(/box-shadow: 0 -0\.5rem 1rem -0\.5rem/)
+    // Die Komponenten-SCSS überschreibt `box-shadow` — eine Tailwind-Schattenklasse am Sheet wäre wirkungslos.
+    expect(template).not.toContain('kasse-sheet-enter bg-surface-panel border border-line shadow-card')
   })
 
   it('fährt von unten herein und blendet bei „Bewegung reduzieren" nur ein', () => {

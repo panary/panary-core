@@ -211,7 +211,10 @@
   border-radius: 1rem 1rem 0 0;
   /* Steht auf dem unteren Bildschirmrand — dort keine Kante. */
   border-bottom-width: 0;
-  box-shadow: 0 -0.5rem 1.5rem rgb(15 23 42 / 0.18);
+  /* Negativer Spread: Der Schatten bleibt im Streifen über dem Sheet und fällt nicht auf Warenkorb oder Gruppenleiste.
+     Neutrales Schwarz statt eines Theme-Tokens — es gibt kein Erhöhungs-Token nach oben, und Schwarz trägt in beiden
+     Themes; im dunklen trennt ohnehin der Scrim-Streifen. */
+  box-shadow: 0 -0.5rem 1rem -0.5rem rgb(0 0 0 / 0.22);
 
   &::before {
     content: '';

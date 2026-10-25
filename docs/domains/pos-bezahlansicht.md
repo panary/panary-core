@@ -4,7 +4,7 @@ title: POS-Bezahlansicht — Bar kassieren im Kassenbetrieb
 description: Wie die Kasse im Kassenbetrieb nach „Bezahlen" eine Bezahlansicht zeigt (nur Bar, Rückgeld nur Anzeige, Karte/Gutschein „bald"), wann sie erscheint und wie Fehler und „Offen lassen" laufen.
 tags: [orders, pos, payment]
 status: stable
-generated: { by: claude-code/sonnet-5.5, at: 2026-10-22T15:00:00Z }
+generated: { by: claude-code/sonnet-5.5, at: 2026-10-25T19:25:00Z }
 ---
 
 # POS-Bezahlansicht
@@ -31,6 +31,9 @@ Sonst heißt die Taste „Bestellen" und alles läuft wie vorher.
    dem Anlegen, also vor der Bezahlansicht (F1). Scheitert das Anlegen, bleiben die Positionen stehen.
 2. Die Bezahlansicht ist ein Sheet über Raster und Ziffernleiste (wie [Anpassen](pos-anpassen-panel.md), seit core#909). Primärtaste,
    Ziffernleiste, Gruppenleiste samt Burger-Menü und die Rail sind gesperrt, ein Tipp auf den Scrim tut nichts.
+   Seit [core#1066](https://github.com/panary/panary-core/issues/1066) lässt das Sheet oben 1,25rem frei und trägt
+   eine Griffleiste wie Anpassen. Die Ansicht hat feste Höhen ohne eigenen Scrollbereich; unter etwa 650 px
+   Fensterhöhe ist sie mit dem Abstand nicht geprüft.
 3. **Gegeben** wird von rechts eingegeben (5, 0, 0 → 5,00 €), dazu „Passend" und die nächsten runden Scheine.
    **Rückgeld** ist reine Anzeige (F2) und wird nicht gebucht.
 4. **Bar kassieren** ist erst frei, wenn der Betrag die Summe deckt. Es ruft `OrderCheckoutService.payCash`: eine

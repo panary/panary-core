@@ -81,14 +81,6 @@ interface OrderCardVm {
   itemsGapClass: string
 }
 
-@Component({
-  selector: 'lib-active-orders',
-  standalone: true,
-  imports: [IconComponent, CommonModule, TranslateModule],
-  templateUrl: './active-orders.component.html',
-  styleUrl: './active-orders.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
 const ZOOM_STORAGE_KEY = 'pos_active_orders_zoom'
 const ZOOM_DEFAULT = 0.85
 const ZOOM_MIN = 0.5
@@ -107,6 +99,14 @@ const readStoredZoom = (): number => {
   }
 }
 
+@Component({
+  selector: 'lib-active-orders',
+  standalone: true,
+  imports: [IconComponent, CommonModule, TranslateModule],
+  templateUrl: './active-orders.component.html',
+  styleUrl: './active-orders.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
 export class ActiveOrdersComponent {
   #orderService = inject(OrderService)
   #authService = inject(AuthService)

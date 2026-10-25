@@ -3182,3 +3182,25 @@ describe('Kasse — Hauptbereich ohne Funktionstasten (core#965)', () => {
     expect(component.boardFunctionButtons).toEqual([])
   })
 })
+
+// core#1068: Die Gruppenleiste hebt die Gruppe hervor, deren Produkte das Raster zeigt.
+describe('Kasse — aktive Produktgruppe (core#1068)', () => {
+  it('merkt sich die gewählte Gruppe und wechselt mit der nächsten', () => {
+    const { component } = setup()
+
+    expect(component.activeProductGroupId()).toBeNull()
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke', color: '#0ea5e9' } as never)
+    expect(component.activeProductGroupId()).toBe('g-1')
+    component.createProductButtons({ _id: 'g-2', name: 'Speisen', color: '#e05d5d' } as never)
+    expect(component.activeProductGroupId()).toBe('g-2')
+  })
+
+  it('verliert die Hervorhebung, sobald ein Ablauf das Raster ersetzt', () => {
+    const { component } = setup()
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke', color: '#0ea5e9' } as never)
+
+    component.setDeleteSubbuttons()
+
+    expect(component.activeProductGroupId()).toBeNull()
+  })
+})

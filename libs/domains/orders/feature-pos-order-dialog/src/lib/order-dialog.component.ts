@@ -431,6 +431,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly notice = signal<{ text: string; tone: 'danger' | 'neutral' } | null>(null)
   #noticeTimer: ReturnType<typeof setTimeout> | undefined
 
+  /**
+   * Gruppe, deren Produkte das Raster gerade zeigt (core#1068) — die Gruppenleiste hebt sie hervor. Jeder andere
+   * Ansichtswechsel läuft durch `clearButtons()` und nimmt die Hervorhebung dort mit.
+   */
+  readonly activeProductGroupId = signal<string | null>(null)
+
   get combinations(): OrderLineItem[][] {
     return getCombinations({ lineItems: this.#lineItems } as any)
   }
@@ -753,6 +759,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._productButtons = []
     this._functionBlockLabel = ''
     this.corporateCustomers = []
+    this.activeProductGroupId.set(null)
   }
 
   clearNumpad(_skipViewChange = false): void {
@@ -896,6 +903,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this._isBlocked) return
 
     this.clearButtons()
+    this.activeProductGroupId.set(productGroup._id)
     this.setInfoBoxText(productGroup.name, productGroup.color)
     this._selectedProductIndex = null
     // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren

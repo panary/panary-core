@@ -252,9 +252,27 @@ export type ScreenSide = 'left' | 'right'
 
 /**
  * Die Rail sitzt dem Warenkorb gegenüber (Entscheidung Michael 2026-10-23, core#942): Rechtshänder
- * (Warenkorb rechts) haben die Rail links, Linkshänder (Warenkorb links) rechts — auf jeder Seite
- * mit Rail, nicht nur in der Kasse.
+ * (Warenkorb links) haben die Rail rechts, Linkshänder (Warenkorb rechts) links — auf jeder Seite
+ * mit Rail, nicht nur in der Kasse. Die Zuordnung der Bezeichnungen steht in [[HAND_OPTIONS]].
  */
 export function railSide(cartSide: ScreenSide): ScreenSide {
   return cartSide === 'left' ? 'right' : 'left'
 }
+
+export interface HandOption {
+  /** Gespeicherter Wert `posHandedness` = Seite des Warenkorbs. */
+  readonly side: ScreenSide
+  readonly label: string
+  /** Das Hand-Icon zeigt eine rechte Hand; für Linkshänder wird es gespiegelt. */
+  readonly mirrorIcon: boolean
+}
+
+/**
+ * Bedienhand im Avatar-Menü (core#1063, Entscheidung Michael 2026-10-25): Rechtshänder haben den Warenkorb
+ * links und die Rail rechts, Linkshänder umgekehrt. Getauscht wurde nur die Bezeichnung, nicht der gespeicherte
+ * Wert — `left` heißt seitdem „Rechtshänder", und wer nie gewählt hat (Standard `left`), startet so.
+ */
+export const HAND_OPTIONS: readonly HandOption[] = [
+  { side: 'left', label: 'POS_NAV.RIGHT_HANDED', mirrorIcon: false },
+  { side: 'right', label: 'POS_NAV.LEFT_HANDED', mirrorIcon: true },
+]

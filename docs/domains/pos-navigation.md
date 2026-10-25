@@ -4,7 +4,7 @@ title: POS-Navigation — Rail statt Dashboard-Kacheln
 description: 'Wie der POS seit core#832 navigiert — Rail mit fünf direkten Einträgen, „Mehr" mit Gruppen und direktem Einstellungen-Eintrag, ruhige Fußzone mit Stempeltaste, Abmelden und Avatar (core#942), Rail gegenüber dem Warenkorb, Avatar-Menü mit Bedienhand und Darstellung; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:10:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:40:00Z }
 ---
 
 # POS-Navigation — Rail statt Dashboard-Kacheln
@@ -13,9 +13,9 @@ Seit [core#832](https://github.com/panary/panary-core/issues/832), Teil des Desi
 [core#819](https://github.com/panary/panary-core/issues/819), navigiert der POS über eine **Rail**; sie ersetzt die Schnellzugriff-Kacheln des Dashboards, das zur
 „Übersicht" wird. Seit
 [core#942](https://github.com/panary/panary-core/issues/942) sitzt sie dem Warenkorb gegenüber: Rechtshänder
-(Warenkorb rechts) haben sie links, Linkshänder (Warenkorb links) rechts — auf jeder Seite mit Rail
+(Warenkorb links) haben sie rechts, Linkshänder (Warenkorb rechts) links (Bezeichnung seit core#1063) — auf jeder Seite mit Rail
 (`railSide`, `PosStaffService.railSide`). Weil ohne eigene Wahl „links" gilt (`DEFAULT_POS_HANDEDNESS`,
-[Bedienhand](pos-bedienhand.md)), steht die Rail bei allen, die nie gewählt haben, **rechts**. Ihre Menüs
+[Bedienhand](pos-bedienhand.md)), steht die Rail bei allen, die nie gewählt haben, **rechts** — das Rechtshänder-Layout. Ihre Menüs
 öffnen immer zur Bildschirmmitte hin. Nach dem
 Login landet man seit [core#907](https://github.com/panary/panary-core/issues/907) auf der **Übersicht**
 (`/dashboard`) mit Kennzahlen und Vorbestellungen; von core#832 bis dahin war es die Kasse. Grund: Michaels
@@ -35,7 +35,7 @@ laufen über `formatDecimal` (`@panary/shared/util-helpers`, de-DE: „0,6" stat
 | Rail, direkt | Start · Kasse · Offen (Badge) · Vorbest. · Historie |
 | Rail, „Mehr" | Personal: Arbeitszeiten · Ware: Abschreiben · Geschäftstag & Kasse: Tag eröffnen, Tagesabschluss, Kassenlade · Gerät: Einstellungen (direkt, ohne Untermenü) |
 | Rail, unten (core#942, nur Icons) | Stempeltaste · Abmelden (Schloss) · ganz unten Avatar mit Online-Punkt (grün/rot); offline zusätzlich „Offline" über dem Avatar |
-| Avatar-Menü | Name, Stempelstatus · Bedienhand (Linkshänder/Rechtshänder, Hand-Icon) · Darstellung (Hell/Dunkel/System) |
+| Avatar-Menü | Name, Stempelstatus · Bedienhand (Rechtshänder/Linkshänder, Hand-Icon) · Darstellung (Hell/Dunkel/System) |
 
 Login und Einrichtung liegen außerhalb der Shell (`AppPosShellComponent`) und haben keine Rail.
 
@@ -58,7 +58,7 @@ geändert“, die jedes Stempeln über das `patched`-Event auslöste, unterdrüc
 Stempeltaste und Abmelden sind 48 px hoch (Touch-Minimum). Die Arbeitszeit für Uhrzeit und Dauer lädt
 `PosTimeClock` je Stempel-ID einmal.
 
-**Avatar-Menü** (core#942). „Linkshänder/Rechtshänder" ersetzt „Warenkorb-Seite" und wählt die Seite direkt
+**Avatar-Menü** (core#942). „Rechtshänder/Linkshänder" ersetzt „Warenkorb-Seite" und wählt die Seite direkt
 (`PosStaffService.chooseCartSide`); Kasse und Rail spiegeln sofort. Die Darstellung nutzt denselben
 `ThemeServiceService` wie die Einstellungen und gilt damit für das Gerät, nicht für die Person.
 

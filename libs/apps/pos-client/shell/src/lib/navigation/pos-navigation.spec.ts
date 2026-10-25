@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
+  HAND_OPTIONS,
   isNavPathActive,
   MORE_GROUPS,
   type PosNavContext,
@@ -8,6 +11,7 @@ import {
   resolveNavItems,
   SETTINGS_ENTRY,
   railSide,
+  type ScreenSide,
   timeClockState,
   timeClockTapAction,
   timeTrackingBlockedHintKey,
@@ -153,5 +157,54 @@ describe('railSide (core#942)', () => {
   it('Rail sitzt dem Warenkorb gegenüber', () => {
     expect(railSide('left')).toBe('right')
     expect(railSide('right')).toBe('left')
+  })
+})
+
+const readRepoFile = (path: string): string => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8')
+
+const handLabels = (lang: string): Record<string, string> => {
+  const { POS_NAV } = JSON.parse(readRepoFile(`../../../../../../../apps/pos-client/src/assets/i18n/${lang}.json`))
+  return { 'POS_NAV.LEFT_HANDED': POS_NAV.LEFT_HANDED, 'POS_NAV.RIGHT_HANDED': POS_NAV.RIGHT_HANDED }
+}
+
+/** Seite des Warenkorbs in der Kasse, gelesen aus den Grid-Areas der Kasse — nicht aus einer Annahme im Test. */
+const kasseCartSide = (hand: ScreenSide): ScreenSide => {
+  const scss = readRepoFile(
+    '../../../../../../domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.scss',
+  )
+  const block = hand === 'right' ? scss.slice(scss.indexOf("&[data-hand='right']")) : scss
+  const row = /'(cart grid|grid cart)'/.exec(block)?.[1]
+  if (!row) throw new Error(`Keine Warenkorb-Zeile in den Grid-Areas für data-hand=${hand}`)
+  return row === 'cart grid' ? 'left' : 'right'
+}
+
+describe('Bedienhand im Avatar-Menü (core#1063)', () => {
+  const layoutOf = (label: string) => {
+    const option = HAND_OPTIONS.find(entry => entry.label === label)
+    if (!option) throw new Error(`Keine Option ${label}`)
+    return { cart: kasseCartSide(option.side), rail: railSide(option.side), mirrorIcon: option.mirrorIcon }
+  }
+
+  it('Rechtshänder: Warenkorb links, Rail rechts, Hand-Icon ungespiegelt', () => {
+    expect(layoutOf('POS_NAV.RIGHT_HANDED')).toEqual({ cart: 'left', rail: 'right', mirrorIcon: false })
+  })
+
+  it('Linkshänder: Warenkorb rechts, Rail links, Hand-Icon gespiegelt', () => {
+    expect(layoutOf('POS_NAV.LEFT_HANDED')).toEqual({ cart: 'right', rail: 'left', mirrorIcon: true })
+  })
+
+  it('der gespeicherte Wert bleibt die Seite des Warenkorbs — Bestandswerte kippen nicht', () => {
+    expect(HAND_OPTIONS.map(option => option.side)).toEqual(['left', 'right'])
+    expect(HAND_OPTIONS.map(option => kasseCartSide(option.side))).toEqual(['left', 'right'])
+  })
+
+  it.each(['de', 'en', 'tr'])('Beschriftung %s passt zur Hand', lang => {
+    expect(handLabels(lang)).toEqual(
+      {
+        de: { 'POS_NAV.LEFT_HANDED': 'Linkshänder', 'POS_NAV.RIGHT_HANDED': 'Rechtshänder' },
+        en: { 'POS_NAV.LEFT_HANDED': 'Left-handed', 'POS_NAV.RIGHT_HANDED': 'Right-handed' },
+        tr: { 'POS_NAV.LEFT_HANDED': 'Solak', 'POS_NAV.RIGHT_HANDED': 'Sağ elini kullanan' },
+      }[lang],
+    )
   })
 })

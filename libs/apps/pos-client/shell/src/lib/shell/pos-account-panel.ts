@@ -3,26 +3,15 @@ import { CdkMenuGroup, CdkMenuItemRadio } from '@angular/cdk/menu'
 import { TranslateModule } from '@ngx-translate/core'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { IconComponent, type IconName } from '@panary/shared/ui-common'
-import type { ScreenSide } from '../navigation/pos-navigation'
+import { HAND_OPTIONS } from '../navigation/pos-navigation'
 import { monogramStyle } from '@panary/users/domain'
 import { PosStaffService } from '../navigation/pos-staff.service'
-
-interface HandOption {
-  readonly side: ScreenSide
-  readonly label: string
-}
 
 interface ThemeOption {
   readonly value: 'light' | 'dark' | 'system'
   readonly label: string
   readonly icon: IconName
 }
-
-/** Linkshänder: Warenkorb links (und die Rail damit rechts, core#942). */
-const HAND_OPTIONS: readonly HandOption[] = [
-  { side: 'left', label: 'POS_NAV.LEFT_HANDED' },
-  { side: 'right', label: 'POS_NAV.RIGHT_HANDED' },
-]
 
 const THEME_OPTIONS: readonly ThemeOption[] = [
   { value: 'light', label: 'SETTINGS.THEME_LIGHT', icon: 'sun' },
@@ -72,7 +61,7 @@ const THEME_OPTIONS: readonly ThemeOption[] = [
           [cdkMenuItemChecked]="staff.cartSide() === option.side"
           (cdkMenuItemTriggered)="staff.chooseCartSide(option.side)"
         >
-          <lib-icon name="hand" class="text-[1.375rem]" [class.-scale-x-100]="option.side === 'left'" />
+          <lib-icon name="hand" class="text-[1.375rem]" [class.-scale-x-100]="option.mirrorIcon" />
           {{ option.label | translate }}
         </button>
       }

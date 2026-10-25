@@ -47,7 +47,7 @@ export type ContractType = (typeof ContractType)[keyof typeof ContractType]
 
 /**
  * Bedienhand eines Mitarbeiters an der Kasse — bestimmt, auf welcher Seite der
- * Warenkorb sitzt (Linkshaender: Warenkorb links). String statt Boolean, weil
+ * Warenkorb sitzt (`left` = Warenkorb links, im POS „Rechtshaender", core#1063). String statt Boolean, weil
  * SQLite Booleans als 0/1 liefert und jeder Leser sonst eine Coercion braucht.
  * Fehlt der Wert, gilt [[DEFAULT_POS_HANDEDNESS]] (Aufloesung:
  * `resolvePosHandedness` in pos-handedness-policy.ts).

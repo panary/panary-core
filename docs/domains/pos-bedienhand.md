@@ -1,14 +1,14 @@
 ---
 type: Domain Concept
 title: Bedienhand am POS (posHandedness)
-description: Wie ein Mitarbeiter seine Bedienhand an der Kasse trägt und am POS umschaltet — Feld posHandedness ohne Null und ohne Default, Auflösung „fehlt = links", Self-Patch, Methode setPosHandedness über das Bediener-Token, Offline-Nachsenden, Sync-Pfad und die Release-Reihenfolge mit der Cloud.
+description: Wie ein Mitarbeiter seine Bedienhand an der Kasse trägt und am POS umschaltet — Feld posHandedness ohne Null und ohne Default, Auflösung „fehlt = links" (= Rechtshänder, Bezeichnung seit core#1063), Self-Patch, Methode setPosHandedness über das Bediener-Token, Offline-Nachsenden, Sync-Pfad und die Release-Reihenfolge mit der Cloud.
 tags: [users, pos-client, api-edge, sync, security]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-23T11:00:00.000Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:30:00.000Z }
 ---
 
-Ein Mitarbeiter bestimmt, auf welcher Seite der Kasse der Warenkorb sitzt. Linkshänder
-bekommen ihn links, alle anderen können ihn nach rechts legen. Das Feld ist der Daten-Teil
+Ein Mitarbeiter bestimmt, auf welcher Seite der Kasse der Warenkorb sitzt. Rechtshänder
+haben ihn links und die Rail rechts, Linkshänder umgekehrt (Zuordnung seit core#1063, siehe unten). Das Feld ist der Daten-Teil
 des POS-Redesigns (Anker panary/panary-core#819). Eingeführt wurde es mit
 panary/panary-core#827, die Cloud folgt mit panary/panary-cloud#1437, die Umschaltung am
 POS mit panary/panary-core#833.
@@ -59,9 +59,25 @@ geschlossen (`withoutServerStamp`).
 regulärer `patch` vom Terminal scheitert deshalb an `FOREIGN_RECORD`, wie beim PIN-Wechsel
 (`changePin`). Der Self-Patch deckt die persönliche Anmeldung ab; am Terminal gilt der Weg unten.
 
+## Bezeichnung und Wert (seit core#1063)
+
+Der Wert ist die **Seite des Warenkorbs**, die Bezeichnung im Menü die Hand des Mitarbeiters:
+
+| Gespeichert | Warenkorb | Rail | Menü |
+|---|---|---|---|
+| `left` (auch: Feld fehlt) | links | rechts | Rechtshänder |
+| `right` | rechts | links | Linkshänder |
+
+Bis core#1063 hieß `left` „Linkshänder". Michael stellte im Test auf der Sunmi-Kasse (2026-10-25) fest, dass das
+seiner Regel widerspricht: Rechtshänder wollen den Warenkorb links und die Rail rechts. Getauscht wurde **nur die
+Bezeichnung**, nicht der Wert. Ein gedrehter Wert hätte das Layout jedes Mitarbeiters gekippt, der schon gewählt
+hatte. Wer nie gewählt hat, steht damit im Rechtshänder-Layout. Die Zuordnung steht in `HAND_OPTIONS`
+(`libs/apps/pos-client/shell/src/lib/navigation/pos-navigation.ts`), die Spec `pos-navigation.spec.ts` prüft
+Beschriftung (de/en/tr), Warenkorb-Seite aus den Grid-Areas der Kasse und Rail-Seite zusammen.
+
 ## Umschalten am POS (seit #833)
 
-Avatar-Menü der Rail → „Linkshänder"/„Rechtshänder" (seit core#942, vorher „Warenkorb-Seite"). Kasse und
+Avatar-Menü der Rail → „Rechtshänder"/„Linkshänder" (seit core#942, vorher „Warenkorb-Seite"). Kasse und
 Rail spiegeln sofort — die Rail sitzt dem Warenkorb gegenüber ([POS-Navigation](pos-navigation.md)) —, gespeichert wird am Edge
 über die Custom-Method **`users.setPosHandedness({ posHandedness })`**.
 

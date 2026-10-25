@@ -5,7 +5,7 @@ description: Warum die Warenkorbzeile im POS-Bestelldialog seit #269 ein einzige
 tags: [orders, pos, ux]
 status: stable
 decision: accepted
-generated: { by: claude-code/fable-5.1, at: 2026-09-12T12:10:00Z }
+generated: { by: claude-code/fable-5.1, at: 2026-10-25T18:45:00Z }
 ---
 
 # Mutierende Aktionen raus aus der Auswahlfläche des Warenkorbs
@@ -48,7 +48,7 @@ geschrieben.
    (`canDecreaseSelection()`); bei einer Kombination nur, wenn **jede** Position über 1 steht.
    Der Lösch-Pfad liegt vollständig in `deleteSelection()` → `#removeLineItems()`, das über die
    Objektidentität in `#lineItems` entfernt statt über die Kopie aus `getCombinations`.
-4. **Jede Mengenänderung und jedes Löschen bietet „Rückgängig" per Snackbar an** (6 s). Das
+4. **Jede Mengenänderung und jedes Löschen bietet „Rückgängig" per Snackbar an** (6 s, seit [#1065](https://github.com/panary/panary-core/issues/1065) 9 s). Das
    Undo eines Löschens nimmt alle drei Wirkungen zurück: Zeile an alter Stelle,
    Positionsrabatt, `item-delete`-Ereignis; bei einer auf eine Position geschrumpften und
    deshalb aufgelösten Kombination auch die `bundleNumber` der Nachbarzeile. Ein Angebot

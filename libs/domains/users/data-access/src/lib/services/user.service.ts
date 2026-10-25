@@ -12,6 +12,16 @@ import { Location } from '@panary/locations/data-access'
 export class UserService extends BaseService<User> {
   protected override entityLabelKey = 'ENTITY.USER'
 
+  /**
+   * Die generische Realtime-Meldung „Benutzer wurde geändert“ sagt am POS nichts: Mitarbeiter-Datensätze
+   * werden dort laufend gepatcht — jedes Stempeln setzt `stampingId`/`startBreakAt`, dazu Bedienhand und
+   * PIN —, und die Aktion zeigt ihre eigene Rückmeldung (panary/panary-core#954, Muster core#657).
+   */
+  protected override showSnackbar(messageKey: string): void {
+    if (messageKey === 'SNACKBAR.CHANGED' || messageKey === 'SNACKBAR.CHANGED_PLURAL') return
+    super.showSnackbar(messageKey)
+  }
+
   /** INJECTION */
   #authService: AuthService = inject(AuthService)
   protected connectionService: ConnectionService = inject(ConnectionService)

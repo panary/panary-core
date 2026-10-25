@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#1028): [Mobile-POS-Strategie](../architecture/mobile-pos-strategie.md) §12 — CI-Gate `pnpm android-xml:gate` prüft die getrackten Android-XML-Dateien mit `xmllint` auf Wohlgeformtheit (fail-closed).

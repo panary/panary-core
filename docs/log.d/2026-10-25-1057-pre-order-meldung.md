@@ -1,0 +1,1 @@
+* **Fix** (panary/panary-core#1057): [POS-Meldungen](../architecture/pos-meldungen.md) — `main` baute den POS nicht mehr. panary/panary-core#1048 hatte in der Vorbestellliste einen `#snackBar`-Aufruf („nicht mehr offen“) ergänzt, panary/panary-core#1050 hatte das Feld entfernt; beide Squashes liefen konfliktfrei. Die Meldung läuft jetzt als Warnung über den `NotificationService`.

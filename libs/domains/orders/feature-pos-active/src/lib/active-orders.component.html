@@ -1,92 +1,30 @@
-<!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
-<div class="h-full w-full bg-surface-bg flex flex-col overflow-hidden" (click)="zoomOpen.set(false)">
-  <!-- Floating Toolbar -->
-  <div
-    class="fixed bottom-6 right-6 z-30 bg-surface-input rounded-2xl shadow-xl border border-line px-4 py-3 flex items-center gap-3"
-  >
-    <button
-      (click)="goBack()"
-      class="flex items-center justify-center w-10 h-10 bg-surface-elevated border border-line text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
-    >
-      <lib-icon name="arrow-left" class="text-[1.25rem]" />
-    </button>
-
+<div class="h-full w-full bg-surface-bg flex flex-col overflow-hidden">
+  <!-- Seitenkopf: Titel, Zähler, Kartengröße (je Gerät gespeichert) -->
+  <header class="flex-none h-14 px-6 flex items-center gap-3 border-b border-line-soft" data-testid="orders-header">
+    <h1 class="text-lg font-bold text-ink">{{ 'ACTIVE_ORDERS.TITLE' | translate }}</h1>
     <span
       class="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold"
       >{{ orders().length }}</span
     >
-
-    <!-- Zoom: Mobil — Icon mit Popup -->
-    <div class="relative md:hidden">
-      <button
-        (click)="zoomOpen.set(!zoomOpen()); $event.stopPropagation()"
-        class="flex items-center justify-center w-10 h-10 rounded-xl text-ink-muted hover:bg-line-soft transition-colors"
-        [class.bg-line-soft]="zoomOpen()"
-      >
-        <lib-icon name="frame-corners" class="text-[1.25rem]" />
-      </button>
-
-      @if (zoomOpen()) {
-        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
-        <div
-          (click)="$event.stopPropagation()"
-          class="absolute right-0 bottom-full mb-2 bg-surface-input border border-line rounded-2xl shadow-xl dark:shadow-shell/40 p-3 z-50 animate-[fadeIn_0.15s_ease-out]"
-        >
-          <div class="flex items-center gap-2">
-            <button
-              (click)="decreaseZoom()"
-              class="flex items-center justify-center w-12 h-12 rounded-xl bg-line-soft text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
-            >
-              <lib-icon name="minus" class="text-[1.375rem]" />
-            </button>
-            <span class="text-sm font-bold text-ink w-14 text-center select-none"
-              >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
-            >
-            <button
-              (click)="increaseZoom()"
-              class="flex items-center justify-center w-12 h-12 rounded-xl bg-line-soft text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
-            >
-              <lib-icon name="plus" class="text-[1.375rem]" />
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-
-    <!-- Zoom: Desktop — inline -->
-    <div class="hidden md:flex items-center gap-1.5">
+    <div class="flex-1"></div>
+    <div class="flex items-center gap-1.5" data-testid="zoom-controls">
       <button
         (click)="decreaseZoom()"
-        class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
+        class="flex items-center justify-center w-10 h-10 rounded-xl bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
       >
         <lib-icon name="minus" class="text-[1.125rem]" />
       </button>
-      <span class="text-xs font-bold text-ink-muted w-10 text-center select-none tabular-nums"
+      <span class="text-xs font-bold text-ink-muted w-12 text-center select-none tabular-nums"
         >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
       >
       <button
         (click)="increaseZoom()"
-        class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
+        class="flex items-center justify-center w-10 h-10 rounded-xl bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
       >
         <lib-icon name="plus" class="text-[1.125rem]" />
       </button>
     </div>
-
-    <!-- Neue Bestellung -->
-    <button
-      (click)="openQuickOrder()"
-      class="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-action text-on-action hover:brightness-95 transition-colors"
-    >
-      <lib-icon name="plus" class="text-[1.375rem]" />
-    </button>
-    <button
-      (click)="openQuickOrder()"
-      class="hidden md:flex items-center gap-2 rounded-xl h-10 px-4 bg-action text-on-action font-bold hover:brightness-95 transition-colors"
-    >
-      <lib-icon name="plus-circle" class="text-[1.25rem]" />
-      {{ 'ACTIVE_ORDERS.NEW_ORDER' | translate }}
-    </button>
-  </div>
+  </header>
 
   <!-- Horizontaler Scroll-Container (nur X) -->
   <main class="flex-1 overflow-x-auto overflow-y-hidden p-6 relative">

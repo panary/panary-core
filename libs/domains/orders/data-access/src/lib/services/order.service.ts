@@ -78,6 +78,18 @@ export class OrderSplitOfflineError extends Error {
   }
 }
 
+/** Realtime-Meldungen, die der POS für Bestellungen nie zeigt (core#657). */
+const SILENT_REALTIME_MESSAGES: ReadonlySet<string> = new Set(['SNACKBAR.CHANGED', 'SNACKBAR.CHANGED_PLURAL'])
+
+/** „… erstellt“ — schweigt nur kurz nach dem eigenen Anlegen (core#1087). */
+const CREATED_MESSAGES: ReadonlySet<string> = new Set(['SNACKBAR.CREATED', 'SNACKBAR.CREATED_PLURAL'])
+
+/**
+ * So lange nach dem eigenen `createOrder` gilt ein `created`-Echo als das eigene. Ein Zeitfenster statt der
+ * ID: Ohne vorab vergebene `_id` kennt der POS die ID erst mit der Antwort, und das Echo kann vorher ankommen.
+ */
+const OWN_CREATE_ECHO_MS = 10_000
+
 @Injectable({
   providedIn: 'root',
 })
@@ -86,13 +98,20 @@ export class OrderService extends BaseService<Order> {
   protected override cachePolicy = 'transactional' as const
   protected override cacheStoreName = 'orders'
 
+  /** Bis wann ein `created`-Echo als Folge des eigenen Anlegens gilt (`OWN_CREATE_ECHO_MS`). */
+  #ownCreateEchoUntil = 0
+
   /**
-   * Die generische Realtime-Meldung „Bestellung wurde geändert“ sagt dem Bediener nichts:
-   * Jede Bestellung wird am POS laufend gepatcht (Warenkorb, Storno, Zahlung), und die
-   * Aktion zeigt ihre eigene Erfolgsmeldung (core#657).
+   * Die generische Realtime-Meldung „Bestellung wurde geändert“ sagt dem Bediener nichts: Jede
+   * Bestellung wird am POS laufend gepatcht (Warenkorb, Storno, Zahlung), und die Aktion zeigt ihre
+   * eigene Erfolgsmeldung (core#657). „… erstellt“ schweigt nach dem eigenen Anlegen: Das bestätigt die
+   * Kasse selbst mit „Bestellung abgeschickt“; zusammen mit „erstellt“ und „Bestellungen aktualisiert“
+   * standen nach jedem Abschicken drei Meldungen über dem Druckdialog (core#1087). Bestellungen anderer
+   * Terminals melden sich weiter.
    */
   protected override showSnackbar(messageKey: string): void {
-    if (messageKey === 'SNACKBAR.CHANGED' || messageKey === 'SNACKBAR.CHANGED_PLURAL') return
+    if (SILENT_REALTIME_MESSAGES.has(messageKey)) return
+    if (CREATED_MESSAGES.has(messageKey) && Date.now() < this.#ownCreateEchoUntil) return
     super.showSnackbar(messageKey)
   }
 
@@ -350,8 +369,8 @@ export class OrderService extends BaseService<Order> {
         // ist auf dem erstellenden Gerät nicht verlässlich; ohne dieses Reload
         // bliebe das #orders-Signal stale → Dashboard-Diagramm aktualisiert sich
         // erst nach komplettem Page-Reload. loadDocuments() setzt #orders neu
-        // (→ Chart-Effect) und zeigt den „Bestellungen aktualisiert"-Hinweis.
-        this.loadDocuments()
+        // (→ Chart-Effect). Still: Die Kasse bestätigt das Abschicken selbst (core#1087).
+        this.loadDocuments({ silent: true })
 
         // Druckdialog öffnen, wenn in den Settings aktiviert
         const showDialog = this.#locationService.activeLocation()?.settings?.printSettings?.showDialogAfterOrder ?? true
@@ -532,6 +551,7 @@ export class OrderService extends BaseService<Order> {
 
   /** PUBLIC PROPERTIES */
   async createOrder(input: CreateOrderInput): Promise<number | number[] | null | undefined> {
+    this.#ownCreateEchoUntil = Date.now() + OWN_CREATE_ECHO_MS
     const {
       _id,
       lineItems,

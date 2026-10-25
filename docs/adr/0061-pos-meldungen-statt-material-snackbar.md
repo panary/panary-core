@@ -39,6 +39,8 @@ Variante A gewählt.
   Bedienhand ab; nur die Rail-Breite wird ausgeglichen.
 - **Über Dialogen:** Die Ebene liegt im Top-Layer über den Dialogen der CDK (Popover-API, seit
   [#1060](https://github.com/panary/panary-core/issues/1060); vorher reichte der `z-index` nicht).
+  *Nachtrag [#1087](https://github.com/panary/panary-core/issues/1087):* Über heißt nicht darauf. Die Ebene weicht
+  einem offenen modalen Dialog aus (darüber, darunter oder gekürzt) und verdeckt seine Tasten nicht mehr.
 - **Farbe:** Vollton je Art (Erfolg, Hinweis, Warnung, Fehler) aus den `*-ink`-Tokens, Schrift in
   `--surface-bg`. Keine Meldung sieht wie ein Dialog aus.
 - **Dauer je Art** statt je Aufruf. Quittierpflichtige Meldungen (`sticky`) laufen nicht ab.

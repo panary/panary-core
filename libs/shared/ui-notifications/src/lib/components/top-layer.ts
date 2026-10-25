@@ -32,15 +32,22 @@ export function syncTopLayer(layer: TopLayerElement, visible: boolean, top: numb
   if (!open) layer.showPopover()
 }
 
-/** Holt die Ebene nach oben, sobald ein anderes Popover öffnet. Gibt die Abmeldung zurück. */
+/**
+ * Holt die Ebene nach oben, sobald ein anderes Popover öffnet. `changed` läuft bei jedem fremden
+ * Öffnen und Schließen — die Ebene richtet ihre Lage dann neu am offenen Dialog aus (core#1087).
+ * Gibt die Abmeldung zurück.
+ */
 export function raiseAboveForeignPopovers(
   doc: ToggleTarget,
   layer: TopLayerElement,
   visible: () => boolean,
   top: () => number,
+  changed?: () => void,
 ): () => void {
   const onToggle = (event: ToggleLike): void => {
-    if (event.target === layer || event.newState !== 'open' || !visible()) return
+    if (event.target === layer) return
+    changed?.()
+    if (event.newState !== 'open' || !visible()) return
     if (typeof layer.showPopover !== 'function') return
     if (layer.matches(':popover-open')) layer.hidePopover()
     syncTopLayer(layer, true, top())
@@ -48,4 +55,72 @@ export function raiseAboveForeignPopovers(
   // `toggle` blubbert nicht; im Capture-Durchlauf erreicht es das Dokument trotzdem.
   doc.addEventListener('toggle', onToggle, true)
   return () => doc.removeEventListener('toggle', onToggle, true)
+}
+
+/** Senkrechte Ausdehnung eines offenen modalen Dialogs in Fensterkoordinaten. */
+export type DialogBounds = { top: number; bottom: number }
+
+/** Wo die Ebene steht und wie viele Meldungen (die neuesten zuerst) sie zeigt. */
+export type LayerPlacement = { top: number; count: number }
+
+/** Abstand der Ebene zu Dialog und Fensterrand in px. */
+const DIALOG_CLEARANCE = 8
+
+/**
+ * Lage der Meldungsebene neben einem offenen modalen Dialog (core#1087).
+ *
+ * Die Ebene liegt im Top-Layer über den Dialogen (core#1060), damit Meldungen aus einem Dialog sichtbar
+ * bleiben. Ohne Rücksicht auf den Dialog verdeckte der Stapel dessen Kopf und Tasten — nach dem Abschicken
+ * den Druckdialog. Deshalb: Oben an gewohnter Stelle, solange der Stapel über den Dialog passt; sonst direkt
+ * darunter. Passt er nirgends ganz, zeigt die Ebene im größeren Streifen so viele der neuesten Meldungen,
+ * wie hineinpassen — notfalls keine, bis der Dialog schließt. Die übrigen bleiben im Dienst stehen und laufen
+ * weiter ab. Ohne Dialog ändert sich nichts.
+ *
+ * `heights` sind die Höhen der Meldungen in Anzeigereihenfolge (neueste zuerst), `gap` der Abstand dazwischen.
+ */
+export function placeBesideDialog(input: {
+  anchorTop: number
+  viewportHeight: number
+  dialog: DialogBounds | null
+  heights: readonly number[]
+  gap: number
+}): LayerPlacement {
+  const { anchorTop, viewportHeight, dialog, heights, gap } = input
+  if (!dialog) return { top: anchorTop, count: heights.length }
+
+  const fitting = (space: number): number => {
+    let used = 0
+    for (let i = 0; i < heights.length; i++) {
+      used += heights[i] + (i > 0 ? gap : 0)
+      if (used > space) return i
+    }
+    return heights.length
+  }
+  const belowTop = dialog.bottom + DIALOG_CLEARANCE
+  const above = fitting(dialog.top - DIALOG_CLEARANCE - anchorTop)
+  const below = fitting(viewportHeight - DIALOG_CLEARANCE - belowTop)
+
+  // Oben gewinnt bei Gleichstand, also auch, wenn der ganze Stapel darüber passt.
+  return above >= below ? { top: anchorTop, count: above } : { top: belowTop, count: below }
+}
+
+/** Was `openModalBounds` vom DOM braucht — schmal, damit es ohne Browser prüfbar ist. */
+export type ModalCandidate = {
+  closest: (selector: string) => (object & { matches: (selector: string) => boolean }) | null
+  getBoundingClientRect: () => { top: number; bottom: number; width: number; height: number }
+}
+
+/**
+ * Rahmen des obersten offenen modalen Dialogs (`aria-modal="true"`) — `null`, wenn keiner offen ist.
+ * Ein Dialog in einem geschlossenen Popover zählt nicht. `:popover-open` wirft in WebViews ohne Popover-API;
+ * dort wird es deshalb gar nicht abgefragt.
+ */
+export function openModalBounds(candidates: readonly ModalCandidate[]): DialogBounds | null {
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const popoverHost = candidates[i].closest('[popover]')
+    if (popoverHost && 'showPopover' in popoverHost && !popoverHost.matches(':popover-open')) continue
+    const rect = candidates[i].getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0) return { top: rect.top, bottom: rect.bottom }
+  }
+  return null
 }

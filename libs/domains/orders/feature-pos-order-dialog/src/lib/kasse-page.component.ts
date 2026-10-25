@@ -1,14 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core'
-import { NotificationService } from '@panary/shared/ui-notifications'
 import { Router } from '@angular/router'
-import { TranslateService } from '@ngx-translate/core'
 import { ReturnAfterOrderService } from '@panary/shared/data-access'
 import { KasseCloseReason, OrderDialogComponent } from './order-dialog.component'
 
 /** Ziel von „Übersicht" und dem Verwerfen der Bestellung. */
 export const KASSE_EXIT_URL = '/dashboard'
-
-const KASSE_URL = '/kasse'
 
 /** Seiten, von denen aus die Kasse über die Rail oder einen Schnellzugriff geöffnet wird (core#974). */
 const RETURN_PATHS = ['/dashboard', '/orders/active', '/pre-orders', '/orders/history']
@@ -41,8 +37,6 @@ export function kasseOrigin(url: string | null | undefined): string | null {
 })
 export class KassePageComponent {
   readonly #router = inject(Router)
-  readonly #notifications = inject(NotificationService)
-  readonly #translate = inject(TranslateService)
   readonly #returnAfterOrder = inject(ReturnAfterOrderService)
 
   /** Wo die Kasse geöffnet wurde; zum Zeitpunkt des Routings noch in `previousNavigation` (core#974). */
@@ -74,21 +68,19 @@ export class KassePageComponent {
     this.run.update(n => n + 1)
   }
 
-  /** Die Bestellung ist abgeschickt, es gibt nichts mehr zu verwerfen — der Guard fragt nicht. */
+  /**
+   * Die Bestellung ist abgeschickt, es gibt nichts mehr zu verwerfen — der Guard fragt nicht.
+   *
+   * Kein eigener Hinweis mehr: Bis core#1087 stand hier „Bestellung abgeschickt · Neue Bestellung“
+   * zusätzlich zu den Meldungen des Bestelldialogs, alle über dem Druckdialog. Das Abschicken bestätigt
+   * jetzt allein der Bestelldialog, und „Bestellen“ in der Rail öffnet die Kasse wie die frühere Taste.
+   */
   #returnToOrigin(origin: string): void {
     this.#leaveConfirmed = true
     void this.#router.navigateByUrl(origin).then(navigated => {
-      if (!navigated) {
-        this.#leaveConfirmed = false
-        this.run.update(n => n + 1)
-        return
-      }
-      this.#notifications.info(this.#translate.instant('SETTINGS.RETURN_AFTER_ORDER_HINT'), {
-        action: {
-          label: this.#translate.instant('ACTIVE_ORDERS.NEW_ORDER'),
-          run: () => void this.#router.navigateByUrl(KASSE_URL),
-        },
-      })
+      if (navigated) return
+      this.#leaveConfirmed = false
+      this.run.update(n => n + 1)
     })
   }
 

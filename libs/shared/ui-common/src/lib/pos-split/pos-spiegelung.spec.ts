@@ -11,10 +11,14 @@ describe('Spiegelung mit der Bedienhand (core#976)', () => {
     )
   })
 
-  it('lib-page-header setzt bei Rail links nur die Aktionen vor den Abstandhalter, der Titel bleibt links', () => {
+  // core#1022: Die Aktionen stehen dem Titel gegenüber am rechten Rand, auch bei Rail links.
+  it('lib-page-header spiegelt nicht: Titel links, Aktionen hinter dem Abstandhalter am rechten Rand', () => {
     const kopf = quelle('../page-header/page-header.component.ts')
-    expect(kopf).toContain(":host-context([data-rail-side='left']) .page-header-actions {\n        order: 0;")
+    expect(kopf).not.toContain('data-rail-side')
     expect(kopf).not.toContain('row-reverse')
+    expect(kopf).not.toContain('order:')
+    expect(kopf.indexOf('page-header-spacer flex-1')).toBeGreaterThan(kopf.indexOf('{{ title() }}'))
+    expect(kopf.indexOf('select="[pageHeaderActions]"')).toBeGreaterThan(kopf.indexOf('page-header-spacer flex-1'))
   })
 
   it('die Einstellungs-Navigation wechselt mit der Rail die Seite', () => {

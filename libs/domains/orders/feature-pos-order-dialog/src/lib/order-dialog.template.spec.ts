@@ -240,7 +240,9 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
   // war. Gezählt wird weiter mit dem Grundmaß, sichtbar wachsen die Tasten in den Rest — die Messzeile nicht.
   it('gibt jeder Gruppe dasselbe Grundmaß, lässt sie in den freien Platz wachsen und bricht lange Namen um', () => {
     const chip = klassen('(click)="createProductButtons(productGroup)"\n      [disabled]')
-    expect(chip).toEqual(expect.arrayContaining(['basis-[var(--pnry-group-chip)]', 'grow', 'shrink-0', 'max-w-[8.5rem]']))
+    expect(chip).toEqual(
+      expect.arrayContaining(['basis-[var(--pnry-group-chip)]', 'grow', 'shrink-0', 'max-w-[8.5rem]']),
+    )
     expect(chip.filter(k => /^(min-w|w)-/.test(k))).toEqual([])
     const messzeile = template.match(/#productGroupMeasure\s+class="([^"]*)"/)?.[1].split(/\s+/) ?? []
     expect(messzeile).toContain('*:grow-0')

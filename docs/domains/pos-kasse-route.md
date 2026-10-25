@@ -4,7 +4,7 @@ title: POS-Kasse als Route /kasse
 description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen und Abmelden nachfragt, warum der Auto-Logout eine angefangene Bestellung verwirft (core#1064) und wie sie ein Neuladen auf /kasse übersteht.'
 tags: [orders, pos, ui, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:10:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T22:40:00Z }
 ---
 
 # POS-Kasse als Route `/kasse`
@@ -38,11 +38,18 @@ core#829 baut den Bildschirm ohnehin neu.
 
 `KassePageComponent` merkt sich beim Routing die Seite davor (`previousNavigation`), sofern es eine Rail-Seite war
 (Start, Offen, Vorbestellungen, Historie; `kasseOrigin`). Nach `order-placed` und `preorder-created` navigiert sie dorthin
-und zeigt einen Hinweis mit der Aktion „Neue Bestellung", die die Kasse wieder öffnet. Der Leave-Guard fragt dabei nicht,
+ohne eigenen Hinweis. Der Leave-Guard fragt dabei nicht,
 denn die Bestellung ist abgeschickt. Der Rücksprung entfällt bei direktem Aufruf oder Neuladen von `/kasse` (keine
 Ausgangsseite bekannt) und wenn der Schalter „Nach dem Bestellen zurück" in Einstellungen › Allgemein aus ist; dann bleibt
 man in der Kasse. Der Schalter ist gerätelokal (`pos_return_after_order` in `localStorage`, Standard an,
 `ReturnAfterOrderService`). Verwerfen (`cancelled`) führt unverändert nach `KASSE_EXIT_URL`.
+
+Bis [core#1087](https://github.com/panary/panary-core/issues/1087) zeigte der Rücksprung einen grauen Hinweis
+„Bestellung abgeschickt" mit der Taste „Neue Bestellung". Zusammen mit „Bestellung wurde erstellt" und „Bestellungen
+aktualisiert" standen nach jedem Abschicken drei Meldungen über dem Druckdialog. Jetzt bestätigt allein der Bestelldialog
+mit einer Erfolgsmeldung „Bestellung abgeschickt" (`ORDER_PLACED_MESSAGE`). Ohne Bezahlansicht kommt sie erst, wenn das
+Anlegen gelungen ist, im Kassenbetrieb nach „Bar kassieren" oder „Offen lassen". Das gilt mit und ohne Rücksprung.
+„Bestellen" in der Rail ersetzt die frühere Taste.
 
 ## Frischer Start je Bestellung
 

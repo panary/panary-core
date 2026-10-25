@@ -1,10 +1,10 @@
 ---
 type: Architecture
 title: 'POS-Meldungen — Arten, Dauer, Stapel und Position'
-description: 'Wie der POS Meldungen zeigt: NotificationService mit vier Arten und fester Dauer, Quittierpflicht, Stapel aus drei, Zählung gleicher Meldungen, Anzeige oben mittig über Dialogen.'
+description: 'Wie der POS Meldungen zeigt: NotificationService mit vier Arten und fester Dauer, Quittierpflicht, Stapel aus drei, Zählung gleicher Meldungen, Anzeige oben mittig über Dialogen, ohne deren Tasten zu verdecken.'
 tags: [pos-client, ui, notifications, design-system]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T20:10:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T22:40:00Z }
 sources:
   - { id: adr-0061, resource: '../adr/0061-pos-meldungen-statt-material-snackbar.md', title: 'ADR 0061' }
 ---
@@ -98,6 +98,23 @@ Dialog-Backdrop, abgedunkelt und nicht antippbar. Deshalb ist die Ebene jetzt se
 Schwäche: Öffnet die Ebene wegen eines neuen Dialogs neu, spielen die stehenden Meldungen ihre
 Einblendung noch einmal ab.
 
+**Neben einem modalen Dialog (core#1087).** Über dem Dialog zu liegen hieß bis
+[#1087](https://github.com/panary/panary-core/issues/1087) auch, ihn zu verdecken: Nach dem Abschicken lagen bis zu
+drei Meldungen über Kopf und Druckertasten des Druckdialogs. Jetzt richtet sich die Ebene am obersten offenen
+Element mit `aria-modal="true"` aus (`placeBesideDialog` in `top-layer.ts`, gerechnet im Outlet):
+
+- Passt der Stapel zwischen Streifen und Dialog-Oberkante, bleibt er an gewohnter Stelle.
+- Sonst steht er direkt unter dem Dialog, wenn er dort ganz passt.
+- Passt er nirgends ganz, zeigt die Ebene im größeren Streifen so viele der **neuesten** Meldungen, wie hineinpassen,
+  notfalls keine, solange ein fensterhoher Dialog offen ist. Die übrigen bleiben im Dienst stehen
+  (`.notification--held`), laufen weiter ab und erscheinen wieder, sobald der Dialog schließt.
+- Neu gerechnet wird nach jeder neuen Meldung und bei jedem Öffnen oder Schließen eines fremden Popovers, dazu
+  noch einmal 250 ms später, weil die CDK Dialoge hereinwachsen lässt.
+- Die Auto-Logout-Vorwarnung (#1080) ist davon unberührt: Sie ist ein eigenes Popover und bleibt bewusst über Dialogen.
+
+Nicht abgedeckt: Ein Dialog, der seine Höhe nach dem Öffnen ändert (nachgeladene Liste), verschiebt die Ebene erst mit
+der nächsten Meldung oder dem nächsten Dialogwechsel.
+
 ## Was entfallen ist
 
 - `PosSnackBar` und `providePosSnackBar()` aus core#531. Deren Rangfolge ergibt sich jetzt aus dem
@@ -119,6 +136,7 @@ Einblendung noch einmal ab.
 
 ## Tests
 
+`top-layer.spec.ts` prüft `syncTopLayer`, das Nach-oben-Holen und `placeBesideDialog` (core#1087).
 `libs/shared/ui-notifications/src/lib/services/notification.service.spec.ts` prüft Dauer, Stapel,
 Zählung, Aktion, Pause und Verdrängung mit Fake-Timern. Die Aufrufer-Specs benutzen den echten
 Dienst und beobachten `notify` per `vi.spyOn`; so prüft z. B. die Bestelldialog-Spec, dass das

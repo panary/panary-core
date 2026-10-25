@@ -111,7 +111,14 @@ export type ModalCandidate = {
 }
 
 /**
- * Rahmen des obersten offenen modalen Dialogs (`aria-modal="true"`) — `null`, wenn keiner offen ist.
+ * Was als offener Dialog gilt. `.cdk-dialog-container` trägt jeder CDK- und Material-Dialog; Material setzt an
+ * `mat-dialog-container` aber `aria-modal="false"` — mit `[aria-modal="true"]` allein fand die Ebene weder den
+ * Druckdialog noch „Kasse freigeben“ (core#1094).
+ */
+export const MODAL_DIALOG_SELECTOR = '[aria-modal="true"], .cdk-dialog-container'
+
+/**
+ * Rahmen des obersten offenen Dialogs (`MODAL_DIALOG_SELECTOR`) — `null`, wenn keiner offen ist.
  * Ein Dialog in einem geschlossenen Popover zählt nicht. `:popover-open` wirft in WebViews ohne Popover-API;
  * dort wird es deshalb gar nicht abgefragt.
  */
@@ -123,4 +130,18 @@ export function openModalBounds(candidates: readonly ModalCandidate[]): DialogBo
     if (rect.width > 0 && rect.height > 0) return { top: rect.top, bottom: rect.bottom }
   }
   return null
+}
+
+/**
+ * Betrifft eine DOM-Änderung einen Dialog? Die CDK entfernt ein Overlay beim Schließen aus dem DOM, ohne
+ * `hidePopover` — dabei kommt kein `toggle`. Ohne diese Beobachtung blieben zurückgehaltene Meldungen nach dem
+ * Schließen verborgen (core#1094, im Sichttest gemessen).
+ */
+export function touchesDialog(node: Node): boolean {
+  if (node.nodeType !== 1) return false
+  const element = node as Element
+  if (element.matches(MODAL_DIALOG_SELECTOR)) return true
+  // Den Teilbaum nur bei CDK-Overlays durchsuchen: Der Beobachter sieht jede DOM-Änderung der Kasse
+  // (Warenkorbzeilen, Uhr), ein querySelector je Knoten wäre dort teuer.
+  return element.className.toString().includes('cdk-') && element.querySelector(MODAL_DIALOG_SELECTOR) !== null
 }

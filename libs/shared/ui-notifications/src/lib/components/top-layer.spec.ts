@@ -1,9 +1,12 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
 import {
+  MODAL_DIALOG_SELECTOR,
   openModalBounds,
   placeBesideDialog,
   raiseAboveForeignPopovers,
+  touchesDialog,
   syncTopLayer,
   type ToggleTarget,
   type TopLayerElement,
@@ -226,5 +229,57 @@ describe('openModalBounds (core#1087)', () => {
         { closest: () => null, getBoundingClientRect: () => ({ top: 0, bottom: 0, width: 0, height: 0 }) },
       ]),
     ).toBeNull()
+  })
+})
+
+describe('MODAL_DIALOG_SELECTOR (core#1094)', () => {
+  // Echter Selektor-Abgleich im DOM (jsdom-Umgebung dieser Datei), nicht ein Stringvergleich.
+  const matches = (html: string) => {
+    document.body.innerHTML = html
+    return document.querySelectorAll(MODAL_DIALOG_SELECTOR).length
+  }
+
+  it('erkennt einen Material-Dialog, obwohl er aria-modal="false" trägt', () => {
+    expect(
+      matches('<mat-dialog-container class="mat-mdc-dialog-container cdk-dialog-container" aria-modal="false">'),
+    ).toBe(1)
+  })
+
+  it('erkennt einen CDK-Dialog und jedes Element mit aria-modal="true"', () => {
+    expect(matches('<cdk-dialog-container class="cdk-dialog-container"></cdk-dialog-container>')).toBe(1)
+    expect(matches('<div role="dialog" aria-modal="true"></div>')).toBe(1)
+  })
+
+  it('übersieht die Kassen-Sheets und die Auto-Logout-Vorwarnung', () => {
+    expect(
+      matches('<div role="dialog" class="kasse__sheet"></div><div popover="manual" role="alertdialog"></div>'),
+    ).toBe(0)
+  })
+})
+
+describe('touchesDialog (core#1094)', () => {
+  const node = (html: string) => {
+    document.body.innerHTML = html
+    return document.body.firstChild as Node
+  }
+
+  it('erkennt den Overlay-Host, der einen Dialog enthält — die CDK entfernt ihn ohne toggle', () => {
+    expect(
+      touchesDialog(
+        node(
+          '<div class="cdk-overlay-popover"><mat-dialog-container class="cdk-dialog-container"></mat-dialog-container></div>',
+        ),
+      ),
+    ).toBe(true)
+    expect(touchesDialog(node('<mat-dialog-container class="cdk-dialog-container"></mat-dialog-container>'))).toBe(true)
+  })
+
+  it('durchsucht keinen fremden Teilbaum — nur CDK-Overlays', () => {
+    expect(touchesDialog(node('<div class="kasse__cart"><div class="cdk-dialog-container"></div></div>'))).toBe(false)
+  })
+
+  it('übergeht Text und fremde Elemente', () => {
+    expect(touchesDialog(document.createTextNode('x'))).toBe(false)
+    expect(touchesDialog(node('<div class="notification"></div>'))).toBe(false)
   })
 })

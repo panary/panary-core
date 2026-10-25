@@ -1,8 +1,20 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  DOCUMENT,
+  effect,
+  ElementRef,
+  inject,
+  untracked,
+  viewChild,
+} from '@angular/core'
 import { iconPath, type IconName } from '@panary/shared/util-helpers'
 
 import { NotificationService } from '../services/notification.service'
 import type { Notification, NotificationType } from '../models/notification.types'
+import { raiseAboveForeignPopovers, syncTopLayer, type TopLayerElement } from './top-layer'
 
 const ICONS: Record<NotificationType, IconName> = {
   success: 'check-circle',
@@ -17,22 +29,24 @@ const ICONS: Record<NotificationType, IconName> = {
  * - **Oben mittig im Arbeitsbereich**, unter dem Offline-Streifen: Dort liegen weder Ziffern,
  *   Primärtaste und Dialog-Fußtasten (unten) noch das × eines Dialogs (Ecke). Die Rail-Breite
  *   gleicht `--notification-shift` aus, das der POS je Rail-Seite setzt.
- * - **Über Dialogen** (`z-index` über dem CDK-Overlay), damit Meldungen aus Abschreiben- oder
- *   Bezahl-Dialog sichtbar sind.
+ * - **Über Dialogen**, damit Meldungen aus Abschreiben- oder Bezahl-Dialog sichtbar und antippbar
+ *   sind. Die CDK legt Dialoge in den Top-Layer (Popover-API), gegen den kein `z-index` hilft; die
+ *   Ebene ist deshalb selbst ein Popover und wird nach jedem neuen Overlay wieder nach oben geholt
+ *   (core#1060, `top-layer.ts`).
  * - **Vollton je Art**, damit keine Meldung wie ein Dialog aussieht: Fläche ist die `*-ink`-Farbe
  *   der Art, Schrift die Seitenfläche. In Dunkel kehrt sich das über dieselben Tokens um.
  * - **Ein Tipp schließt**; die Aktionstaste löst ihre Aktion aus. Quittierpflichtige schließen nur
  *   über ×. Solange ein Finger aufliegt, läuft die Zeit nicht ab.
  *
- * Der Host steht in der Spalte des App-Rahmens zwischen Streifen und Inhalt und ist 0 hoch;
- * dadurch beginnt die Meldungsebene genau unter dem Streifen, ohne dessen Höhe zu kennen.
+ * Der Host steht in der Spalte des App-Rahmens zwischen Streifen und Inhalt und ist 0 hoch; seine
+ * Oberkante liegt genau unter dem Streifen. Die Ebene im Top-Layer übernimmt sie als `top`.
  */
 @Component({
   selector: 'lib-notification-outlet',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="notification-layer">
+    <div #layer class="notification-layer" popover="manual">
       @for (n of notifications(); track n.id) {
         <div
           [class]="'notification notification--' + n.type"
@@ -88,6 +102,18 @@ const ICONS: Record<NotificationType, IconName> = {
       flex-direction: column;
       gap: 0.375rem;
       pointer-events: none;
+    }
+    /* Im Top-Layer: fest am Fenster, die Oberkante setzt syncTopLayer (core#1060). */
+    .notification-layer:popover-open {
+      position: fixed;
+      inset: auto;
+      left: calc(50% + var(--notification-shift, 0px));
+      margin: 0;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      overflow: visible;
     }
     .notification {
       pointer-events: auto;
@@ -162,6 +188,8 @@ const ICONS: Record<NotificationType, IconName> = {
     .notification__action {
       padding: 0 0.875rem;
       background: rgb(255 255 255 / 0.18);
+      /* Getönt aus der Schriftfarbe: hebt sich hell auf Navy wie dunkel auf Creme ab (core#1060). */
+      background: color-mix(in srgb, currentColor 16%, transparent);
     }
     .notification__close {
       width: 3rem;
@@ -191,6 +219,25 @@ export class NotificationOutletComponent {
   protected readonly service = inject(NotificationService)
   protected readonly notifications = this.service.notifications
   protected readonly closeIcon = iconPath('x')
+  readonly #host: ElementRef<HTMLElement> = inject(ElementRef)
+  readonly #layer = viewChild<ElementRef<HTMLElement>>('layer')
+
+  constructor() {
+    const top = (): number => this.#host.nativeElement.getBoundingClientRect().top + 8
+    effect(() => {
+      const visible = this.notifications().length > 0
+      const layer = this.#layer()?.nativeElement as TopLayerElement | undefined
+      if (layer) untracked(() => syncTopLayer(layer, visible, top()))
+    })
+    const doc = inject(DOCUMENT)
+    const destroyRef = inject(DestroyRef)
+    afterNextRender(() => {
+      const layer = this.#layer()?.nativeElement as TopLayerElement | undefined
+      if (!layer) return
+      const stop = raiseAboveForeignPopovers(doc, layer, () => untracked(this.notifications).length > 0, top)
+      destroyRef.onDestroy(stop)
+    })
+  }
 
   protected icon(type: NotificationType): string {
     return iconPath(ICONS[type])

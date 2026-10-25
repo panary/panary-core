@@ -543,9 +543,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** CONSTRUCTOR */
   constructor() {
-    // Der Inaktivitäts-Logout fragt je Takt, ob hier etwas eingegeben ist (core#828).
+    // Abmelden fragt wie der Seitenwechsel nach, der Inaktivitäts-Logout verwirft (core#828, core#1064).
     const kasse = inject(KasseDraftRegistry)
-    inject(DestroyRef).onDestroy(kasse.attach(() => this.#hadInput))
+    inject(DestroyRef).onDestroy(
+      kasse.attach({
+        hasInput: () => this.#hadInput,
+        confirmLeave: () => this.confirmLeave(),
+        discard: () => this.#logCancelled(),
+      }),
+    )
     inject(DestroyRef).onDestroy(kasse.attachSheet(this.sheetOpen))
 
     // Jede neue Markierung rendert ihre eigene Leiste; das Signal folgt ihr, egal über welchen Weg markiert wurde

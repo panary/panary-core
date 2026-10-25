@@ -51,11 +51,15 @@ Tokens um, deshalb gibt es keine eigenen Meldungs-Tokens.
 ## Verhalten
 
 - **Stapel:** höchstens drei, die neueste oben. Eine weitere verdrängt die älteste mit Ablauf.
-  Quittierpflichtige werden nie verdrängt; stehen nur solche, wächst der Stapel.
+  Quittierpflichtige werden nie verdrängt, die gerade neue auch nicht; stehen schon drei
+  quittierpflichtige, wächst der Stapel.
 - **Gleiche Meldung** (Art, Titel, Text): Sie erscheint nicht doppelt, sondern zählt „×2" und
-  beginnt ihren Ablauf neu.
+  beginnt ihren Ablauf neu. Eine quittierpflichtige bleibt quittierpflichtig, eine Aktion bleibt,
+  wenn die Wiederholung keine mitbringt, und eine angehaltene Meldung bleibt angehalten.
+- **Ein „Rückgängig" zur Zeit** im Bestelldialog: Ein neues Angebot schließt das vorige.
 - **Ein Tipp schließt** die Meldung, außer bei quittierpflichtigen, die nur das × schließt. Die
-  Aktionstaste führt ihre Aktion aus und schließt die Meldung.
+  Aktionstaste führt ihre Aktion aus und schließt die Meldung. Aktionstaste und × sind 48px groß;
+  Enter/Leertaste auf der Fläche schließen, Enter auf der Aktionstaste löst die Aktion aus.
 - **Finger auf der Meldung** hält den Ablauf an (`pause`/`resume`).
 - **Vorlesen:** `success`/`info` als `role="status"`, `warning`/`error` als `role="alert"`.
 
@@ -82,7 +86,8 @@ Streifen, ohne dessen Höhe zu kennen. Waagrecht ist sie mittig über dem Arbeit
 
 - Ein Benutzerwechsel beendet offene Meldungen nicht. Eine quittierpflichtige gilt dem Gerät.
 - Zwei Aufrufe derselben Meldung mit verschiedener Aktion werden zusammengelegt; es gilt die
-  Aktion des letzten Aufrufs.
+  Aktion des letzten Aufrufs, der eine mitbringt.
+- Das × trägt das feste Label „Schließen" (deutsch), nicht über i18n.
 - Der Admin-Client rendert keinen Outlet. Er braucht keinen, solange er weder `BaseService` noch
   `ServiceHelper` benutzt.
 

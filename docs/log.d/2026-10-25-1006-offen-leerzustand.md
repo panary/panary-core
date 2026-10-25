@@ -1,0 +1,1 @@
+* **Fix** (panary/panary-core#1006): Offen-Leerzustand ohne gestapelte Deckkraft — Icon in `--empty-icon`, Titel `text-ink`, Zusatz `text-ink-muted` (Designstudie: Icon faint, Text muted, Titel ink). Der Sichttest zeigte das Icon trotz angehobenem Token noch bei 20 % Deckkraft.

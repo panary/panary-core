@@ -69,8 +69,23 @@ Der Outlet steht in der Spalte des App-Rahmens zwischen Cloud-Status-Streifen un
 0 hoch. Die Ebene darin ist absolut positioniert und beginnt deshalb immer direkt unter dem
 Streifen, ohne dessen Höhe zu kennen. Waagrecht ist sie mittig über dem Arbeitsbereich: Die Rail
 (3.875rem) verschiebt dessen Mitte, `styles.scss` setzt `--notification-shift` je
-`data-rail-side`. Der Host trägt `z-index: 2000` und liegt damit über dem CDK-Overlay (1000), also
-über Dialogen und Sheets.
+`data-rail-side`.
+
+**Über Dialogen (core#1060).** Angular CDK 21 legt Dialoge und Sheets als Popover in den
+**Top-Layer** des Browsers (`div.cdk-overlay-popover`). Dagegen hilft kein `z-index`: Bis
+[#1060](https://github.com/panary/panary-core/issues/1060) lag die Ebene unter dem
+Dialog-Backdrop, abgedunkelt und nicht antippbar. Deshalb ist die Ebene jetzt selbst ein Popover
+(`popover="manual"`, [`top-layer.ts`](../../libs/shared/ui-notifications/src/lib/components/top-layer.ts)):
+
+- Sie öffnet, sobald es Meldungen gibt, und schließt, wenn keine mehr stehen. Ihre Oberkante
+  übernimmt sie dabei vom 0 hohen Host, also direkt unter dem Streifen.
+- Im Top-Layer liegt oben, was zuletzt geöffnet wurde. Öffnet ein Dialog, während Meldungen
+  stehen, öffnet die Ebene neu und liegt wieder darüber. Sie hört dafür im Capture-Durchlauf auf
+  `toggle`-Ereignisse fremder Popover.
+- Ohne Popover-API (alte WebView) bleibt sie im normalen Fluss mit `z-index: 2000`.
+
+Schwäche: Öffnet die Ebene wegen eines neuen Dialogs neu, spielen die stehenden Meldungen ihre
+Einblendung noch einmal ab.
 
 ## Was entfallen ist
 

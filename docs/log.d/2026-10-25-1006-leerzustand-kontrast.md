@@ -1,0 +1,1 @@
+* **Fix** (panary/panary-core#1006): Leerzustands-Icons hell kräftiger — `--empty-icon` `#8f897f` (Studienwert `--faint`) statt `#d8d4cb`, das auf dem Grund fast unsichtbar war (Designstudie POS-Screens v2). Dunkel unverändert (#950).

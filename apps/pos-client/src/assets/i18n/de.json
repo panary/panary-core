@@ -200,6 +200,9 @@
   "SETTINGS": {
     "TITLE": "Einstellungen",
     "GENERAL": "Allgemein",
+    "RETURN_AFTER_ORDER": "Nach dem Bestellen zurück",
+    "RETURN_AFTER_ORDER_DESC": "Nach dem Abschicken einer Bestellung zu der Seite zurückkehren, von der die Kasse geöffnet wurde.",
+    "RETURN_AFTER_ORDER_HINT": "Bestellung abgeschickt",
     "USERS": "Benutzer",
     "PRINTER": "Drucker",
     "DESIGN": "Design",

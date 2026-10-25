@@ -195,9 +195,16 @@ describe('Kasse-Template — Layout B1 (core#829)', () => {
     expect(template).toContain('@if (notice(); as hint)')
   })
 
-  it('trennt Namen auf Kacheln und Gruppen nicht mitten im Wort (core#853)', () => {
-    expect(template).not.toMatch(/hyphens/)
-    expect(template).not.toMatch(/lang="de"/)
+  // core#1019: Die Gruppentaste hat wieder eine feste Breite und trennt deshalb lange Ein-Wort-Namen wie vor dem
+  // Redesign. Kacheln bleiben ohne Silbentrennung — dort las sich „FLAMMKU-CHEN" schlecht (core#853).
+  it('trennt Namen auf Kacheln nicht mitten im Wort, nur in der Gruppentaste (core#853, core#1019)', () => {
+    const chip = template.slice(template.indexOf('<ng-template #groupChip'), template.indexOf('</ng-template>'))
+    const ohneChip = template.replace(chip, '')
+    expect(ohneChip).not.toMatch(/hyphens/)
+    expect(ohneChip).not.toMatch(/lang="de"/)
+    expect(chip.match(/hyphens/g)).toHaveLength(1)
+    // Ohne `lang` trennt der Browser nicht: Das Dokument ist `lang="en"` (apps/pos-client/src/index.html).
+    expect(chip).toContain('lang="de"')
   })
 
   it('hat keine Spalte 2 mehr', () => {
@@ -227,6 +234,17 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
       .map(k => k.match(/^w-(\d+)$/)?.[1])
       .find(Boolean)
     expect(Number(burger) * 0.25).toBe(GROUP_BURGER_WIDTH_REM)
+  })
+
+  it('gibt jeder Gruppe dieselbe feste Breite, lange Namen brechen in zwei Zeilen um (core#1019)', () => {
+    const chip = klassen('(click)="createProductButtons(productGroup)"\n      [disabled]')
+    expect(chip).toContain('w-[var(--pnry-group-chip)]')
+    expect(chip.filter(k => /^(min-w|max-w)-/.test(k))).toEqual([])
+    expect(chip).not.toContain('whitespace-nowrap')
+    const name = template.slice(template.indexOf('<ng-template #groupChip'), template.indexOf('</ng-template>'))
+    expect(name).toContain('line-clamp-2')
+    expect(name).not.toContain('truncate')
+    expect(scss).toMatch(/\.kasse \{[^}]*--pnry-group-chip: 5\.25rem;/)
   })
 
   it('misst Leiste und Messzeile mit derselben Gruppen-Vorlage, Farbe als Punkt statt Unterkante', () => {

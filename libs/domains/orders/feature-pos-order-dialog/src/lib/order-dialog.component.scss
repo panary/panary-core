@@ -6,6 +6,9 @@
 .kasse {
   /* Produktkachel und Funktionstaste teilen ein Maß (code-style.md §9.1); 12,5rem laut Konzept §4. */
   --pnry-tile-min: 12.5rem;
+  /* Gruppentaste: feste Breite, Namen brechen um (core#1019). 5,25rem ist die Mindestbreite vor dem Redesign
+     (pos-v26.10.24): Trotz Rail passen auf 1366 px wieder 13 Gruppen und der Burger in die Zeile. */
+  --pnry-group-chip: 5.25rem;
 
   display: grid;
   grid-template-columns: 25rem minmax(0, 1fr);

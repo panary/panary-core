@@ -10,7 +10,11 @@
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 flex-none">
       <!-- KPI 1 -->
       <div
-        class="bg-surface-panel rounded-2xl p-3 lg:p-5 border border-line flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-line-strong transition-colors"
+        (click)="navigateTo('/orders/active')"
+        (keydown.enter)="navigateTo('/orders/active')"
+        tabindex="0"
+        role="button"
+        class="cursor-pointer bg-surface-panel rounded-2xl p-3 lg:p-5 border border-line flex flex-row items-center gap-3 lg:flex-col lg:items-start lg:justify-between hover:border-line-strong transition-colors"
       >
         <div class="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0 lg:mb-2">
           <lib-icon name="shopping-cart" class="text-[1.25rem]" />
@@ -19,8 +23,9 @@
           <h3 class="text-xl lg:text-3xl font-bold text-ink tracking-tight">
             {{ activeOrdersCount() }}
           </h3>
-          <p class="text-xs text-ink-muted font-medium mt-0.5 lg:mt-1">
+          <p class="text-xs text-ink-muted font-medium mt-0.5 lg:mt-1 flex items-center gap-1">
             {{ 'DASHBOARD.KPI_OPEN_ORDERS' | translate }}
+            <lib-icon name="caret-right" class="text-[0.75rem]" />
           </p>
         </div>
       </div>
@@ -57,7 +62,7 @@
           <h3 class="text-xl lg:text-3xl font-bold text-ink tracking-tight">
             {{ productivity() }}
           </h3>
-          <p class="text-xs text-ink-muted font-medium mt-0.5 lg:mt-1">Ø Orders/Std</p>
+          <p class="text-xs text-ink-muted font-medium mt-0.5 lg:mt-1">{{ 'DASHBOARD.KPI_PER_HOUR' | translate }}</p>
         </div>
       </div>
 
@@ -121,21 +126,43 @@
       </div>
     </div>
 
-    <!-- Chart Section -->
-    <div
-      class="bg-surface-panel rounded-2xl p-6 border border-line flex-1 min-h-[14.75rem] lg:min-h-[17.5rem] flex flex-col relative overflow-hidden"
-    >
-      <div class="flex-none flex justify-between items-center mb-6">
-        <div>
-          <h2 class="text-lg font-bold text-ink">{{ 'DASHBOARD.HOURLY_LOAD' | translate }}</h2>
-          <p class="text-xs text-ink-faint">{{ 'DASHBOARD.ORDERS_OVER_DAY' | translate }}</p>
+    <div class="flex-1 flex flex-col lg:flex-row gap-4">
+      <!-- Chart Section -->
+      <div
+        class="bg-surface-panel rounded-2xl p-6 border border-line flex-1 min-h-[14.75rem] lg:min-h-[17.5rem] flex flex-col relative overflow-hidden"
+      >
+        <div class="flex-none flex justify-between items-baseline gap-3 mb-4">
+          <h2 class="text-lg font-bold text-ink">{{ 'DASHBOARD.ORDERS_PER_HOUR' | translate }}</h2>
+          <p class="text-xs text-ink-muted">
+            {{ 'DASHBOARD.OPENING_WINDOW' | translate: { window: chartSubtitle() } }}
+          </p>
         </div>
-        <div class="bg-surface-rail px-3 py-1 rounded-lg border border-line text-xs text-ink-muted font-medium">
-          {{ 'DASHBOARD.TODAY' | translate }}
+        <div class="flex-1 w-full min-h-0 relative">
+          <div echarts [options]="chartOptions()" class="absolute inset-0 w-full h-full"></div>
         </div>
       </div>
-      <div class="flex-1 w-full min-h-0 relative">
-        <div echarts [options]="chartOptions()" class="absolute inset-0 w-full h-full"></div>
+
+      <!-- Als Nächstes abholen -->
+      <div class="bg-surface-panel rounded-2xl p-6 border border-line flex flex-col gap-3 lg:w-80 flex-none">
+        <h2 class="text-lg font-bold text-ink">{{ 'DASHBOARD.PICKUP_NEXT' | translate }}</h2>
+        @for (preOrder of nextPreOrders(); track preOrder._id) {
+          <div class="rounded-xl bg-surface-rail px-4 py-3">
+            <div class="flex justify-between gap-2 font-semibold text-ink">
+              <span class="truncate">{{ preOrder.customerContact.name }}</span>
+              <span class="text-accent-ink">{{ preOrder.scheduledFor | date: 'HH:mm' }}</span>
+            </div>
+            <div class="text-sm text-ink-muted truncate">{{ preOrderSummary(preOrder.lineItems) }}</div>
+          </div>
+        } @empty {
+          <p class="text-sm text-ink-muted">{{ 'DASHBOARD.PICKUP_NONE' | translate }}</p>
+        }
+        <button
+          type="button"
+          (click)="navigateTo('/pre-orders')"
+          class="mt-auto self-start text-sm font-semibold text-accent-ink cursor-pointer"
+        >
+          {{ 'DASHBOARD.PICKUP_ALL' | translate }} ›
+        </button>
       </div>
     </div>
   </div>

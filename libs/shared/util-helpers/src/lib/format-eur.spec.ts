@@ -1,4 +1,4 @@
-import { formatEur, formatEurCents } from './format-eur'
+import { formatDecimal, formatEur, formatEurCents } from './format-eur'
 
 const nbsp = ' '
 
@@ -45,5 +45,22 @@ describe('formatEurCents', () => {
   it('liefert für null/undefined einen leeren Text', () => {
     expect(formatEurCents(null)).toBe('')
     expect(formatEurCents(undefined)).toBe('')
+  })
+})
+
+describe('formatDecimal', () => {
+  it('nutzt das Dezimalkomma', () => {
+    expect(formatDecimal(0.6)).toBe('0,6')
+    expect(formatDecimal(5.64)).toBe('5,6')
+    expect(formatDecimal(2)).toBe('2,0')
+  })
+
+  it('setzt den Tausenderpunkt und kennt andere Stellenzahlen', () => {
+    expect(formatDecimal(1234.5, 2)).toBe('1.234,50')
+  })
+
+  it('ergibt bei fehlendem Wert einen leeren Text', () => {
+    expect(formatDecimal(null)).toBe('')
+    expect(formatDecimal(NaN)).toBe('')
   })
 })

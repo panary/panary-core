@@ -358,7 +358,13 @@
     "EMPLOYEE": "Çalışan",
     "PRE_ORDERS_TODAY": "Bugünkü ön siparişler",
     "ITEMS": "ürün",
-    "NEXT_PRE_ORDER": "Sonraki ön sipariş saat"
+    "NEXT_PRE_ORDER": "Sonraki ön sipariş saat",
+    "KPI_PER_HOUR": "Saat başına ort.",
+    "ORDERS_PER_HOUR": "Saatlik siparişler",
+    "OPENING_WINDOW": "Çalışma saatleri {{window}} · güncel saat vurgulu",
+    "PICKUP_NEXT": "Sıradaki teslimler",
+    "PICKUP_NONE": "Bugün başka ön sipariş yok.",
+    "PICKUP_ALL": "Tüm ön siparişler"
   },
   "ACTIVE_ORDERS": {
     "TITLE": "Açık siparişler",

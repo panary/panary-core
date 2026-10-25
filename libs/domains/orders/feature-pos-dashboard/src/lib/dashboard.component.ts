@@ -7,7 +7,11 @@ import { isOrderOpen, Order, OrderService } from '@panary/orders/data-access'
 import { TranslateModule } from '@ngx-translate/core'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { IconComponent } from '@panary/shared/ui-common'
-import { averageWaitingMinutes, hourlyOrderCounts, ordersPerHour } from './dashboard-kpis'
+import { LocationService } from '@panary/locations/data-access'
+import { getOpeningHoursForDate, type HourException, type RegularHour, formatDateISO } from '@panary/locations/domain'
+import { ConnectionService } from '@panary/shared/data-access'
+import { formatDecimal } from '@panary/shared/util-helpers'
+import { averageWaitingMinutes, chartWindow, hourlyOrderCounts, ordersPerHour, preOrderSummary } from './dashboard-kpis'
 
 /**
  * „Übersicht" der Rail: Kennzahlen, Stundenlast, Vorbestellungen heute.
@@ -30,6 +34,22 @@ export class DashboardComponent implements OnInit {
   #orderService = inject(OrderService)
   #preOrderService = inject(PreOrderService)
   #destroyRef = inject(DestroyRef)
+  #locationService = inject(LocationService)
+  #connectionService = inject(ConnectionService)
+
+  readonly formatDecimal = formatDecimal
+  readonly preOrderSummary = preOrderSummary
+
+  #regularHours = signal<RegularHour[]>([])
+  #hourExceptions = signal<HourException[]>([])
+  #openingHoursEnabled = signal(false)
+
+  /** Öffnungszeit des heutigen Tages; `null` ohne gepflegte Zeiten, geschlossen oder Ausnahme ohne Zeiten. */
+  readonly #todaysOpening = computed(() => {
+    if (!this.#openingHoursEnabled()) return null
+    const result = getOpeningHoursForDate(this.#now(), this.#regularHours(), this.#hourExceptions())
+    return result.closed ? null : result
+  })
 
   todayPreOrders = signal<PreOrder[]>([])
   orders: Signal<Order[]> = this.#orderService.orders
@@ -40,7 +60,16 @@ export class DashboardComponent implements OnInit {
   readonly chartOptions = computed(() => this.#buildOccupancyChart())
   readonly activeOrdersCount = computed(() => this.orders().filter(o => isOrderOpen(o.status)).length)
   readonly todayOrdersCount = computed(() => this.orders().length)
-  readonly productivity = computed(() => ordersPerHour(this.todayOrdersCount(), this.#now()))
+  readonly productivity = computed(() => {
+    const start = chartWindow(this.#todaysOpening(), hourlyOrderCounts(this.orders())).startHour
+    return formatDecimal(ordersPerHour(this.todayOrdersCount(), this.#now(), start))
+  })
+  /** Die nächsten offenen Vorbestellungen des Tages, nach Abholzeit. */
+  readonly nextPreOrders = computed(() => this.todayPreOrders().slice(0, 4))
+  readonly chartSubtitle = computed(() => {
+    const { startHour, endHour } = chartWindow(this.#todaysOpening(), hourlyOrderCounts(this.orders()))
+    return `${String(startHour).padStart(2, '0')}–${String(endHour).padStart(2, '0')}`
+  })
   // Nur die Zahl: Die Einheit steht im Label, "119 min" brach ab lg in der schmalen Kachel um (core#577)
   readonly avgWaitingMinutes = computed(() => averageWaitingMinutes(this.orders(), this.#now()))
 
@@ -50,6 +79,24 @@ export class DashboardComponent implements OnInit {
 
     this.fetchTodayPreOrders()
     this.#listenPreOrderEvents()
+    void this.#loadOpeningHours()
+  }
+
+  /** Öffnungszeiten der aktiven Filiale; ohne Pflege oder bei Fehler greift der Rückfall im Diagramm. */
+  async #loadOpeningHours(): Promise<void> {
+    try {
+      const location = this.#locationService.activeLocation() as any
+      const ohs = location?.settings?.openingHoursSettings
+      if (!ohs?.enabled) return
+      this.#regularHours.set(ohs.regular ?? [])
+      const result = await this.#connectionService.openingHourExceptionsService.find({
+        query: { date: formatDateISO(new Date()), locationId: location._id, $limit: 5 },
+      })
+      this.#hourExceptions.set(Array.isArray(result) ? result : ((result as any).data ?? []))
+      this.#openingHoursEnabled.set(true)
+    } catch {
+      this.#openingHoursEnabled.set(this.#regularHours().length > 0)
+    }
   }
 
   /** Lauscht auf Realtime-Events des Pre-Order-Service und aktualisiert die KPI */
@@ -99,56 +146,50 @@ export class DashboardComponent implements OnInit {
 
   #buildOccupancyChart(): EChartsOption {
     const hourlyCounts = hourlyOrderCounts(this.orders())
+    const { startHour, endHour } = chartWindow(this.#todaysOpening(), hourlyCounts)
+    const currentHour = this.#now().getHours()
+    const css = getComputedStyle(document.documentElement)
+    const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback
+    const accent = token('--accent', '#0f9d6c')
+    const past = token('--border-strong', '#c9c4b9')
+    const muted = token('--text-muted', '#6b665d')
+    const grid = token('--border-soft', '#e9e6df')
 
-    // const openingHour = 8  // TODO: use for chart range filtering
-    // const closingHour = 22
+    const hours = Array.from({ length: Math.max(1, endHour - startHour) }, (_, i) => startHour + i)
 
-    const xAxisData = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00')
-
-    // Styling for Fintech look (smooth, gradient, clean)
     return {
-      grid: { top: 20, right: 20, bottom: 20, left: 20, containLabel: true },
+      grid: { top: 16, right: 12, bottom: 8, left: 8, containLabel: true },
       tooltip: {
         trigger: 'axis',
+        axisPointer: { type: 'none' },
         className: 'echarts-tooltip',
-        formatter: '{b0}: {c0} Orders',
+        formatter: (params: any) => {
+          const p = Array.isArray(params) ? params[0] : params
+          return `${p.name}:00 · ${p.value ?? 0}`
+        },
       },
       xAxis: {
         type: 'category',
-        data: xAxisData,
-        boundaryGap: false,
+        data: hours.map(h => String(h).padStart(2, '0')),
         axisLine: { show: false },
         axisTick: { show: false },
-        axisLabel: { color: '#64748b', fontSize: 10, interval: 3 }, // Show every 3rd label
+        axisLabel: { color: muted, fontSize: 12 },
       },
       yAxis: {
         type: 'value',
         minInterval: 1,
-        splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
-        axisLabel: { color: '#64748b', fontSize: 10 },
+        splitLine: { lineStyle: { type: 'dashed', color: grid } },
+        axisLabel: { color: muted, fontSize: 12 },
       },
       series: [
         {
-          name: 'Auslastung',
-          type: 'line',
-          smooth: 0.4, // Curved lines
-          symbol: 'none',
-          data: hourlyCounts,
-          itemStyle: { color: '#3b82f6' }, // Blue-500
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(59, 130, 246, 0.3)' }, // Blue-500 with opacity
-                { offset: 1, color: 'rgba(59, 130, 246, 0.0)' },
-              ],
-            },
-          },
-          lineStyle: { width: 3 },
+          type: 'bar',
+          barCategoryGap: '30%',
+          // Künftige Stunden bleiben leer — ein Balken der Höhe 0 wäre eine Aussage.
+          data: hours.map(h => ({
+            value: h > currentHour ? null : hourlyCounts[h],
+            itemStyle: { color: h === currentHour ? accent : past, borderRadius: [4, 4, 0, 0] },
+          })),
         },
       ],
     }

@@ -1,7 +1,44 @@
 import { isOrderOpen, type Order } from '@panary/orders/domain'
 
-/** Annahme bis zur Anbindung der Öffnungszeiten: der Tag beginnt um 8 Uhr. */
-const ASSUMED_DAY_START_HOUR = 8
+/** Ohne gepflegte Öffnungszeit: Annahme 8 bis 20 Uhr (letzte Balkenstunde 19). */
+export const FALLBACK_OPENING_HOURS: OpeningWindow = { startHour: 8, endHour: 20 }
+
+/** Erste Stunde und Stunde des Schließens; angezeigt werden die Stunden von `startHour` bis `endHour - 1`. */
+export interface OpeningWindow {
+  startHour: number
+  endHour: number
+}
+
+/** Stunde aus „HH:mm". */
+function hourOf(time: string | undefined): number | null {
+  const hour = Number.parseInt(time?.split(':')[0] ?? '', 10)
+  return Number.isNaN(hour) ? null : hour
+}
+
+/**
+ * Anzeigefenster des Diagramms: die Öffnungszeit des Tages, aufgeweitet um Stunden mit Bestellungen
+ * (Verkauf außerhalb der Zeit darf nicht verschwinden). Ohne Öffnungszeit gilt der Rückfall.
+ */
+export function chartWindow(
+  opening: { open?: string; close?: string } | null,
+  counts: readonly number[],
+): OpeningWindow {
+  const open = hourOf(opening?.open)
+  const close = hourOf(opening?.close)
+  let { startHour, endHour } = FALLBACK_OPENING_HOURS
+  if (open !== null && close !== null && close > open) {
+    startHour = open
+    // Schließt es auf :00, ist die Stunde `close` selbst nicht mehr offen; auf :30 schon.
+    endHour = opening?.close?.endsWith(':00') ? close : close + 1
+  }
+  counts.forEach((count, hour) => {
+    if (count > 0) {
+      startHour = Math.min(startHour, hour)
+      endHour = Math.max(endHour, hour + 1)
+    }
+  })
+  return { startHour, endHour }
+}
 
 function orderTime(order: Order): number | null {
   const ts = order.recordingDate ?? order.createdAt ?? (order as { created_at?: string }).created_at ?? order.updatedAt
@@ -10,12 +47,20 @@ function orderTime(order: Order): number | null {
   return Number.isNaN(time) ? null : time
 }
 
-/** Bestellungen je Stunde seit Tagesbeginn, eine Nachkommastelle. */
-export function ordersPerHour(orderCount: number, now: Date): string {
+/** Bestellungen je Stunde seit Öffnung, als Zahl (Formatieren ist Sache der Anzeige, de-DE). */
+export function ordersPerHour(orderCount: number, now: Date, startHour = FALLBACK_OPENING_HOURS.startHour): number {
   const start = new Date(now)
-  start.setHours(ASSUMED_DAY_START_HOUR, 0, 0, 0)
+  start.setHours(startHour, 0, 0, 0)
   const hoursOpen = Math.max(1, (now.getTime() - start.getTime()) / 3_600_000)
-  return (orderCount / hoursOpen).toFixed(1)
+  return orderCount / hoursOpen
+}
+
+/** Kurzfassung einer Vorbestellung für die Spalte „Als Nächstes abholen": „2× Brötchen, Torte". */
+export function preOrderSummary(lineItems: readonly { name?: string; amount?: number }[] | undefined): string {
+  if (!lineItems?.length) return ''
+  const [first, ...rest] = lineItems
+  const head = `${first.amount && first.amount > 1 ? `${first.amount}× ` : ''}${first.name ?? ''}`.trim()
+  return rest.length ? `${head} +${rest.length}` : head
 }
 
 /**

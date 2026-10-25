@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#1022): [POS-Navigation](../domains/pos-navigation.md), [POS-Split-Layout](../domains/pos-split-layout.md) — `lib-page-header` stellt die Aktionen (auf „Offen" die Zoom-Tasten) dem Titel gegenüber an den rechten Rand, bei Rail links wie rechts; der Kopf spiegelt nicht mehr mit (ersetzt die Aktionen-Regel aus panary/panary-core#1005).

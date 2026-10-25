@@ -3,8 +3,9 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 /**
  * Split-Layout der POS-Seiten (core#975): Liste links, Detail rechts. Das Detail ist
  * clamp(400px, 32%, 600px) breit, die Liste nimmt den Rest und wird per `listMaxWidth` gedeckelt.
- * Inhalte kommen als `[posSplitList]` und `[posSplitDetail]`; `reverse` vertauscht die Seiten
- * (Bedienhand, core#976).
+ * Inhalte kommen als `[posSplitList]` und `[posSplitDetail]`. Das Detail trägt die Aktionen und sitzt
+ * an der Rail, die Auswahl liegt gegenüber (core#976): Die Shell setzt `data-rail-side` auf den
+ * Rahmen, sitzt die Rail links, vertauschen sich die Seiten. Ohne Shell bleibt die Liste links.
  */
 @Component({
   selector: 'lib-pos-split',
@@ -25,7 +26,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
         min-height: 0;
         gap: 1rem;
       }
-      :host(.pos-split--reverse) {
+      :host-context([data-rail-side='left']) {
         flex-direction: row-reverse;
       }
       .pos-split__list {
@@ -56,14 +57,12 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
     `,
   ],
   host: {
-    '[class.pos-split--reverse]': 'reverse()',
     '[class.pos-split--detail-open]': 'detailOpen()',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PosSplitComponent {
   listMaxWidth = input<string | null>(null)
-  reverse = input(false)
   /** Schmale Schirme zeigen entweder die Liste oder das Detail. */
   detailOpen = input(false)
 }

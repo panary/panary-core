@@ -45,6 +45,7 @@
     "targets:overrides:gate": "node scripts/inferred-target-overrides.mjs",
     "targets:uncached:gate": "node scripts/uncached-targets.mjs",
     "csp:gate": "node scripts/csp-connect-src.mjs",
+    "android-xml:gate": "node scripts/android-xml-gate.mjs",
     "vitest-helper:gate": "node scripts/vitest-helper-gate.mjs",
     "targets:uncached:gate:update": "node scripts/uncached-targets.mjs --update",
     "security:install": "bash scripts/install-security-tools.sh",

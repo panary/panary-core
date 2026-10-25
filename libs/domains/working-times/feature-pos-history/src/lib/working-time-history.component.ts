@@ -4,9 +4,8 @@ import { FormsModule } from '@angular/forms'
 import { WorkingTime } from '@panary/working-times/domain'
 import { WorkingTimeService } from '@panary/working-times/data-access'
 import { UserService } from '@panary/users/data-access'
-import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PageHeaderComponent } from '@panary/shared/ui-common'
 import { formatHoursMinutes, formatTotal, monthTotals, newestFirst } from './working-time-summary'
 
 export interface DailySummary {
@@ -23,13 +22,12 @@ export interface DailySummary {
 @Component({
   selector: 'lib-working-time-history',
   standalone: true,
-  imports: [IconComponent, DatePipe, FormsModule, TranslateModule],
+  imports: [IconComponent, PageHeaderComponent, DatePipe, FormsModule, TranslateModule],
   templateUrl: './working-time-history.component.html',
   styleUrl: './working-time-history.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WorkingTimeHistoryComponent {
-  #router = inject(Router)
   #workingTimeService = inject(WorkingTimeService)
   #userService = inject(UserService)
   #translate = inject(TranslateService)
@@ -60,6 +58,11 @@ export class WorkingTimeHistoryComponent {
       }
     }
     return undefined
+  })
+
+  userName = computed(() => {
+    const user = this.currentUser()
+    return user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : ''
   })
 
   months = computed(() => [
@@ -261,10 +264,6 @@ export class WorkingTimeHistoryComponent {
         return `${from} - ${to}`
       })
       .join('\n')
-  }
-
-  goBack() {
-    this.#router.navigate(['/dashboard'])
   }
 
   onFilterChange() {

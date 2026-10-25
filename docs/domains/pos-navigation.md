@@ -158,4 +158,4 @@ Seit [core#978](https://github.com/panary/panary-core/issues/978) stehen die Mon
 zeigt die **neuesten Tage zuerst**, freie Tage nur mit dem Schalter „Freie Tage zeigen" (Standard aus). Ein Monat ohne
 Eintrag zeigt einen erklärenden Satz statt einer leeren Tabelle. Der Monatswechsler trägt das Jahr im Label und
 sperrt „weiter" im laufenden Monat; das Jahres-Dropdown entfällt. Die Rechenlogik liegt testbar in
-`working-time-summary.ts`. Es gibt nur noch die Akzentfarbe — kein Orange mehr.
+`working-time-summary.ts`. Der Kopf ist `lib-page-header` ([core#972](https://github.com/panary/panary-core/issues/972)), ohne Zurück-Pfeil. Es gibt nur noch die Akzentfarbe — kein Orange mehr.

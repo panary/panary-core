@@ -1,167 +1,152 @@
-<div class="h-full w-full bg-surface-bg p-4 md:p-6 flex flex-col gap-4 overflow-auto box-border">
-  <!-- Header & Filters -->
-  <header class="flex-none flex flex-col gap-4 bg-surface-input rounded-2xl p-4 border border-line-soft">
-    <div class="flex flex-row items-center justify-between">
-      <div class="flex items-center gap-4">
+<div class="h-full w-full bg-surface-bg flex flex-col overflow-auto box-border">
+  <lib-page-header [title]="'DASHBOARD.WORKING_TIMES' | translate" [subtitle]="userName()">
+    <div pageHeaderActions class="flex items-center gap-1">
+      <div class="flex items-center gap-1">
         <button
-          (click)="goBack()"
-          class="flex items-center justify-center w-10 h-10 bg-surface-elevated text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
+          (click)="prevMonth()"
+          class="flex items-center justify-center w-9 h-9 rounded-lg bg-surface-elevated text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
         >
-          <lib-icon name="arrow-left" class="text-[1.25rem]" />
+          <lib-icon name="caret-left" class="text-[1.125rem]" />
         </button>
-        <h1 class="text-xl font-bold text-ink flex items-center gap-2">
-          {{ 'WORKING_TIMES.TITLE' | translate }}
-        </h1>
-      </div>
-
-      <!-- Monat-Navigation + Jahr-Dropdown -->
-      <div class="flex items-center gap-3">
-        <!-- Monat: Pfeile + Label -->
-        <div class="flex items-center gap-1">
-          <button
-            (click)="prevMonth()"
-            class="flex items-center justify-center w-9 h-9 rounded-lg bg-surface-elevated text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
-          >
-            <lib-icon name="caret-left" class="text-[1.125rem]" />
-          </button>
-          <span class="min-w-[9rem] text-center text-sm font-semibold text-ink select-none">
-            {{ currentMonthLabel() }} {{ selectedYear() }}
-          </span>
-          <button
-            (click)="nextMonth()"
-            [disabled]="isCurrentMonth()"
-            class="disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center w-9 h-9 rounded-lg bg-surface-elevated text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
-          >
-            <lib-icon name="caret-right" class="text-[1.125rem]" />
-          </button>
-        </div>
+        <span class="min-w-[9rem] text-center text-sm font-semibold text-ink select-none">
+          {{ currentMonthLabel() }} {{ selectedYear() }}
+        </span>
+        <button
+          (click)="nextMonth()"
+          [disabled]="isCurrentMonth()"
+          class="disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center w-9 h-9 rounded-lg bg-surface-elevated text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
+        >
+          <lib-icon name="caret-right" class="text-[1.125rem]" />
+        </button>
       </div>
     </div>
-  </header>
+  </lib-page-header>
 
-  <!-- Summen oben -->
-  <div class="flex-none flex flex-wrap items-stretch gap-3">
-    <div class="bg-surface-panel rounded-2xl border border-line px-5 py-3">
-      <p class="text-2xl font-bold text-ink tracking-tight">{{ totalNetLabel() }}</p>
-      <p class="text-xs text-ink-muted">{{ 'WORKING_TIMES.TOTAL_WORK_EXCL_TODAY' | translate }}</p>
+  <div class="flex-1 min-h-0 p-4 md:p-6 pt-0 flex flex-col gap-4">
+    <!-- Summen oben -->
+    <div class="flex-none flex flex-wrap items-stretch gap-3">
+      <div class="bg-surface-panel rounded-2xl border border-line px-5 py-3">
+        <p class="text-2xl font-bold text-ink tracking-tight">{{ totalNetLabel() }}</p>
+        <p class="text-xs text-ink-muted">{{ 'WORKING_TIMES.TOTAL_WORK_EXCL_TODAY' | translate }}</p>
+      </div>
+      <div class="bg-surface-panel rounded-2xl border border-line px-5 py-3">
+        <p class="text-2xl font-bold text-ink tracking-tight">{{ totalBreakLabel() }}</p>
+        <p class="text-xs text-ink-muted">{{ 'WORKING_TIMES.TOTAL_BREAKS_SHORT' | translate }}</p>
+      </div>
+      <div class="bg-surface-panel rounded-2xl border border-line px-5 py-3">
+        <p class="text-2xl font-bold text-ink tracking-tight">{{ totals().workedDays }}</p>
+        <p class="text-xs text-ink-muted">{{ 'WORKING_TIMES.WORKED_DAYS' | translate }}</p>
+      </div>
+      <label class="ml-auto self-center flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          [checked]="showOffDays()"
+          (change)="showOffDays.set(!showOffDays())"
+          class="w-5 h-5 rounded border-line-strong accent-accent cursor-pointer"
+        />
+        <span class="text-sm text-ink-muted">{{ 'WORKING_TIMES.SHOW_OFF_DAYS' | translate }}</span>
+      </label>
     </div>
-    <div class="bg-surface-panel rounded-2xl border border-line px-5 py-3">
-      <p class="text-2xl font-bold text-ink tracking-tight">{{ totalBreakLabel() }}</p>
-      <p class="text-xs text-ink-muted">{{ 'WORKING_TIMES.TOTAL_BREAKS_SHORT' | translate }}</p>
-    </div>
-    <div class="bg-surface-panel rounded-2xl border border-line px-5 py-3">
-      <p class="text-2xl font-bold text-ink tracking-tight">{{ totals().workedDays }}</p>
-      <p class="text-xs text-ink-muted">{{ 'WORKING_TIMES.WORKED_DAYS' | translate }}</p>
-    </div>
-    <label class="ml-auto self-center flex items-center gap-2 cursor-pointer select-none">
-      <input
-        type="checkbox"
-        [checked]="showOffDays()"
-        (change)="showOffDays.set(!showOffDays())"
-        class="w-5 h-5 rounded border-line-strong accent-accent cursor-pointer"
-      />
-      <span class="text-sm text-ink-muted">{{ 'WORKING_TIMES.SHOW_OFF_DAYS' | translate }}</span>
-    </label>
-  </div>
 
-  <!-- Content -->
-  <div class="flex-1 min-h-0 bg-surface-input rounded-2xl border border-line-soft overflow-hidden flex flex-col">
-    <div class="flex-1 overflow-auto">
-      @if (monthIsEmpty() && !showOffDays()) {
-        <p class="p-8 text-ink-muted">
-          {{ 'WORKING_TIMES.EMPTY_MONTH' | translate: { month: currentMonthLabel() } }}
-        </p>
-      } @else {
-        <div class="p-4 md:p-8">
-          <table class="w-full min-w-max text-sm">
-            <thead>
-              <tr class="text-left text-xs font-bold text-ink-faint uppercase tracking-wider">
-                <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
-                  {{ 'WORKING_TIMES.DATE' | translate }}
-                </th>
-                <th class="py-3 px-3 sticky top-0 bg-surface-input z-10 w-16">
-                  {{ 'WORKING_TIMES.DAY' | translate }}
-                </th>
-                <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
-                  {{ 'TIME_CLOCK.CLOCK_IN' | translate }}
-                </th>
-                <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
-                  {{ 'TIME_CLOCK.CLOCK_OUT' | translate }}
-                </th>
-                <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
-                  {{ 'WORKING_TIMES.BREAK' | translate }}
-                </th>
-                <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
-                  {{ 'WORKING_TIMES.WORK_TIME' | translate }}
-                </th>
-                <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">{{ 'SETTINGS.STATUS' | translate }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of filteredData(); track row.workingTime?._id ?? row.date.getTime()) {
-                <tr
-                  class="border-b border-line-soft last:border-0 hover:bg-surface-elevated transition-colors"
-                  [class.bg-surface-elevated]="row.status === 'off'"
-                  [class.dark:bg-surface-rail]="row.status === 'off'"
-                >
-                  <td class="py-3 px-3 text-ink">{{ row.date | date: 'dd.MM.yyyy' }}</td>
-                  <td class="py-3 px-3 font-medium text-ink-muted">{{ row.dayName }}</td>
-                  <td class="py-3 px-3 text-ink">{{ row.checkIn }}</td>
-                  <td class="py-3 px-3 text-ink">{{ row.checkOut }}</td>
-                  <td class="py-3 px-3 relative">
-                    @if (row.breakDuration > 0) {
-                      <button
-                        (click)="toggleBreakDetails(row)"
-                        class="text-accent-ink bg-accent-soft rounded-full px-3 h-7 text-xs font-medium hover:bg-accent-line transition-colors"
-                      >
-                        {{ formatDuration(row.breakDuration) }}
-                      </button>
-                      @if (expandedBreakRow() === row) {
-                        <div
-                          class="absolute left-0 top-full mt-1 z-20 bg-surface-elevated border border-line rounded-xl shadow-xl p-3 min-w-[11.25rem] text-sm text-ink-muted dark:text-ink whitespace-pre-line leading-relaxed animate-[fadeIn_0.15s_ease-out]"
-                        >
-                          <div class="font-semibold mb-1 text-ink text-xs">
-                            {{ 'WORKING_TIMES.BREAK_TIMES' | translate }}:
-                          </div>
-                          {{ getBreakDetails(row.workingTime) }}
-                        </div>
-                      }
-                    } @else {
-                      <span class="text-ink-faint">-</span>
-                    }
-                  </td>
-                  <td class="py-3 px-3 font-bold text-ink">
-                    {{ formatDuration(row.netDuration) }}
-                  </td>
-                  <td class="py-3 px-3">
-                    @if (row.status === 'active') {
-                      <span
-                        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-accent-soft text-accent-ink"
-                      >
-                        {{ 'WORKING_TIMES.STATUS_ACTIVE' | translate }}
-                      </span>
-                    }
-                    @if (row.status === 'off') {
-                      <span
-                        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-line-soft text-ink-muted"
-                      >
-                        {{ 'WORKING_TIMES.STATUS_OFF' | translate }}
-                      </span>
-                    }
-                    @if (row.status === 'worked') {
-                      <span
-                        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-line-soft text-ink-muted"
-                      >
-                        {{ 'WORKING_TIMES.STATUS_WORKED' | translate }}
-                      </span>
-                    }
-                  </td>
+    <!-- Content -->
+    <div class="flex-1 min-h-0 bg-surface-input rounded-2xl border border-line-soft overflow-hidden flex flex-col">
+      <div class="flex-1 overflow-auto">
+        @if (monthIsEmpty() && !showOffDays()) {
+          <p class="p-8 text-ink-muted">
+            {{ 'WORKING_TIMES.EMPTY_MONTH' | translate: { month: currentMonthLabel() } }}
+          </p>
+        } @else {
+          <div class="p-4 md:p-8">
+            <table class="w-full min-w-max text-sm">
+              <thead>
+                <tr class="text-left text-xs font-bold text-ink-faint uppercase tracking-wider">
+                  <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
+                    {{ 'WORKING_TIMES.DATE' | translate }}
+                  </th>
+                  <th class="py-3 px-3 sticky top-0 bg-surface-input z-10 w-16">
+                    {{ 'WORKING_TIMES.DAY' | translate }}
+                  </th>
+                  <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
+                    {{ 'TIME_CLOCK.CLOCK_IN' | translate }}
+                  </th>
+                  <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
+                    {{ 'TIME_CLOCK.CLOCK_OUT' | translate }}
+                  </th>
+                  <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
+                    {{ 'WORKING_TIMES.BREAK' | translate }}
+                  </th>
+                  <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">
+                    {{ 'WORKING_TIMES.WORK_TIME' | translate }}
+                  </th>
+                  <th class="py-3 px-3 sticky top-0 bg-surface-input z-10">{{ 'SETTINGS.STATUS' | translate }}</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
+              </thead>
+              <tbody>
+                @for (row of filteredData(); track row.workingTime?._id ?? row.date.getTime()) {
+                  <tr
+                    class="border-b border-line-soft last:border-0 hover:bg-surface-elevated transition-colors"
+                    [class.bg-surface-elevated]="row.status === 'off'"
+                    [class.dark:bg-surface-rail]="row.status === 'off'"
+                  >
+                    <td class="py-3 px-3 text-ink">{{ row.date | date: 'dd.MM.yyyy' }}</td>
+                    <td class="py-3 px-3 font-medium text-ink-muted">{{ row.dayName }}</td>
+                    <td class="py-3 px-3 text-ink">{{ row.checkIn }}</td>
+                    <td class="py-3 px-3 text-ink">{{ row.checkOut }}</td>
+                    <td class="py-3 px-3 relative">
+                      @if (row.breakDuration > 0) {
+                        <button
+                          (click)="toggleBreakDetails(row)"
+                          class="text-accent-ink bg-accent-soft rounded-full px-3 h-7 text-xs font-medium hover:bg-accent-line transition-colors"
+                        >
+                          {{ formatDuration(row.breakDuration) }}
+                        </button>
+                        @if (expandedBreakRow() === row) {
+                          <div
+                            class="absolute left-0 top-full mt-1 z-20 bg-surface-elevated border border-line rounded-xl shadow-xl p-3 min-w-[11.25rem] text-sm text-ink-muted dark:text-ink whitespace-pre-line leading-relaxed animate-[fadeIn_0.15s_ease-out]"
+                          >
+                            <div class="font-semibold mb-1 text-ink text-xs">
+                              {{ 'WORKING_TIMES.BREAK_TIMES' | translate }}:
+                            </div>
+                            {{ getBreakDetails(row.workingTime) }}
+                          </div>
+                        }
+                      } @else {
+                        <span class="text-ink-faint">-</span>
+                      }
+                    </td>
+                    <td class="py-3 px-3 font-bold text-ink">
+                      {{ formatDuration(row.netDuration) }}
+                    </td>
+                    <td class="py-3 px-3">
+                      @if (row.status === 'active') {
+                        <span
+                          class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-accent-soft text-accent-ink"
+                        >
+                          {{ 'WORKING_TIMES.STATUS_ACTIVE' | translate }}
+                        </span>
+                      }
+                      @if (row.status === 'off') {
+                        <span
+                          class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-line-soft text-ink-muted"
+                        >
+                          {{ 'WORKING_TIMES.STATUS_OFF' | translate }}
+                        </span>
+                      }
+                      @if (row.status === 'worked') {
+                        <span
+                          class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-line-soft text-ink-muted"
+                        >
+                          {{ 'WORKING_TIMES.STATUS_WORKED' | translate }}
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
     </div>
   </div>
 </div>

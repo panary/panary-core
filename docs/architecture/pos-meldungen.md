@@ -4,7 +4,7 @@ title: 'POS-Meldungen — Arten, Dauer, Stapel und Position'
 description: 'Wie der POS Meldungen zeigt: NotificationService mit vier Arten und fester Dauer, Quittierpflicht, Stapel aus drei, Zählung gleicher Meldungen, Anzeige oben mittig über Dialogen, ohne deren Tasten zu verdecken.'
 tags: [pos-client, ui, notifications, design-system]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T22:40:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T23:20:00Z }
 sources:
   - { id: adr-0061, resource: '../adr/0061-pos-meldungen-statt-material-snackbar.md', title: 'ADR 0061' }
 ---
@@ -101,7 +101,10 @@ Einblendung noch einmal ab.
 **Neben einem modalen Dialog (core#1087).** Über dem Dialog zu liegen hieß bis
 [#1087](https://github.com/panary/panary-core/issues/1087) auch, ihn zu verdecken: Nach dem Abschicken lagen bis zu
 drei Meldungen über Kopf und Druckertasten des Druckdialogs. Jetzt richtet sich die Ebene am obersten offenen
-Element mit `aria-modal="true"` aus (`placeBesideDialog` in `top-layer.ts`, gerechnet im Outlet):
+Dialog aus (`MODAL_DIALOG_SELECTOR`: `.cdk-dialog-container` oder `aria-modal="true"`; `placeBesideDialog` in
+`top-layer.ts`, gerechnet im Outlet). ⚠️ Material setzt an `mat-dialog-container` `aria-modal="false"`: Bis
+[#1094](https://github.com/panary/panary-core/issues/1094) suchte die Ebene nur `aria-modal="true"`, fand so keinen
+einzigen MatDialog und wich nie aus (im Sichttest #1093 gemessen).
 
 - Passt der Stapel zwischen Streifen und Dialog-Oberkante, bleibt er an gewohnter Stelle.
 - Sonst steht er direkt unter dem Dialog, wenn er dort ganz passt.

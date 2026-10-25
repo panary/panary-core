@@ -68,7 +68,7 @@
   <ng-template #groupChip let-productGroup>
     <button
       type="button"
-      class="pnry-touch h-12 basis-[var(--pnry-group-chip)] grow shrink-0 max-w-[8.5rem] rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase shadow-card flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
+      class="pnry-touch h-12 basis-[var(--pnry-group-chip)] grow shrink-0 min-w-0 max-w-[8.5rem] rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase shadow-card flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
       (click)="createProductButtons(productGroup)"
       [disabled]="sheetOpen()"
     >

@@ -243,7 +243,8 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     expect(chip).toEqual(
       expect.arrayContaining(['basis-[var(--pnry-group-chip)]', 'grow', 'shrink-0', 'max-w-[8.5rem]']),
     )
-    expect(chip.filter(k => /^(min-w|w)-/.test(k))).toEqual([])
+    // `min-w-0`: Sonst hebt ein langes Wort die Min-Content-Breite über das Grundmaß, und die Zählung stimmt nicht.
+    expect(chip.filter(k => /^(min-w|w)-/.test(k))).toEqual(['min-w-0'])
     const messzeile = template.match(/#productGroupMeasure\s+class="([^"]*)"/)?.[1].split(/\s+/) ?? []
     expect(messzeile).toContain('*:grow-0')
     expect(chip).not.toContain('whitespace-nowrap')

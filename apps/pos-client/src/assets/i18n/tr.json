@@ -656,6 +656,7 @@
     "CHANNEL_POS": "Kasa",
     "CHANNEL_PHONE": "Telefon",
     "DISCOUNT": "İndirim",
+    "WITHOUT_DISCOUNT": "İndirimsiz",
     "LINE_DISCOUNT": "Kalem ind.",
     "PROMO_CODE": "İndirim kodu",
     "OPTIONS": "Seçenekler",

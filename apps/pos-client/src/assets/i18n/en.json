@@ -656,6 +656,7 @@
     "CHANNEL_POS": "Counter",
     "CHANNEL_PHONE": "Phone",
     "DISCOUNT": "Discount",
+    "WITHOUT_DISCOUNT": "Without discount",
     "LINE_DISCOUNT": "Line disc.",
     "PROMO_CODE": "Discount code",
     "OPTIONS": "Options",

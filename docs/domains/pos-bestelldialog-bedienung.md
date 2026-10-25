@@ -4,7 +4,7 @@ title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
 description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T17:40:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:30:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -78,8 +78,8 @@ Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-s
 | --- | --- |
 | Auswählen, Abwählen | Tipp auf die Zeile, zweiter Tipp hebt auf |
 | −, Menge, +, Anpassen bzw. Kombi lösen, Löschen | Steuerleiste direkt unter der markierten Zeile, Position oder Kombination, je 3,5rem; − bei Menge 1 aus, Menge und Löschen mit Rückgängig. Nach dem Markieren scrollt der Warenkorb die Leiste samt Außenabstand in den Sichtbereich (`block: 'nearest'`, nur so weit wie nötig; `cart-scroll.ts`, [core#1021](https://github.com/panary/panary-core/issues/1021)), direkt nach dem Rendern per `afterRenderEffect` ([core#1047](https://github.com/panary/panary-core/issues/1047): ein `effect` lief erst im nächsten Uhr-Takt, ≈ 1,6 s später) |
-| Rabatt, Kombination, Optionen | Leiste unter der Summe; Kombination öffnet die Kombinationsansicht (core#965) |
-| Pos.-Rab. (nur mit Auswahl), Personalessen, Firmenkunde, Rabattcode, Preise ein/aus, Weitere Aktionen | „Optionen" unter der Summe; „Weitere Aktionen" öffnet „Bestellung leeren" und „Kunde entfernen"; ein geprüfter Code steht am Eintrag ([core#908](https://github.com/panary/panary-core/issues/908)) |
+| Rabatt, Kombination, Optionen | Reihe mit der Primärtaste unter dem Warenkorb (seit [core#1067](https://github.com/panary/panary-core/issues/1067), vorher Leiste unter der Summe); Kombination öffnet die Kombinationsansicht (core#965) |
+| Pos.-Rab. (nur mit Auswahl), Personalessen, Firmenkunde, Rabattcode, Preise ein/aus, Weitere Aktionen | „Optionen" in der Reihe unter dem Warenkorb, öffnet nach oben; „Weitere Aktionen" öffnet „Bestellung leeren" und „Kunde entfernen"; ein geprüfter Code steht am Eintrag ([core#908](https://github.com/panary/panary-core/issues/908)) |
 | Funktionstasten über dem Raster | keine im Hauptbereich; nur laufende Abläufe setzen welche (`boardFunctionButtons`, core#965) |
 | Meldungen | Hinweis über dem unteren Rasterrand, 4 s, Fehler 6 s, nimmt keine Tipps an; ohne Leerlauf-Text und ohne Echo von Gruppe oder Funktionsblock (`notice`, core#908) |
 | Kanal Kasse/Telefon | Schalter im Warenkorbkopf, Zustand ohne Antippen ablesbar |
@@ -96,7 +96,7 @@ Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-s
 | Extras im Panel | je Gruppe ein Raster gleich breiter Spalten (`repeat(auto-fill, minmax(16rem, 1fr))`), Überschrift über die volle Breite, senkrecht scrollbar ([core#909](https://github.com/panary/panary-core/issues/909); vorher Spalten-Liste mit `column-fill: auto`) |
 | Panel-Fuß | Container-Query: unter 42rem Panelbreite werden Abbrechen, Modifier und „n lösen" zu 64-px-Tasten, „Fertig" füllt den Rest |
 | Ziffernleiste | unter dem Raster, am Rand gegenüber dem Warenkorb (`.kasse__keys-row`, spiegelt mit `data-hand`, die Folge nie); Container-Query auf der Leiste selbst: Multiplier-Feld, 0–9 und `C` inline ab 53,25rem Inhaltsbreite (Summe der festen Breiten 53,125rem), darunter `C` und das Ziffern-Popup. Die Schwelle wächst über rem mit der Dichte. Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
-| Primärtaste | unter dem Warenkorb, 3,5rem hoch wie die Ziffern, Mint mit Navy-Schrift, mit Gesamtbetrag; „Bestellen" in beiden Betriebsarten bis [core#830](https://github.com/panary/panary-core/issues/830) |
+| Primärtaste | unter dem Warenkorb, 3,5rem hoch wie die Ziffern, Mint mit Navy-Schrift, zweizeilig: Beschriftung oben, gültiger Gesamtbetrag groß darunter. Davor in derselben Reihe Rabatt, Kombination und Optionen à 4,5rem. Die Taste liegt zum Raster hin (`.kasse__pay`, `order: -1` bei `data-hand='right'`), die drei Tasten behalten ihre Folge. Die Summe steht nur hier, die Artikelanzahl im Warenkorb-Kopf neben der Uhrzeit; Rabattzeilen und der durchgestrichene Betrag „Ohne Rabatt“ erscheinen nur bei aktivem Rabatt über dem Kartenende ([core#1067](https://github.com/panary/panary-core/issues/1067), vorher Summenzeile und Aktionsleiste im Warenkorb: 9 statt 12 Positionen bei 1366 × 768). „Bestellen" in beiden Betriebsarten bis [core#830](https://github.com/panary/panary-core/issues/830) |
 
 ## Designstudie Bestellen (core#1062)
 

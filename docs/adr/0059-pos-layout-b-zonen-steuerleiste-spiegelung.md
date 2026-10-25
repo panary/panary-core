@@ -5,7 +5,7 @@ description: Warum der Kassenbildschirm seit core#829 ein Zonen-Grid mit einzeil
 tags: [orders, pos, ux, design-system]
 status: stable
 decision: accepted
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T15:20:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:35:00Z }
 ---
 
 # POS-Layout B — Gruppenleiste, Warenkorbspalte, Steuerleiste, Spiegelung
@@ -56,8 +56,9 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
    (Warenkorb ↔ Raster, Primärtaste ↔ Ziffernleiste), nie Inhalte: Die Ziffern laufen 0–9 von links
    nach rechts, − steht vor +. Fehlt das Feld, gilt links, also die Position wie bisher. Keine
    `dir="rtl"`-Tricks.
-6. **Spalte 2 entfällt.** Die Leiste unter der Summe heißt Rabatt · Kombination · Optionen
-   (core#965). Kombination ist eine Mint-Taste dort (unter „Optionen" kostete sie zwei Tipps); Positionsrabatt
+6. **Spalte 2 entfällt.** Rabatt · Kombination · Optionen bilden eine eigene Leiste (core#965). Bis
+   [core#1067](https://github.com/panary/panary-core/issues/1067) stand sie unter der Summe im Warenkorb, seither
+   steht sie mit der Primärtaste in einer Reihe unter dem Warenkorb, und die Summenzeile ist entfallen. Kombination ist eine Mint-Taste dort (unter „Optionen" kostete sie zwei Tipps); Positionsrabatt
    (nur mit markierter Zeile), Personalessen, Firmenkunde, Rabattcode, Preise ein/aus und „Weitere Aktionen"
    liegen unter „Optionen". Der Hauptbereich zeigt initial keine Funktionstasten, nur Abläufe setzen welche. Der Kanal Kasse/Telefon ist ein Schalter im
    Warenkorbkopf, sein Zustand ist ohne Antippen ablesbar.

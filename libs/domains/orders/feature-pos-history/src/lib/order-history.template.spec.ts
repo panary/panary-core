@@ -24,3 +24,22 @@ describe('Historie-Kopf (core#975)', () => {
     expect(source).not.toContain('goBack()')
   })
 })
+
+// core#1024: ID und Aktionen standen unter dem Bon und waren erst nach Scrollen erreichbar.
+describe('Historie: ID und Aktionen im Detailkopf (core#1024)', () => {
+  const kopf = source.slice(source.indexOf('data-testid="detail-head"'), source.indexOf('<!-- Detail Content -->'))
+
+  it('der Kopf trägt ID, Drucken und Stornieren', () => {
+    expect(kopf).toContain('data-testid="detail-id"')
+    expect(kopf).toContain('selectedOrder()?._id')
+    expect(kopf).toContain('(click)="printOrder()"')
+    expect(kopf).toContain('(click)="cancelOrder()"')
+  })
+
+  it('der scrollende Inhalt enthält weder ID noch Aktionen', () => {
+    const inhalt = source.slice(source.indexOf('<!-- Detail Content -->'))
+    expect(inhalt).not.toContain('printOrder()')
+    expect(inhalt).not.toContain('cancelOrder()')
+    expect(inhalt).not.toContain('selectedOrder()?._id')
+  })
+})

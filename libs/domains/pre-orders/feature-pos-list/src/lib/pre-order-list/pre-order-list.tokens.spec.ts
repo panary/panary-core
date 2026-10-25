@@ -36,3 +36,22 @@ describe('Vorbestellungen: Auswahlring bleibt sichtbar (core#1023)', () => {
     expect(source).toContain('[class.ring-2]="selectedOrder()?._id === order._id"')
   })
 })
+
+// core#1024: ID und Aktionen standen unter dem Bon und waren erst nach Scrollen erreichbar.
+describe('Vorbestellungen: ID und Aktionen im Detailkopf (core#1024)', () => {
+  const source = readFileSync(fileURLToPath(new URL('./pre-order-list.component.ts', import.meta.url)), 'utf8')
+  const kopf = source.slice(source.indexOf('data-testid="detail-head"'), source.indexOf('<!-- Detail Content -->'))
+
+  it('der Kopf trägt ID, Bestellung erstellen und Stornieren', () => {
+    expect(kopf).toContain('data-testid="detail-id"')
+    expect(kopf).toContain('selectedOrder()?._id')
+    expect(kopf).toContain('convertToLiveOrder(selectedOrder()!)')
+    expect(kopf).toContain('cancelOrder(selectedOrder()!)')
+  })
+
+  it('der scrollende Inhalt enthält keine Aktionen mehr', () => {
+    const inhalt = source.slice(source.indexOf('<!-- Detail Content -->'), source.indexOf('<!-- Placeholder -->'))
+    expect(inhalt).not.toContain('convertToLiveOrder(')
+    expect(inhalt).not.toContain('cancelOrder(')
+  })
+})

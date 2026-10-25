@@ -141,7 +141,9 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
   hat (`#selectFromCart`, [core#1086](https://github.com/panary/panary-core/issues/1086)). Der Tipp auf die
   angepasste Zeile selbst schließt das Sheet und hebt die Markierung auf. Bis core#1086 zog das Sheet zur
   neuen Zeile mit; auf der Sunmi war dann nicht zu erkennen, welches Produkt man gerade bearbeitete.
-  Eine offene Pflichtgruppe hält den Tipp nicht auf, wie bei jedem anderen Ansichtswechsel.
+  Anders als „Fertig" hält eine offene Pflichtgruppe den Tipp nicht auf, wie bei jedem anderen
+  Ansichtswechsel. Eine ganz markierte Kombination wird über ihre Zeilen wiedergefunden, nicht über den
+  Index, weil das Zusammenführen Kombinationen davor auflösen kann.
 - **Pfeiltasten** ziehen das Sheet weiter zur neuen Zeile mit (`#followSelectionInPanel`), seit core#1085
   auch auf eine ohne Extras (Leerzustand). Plus und
   Minus buchen ohnehin auf die Zeile des Panels, nie auf die gerade markierte.

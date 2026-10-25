@@ -432,6 +432,8 @@
     "CONVERTED_SUCCESS": "Successfully transferred to register",
     "CONVERT_ERROR": "Error during transfer",
     "CANCEL_ORDER": "Cancel order",
+    "HEAD_CONVERT": "Convert",
+    "HEAD_CANCEL": "Cancel",
     "CANCEL_MESSAGE": "This action cannot be undone. The pre-order will be permanently canceled.",
     "CANCEL_CONFIRM": "Cancel permanently",
     "CANCELED_SUCCESS": "Pre-order canceled",

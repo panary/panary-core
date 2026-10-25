@@ -152,7 +152,7 @@ import { findRequestedPreOrder } from './pre-order-selection'
                     {{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}
                   </p>
                   <p class="text-xs text-ink-faint truncate" data-testid="detail-id">
-                    <span class="font-bold uppercase">ID</span>
+                    <span class="font-bold uppercase mr-1">ID</span>
                     <span class="font-mono select-all">{{ selectedOrder()?._id }}</span>
                   </p>
                 </div>
@@ -165,19 +165,22 @@ import { findRequestedPreOrder } from './pre-order-selection'
               </div>
               @if (selectedOrder()?.status === 'pending') {
                 <div class="grid grid-cols-2 gap-2" data-testid="detail-actions">
+                  <!-- Kurze Beschriftung, damit die Tasten bei 400 px Detailbreite einzeilig bleiben (core#1054) -->
                   <button
-                    class="h-11 rounded-lg bg-action text-on-action font-bold hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    class="h-11 min-w-0 px-2 rounded-lg bg-action text-on-action font-bold whitespace-nowrap hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    [title]="'PRE_ORDERS.CREATE_ORDER' | translate"
                     (click)="convertToLiveOrder(selectedOrder()!)"
                   >
-                    <lib-icon name="cash-register" class="text-[1.25rem]" />
-                    {{ 'PRE_ORDERS.CREATE_ORDER' | translate }}
+                    <lib-icon name="cash-register" class="text-[1.25rem] shrink-0" />
+                    <span class="truncate">{{ 'PRE_ORDERS.HEAD_CONVERT' | translate }}</span>
                   </button>
                   <button
-                    class="h-11 rounded-lg bg-surface-elevated border border-line text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    class="h-11 min-w-0 px-2 rounded-lg bg-surface-elevated border border-line text-red-600 font-medium whitespace-nowrap hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    [title]="'PRE_ORDERS.CANCEL_ORDER' | translate"
                     (click)="cancelOrder(selectedOrder()!)"
                   >
-                    <lib-icon name="trash" class="text-[1.25rem]" />
-                    {{ 'PRE_ORDERS.CANCEL_ORDER' | translate }}
+                    <lib-icon name="trash" class="text-[1.25rem] shrink-0" />
+                    <span class="truncate">{{ 'PRE_ORDERS.HEAD_CANCEL' | translate }}</span>
                   </button>
                 </div>
               } @else {

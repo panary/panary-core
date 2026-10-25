@@ -48,3 +48,10 @@ describe('Historie: ID und Aktionen im Detailkopf (core#1024)', () => {
     expect(inhalt).not.toContain('selectedOrder()?._id')
   })
 })
+
+// core#1054: „ID" klebte an der Nummer.
+describe('Historie: ID mit Abstand (core#1054)', () => {
+  it('die ID-Beschriftung hat Abstand zur Nummer', () => {
+    expect(source).toContain('<span class="font-bold uppercase mr-1">ID</span>')
+  })
+})

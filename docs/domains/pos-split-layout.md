@@ -4,7 +4,7 @@ title: POS-Split-Layout — Liste links, Detail rechts
 description: Wie Vorbestellungen und Historie im Breitformat aufgebaut sind — Komponente lib-pos-split, Detailbreite clamp(400px, 32%, 600px), Kartenraster je Bildschirmbreite, Historien-Liste bis 820 px, Gruppierung nach Abholtag, Leerzustände; Sunmi-Maß offen.
 tags: [pos-client, ui]
 status: draft
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T16:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T16:45:00Z }
 ---
 
 Designstudie POS-Screens v2 (E9), Anker panary/panary-core#819, Umsetzung panary/panary-core#975.
@@ -17,7 +17,7 @@ Designstudie POS-Screens v2 (E9), Anker panary/panary-core#819, Umsetzung panary
 
 - **Detail** `clamp(400px, 32%, 600px)`, Liste nimmt den Rest. Unter 1024 px zeigt die Komponente entweder Liste oder Detail (`detailOpen`).
 - **Vorbestellungen:** Karten im Raster `repeat(auto-fill, minmax(20rem, 1fr))` — 2 Spalten bei 1366, 3 bei 1920; gruppiert nach Abholtag (Heute, Morgen, Datum).
-- **Detailkopf** (panary/panary-core#1024): Vorbestellungen und Historie zeigen Titel, Zeit bzw. Bon-Nummer, die ID und die Aktionen (Bestellung erstellen/Stornieren bzw. Drucken/Stornieren) im festen Kopf des Details. Nur der Bon darunter scrollt; ID und Aktionen sind ohne Scrollen erreichbar. Ist eine Vorbestellung nicht mehr offen, steht dort ihr Status statt der Tasten.
+- **Detailkopf** (panary/panary-core#1024): Vorbestellungen und Historie zeigen Titel, Zeit bzw. Bon-Nummer, die ID und die Aktionen (Bestellung erstellen/Stornieren bzw. Drucken/Stornieren) im festen Kopf des Details. Nur der Bon darunter scrollt; ID und Aktionen sind ohne Scrollen erreichbar. Ist eine Vorbestellung nicht mehr offen, steht dort ihr Status statt der Tasten. Die Kopftasten der Vorbestellung tragen kurze Beschriftungen („Übernehmen“/„Stornieren“, `PRE_ORDERS.HEAD_*`) und bleiben bei 400 px Detailbreite einzeilig; die volle Aktion steht im `title`, der sichtbare Text bleibt der zugängliche Name (panary/panary-core#1054).
 - **Auswahlring:** Ausgewählte Karten tragen `ring-2` (außen gezeichnet). Die scrollende Liste braucht deshalb Innenabstand (Vorbestellungen `p-1`, Historie `p-2`), sonst schneidet ihr `overflow` den Ring ab (panary/panary-core#1023).
 - **Historie:** Liste bis 820 px (`listMaxWidth`), kein Lila mehr (Akzent-Tokens).
 - **Leerzustände** nennen den Zeitraum; Historie „Heute" bietet „Gestern ansehen", Vorbestellungen „Neue Vorbestellung anlegen".

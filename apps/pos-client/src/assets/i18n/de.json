@@ -432,6 +432,8 @@
     "CONVERTED_SUCCESS": "Erfolgreich in die Kasse übernommen",
     "CONVERT_ERROR": "Fehler bei der Übernahme",
     "CANCEL_ORDER": "Bestellung stornieren",
+    "HEAD_CONVERT": "Übernehmen",
+    "HEAD_CANCEL": "Stornieren",
     "CANCEL_MESSAGE": "Diese Aktion kann nicht rückgängig gemacht werden. Die Vorbestellung wird dauerhaft storniert.",
     "CANCEL_CONFIRM": "Endgültig stornieren",
     "CANCELED_SUCCESS": "Vorbestellung storniert",

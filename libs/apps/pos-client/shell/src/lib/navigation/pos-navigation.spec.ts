@@ -169,7 +169,9 @@ const handLabels = (lang: string): Record<string, string> => {
 
 /** Seite des Warenkorbs in der Kasse, gelesen aus den Grid-Areas der Kasse — nicht aus einer Annahme im Test. */
 const kasseCartSide = (hand: ScreenSide): ScreenSide => {
-  const scss = readRepoFile('../../../../../../domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.scss')
+  const scss = readRepoFile(
+    '../../../../../../domains/orders/feature-pos-order-dialog/src/lib/order-dialog.component.scss',
+  )
   const block = hand === 'right' ? scss.slice(scss.indexOf("&[data-hand='right']")) : scss
   const row = /'(cart grid|grid cart)'/.exec(block)?.[1]
   if (!row) throw new Error(`Keine Warenkorb-Zeile in den Grid-Areas für data-hand=${hand}`)

@@ -96,7 +96,13 @@
     <div class="flex items-center gap-2 px-3 h-16 shrink-0 border-b border-line-soft">
       <div class="flex-1 min-w-0">
         <div class="text-sm font-bold text-ink">{{ 'ORDER_DIALOG.CART_TITLE' | translate }}</div>
-        <div class="text-xs font-mono text-ink-faint">{{ time() | date: 'HH:mm:ss' }}</div>
+        <!-- Die Anzahl steht seit core#1067 hier; die Summenzeile unter der Liste ist entfallen. -->
+        <div class="text-xs text-ink-faint">
+          <span class="font-semibold text-ink-muted" data-testid="cart-count"
+            >{{ articleCount() }} {{ 'COMMON.ITEMS' | translate }}</span
+          >
+          · <span class="font-mono">{{ time() | date: 'HH:mm:ss' }}</span>
+        </div>
       </div>
       <div
         class="flex rounded-control border border-line bg-surface-rail p-0.5 shrink-0"
@@ -420,148 +426,56 @@
       }
     </div>
 
-    <!-- Summe -->
-    <div class="shrink-0 border-t border-line-soft">
-      @if (selectedManualDiscount(); as md) {
-        <div class="flex items-center gap-2 px-4 pt-2">
-          <lib-icon name="tag" class="text-[1rem] text-amber-600 dark:text-amber-400" />
-          <span class="text-xs font-semibold text-ink truncate flex-1">
-            {{ md.name }}
-            <span class="text-ink-faint"
-              >· {{ md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100 | eur) }}</span
-            >
-          </span>
-          <button
-            type="button"
-            (click)="clearManualDiscount()"
-            class="w-7 h-7 rounded-lg flex items-center justify-center text-ink-faint hover:bg-line-soft active:scale-95"
-          >
-            <lib-icon name="x" class="text-[1rem]" />
-          </button>
-        </div>
-      }
-      @if (appliedCodeDiscount(); as cd) {
-        <div class="flex items-center gap-2 px-4 pt-2">
-          <lib-icon name="ticket" class="text-[1rem] text-amber-600 dark:text-amber-400" />
-          <span class="text-xs font-semibold text-ink truncate flex-1">
-            {{ cd.code }}
-            @if (cd.discount; as d) {
+    <!-- Aktiver Rabatt über dem Kartenende. Die Summe steht seit core#1067 nur noch auf der Primärtaste, die Anzahl im
+         Kopf: Summenzeile und Aktionsleiste kosteten 121 px, bei 1366 × 768 sah man 9 statt 12 Positionen. -->
+    @if (selectedManualDiscount() || appliedCodeDiscount()) {
+      <div class="shrink-0 border-t border-line-soft pb-2" data-testid="cart-discounts">
+        @if (selectedManualDiscount(); as md) {
+          <div class="flex items-center gap-2 px-4 pt-2">
+            <lib-icon name="tag" class="text-[1rem] text-amber-600 dark:text-amber-400" />
+            <span class="text-xs font-semibold text-ink truncate flex-1">
+              {{ md.name }}
               <span class="text-ink-faint"
-                >· {{ d.name }} ·
-                {{
-                  d.valueType === 'percent' || d.valueType === 'PERCENT'
-                    ? d.valuePercent + ' %'
-                    : (d.valueCents / 100 | eur)
-                }}</span
+                >· {{ md.valueType === 'percent' ? md.valuePercent + ' %' : (md.valueCents / 100 | eur) }}</span
               >
-            }
-          </span>
-          <button
-            type="button"
-            (click)="clearCodeDiscount()"
-            aria-label="Rabattcode entfernen"
-            class="w-7 h-7 rounded-lg flex items-center justify-center text-ink-faint hover:bg-line-soft active:scale-95"
-          >
-            <lib-icon name="x" class="text-[1rem]" />
-          </button>
-        </div>
-      }
-      <div class="flex justify-between items-baseline px-4 py-3">
-        <span class="text-xs font-bold text-ink-muted uppercase tracking-wider"
-          >{{ 'COMMON.TOTAL' | translate }} · {{ articleCount() }} {{ 'COMMON.ITEMS' | translate }}</span
-        >
-        @if (hasDiscountPreview()) {
-          <span class="flex items-baseline gap-2">
-            <span class="text-xs font-medium text-ink-faint line-through">{{ calculateSumPrice() | eur }}</span>
-            <span class="text-xl font-black text-ink tabular-nums">{{ discountedTotal() | eur }}</span>
-          </span>
-        } @else {
-          <span class="text-xl font-black text-ink tabular-nums">{{ calculateSumPrice() | eur }}</span>
+            </span>
+            <button
+              type="button"
+              (click)="clearManualDiscount()"
+              class="w-7 h-7 rounded-lg flex items-center justify-center text-ink-faint hover:bg-line-soft active:scale-95"
+            >
+              <lib-icon name="x" class="text-[1rem]" />
+            </button>
+          </div>
+        }
+        @if (appliedCodeDiscount(); as cd) {
+          <div class="flex items-center gap-2 px-4 pt-2">
+            <lib-icon name="ticket" class="text-[1rem] text-amber-600 dark:text-amber-400" />
+            <span class="text-xs font-semibold text-ink truncate flex-1">
+              {{ cd.code }}
+              @if (cd.discount; as d) {
+                <span class="text-ink-faint"
+                  >· {{ d.name }} ·
+                  {{
+                    d.valueType === 'percent' || d.valueType === 'PERCENT'
+                      ? d.valuePercent + ' %'
+                      : (d.valueCents / 100 | eur)
+                  }}</span
+                >
+              }
+            </span>
+            <button
+              type="button"
+              (click)="clearCodeDiscount()"
+              aria-label="Rabattcode entfernen"
+              class="w-7 h-7 rounded-lg flex items-center justify-center text-ink-faint hover:bg-line-soft active:scale-95"
+            >
+              <lib-icon name="x" class="text-[1rem]" />
+            </button>
+          </div>
         }
       </div>
-    </div>
-
-    <!-- Warenkorb-Aktionen unter der Summe: Rabatt, Kombination, Optionen. Positionsrabatt (nur mit Auswahl) und Code
-         stehen seit core#965 unter „Optionen". -->
-    <div class="grid grid-cols-3 gap-1.5 px-3 pb-3 shrink-0">
-      <button
-        type="button"
-        class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
-        [ngClass]="
-          selectedManualDiscount()
-            ? 'bg-warn-soft border-warn-line text-warn-ink'
-            : 'bg-pos-key border-pos-key-line text-ink'
-        "
-        (click)="openDiscountPicker()"
-        aria-label="Rabatt wählen"
-      >
-        <lib-icon name="tag" style="font-size: 1.25rem" />
-        {{ 'ORDER_DIALOG.DISCOUNT' | translate }}
-      </button>
-      <!-- Kombination (Mint, code-style.md §9.1) sitzt seit core#965 hier; der Hauptbereich zeigt nur Produkte. -->
-      <button
-        type="button"
-        class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform bg-accent-soft border-accent-line text-accent-ink"
-        (click)="setCombiSubButtons()"
-        aria-label="Kombination"
-      >
-        <lib-icon name="arrows-merge" style="font-size: 1.25rem" />
-        Kombination
-      </button>
-      <!-- „Optionen" sammelt die frühere Spalte 2, Personalessen, Firmenkunde und den Rabattcode (core#829, core#908). -->
-      <button
-        type="button"
-        class="pnry-touch h-14 rounded-control border bg-pos-key border-pos-key-line text-ink flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
-        [matMenuTriggerFor]="optionen"
-        aria-label="Optionen"
-      >
-        <lib-icon name="dots-three" style="font-size: 1.25rem" />
-        {{ 'ORDER_DIALOG.OPTIONS' | translate }}
-      </button>
-      <mat-menu #optionen="matMenu" yPosition="above">
-        <!-- Positionsrabatt wirkt auf die markierte Zeile; ohne Auswahl aus (kein stilles Umlenken). -->
-        <button
-          mat-menu-item
-          (click)="openLineDiscountPicker()"
-          [disabled]="!canApplyLineDiscount()"
-          aria-label="Rabatt auf markierte Position"
-        >
-          <lib-icon name="percent" class="mr-3" style="font-size: 1.25rem" />
-          {{ 'ORDER_DIALOG.LINE_DISCOUNT' | translate }}
-          @if (hasLineDiscounts()) {
-            <span class="ml-1 text-warn-ink">·</span>
-          }
-        </button>
-        <button mat-menu-item (click)="setAsStaffMealOrder()" [disabled]="disableStaffMealButton">
-          <lib-icon name="fork-knife" class="mr-3" style="font-size: 1.25rem" />
-          {{ 'ORDER_DIALOG.STAFF_MEAL' | translate }}
-        </button>
-        <button
-          mat-menu-item
-          (click)="setCustomerSubButtons()"
-          [disabled]="disableCustomerButton || isStandaloneMode()"
-        >
-          <lib-icon name="buildings" class="mr-3" style="font-size: 1.25rem" />
-          {{ (isStandaloneMode() ? 'ORDER_DIALOG.ENTERPRISE_ONLY' : 'ORDER_DIALOG.CORPORATE_CUSTOMER') | translate }}
-        </button>
-        <!-- Ein geprüfter Code steht unter der Summe und hier am Eintrag — eingelöst wird er erst beim Abschluss. -->
-        <button mat-menu-item (click)="openPromoCodeDialog()" aria-label="Rabattcode eingeben">
-          <lib-icon name="ticket" class="mr-3" style="font-size: 1.25rem" />
-          {{ 'ORDER_DIALOG.PROMO_CODE' | translate }}
-          @if (appliedCodeDiscount(); as cd) {
-            <span class="ml-1 text-warn-ink">· {{ cd.code }}</span>
-          }
-        </button>
-        <button mat-menu-item (click)="togglePriceVisibility()" [attr.aria-pressed]="priceVisibility">
-          <lib-icon name="currency-eur" class="mr-3" style="font-size: 1.25rem" />
-          {{ (priceVisibility ? 'ORDER_DIALOG.HIDE_PRICES' : 'ORDER_DIALOG.SHOW_PRICES') | translate }}
-        </button>
-        <button mat-menu-item (click)="setDeleteSubbuttons()">
-          <lib-icon name="broom" class="mr-3" style="font-size: 1.25rem" />
-          {{ 'ORDER_DIALOG.MORE_ACTIONS' | translate }}
-        </button>
-      </mat-menu>
-    </div>
+    }
   </div>
 
   <!-- ═══════════════ RASTER ═══════════════ -->
@@ -756,18 +670,102 @@
   }
 
   <!-- ═══════════════ PRIMÄRTASTE ═══════════════ -->
-  <div class="kasse__primary px-3 py-3">
+  <!-- Eine Reihe (core#1067, Designstudie #1062 Variante A): Rabatt, Kombination und Optionen à 4,5rem, die Primärtaste
+       im Rest, zweizeilig mit dem Betrag — die Summe steht nur noch hier. Positionsrabatt (nur mit Auswahl) und Code
+       stehen seit core#965 unter „Optionen". Die Primärtaste liegt zum Raster hin; `order` spiegelt nur sie
+       (order-dialog.component.scss), die drei Tasten behalten ihre Folge. -->
+  <div class="kasse__primary flex items-stretch gap-1.5 px-3 py-3">
     <button
       type="button"
-      class="pnry-touch disabled:opacity-40 h-14 w-full rounded-card bg-action text-on-action font-bold text-lg shadow-card active:scale-[0.97] transition-transform flex items-center justify-between px-5 gap-3"
+      class="pnry-touch h-14 w-[4.5rem] shrink-0 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
+      [ngClass]="
+        selectedManualDiscount()
+          ? 'bg-warn-soft border-warn-line text-warn-ink'
+          : 'bg-pos-key border-pos-key-line text-ink'
+      "
+      (click)="openDiscountPicker()"
+      aria-label="Rabatt wählen"
+    >
+      <lib-icon name="tag" style="font-size: 1.25rem" />
+      {{ 'ORDER_DIALOG.DISCOUNT' | translate }}
+    </button>
+    <!-- Kombination (Mint, code-style.md §9.1) sitzt seit core#965 hier; der Hauptbereich zeigt nur Produkte. -->
+    <button
+      type="button"
+      class="pnry-touch h-14 w-[4.5rem] shrink-0 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform bg-accent-soft border-accent-line text-accent-ink"
+      (click)="setCombiSubButtons()"
+      aria-label="Kombination"
+    >
+      <lib-icon name="arrows-merge" style="font-size: 1.25rem" />
+      Kombination
+    </button>
+    <!-- „Optionen" sammelt die frühere Spalte 2, Personalessen, Firmenkunde und den Rabattcode (core#829, core#908). -->
+    <button
+      type="button"
+      class="pnry-touch h-14 w-[4.5rem] shrink-0 rounded-control border bg-pos-key border-pos-key-line text-ink flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform"
+      [matMenuTriggerFor]="optionen"
+      aria-label="Optionen"
+    >
+      <lib-icon name="dots-three" style="font-size: 1.25rem" />
+      {{ 'ORDER_DIALOG.OPTIONS' | translate }}
+    </button>
+    <mat-menu #optionen="matMenu" yPosition="above">
+      <!-- Positionsrabatt wirkt auf die markierte Zeile; ohne Auswahl aus (kein stilles Umlenken). -->
+      <button
+        mat-menu-item
+        (click)="openLineDiscountPicker()"
+        [disabled]="!canApplyLineDiscount()"
+        aria-label="Rabatt auf markierte Position"
+      >
+        <lib-icon name="percent" class="mr-3" style="font-size: 1.25rem" />
+        {{ 'ORDER_DIALOG.LINE_DISCOUNT' | translate }}
+        @if (hasLineDiscounts()) {
+          <span class="ml-1 text-warn-ink">·</span>
+        }
+      </button>
+      <button mat-menu-item (click)="setAsStaffMealOrder()" [disabled]="disableStaffMealButton">
+        <lib-icon name="fork-knife" class="mr-3" style="font-size: 1.25rem" />
+        {{ 'ORDER_DIALOG.STAFF_MEAL' | translate }}
+      </button>
+      <button mat-menu-item (click)="setCustomerSubButtons()" [disabled]="disableCustomerButton || isStandaloneMode()">
+        <lib-icon name="buildings" class="mr-3" style="font-size: 1.25rem" />
+        {{ (isStandaloneMode() ? 'ORDER_DIALOG.ENTERPRISE_ONLY' : 'ORDER_DIALOG.CORPORATE_CUSTOMER') | translate }}
+      </button>
+      <!-- Ein geprüfter Code steht unter der Summe und hier am Eintrag — eingelöst wird er erst beim Abschluss. -->
+      <button mat-menu-item (click)="openPromoCodeDialog()" aria-label="Rabattcode eingeben">
+        <lib-icon name="ticket" class="mr-3" style="font-size: 1.25rem" />
+        {{ 'ORDER_DIALOG.PROMO_CODE' | translate }}
+        @if (appliedCodeDiscount(); as cd) {
+          <span class="ml-1 text-warn-ink">· {{ cd.code }}</span>
+        }
+      </button>
+      <button mat-menu-item (click)="togglePriceVisibility()" [attr.aria-pressed]="priceVisibility">
+        <lib-icon name="currency-eur" class="mr-3" style="font-size: 1.25rem" />
+        {{ (priceVisibility ? 'ORDER_DIALOG.HIDE_PRICES' : 'ORDER_DIALOG.SHOW_PRICES') | translate }}
+      </button>
+      <button mat-menu-item (click)="setDeleteSubbuttons()">
+        <lib-icon name="broom" class="mr-3" style="font-size: 1.25rem" />
+        {{ 'ORDER_DIALOG.MORE_ACTIONS' | translate }}
+      </button>
+    </mat-menu>
+    <button
+      type="button"
+      class="kasse__pay pnry-touch disabled:opacity-40 h-14 min-w-0 flex-1 rounded-card bg-action text-on-action font-bold shadow-card active:scale-[0.97] transition-transform flex flex-col items-start justify-center px-3.5 leading-tight"
       (click)="setTaxRateSubbuttons()"
       [disabled]="sheetOpen()"
     >
-      <span class="flex items-center gap-2">
+      <span class="flex items-center gap-1 text-[0.8125rem] tracking-wide">
         {{ (paysAtCounter() ? 'ORDER_DIALOG.PAY' : 'ORDER_DIALOG.ORDER') | translate }}
-        <lib-icon name="arrow-right" style="font-size: 1.25rem" />
+        <lib-icon name="arrow-right" style="font-size: 1rem" />
       </span>
-      <span class="tabular-nums">{{ (hasDiscountPreview() ? discountedTotal() : calculateSumPrice()) | eur }}</span>
+      <span class="flex items-baseline gap-1.5 max-w-full text-lg font-black tabular-nums" data-testid="pay-total">
+        @if (hasDiscountPreview()) {
+          <span class="text-[0.6875rem] font-medium line-through opacity-70">{{ calculateSumPrice() | eur }}</span>
+          {{ discountedTotal() | eur }}
+        } @else {
+          {{ calculateSumPrice() | eur }}
+        }
+      </span>
     </button>
   </div>
 

@@ -261,13 +261,13 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     expect(template.match(/\[style\.background-color\]="productGroup\.color"/g)).toHaveLength(2)
   })
 
-  it('führt Kombination in der Warenkorb-Leiste, Positionsrabatt und Code unter „Optionen" (core#965)', () => {
+  it('führt Kombination in der Leiste unter dem Warenkorb, Positionsrabatt und Code unter „Optionen" (core#965)', () => {
     const optionen = template.slice(
       template.indexOf('<mat-menu #optionen'),
       template.indexOf('</mat-menu>', template.indexOf('<mat-menu #optionen')),
     )
     const leiste = template.slice(
-      template.indexOf('<div class="grid grid-cols-3'),
+      template.indexOf('<div class="kasse__primary'),
       template.indexOf('<mat-menu #optionen'),
     )
     expect(leiste).toContain('(click)="setCombiSubButtons()"')
@@ -516,3 +516,63 @@ describe('Kasse — Kachelmaß (core#1020)', () => {
     expect(template).not.toMatch(/h-\[6\.5rem\]/)
   })
 })
+
+// Warenkorb-Fuß in einer Reihe (core#1067, Designstudie #1062 Variante A): Summenzeile und Aktionsleiste unter der Liste
+// kosteten 121 px — bei 1366 × 768 sah man 9 statt 12 Positionen. Die Summe steht nur noch auf der Primärtaste.
+describe('Kasse-Template — Warenkorb-Fuß in einer Reihe (core#1067)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  const karte = template.slice(
+    template.indexOf('<!-- ═══════════════ WARENKORB'),
+    template.indexOf('<!-- ═══════════════ RASTER'),
+  )
+  const start = template.indexOf('<div class="kasse__primary')
+  const reihe = template.slice(start, template.indexOf('<!-- ═══════════════ ZIFFERNLEISTE'))
+
+  it('zeigt die Summe nicht mehr im Warenkorb, die Anzahl steht im Kopf', () => {
+    expect(karte).not.toContain("'COMMON.TOTAL' | translate")
+    expect(karte).not.toContain('calculateSumPrice()')
+    expect(karte).not.toContain('discountedTotal()')
+    expect(karte).toContain('data-testid="cart-count"')
+    expect(karte).toContain("{{ articleCount() }} {{ 'COMMON.ITEMS' | translate }}")
+  })
+
+  it('zeigt die Rabattzeilen nur bei aktivem Rabatt', () => {
+    expect(karte).toContain('@if (selectedManualDiscount() || appliedCodeDiscount())')
+  })
+
+  it('stellt Rabatt, Kombination und Optionen vor die Primärtaste, je 4,5rem breit', () => {
+    const pay = reihe.indexOf('kasse__pay')
+    const marker = [
+      '(click)="openDiscountPicker()"',
+      '(click)="setCombiSubButtons()"',
+      '[matMenuTriggerFor]="optionen"',
+    ]
+    const stellen = marker.map(m => reihe.indexOf(m))
+    expect(stellen.every(i => i > -1 && i < pay)).toBe(true)
+    expect(stellen).toEqual([...stellen].sort((a, b) => a - b))
+    for (const m of marker)
+      expect(klassenIn(reihe, m)).toEqual(expect.arrayContaining(['w-[4.5rem]', 'shrink-0', 'h-14']))
+  })
+
+  it('trägt den Betrag nur auf der Primärtaste, mit Rabatt den alten durchgestrichen', () => {
+    const betrag = reihe.slice(reihe.indexOf('data-testid="pay-total"'))
+    expect(betrag).toContain('@if (hasDiscountPreview())')
+    expect(betrag).toMatch(/line-through[^>]*>\{\{ calculateSumPrice\(\) \| eur \}\}/)
+    expect(betrag).toContain('{{ discountedTotal() | eur }}')
+    expect(template.match(/discountedTotal\(\) \| eur/g)).toHaveLength(1)
+  })
+
+  it('spiegelt nur die Primärtaste zum Raster hin', () => {
+    expect(scss).toMatch(/\.kasse\[data-hand='right'\] \.kasse__pay \{\s*order: -1;/)
+  })
+})
+
+function klassenIn(text: string, marker: string): string[] {
+  const at = text.indexOf(marker)
+  return (
+    text
+      .slice(text.lastIndexOf('<', at), text.indexOf('>', at))
+      .match(/class="([^"]*)"/)?.[1]
+      .split(/\s+/) ?? []
+  )
+}

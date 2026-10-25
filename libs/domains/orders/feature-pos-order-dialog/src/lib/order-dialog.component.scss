@@ -51,6 +51,12 @@
   grid-area: keys;
 }
 
+/* Die Primärtaste liegt zum Raster hin (core#1067): links bedient steht sie am Ende der Reihe, rechts bedient am Anfang.
+   Nur sie wandert; Rabatt, Kombination und Optionen behalten ihre Folge wie die Ziffern. */
+.kasse[data-hand='right'] .kasse__pay {
+  order: -1;
+}
+
 /* Rechts liegt der Abstand zur Kante auf der anderen Seite: Raster und Ziffern rücken nach links. */
 .kasse[data-hand='right'] .kasse__grid,
 .kasse[data-hand='right'] .kasse__keys {

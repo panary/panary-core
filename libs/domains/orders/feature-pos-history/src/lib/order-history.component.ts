@@ -16,7 +16,7 @@ import {
   CancelOrderDialogComponent,
 } from '@panary/orders/data-access'
 import { ExtendedParams } from '@panary/shared-common'
-import { EurPipe, IconComponent, PosSplitComponent } from '@panary/shared/ui-common'
+import { EurPipe, IconComponent, PageHeaderComponent, PosSplitComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'custom'
@@ -24,7 +24,7 @@ type TimeRange = 'today' | 'yesterday' | 'week' | 'custom'
 @Component({
   selector: 'lib-order-history',
   standalone: true,
-  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule, PosSplitComponent],
+  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule, PageHeaderComponent, PosSplitComponent],
   templateUrl: './order-history.component.html',
   styleUrls: ['./order-history.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,6 +36,12 @@ export class OrderHistoryComponent {
   #translate = inject(TranslateService)
   #dialog = inject(MatDialog)
   // MatSnackBar wird im CancelOrderDialogComponent verwendet, nicht hier direkt
+
+  protected readonly timeRanges: { value: TimeRange; label: string }[] = [
+    { value: 'today', label: 'HISTORY.TODAY' },
+    { value: 'yesterday', label: 'HISTORY.YESTERDAY' },
+    { value: 'week', label: 'HISTORY.THIS_WEEK' },
+  ]
 
   // Signals
   searchQuery: WritableSignal<string> = signal('')

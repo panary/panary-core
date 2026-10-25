@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#975): [POS-Split-Layout](../domains/pos-split-layout.md) — Vorbestellungen und Historie nutzen den gemeinsamen Seitenkopf `lib-page-header`; Historie-Kopf per Quelltext-Test abgesichert, Token-Test der Vorbestellungen von 5 auf 3 Primärtasten (Konstanten-Snapshot).

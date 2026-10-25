@@ -1,10 +1,13 @@
 /**
  * Aufteilung der Produktgruppen auf die Gruppenleiste der Kasse (core#908, ersetzt die Zwei-Zeilen-Leiste aus core#829).
  *
- * Die Leiste ist **eine** Zeile. Jede Gruppe ist so breit wie ihr Name (mit Farbpunkt), passen nicht alle hinein,
- * steht am Ende der Burger-Button mit dem Rest — wie vor core#829, nur mit gemessenen statt geschätzten Breiten.
- * Zwei Zeilen kosteten auf 1366×768 eine Rasterzeile, und die breiten Felder brachen lange Namen um (MacBook-Test
- * von pos-v26.10.25). Gewischt wird nie.
+ * Die Leiste ist **eine** Zeile. Passen nicht alle Gruppen hinein, steht am Ende der Burger-Button mit dem Rest — wie
+ * vor core#829, nur mit gemessenen statt geschätzten Breiten. Zwei Zeilen kosteten auf 1366×768 eine Rasterzeile
+ * (MacBook-Test von pos-v26.10.25). Gewischt wird nie.
+ *
+ * Seit core#1019 sind alle Gruppen gleich breit (`--pnry-group-chip`), lange Namen brechen in der Taste um: Mit der
+ * Inhaltsbreite aus core#908 passten auf der Sunmi weniger Gruppen in die Zeile als vorher. Die Rechnung nimmt
+ * trotzdem gemessene Breiten — sie folgt so Dichte und Token, ohne eine zweite Konstante zu pflegen.
  */
 
 /** Abstand zwischen den Feldern in rem — `gap-2` im Template. */

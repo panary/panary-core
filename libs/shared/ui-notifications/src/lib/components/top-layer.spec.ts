@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  openModalBounds,
   placeBesideDialog,
   raiseAboveForeignPopovers,
   syncTopLayer,
@@ -189,5 +190,41 @@ describe('raiseAboveForeignPopovers — Dialogwechsel (core#1087)', () => {
     toggle({ dialog: true }, 'closed')
 
     expect(changes).toHaveLength(2)
+  })
+})
+
+describe('openModalBounds (core#1087)', () => {
+  const candidate = (rect: { top: number; bottom: number }, host: unknown = null) => ({
+    closest: () => host as never,
+    getBoundingClientRect: () => ({ ...rect, width: 400, height: rect.bottom - rect.top }),
+  })
+
+  it('nimmt den obersten (zuletzt geöffneten) offenen Dialog', () => {
+    const open = { showPopover: () => undefined, matches: () => true }
+    expect(
+      openModalBounds([candidate({ top: 10, bottom: 20 }, open), candidate({ top: 200, bottom: 500 }, open)]),
+    ).toEqual({ top: 200, bottom: 500 })
+  })
+
+  it('überspringt einen Dialog in einem geschlossenen Popover', () => {
+    const closed = { showPopover: () => undefined, matches: () => false }
+    expect(openModalBounds([candidate({ top: 200, bottom: 500 }, closed)])).toBeNull()
+  })
+
+  it('fragt ohne Popover-API kein :popover-open ab — das würfe in alten WebViews', () => {
+    const legacy = {
+      matches: () => {
+        throw new SyntaxError(':popover-open')
+      },
+    }
+    expect(openModalBounds([candidate({ top: 200, bottom: 500 }, legacy)])).toEqual({ top: 200, bottom: 500 })
+  })
+
+  it('ein unsichtbarer Dialog zählt nicht', () => {
+    expect(
+      openModalBounds([
+        { closest: () => null, getBoundingClientRect: () => ({ top: 0, bottom: 0, width: 0, height: 0 }) },
+      ]),
+    ).toBeNull()
   })
 })

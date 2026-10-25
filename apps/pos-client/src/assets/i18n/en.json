@@ -202,7 +202,6 @@
     "GENERAL": "General",
     "RETURN_AFTER_ORDER": "Return after ordering",
     "RETURN_AFTER_ORDER_DESC": "After an order is sent, go back to the page the register was opened from.",
-    "RETURN_AFTER_ORDER_HINT": "Order sent",
     "USERS": "Users",
     "PRINTER": "Printer",
     "DESIGN": "Design",

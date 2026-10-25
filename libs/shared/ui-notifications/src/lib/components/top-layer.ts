@@ -103,3 +103,24 @@ export function placeBesideDialog(input: {
   // Oben gewinnt bei Gleichstand, also auch, wenn der ganze Stapel darüber passt.
   return above >= below ? { top: anchorTop, count: above } : { top: belowTop, count: below }
 }
+
+/** Was `openModalBounds` vom DOM braucht — schmal, damit es ohne Browser prüfbar ist. */
+export type ModalCandidate = {
+  closest: (selector: string) => (object & { matches: (selector: string) => boolean }) | null
+  getBoundingClientRect: () => { top: number; bottom: number; width: number; height: number }
+}
+
+/**
+ * Rahmen des obersten offenen modalen Dialogs (`aria-modal="true"`) — `null`, wenn keiner offen ist.
+ * Ein Dialog in einem geschlossenen Popover zählt nicht. `:popover-open` wirft in WebViews ohne Popover-API;
+ * dort wird es deshalb gar nicht abgefragt.
+ */
+export function openModalBounds(candidates: readonly ModalCandidate[]): DialogBounds | null {
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const popoverHost = candidates[i].closest('[popover]')
+    if (popoverHost && 'showPopover' in popoverHost && !popoverHost.matches(':popover-open')) continue
+    const rect = candidates[i].getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0) return { top: rect.top, bottom: rect.bottom }
+  }
+  return null
+}

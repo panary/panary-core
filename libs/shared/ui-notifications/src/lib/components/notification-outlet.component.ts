@@ -17,8 +17,8 @@ import { iconPath, type IconName } from '@panary/shared/util-helpers'
 import { NotificationService } from '../services/notification.service'
 import type { Notification, NotificationType } from '../models/notification.types'
 import {
-  type DialogBounds,
   type LayerPlacement,
+  openModalBounds,
   placeBesideDialog,
   raiseAboveForeignPopovers,
   syncTopLayer,
@@ -32,17 +32,12 @@ const NOTIFICATION_GAP = 6
 /** Die CDK lässt Dialoge hereinwachsen; nach dieser Zeit steht der Rahmen fest. */
 const DIALOG_SETTLE_MS = 250
 
-/** Rahmen des obersten offenen modalen Dialogs — `null`, wenn keiner offen ist. */
-function openModalBounds(doc: Document): DialogBounds | null {
-  const dialogs = Array.from(doc.querySelectorAll<HTMLElement>('[aria-modal="true"]'))
-  for (let i = dialogs.length - 1; i >= 0; i--) {
-    // `:popover-open` wirft in WebViews ohne Popover-API — dort gibt es auch keinen geschlossenen Popover-Dialog.
-    const popoverHost = dialogs[i].closest('[popover]')
-    if (popoverHost && 'showPopover' in popoverHost && !popoverHost.matches(':popover-open')) continue
-    const rect = dialogs[i].getBoundingClientRect()
-    if (rect.width > 0 && rect.height > 0) return { top: rect.top, bottom: rect.bottom }
-  }
-  return null
+/**
+ * Darf eine Meldung neben einem Dialog zurückgehalten werden? Fehler, Warnungen und Quittierpflichtige nie:
+ * Sie stammen oft aus dem Dialog selbst und dürfen nicht ungesehen ablaufen (core#1087).
+ */
+function holdable(n: Notification): boolean {
+  return (n.type === 'success' || n.type === 'info') && n.duration !== 0
 }
 
 const ICONS: Record<NotificationType, IconName> = {
@@ -78,7 +73,7 @@ const ICONS: Record<NotificationType, IconName> = {
     <div #layer class="notification-layer" popover="manual">
       @for (n of notifications(); track n.id; let i = $index) {
         <div
-          [class]="'notification notification--' + n.type + (i < shownCount() ? '' : ' notification--held')"
+          [class]="'notification notification--' + n.type + (isHeld(n, i) ? ' notification--held' : '')"
           [attr.role]="n.type === 'warning' || n.type === 'error' ? 'alert' : 'status'"
           [attr.data-sticky]="n.duration === 0 ? '' : null"
           tabindex="0"
@@ -258,16 +253,25 @@ export class NotificationOutletComponent {
   /** Lage neben einem offenen modalen Dialog (core#1087); `null` = gewohnte Stelle, alle Meldungen. */
   readonly #placement = signal<LayerPlacement | null>(null)
   protected readonly shownCount = computed(() => this.#placement()?.count ?? this.notifications().length)
+  /** Zurückgehaltene Meldungen, deren Ablauf hier angehalten wurde — nur die setzt das Outlet fort. */
+  readonly #pausedHere = new Set<number>()
 
   constructor() {
     const anchorTop = (): number => this.#host.nativeElement.getBoundingClientRect().top + 8
     const top = (): number => untracked(this.#placement)?.top ?? anchorTop()
-    const visible = (): boolean => untracked(this.notifications).length > 0 && untracked(this.shownCount) > 0
+    const visible = (): boolean =>
+      untracked(this.notifications).some((n, i) => !this.isHeld(n, i, untracked(this.shownCount)))
     effect(() => {
       this.notifications()
       this.shownCount()
       const layer = this.layer()?.nativeElement as TopLayerElement | undefined
       if (layer) untracked(() => syncTopLayer(layer, visible(), top()))
+    })
+    // Zurückgehaltene laufen nicht ab: Sie sollen nach dem Dialog noch gelesen werden können.
+    effect(() => {
+      const shown = this.shownCount()
+      const list = this.notifications()
+      untracked(() => this.#syncHeldTimers(list, shown))
     })
     // Nach jeder neuen Meldung neu ausrichten: erst gerendert sind die Höhen messbar.
     effect(() => {
@@ -287,12 +291,37 @@ export class NotificationOutletComponent {
     })
   }
 
-  /** Richtet die Ebene am obersten offenen modalen Dialog aus (`placeBesideDialog`). */
+  protected isHeld(n: Notification, index: number, shown = this.shownCount()): boolean {
+    return index >= shown && holdable(n)
+  }
+
+  #syncHeldTimers(list: readonly Notification[], shown: number): void {
+    const held = new Set(list.filter((n, i) => this.isHeld(n, i, shown)).map(n => n.id))
+    for (const id of held) {
+      if (this.#pausedHere.has(id)) continue
+      this.service.pause(id)
+      this.#pausedHere.add(id)
+    }
+    for (const id of this.#pausedHere) {
+      if (held.has(id)) continue
+      this.#pausedHere.delete(id)
+      this.service.resume(id)
+    }
+  }
+
+  /**
+   * Richtet die Ebene am obersten offenen modalen Dialog aus (`placeBesideDialog`). Ohne Popover-API gibt es
+   * kein `toggle` beim Schließen des Dialogs — dort wird nicht zurückgehalten, sonst blieben Meldungen
+   * bis zur nächsten verborgen.
+   */
   #place(anchorTop: () => number): void {
     const layer = this.layer()?.nativeElement
     if (!layer) return
     const items = Array.from(layer.querySelectorAll<HTMLElement>(':scope > .notification'))
-    const dialog = openModalBounds(this.#doc)
+    const dialog =
+      'showPopover' in layer
+        ? openModalBounds(Array.from(this.#doc.querySelectorAll<HTMLElement>('[aria-modal="true"]')))
+        : null
     if (!dialog) {
       this.#placement.set(null)
     } else {

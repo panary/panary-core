@@ -459,14 +459,31 @@ describe('OrderService — Realtime-Meldung (#657)', () => {
     expect(open).not.toHaveBeenCalled()
   })
 
-  it('zeigt keine „erstellt“-Meldung — das Abschicken bestätigt die Kasse selbst (#1087)', () => {
+  it('zeigt nach dem eigenen Anlegen keine „erstellt“-Meldung — das bestätigt die Kasse selbst (#1087)', async () => {
     const { service } = setup()
+    await service.createOrder(baseInput)
     const open = spyOnOpen(service)
 
     show(service, 'SNACKBAR.CREATED')
     show(service, 'SNACKBAR.CREATED_PLURAL')
 
     expect(open).not.toHaveBeenCalled()
+  })
+
+  it('meldet Bestellungen anderer Terminals weiter — und die eigene nach Ablauf des Fensters (#1087)', async () => {
+    const fremd = setup()
+    const openFremd = spyOnOpen(fremd.service)
+    show(fremd.service, 'SNACKBAR.CREATED')
+    expect(openFremd).toHaveBeenCalledTimes(1)
+
+    vi.useFakeTimers()
+    onTestFinished(() => vi.useRealTimers())
+    const eigen = setup()
+    await eigen.service.createOrder(baseInput)
+    vi.advanceTimersByTime(10_001)
+    const openEigen = spyOnOpen(eigen.service)
+    show(eigen.service, 'SNACKBAR.CREATED')
+    expect(openEigen).toHaveBeenCalledTimes(1)
   })
 
   it('lädt nach dem eigenen Anlegen still nach — kein „Bestellungen aktualisiert“ (#1087)', async () => {

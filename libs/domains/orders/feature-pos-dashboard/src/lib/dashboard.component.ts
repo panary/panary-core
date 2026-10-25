@@ -6,7 +6,7 @@ import type { EChartsOption } from 'echarts'
 import { isOrderOpen, Order, OrderService } from '@panary/orders/data-access'
 import { TranslateModule } from '@ngx-translate/core'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PageHeaderComponent } from '@panary/shared/ui-common'
 import { LocationService } from '@panary/locations/data-access'
 import { getOpeningHoursForDate, type HourException, type RegularHour, formatDateISO } from '@panary/locations/domain'
 import { ConnectionService } from '@panary/shared/data-access'
@@ -23,7 +23,7 @@ import { averageWaitingMinutes, chartWindow, hourlyOrderCounts, ordersPerHour, p
 @Component({
   selector: 'lib-dashboard',
   standalone: true,
-  imports: [IconComponent, CommonModule, NgxEchartsModule, TranslateModule],
+  imports: [IconComponent, PageHeaderComponent, CommonModule, NgxEchartsModule, TranslateModule],
   providers: [{ provide: NGX_ECHARTS_CONFIG, useValue: { echarts: () => import('echarts') } }],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -66,6 +66,12 @@ export class DashboardComponent implements OnInit {
   })
   /** Die nächsten offenen Vorbestellungen des Tages, nach Abholzeit. */
   readonly nextPreOrders = computed(() => this.todayPreOrders().slice(0, 4))
+  /** „Sonntag, 25. Oktober · Dahlerstraße" — Datum läuft mit der Minute, Filiale aus der aktiven Location. */
+  readonly headerSubtitle = computed(() => {
+    const date = this.#now().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+    const location = (this.#locationService.activeLocation() as { name?: string } | null)?.name
+    return location ? `${date} · ${location}` : date
+  })
   readonly chartSubtitle = computed(() => {
     const { startHour, endHour } = chartWindow(this.#todaysOpening(), hourlyOrderCounts(this.orders()))
     return `${String(startHour).padStart(2, '0')}–${String(endHour).padStart(2, '0')}`

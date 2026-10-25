@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#977): [POS-Navigation](../domains/pos-navigation.md) — Start: Kopf über die gemeinsame `lib-page-header` mit Titel „Start" und dem Zusatz „Wochentag, Datum · Filiale" statt eigener Überschrift (panary/panary-core#972).

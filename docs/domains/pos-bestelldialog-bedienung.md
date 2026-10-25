@@ -4,7 +4,7 @@ title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
 description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T15:20:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T17:40:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -97,6 +97,25 @@ Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-s
 | Panel-Fuß | Container-Query: unter 42rem Panelbreite werden Abbrechen, Modifier und „n lösen" zu 64-px-Tasten, „Fertig" füllt den Rest |
 | Ziffernleiste | unter dem Raster, am Rand gegenüber dem Warenkorb (`.kasse__keys-row`, spiegelt mit `data-hand`, die Folge nie); Container-Query auf der Leiste selbst: Multiplier-Feld, 0–9 und `C` inline ab 53,25rem Inhaltsbreite (Summe der festen Breiten 53,125rem), darunter `C` und das Ziffern-Popup. Die Schwelle wächst über rem mit der Dichte. Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
 | Primärtaste | unter dem Warenkorb, 3,5rem hoch wie die Ziffern, Mint mit Navy-Schrift, mit Gesamtbetrag; „Bestellen" in beiden Betriebsarten bis [core#830](https://github.com/panary/panary-core/issues/830) |
+
+## Designstudie Bestellen (core#1062)
+
+Nach dem zweiten Kassentest am 2026-10-25 mit einer Erstnutzerin. Studie mit Varianten und Messung:
+[Artifact](https://claude.ai/artifact/TK8VzRs5s23Cc3BXuKCEAu). Michael hat je Thema gewählt, umgesetzt
+wird in eigenen Issues unter dem Anker [core#1027](https://github.com/panary/panary-core/issues/1027).
+
+| Thema | Befund (1366 × 768, Sandbox) | Wahl | Umsetzung |
+| --- | --- | --- | --- |
+| Warenkorb-Fuß | Karte 600 px, Liste 413 px: 9 Positionen sichtbar, mit markierter Zeile 7. Summenzeile (53 px) und Aktionsleiste (68 px) unter der Liste, die Summe steht ein zweites Mal auf der Primärtaste | A „Eine Reihe": Rabatt, Kombination, Optionen und Bezahlen in der Primärzone, Summe nur auf der Taste, Anzahl im Kopf. Liste 534 px, 12 Positionen, markiert 10 | [core#1067](https://github.com/panary/panary-core/issues/1067) |
+| Gruppen-Markierung | Punkt im Textfluss kostet bei 84 px Taste 16 px der ersten Zeile, lange Namen brechen um. Die aktive Gruppe ist nicht erkennbar | B „Farbkante oben" über die volle Breite, aktive Gruppe mit getönter Fläche und Rand in Gruppenfarbe | [core#1068](https://github.com/panary/panary-core/issues/1068) |
+| Dialogwechsel | Pager- und Tischkacheln tragen nur eine Zahl, der Schritt steht in 10 px neben den Funktionstasten | Schrittkopf mit gewählten Werten, großer Titel, beschriftete Kacheln, dazu 220 ms Einschieben und einmaliges Aufleuchten; bei „Bewegung reduzieren" nur Einblenden | [core#1069](https://github.com/panary/panary-core/issues/1069) |
+| Modifier-Sheet | Das Sheet füllt seinen Bereich bis oben, an den gerundeten Ecken scheint der Scrim als graue Zwickel durch | 20 px Abstand oben, Griffleiste, Einfahren wie bisher | [core#1066](https://github.com/panary/panary-core/issues/1066) |
+
+Gemessen wurden Zeilenhöhe 39 px plus 4 px Abstand, eine zweizeilige Position 56 px und die Steuerleiste
+80 px. Eine Position mit Extras ist höher, sie kostet je nach Anzahl eine weitere Zeile. Dass das Sheet
+auf der Sunmi nicht hereinfuhr, lag vermutlich an der Android-Einstellung „Animationen entfernen": Dann
+meldet der WebView `prefers-reduced-motion: reduce`, und die Kasse blendet nur ein. Am Gerät ist das
+noch nicht geprüft.
 
 ## Nicht abgedeckt
 

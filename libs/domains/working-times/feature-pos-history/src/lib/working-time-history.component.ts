@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { DatePipe } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import { WorkingTime } from '@panary/working-times/domain'
@@ -102,7 +102,13 @@ export class WorkingTimeHistoryComponent {
   })
 
   constructor() {
-    this.initialLoad()
+    // Erst laden, wenn der Benutzer da ist: Nach einem Reload steht `currentUser()` im Konstruktor noch
+    // leer, und ein einmaliger Aufruf dort holte nie nach (core#1000). Nur die Benutzer-ID löst aus;
+    // der Abruf selbst läuft untracked, sonst hängt er an den Monats-Signalen.
+    const userId = computed(() => this.currentUser()?._id)
+    effect(() => {
+      if (userId()) untracked(() => void this.fetchData())
+    })
   }
 
   //#region Monats-Navigation
@@ -136,10 +142,6 @@ export class WorkingTimeHistoryComponent {
     this.expandedBreakRow.update(current => (current === row ? null : row))
   }
   //#endregion
-
-  async initialLoad() {
-    await this.fetchData()
-  }
 
   async fetchData() {
     const user = this.currentUser()

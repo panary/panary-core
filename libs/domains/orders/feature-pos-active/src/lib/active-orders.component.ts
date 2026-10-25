@@ -45,7 +45,7 @@ import { User } from '@panary/users/domain'
 import { CorporateCustomerService } from '@panary/corporate-customers/data-access'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PageHeaderComponent } from '@panary/shared/ui-common'
 
 type OverlayView = 'actions' | 'staff-meal' | 'discount' | 'corporate'
 
@@ -102,7 +102,7 @@ const readStoredZoom = (): number => {
 @Component({
   selector: 'lib-active-orders',
   standalone: true,
-  imports: [IconComponent, CommonModule, TranslateModule],
+  imports: [IconComponent, CommonModule, TranslateModule, PageHeaderComponent],
   templateUrl: './active-orders.component.html',
   styleUrl: './active-orders.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -139,7 +139,7 @@ export class ActiveOrdersComponent {
   // max-height der Karte in CSS-Koordinaten, korrigiert um den Zoom-Faktor:
   // Verfügbare visuelle Höhe = 100dvh − Main-Padding(3rem) − Seitenkopf(3.5rem)
   // Im Zoom-Koordinatensystem: ÷ zoom − Buttons(3rem) − Gap(0.5rem)
-  cardMaxHeight = computed(() => `calc((100dvh - 3rem - 3.5rem) / ${this.zoomLevel()} - 3.5rem)`)
+  cardMaxHeight = computed(() => `calc((100dvh - 3rem - 4.25rem) / ${this.zoomLevel()} - 3.5rem)`)
 
   // Steuert aktive Sub-Ansicht im Overlay
   overlayView: WritableSignal<OverlayView> = signal('actions')

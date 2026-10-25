@@ -261,6 +261,24 @@ describe('buildCustomizeModel — „Alle Modifier" und Leerzustand (#1085)', ()
     expect(model.showingAllModifiers).toBe(true)
   })
 
+  it('zeigt gebuchte Extras außerhalb der Produktgruppen auch bei ausgeblendetem „Alle Modifier"', () => {
+    const model = buildCustomizeModel(
+      line({
+        ingredientReferences: [],
+        modifiers: [
+          { _id: 'bacon', name: 'Bacon', amount: 1, price: 1.5, topic: 'Extras' },
+          // Menüschritt eines Menüs: anderes Thema, kein Extra
+          { _id: 'fries', name: 'Pommes', amount: 1, price: 0, topic: 'Beilage' },
+        ] as never,
+      }),
+      product(),
+      catalog,
+    )
+    expect(model.groups.map(g => [g.id, g.options.map(o => o.name)])).toEqual([[ALL_MODIFIERS_GROUP_ID, ['Bacon']]])
+    expect(model.empty).toBe(false)
+    expect(model.showingAllModifiers).toBe(false)
+  })
+
   it('bleibt leer, wenn auch der Katalog keine Modifier hat', () => {
     const model = buildCustomizeModel(line({ ingredientReferences: [] }), product(), catalog, [])
     expect(model.empty).toBe(true)

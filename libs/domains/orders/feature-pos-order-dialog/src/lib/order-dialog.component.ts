@@ -1733,6 +1733,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
           isModifier: candidate => isModifierButton(candidate),
         },
         this.customizeShowAll() ? this.#allModifiersFor(line) : undefined,
+        this._extraTopic,
       ),
     )
     this.#cdr.markForCheck()
@@ -3644,7 +3645,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       (article as any).isMenu ||
       (article as any).showSaucesAfterSelect ||
       (article as any).isMenuDrink ||
-      ((article as any).showExtrasAfterSelect !== undefined && (article as any).showExtrasAfterSelect) ||
       (article as any).nextProductGroupExternalId !== undefined
     )
     this.clearNumpad(skipViewChange)

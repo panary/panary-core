@@ -20,6 +20,8 @@ export const REMOVED_INGREDIENT_PREFIX = 'Ohne '
  */
 export const ALL_MODIFIERS_GROUP_ID = 'all-modifiers'
 export const ALL_MODIFIERS_GROUP_NAME = 'Alle Modifier'
+/** Thema der Extras ohne Optionsgruppe — wie `_extraTopic` im Bestelldialog. */
+export const EXTRA_TOPIC = 'Extras'
 
 /** Für wie viele Stück einer Zeile gilt eine Anpassung im Panel (#699)? */
 export type CustomizeScope = 'one' | 'all'
@@ -145,13 +147,16 @@ function amountOf(lineItem: OrderLineItem, productId: string): number {
 
 /**
  * `allModifiers` gesetzt = „Alle Modifier" ist eingeblendet. `product` ist bei einem Menü (BUNDLE)
- * `undefined`: Dessen Optionsgruppen sind Menüschritte, keine Extras.
+ * `undefined`: Dessen Optionsgruppen sind Menüschritte, keine Extras. `extraTopic` ist das Thema, unter
+ * dem „Alle Modifier" bucht — nur solche Modifier gelten als gebuchte Extras außerhalb der Produktgruppen,
+ * nicht die Menüschritte eines Menüs.
  */
 export function buildCustomizeModel(
   lineItem: OrderLineItem,
   product: ProductSchema | undefined,
   catalog: CustomizeCatalog,
   allModifiers?: readonly ProductSchema[],
+  extraTopic = EXTRA_TOPIC,
 ): CustomizeModel {
   const references = lineItem.ingredientReferences ?? product?.ingredientReferences ?? []
   const ingredients: CustomizeIngredient[] = references
@@ -193,29 +198,38 @@ export function buildCustomizeModel(
     })
     .filter(group => group.options.length > 0)
 
-  if (allModifiers) {
-    const inProductGroups = new Set(groups.flatMap(group => group.options.map(option => option.productId)))
-    const options: CustomizeOption[] = allModifiers
-      .filter(modifier => !inProductGroups.has(modifier._id))
-      .map(modifier => ({
-        productId: modifier._id,
-        name: modifier.name,
-        price: modifier.price || 0,
-        amount: amountOf(lineItem, modifier._id),
-        isModifier: catalog.isModifier(modifier),
-      }))
-    if (options.length > 0) {
-      groups.push({
-        id: ALL_MODIFIERS_GROUP_ID,
-        name: ALL_MODIFIERS_GROUP_NAME,
-        minSelections: 0,
-        maxSelections: null,
-        selected: options.reduce((sum, option) => sum + option.amount, 0),
-        missing: 0,
-        full: false,
-        options,
-      })
-    }
+  // Gebuchte Extras außerhalb der Produktgruppen bleiben sichtbar, auch bei ausgeblendetem „Alle Modifier"
+  // — sonst zeigte das Sheet nach dem Wiederöffnen „Keine Extras" und das Extra ließe sich nicht zurücknehmen.
+  const inProductGroups = new Set(groups.flatMap(group => group.options.map(option => option.productId)))
+  const booked = lineItem.modifiers
+    .filter(mod => mod.topic === extraTopic && mod.amount > 0 && !isRemovalModifier(mod))
+    .map(
+      mod => catalog.findProductById(mod._id) ?? ({ _id: mod._id, name: mod.name, price: mod.price } as ProductSchema),
+    )
+  const candidates = [...(allModifiers ?? []), ...booked].filter(
+    (modifier, index, all) =>
+      !inProductGroups.has(modifier._id) && all.findIndex(other => other._id === modifier._id) === index,
+  )
+  const extraOptions: CustomizeOption[] = candidates
+    .map(modifier => ({
+      productId: modifier._id,
+      name: modifier.name,
+      price: modifier.price || 0,
+      amount: amountOf(lineItem, modifier._id),
+      isModifier: catalog.isModifier(modifier),
+    }))
+    .filter(option => allModifiers || option.amount > 0)
+  if (extraOptions.length > 0) {
+    groups.push({
+      id: ALL_MODIFIERS_GROUP_ID,
+      name: ALL_MODIFIERS_GROUP_NAME,
+      minSelections: 0,
+      maxSelections: null,
+      selected: extraOptions.reduce((sum, option) => sum + option.amount, 0),
+      missing: 0,
+      full: false,
+      options: extraOptions,
+    })
   }
 
   const parts = [

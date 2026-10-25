@@ -3502,7 +3502,43 @@ describe('OrderDialog — ein Anpassen-Sheet für jedes Produkt (#1085)', () => 
 
     component.onCustomizeShowAllModifiers()
     expect(component.customizeModel()?.showingAllModifiers).toBe(false)
-    expect(component.customizeModel()?.groups.map((g: { id: string }) => g.id)).toEqual(['g-pizza'])
+    // Ausgeblendet bleibt nur das gebuchte Extra stehen, nicht der ganze Katalog.
+    expect(
+      component
+        .customizeModel()
+        ?.groups.map((g: { id: string; options: Array<{ name: string }> }) => [g.id, g.options.map(o => o.name)]),
+    ).toEqual([
+      ['g-pizza', ['Käse']],
+      [ALL_MODIFIERS_GROUP_ID, ['Bacon']],
+    ])
+  })
+
+  it('ein Extra aus „Alle Modifier" bleibt sichtbar — nach dem Ausblenden und nach dem Wiederöffnen', () => {
+    const { component } = setup({ catalog: [schnitzel(), bacon()] })
+    component.increaseLineItem(schnitzel())
+    component.selectProduct(0)
+    component.onCustomizeShowAllModifiers()
+    component.onCustomizeOptionIncreased({
+      groupId: ALL_MODIFIERS_GROUP_ID,
+      groupName: 'Alle Modifier',
+      productId: 'bacon',
+    })
+
+    component.onCustomizeShowAllModifiers() // ausblenden
+    expect(component.customizeModel()?.empty).toBe(false)
+    expect(component.customizeModel()?.summary).toBe('Bacon')
+
+    component.onCustomizeFinished()
+    component.selectProduct(0)
+    const all = component.customizeModel()?.groups.find((g: { id: string }) => g.id === ALL_MODIFIERS_GROUP_ID)
+    expect(all?.options.map((o: { name: string; amount: number }) => [o.name, o.amount])).toEqual([['Bacon', 1]])
+
+    component.onCustomizeOptionDecreased({
+      groupId: ALL_MODIFIERS_GROUP_ID,
+      groupName: 'Alle Modifier',
+      productId: 'bacon',
+    })
+    expect(component.lineItems[0].modifiers).toEqual([])
   })
 
   it('ein Menü zeigt seine Menüschritte nicht als Extras', () => {

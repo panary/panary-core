@@ -25,19 +25,19 @@ describe('NotificationService (core#1026)', () => {
     service.error('e')
 
     expect(service.notifications().map(n => [n.message, n.duration])).toEqual([
-      ['e', 8000],
-      ['d', 6000],
-      ['c', 6000],
+      ['e', 12000],
+      ['d', 9000],
+      ['c', 9000],
     ])
-    expect(notificationDuration('success', false)).toBe(3000)
-    expect(notificationDuration('info', false)).toBe(4000)
+    expect(notificationDuration('success', false)).toBe(5000)
+    expect(notificationDuration('info', false)).toBe(7000)
   })
 
   it('schließt nach Ablauf der Dauer von selbst', () => {
     const service = new NotificationService()
     service.success('weg')
 
-    vi.advanceTimersByTime(2999)
+    vi.advanceTimersByTime(4999)
     expect(messages(service)).toEqual(['weg'])
     vi.advanceTimersByTime(1)
     expect(messages(service)).toEqual([])
@@ -77,7 +77,7 @@ describe('NotificationService (core#1026)', () => {
     service.success('gespeichert')
 
     expect(service.notifications()).toEqual([expect.objectContaining({ message: 'gespeichert', count: 2 })])
-    vi.advanceTimersByTime(2000)
+    vi.advanceTimersByTime(4000)
     expect(messages(service)).toEqual(['gespeichert'])
     vi.advanceTimersByTime(1000)
     expect(messages(service)).toEqual([])
@@ -111,7 +111,7 @@ describe('NotificationService (core#1026)', () => {
     vi.advanceTimersByTime(10_000)
     expect(messages(service)).toEqual(['halten'])
     service.resume(ref.id)
-    vi.advanceTimersByTime(3000)
+    vi.advanceTimersByTime(5000)
     expect(messages(service)).toEqual([])
   })
 
@@ -164,7 +164,7 @@ describe('NotificationService (core#1026)', () => {
     expect(messages(service)).toEqual(['halten'])
 
     service.resume(ref.id)
-    vi.advanceTimersByTime(1999)
+    vi.advanceTimersByTime(3999)
     expect(messages(service)).toEqual(['halten'])
     vi.advanceTimersByTime(1)
     expect(messages(service)).toEqual([])

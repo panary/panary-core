@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#1023): [POS-Split-Layout](../domains/pos-split-layout.md) — Vorbestellungen: Der Auswahlring einer Karte wird nicht mehr links vom `overflow` der Liste abgeschnitten (Innenabstand `p-1`); die Historie hatte mit `p-2` schon genug.

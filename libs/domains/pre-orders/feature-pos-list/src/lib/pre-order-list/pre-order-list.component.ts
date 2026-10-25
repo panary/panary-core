@@ -51,8 +51,8 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
       <!-- Content -->
       <lib-pos-split class="flex-1 px-6 pb-6" [detailOpen]="selectedOrder() !== null">
-        <!-- Order List -->
-        <div posSplitList class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
+        <!-- Order List; p-1 hält den Auswahlring (ring-2) innerhalb der Scrollfläche (core#1023) -->
+        <div posSplitList class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 p-1">
           @if (loading()) {
             <div
               class="flex-1 bg-surface-input rounded-2xl border border-line-soft flex justify-center items-center flex-col gap-4"

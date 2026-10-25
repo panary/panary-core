@@ -37,7 +37,8 @@ Variante A gewählt.
 - **Position:** oben mittig im Arbeitsbereich, direkt unter dem Offline-Streifen. Dort liegen
   weder Primärtaste und Ziffern noch Dialog-Fuß oder Dialog-×. Die Lage hängt nicht von der
   Bedienhand ab; nur die Rail-Breite wird ausgeglichen.
-- **Über Dialogen:** Die Ebene liegt über dem CDK-Overlay.
+- **Über Dialogen:** Die Ebene liegt im Top-Layer über den Dialogen der CDK (Popover-API, seit
+  [#1060](https://github.com/panary/panary-core/issues/1060); vorher reichte der `z-index` nicht).
 - **Farbe:** Vollton je Art (Erfolg, Hinweis, Warnung, Fehler) aus den `*-ink`-Tokens, Schrift in
   `--surface-bg`. Keine Meldung sieht wie ein Dialog aus.
 - **Dauer je Art** statt je Aufruf. Quittierpflichtige Meldungen (`sticky`) laufen nicht ab.

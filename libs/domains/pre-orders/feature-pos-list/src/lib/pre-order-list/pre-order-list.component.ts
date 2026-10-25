@@ -168,7 +168,7 @@ import { findRequestedPreOrder } from './pre-order-selection'
                   <!-- Kurze Beschriftung, damit die Tasten bei 400 px Detailbreite einzeilig bleiben (core#1054) -->
                   <button
                     class="h-11 min-w-0 px-2 rounded-lg bg-action text-on-action font-bold whitespace-nowrap hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2"
-                    [attr.aria-label]="'PRE_ORDERS.CREATE_ORDER' | translate"
+                    [title]="'PRE_ORDERS.CREATE_ORDER' | translate"
                     (click)="convertToLiveOrder(selectedOrder()!)"
                   >
                     <lib-icon name="cash-register" class="text-[1.25rem] shrink-0" />
@@ -176,7 +176,7 @@ import { findRequestedPreOrder } from './pre-order-selection'
                   </button>
                   <button
                     class="h-11 min-w-0 px-2 rounded-lg bg-surface-elevated border border-line text-red-600 font-medium whitespace-nowrap hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center justify-center gap-2"
-                    [attr.aria-label]="'PRE_ORDERS.CANCEL_ORDER' | translate"
+                    [title]="'PRE_ORDERS.CANCEL_ORDER' | translate"
                     (click)="cancelOrder(selectedOrder()!)"
                   >
                     <lib-icon name="trash" class="text-[1.25rem] shrink-0" />

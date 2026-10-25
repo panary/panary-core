@@ -23,8 +23,8 @@ Code: `libs/domains/orders/feature-pos-order-dialog/src/lib/` (`kasse-page.compo
 
 | Ereignis | `closed`-Output | Route |
 | --- | --- | --- |
-| Bestellen | `order-placed` | bleibt in der Kasse, Kasse startet leer |
-| Vorbestellung angelegt | `preorder-created` | bleibt in der Kasse, Kasse startet leer |
+| Bestellen | `order-placed` | zurück zur Ausgangsseite (core#974, Standard), sonst bleibt sie in der Kasse und startet leer |
+| Vorbestellung angelegt | `preorder-created` | wie Bestellen |
 | „Zur Übersicht" (Bestellung nicht möglich), nach Rückfrage | `cancelled` | `/dashboard` |
 | Browser-Zurück, anderer Eintrag der [Rail](pos-navigation.md) | — | `kasseLeaveGuard` fragt nach |
 | Logout, Inaktivität, Neueinrichtung (`/login`, `/setup`) | — | ohne Rückfrage, Entwurf verworfen |
@@ -32,6 +32,16 @@ Code: `libs/domains/orders/feature-pos-order-dialog/src/lib/` (`kasse-page.compo
 Die Komponente kennt keinen Dialog mehr: Ihr Ende meldet sie über `closed`. Was dann geschieht,
 entscheidet `KassePageComponent`. Der Klassenname `OrderDialogComponent` bleibt vorerst, denn
 core#829 baut den Bildschirm ohnehin neu.
+
+## Rücksprung nach dem Bestellen (core#974)
+
+`KassePageComponent` merkt sich beim Routing die Seite davor (`previousNavigation`), sofern es eine Rail-Seite war
+(Start, Offen, Vorbestellungen, Historie; `kasseOrigin`). Nach `order-placed` und `preorder-created` navigiert sie dorthin
+und zeigt einen Hinweis mit der Aktion „Neue Bestellung", die die Kasse wieder öffnet. Der Leave-Guard fragt dabei nicht,
+denn die Bestellung ist abgeschickt. Der Rücksprung entfällt bei direktem Aufruf oder Neuladen von `/kasse` (keine
+Ausgangsseite bekannt) und wenn der Schalter „Nach dem Bestellen zurück" in Einstellungen › Allgemein aus ist; dann bleibt
+man in der Kasse. Der Schalter ist gerätelokal (`pos_return_after_order` in `localStorage`, Standard an,
+`ReturnAfterOrderService`). Verwerfen (`cancelled`) führt unverändert nach `KASSE_EXIT_URL`.
 
 ## Frischer Start je Bestellung
 

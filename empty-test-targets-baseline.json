@@ -12,7 +12,6 @@
     "feathers-service-generator",
     "ingredients-data-access",
     "order-interactions-data-access",
-    "orders-feature-pos-history",
     "pre-orders-data-access",
     "product-groups-domain",
     "products-feature-pos",
@@ -24,7 +23,6 @@
     "tse-gateway",
     "user-preferences-data-access",
     "user-preferences-domain",
-    "users-data-access",
     "working-times-data-access",
     "working-times-feature-pos-history"
   ]

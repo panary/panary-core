@@ -4,7 +4,7 @@ title: POS-Navigation — Rail statt Dashboard-Kacheln
 description: 'Wie der POS seit core#832 navigiert — Rail mit fünf direkten Einträgen, „Mehr" mit Gruppen und Einstellungen-Untermenü, ruhige Fußzone mit Stempeltaste, Abmelden und Avatar (core#942), Rail gegenüber dem Warenkorb, Avatar-Menü mit Bedienhand und Darstellung; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-23T11:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T09:10:00Z }
 ---
 
 # POS-Navigation — Rail statt Dashboard-Kacheln
@@ -46,7 +46,9 @@ Avatar-Menü.
 (`timeClockState`): grau = ausgestempelt, ein Tipp stempelt ein; mint = eingestempelt, ein Tipp öffnet ein
 Menü mit Uhrzeit und Dauer, **Pause** und **Gehen**; amber = Pause, ein Tipp beendet sie
 (`timeClockTapAction`). Ein Tipp löst genau einen Aufruf aus — `PosStaffService.timeClock()` sperrt, solange
-die Antwort aussteht. Gesperrt (offline, Mandantensperre) öffnet die Taste kein Menü, sondern nennt den Grund.
+die Antwort aussteht. Rückmeldung ist die Farbe der Taste: Die generische Realtime-Meldung „Benutzer wurde
+geändert“, die jedes Stempeln über das `patched`-Event auslöste, unterdrückt `UserService`
+([core#954](https://github.com/panary/panary-core/issues/954), Muster core#657 bei Bestellungen). Gesperrt (offline, Mandantensperre) öffnet die Taste kein Menü, sondern nennt den Grund.
 Stempeltaste und Abmelden sind 48 px hoch (Touch-Minimum). Die Arbeitszeit für Uhrzeit und Dauer lädt
 `PosTimeClock` je Stempel-ID einmal.
 

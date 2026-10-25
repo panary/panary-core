@@ -2754,7 +2754,7 @@ describe('Kasse — Zeilenauswahl und Steuerleiste (core#829)', () => {
     expect(component.customizeModel()?.name).toBe('Artikel burger')
   })
 
-  it('ist das Panel offen, zieht es mit dem Tipp auf eine andere anpassbare Zeile mit', () => {
+  it('ist das Panel offen, schließt der Tipp auf eine andere Zeile es und markiert sie (core#1086)', () => {
     const p = burger()
     const fries = customizable('fries')
     const { component } = setup({ catalog: [p, fries] })
@@ -2766,7 +2766,9 @@ describe('Kasse — Zeilenauswahl und Steuerleiste (core#829)', () => {
 
     component.toggleProductSelection(1)
 
-    expect(component.customizeModel()?.name).toBe('Artikel fries')
+    // Bis core#1086 zog das Panel zur neuen Zeile mit — am Gerät war nicht zu erkennen, welche man bearbeitet.
+    expect(component.customizeModel()).toBeNull()
+    expect(component.selectedProductIndex).toBe(1)
   })
 
   it('der Tipp auf die offene Zeile schließt das Panel', () => {
@@ -3568,5 +3570,75 @@ describe('OrderDialog — ein Anpassen-Sheet für jedes Produkt (#1085)', () => 
 
     expect(component.customizeModel()?.name).toBe('Menü')
     expect(component.customizeModel()?.groups).toEqual([])
+  })
+})
+
+describe('OrderDialog — Zeilen-Tipp bei offenem Anpassen (#1086)', () => {
+  const cheese = () => product('cheese', { name: 'Käse', price: 0.5, productType: 'MODIFIER' } as never)
+  const schnitzel = () => product('schnitzel', { name: 'Schnitzel' } as never)
+  const pizza = () =>
+    product('pizza', {
+      name: 'Pizza',
+      optionGroups: [
+        {
+          id: 'g-pizza',
+          name: 'Belag',
+          minSelections: 0,
+          maxSelections: 3,
+          freeQuantity: 0,
+          options: [{ productId: 'cheese' }],
+        },
+      ],
+    } as never)
+
+  it('Tipp auf eine andere Zeile schließt das Sheet und markiert die neue Zeile', () => {
+    const { component } = setup({ catalog: [schnitzel(), pizza(), cheese()] })
+    component.increaseLineItem(schnitzel())
+    component.increaseLineItem(pizza())
+    component.selectProduct(0)
+    expect(component.customizeModel()?.name).toBe('Schnitzel')
+
+    component.toggleProductSelection(1)
+
+    expect(component.customizeModel()).toBeNull()
+    expect(component.selectedProductIndex).toBe(1)
+
+    component.customizeSelection()
+    expect(component.customizeModel()?.name).toBe('Pizza')
+  })
+
+  it('übernimmt die Änderungen wie „Fertig" und markiert die Zeile auch nach dem Zusammenführen', () => {
+    const { component } = setup({ catalog: [pizza(), cheese(), schnitzel()] })
+    component.increaseLineItem(pizza())
+    component.increaseLineItem(pizza()) // 2× Pizza
+    component.increaseLineItem(schnitzel())
+    component.selectProduct(0) // „1 Stück"
+    component.onCustomizeOptionIncreased({ groupId: 'g-pizza', groupName: 'Belag', productId: 'cheese' })
+    component.onCustomizeOptionDecreased({ groupId: 'g-pizza', groupName: 'Belag', productId: 'cheese' })
+    // Das abgespaltene Stück ist wieder gleich der Restzeile — der Tipp führt beide zusammen.
+    expect(component.lineItems.map((l: { name: string }) => l.name)).toEqual(['Pizza', 'Pizza', 'Schnitzel'])
+
+    component.toggleProductSelection(2)
+
+    expect(component.customizeModel()).toBeNull()
+    expect(component.lineItems.map((l: { name: string; amount: number }) => [l.name, l.amount])).toEqual([
+      ['Pizza', 2],
+      ['Schnitzel', 1],
+    ])
+    expect(component.selectedProductIndex).toBe(1)
+  })
+
+  it('der Tipp auf die angepasste Zeile selbst schließt das Sheet und hebt die Markierung auf', () => {
+    const { component } = setup({ catalog: [schnitzel(), pizza(), cheese()] })
+    component.increaseLineItem(schnitzel())
+    component.increaseLineItem(pizza())
+    component.selectProduct(1)
+    component.onCustomizeOptionIncreased({ groupId: 'g-pizza', groupName: 'Belag', productId: 'cheese' })
+
+    component.toggleProductSelection(1)
+
+    expect(component.customizeModel()).toBeNull()
+    expect(component.selectedProductIndex).toBeNull()
+    expect(component.lineItems[1].modifiers.map((m: { name: string }) => m.name)).toEqual(['Käse'])
   })
 })

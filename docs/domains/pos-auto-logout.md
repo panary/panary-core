@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: POS-Auto-Logout bei Inaktivität
-description: Wie sich der POS-Client nach Inaktivität abmeldet — Konfigurationskette, Einfrier-Regeln, Offline-Verhalten und die beiden Schwellwerte.
+description: Wie sich der POS-Client nach Inaktivität abmeldet — Konfigurationskette, Einfrieren nur offline, eine angefangene Bestellung wird verworfen statt die Frist anzuhalten (core#1064), Offline-Verhalten und die beiden Schwellwerte.
 tags: [pos-client, users, locations, auth]
 status: stable
-generated: { by: claude-code/opus-5, at: 2026-08-03T00:00:00.000Z }
+generated: { by: claude-code/opus-5, at: 2026-10-25T19:10:00.000Z }
 ---
 
 Der POS-Client meldet einen Mitarbeiter nach einer konfigurierbaren Zeit ohne
@@ -53,20 +53,25 @@ haben den Auto-Logoff aus" — ohne fachlichen Gegenwert.
 
 ## Wann eingefroren wird
 
-Zwei Gründe, beide **pro Takt aus dem Zustand abgeleitet** statt gebucht. Ein
+Nur noch **offline**, pro Takt aus dem Zustand abgeleitet statt gebucht. Ein
 vergessener Hold würde den Auto-Logoff dauerhaft und unsichtbar abschalten —
 bei einem sicherheitsnahen Feature ist ein selbstheilender Zustand einem
-manuell geführten überlegen.
+manuell geführten überlegen. Die Wiederanmeldung braucht die serverseitige
+PIN-Prüfung, ein Logout ohne Verbindung sperrt das Terminal bis zum Reconnect aus.
 
-1. **Angefangene Bestellung.** Der Entwurf lebt komponenten-privat in der
-   Kasse (`#lineItems`, ein Plain-Array) und wäre nach einem Logout
-   verloren. Erkannt über `KasseDraftRegistry.hasDraft()`, das je Takt den
-   Merker `#hadInput` der laufenden Kasse liest. Bis core#828 war die Kasse
-   ein Dialog, und „Dialog offen" (`MatDialog.openDialogs`) genügte. Die Route
-   `/kasse` bleibt nach dem Bestellen offen, deshalb zählt jetzt die Eingabe
-   ([Kasse als Route](pos-kasse-route.md#auto-logout)).
-2. **Offline.** Die Wiederanmeldung braucht die serverseitige PIN-Prüfung.
-   Ein Logout ohne Verbindung sperrt das Terminal bis zum Reconnect aus.
+**Angefangene Bestellung: verwerfen statt einfrieren** (seit
+[core#1064](https://github.com/panary/panary-core/issues/1064), Entscheidung Michael 2026-10-25, Variante A).
+Bis dahin fror auch ein Entwurf in der Kasse die Frist ein (`KasseDraftRegistry.hasDraft()`,
+seit core#828). Eine liegengelassene Kasse mit Artikeln blieb damit **unbegrenzt angemeldet**, für ein
+Sicherheits-Feature die falsche Richtung. Heute läuft die Frist weiter:
+
+- In der Vorwarnung steht zusätzlich „Die offene Bestellung wird dabei verworfen." (`POS_IDLE.DISCARDS_ORDER`,
+  `PosIdleLogoutService.discardsOrder`). Ein Tipp hält die Sitzung wie immer offen.
+- Beim Logout ruft der Dienst vor `endSession('idle')` `KasseDraftRegistry.discardDraft()`. Die Kasse
+  protokolliert die Bestellung dann als `order-cancel` mit ihren Positionen. Ohne Eingabe gibt es keinen Eintrag.
+- Parken (Entwurf sichern und nach dem Login wiederherstellen) gibt es bewusst nicht.
+
+Das manuelle Abmelden fragt dagegen nach ([Kasse als Route](pos-kasse-route.md#auto-logout)).
 
 Eingefroren wird **kein Budget verbraucht**: beim Auftauen läuft die volle
 Frist neu, nicht der Rest von vorher. Ein kurzer Netzwackler während der
@@ -143,7 +148,7 @@ Nach einem Reload fehlt er, und das ist gewollt: Dann gibt es auch keinen
 abgebrochenen Dialog mehr, auf den der Hinweis passen würde.
 
 Bewusst **nicht** eingefroren wird die Frist bei offenem Freigabe-Dialog. Ein
-vergessener Dialog hielte die Sitzung sonst offen, und der Bestelldialog ist nur
-deshalb die Ausnahme, weil dort ein ungespeicherter Entwurf verloren ginge.
+vergessener Dialog hielte die Sitzung sonst offen. Seit core#1064 gilt das auch für
+eine angefangene Bestellung (siehe oben).
 
 Siehe auch: [POS-Pairing-Wizard](pos-pairing-wizard.md).

@@ -18,7 +18,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
     }
   `,
   template: `
-    <header class="flex h-[4.25rem] items-center gap-4 px-6" [class.flex-row-reverse]="railSide() === 'right'">
+    <header class="flex h-[4.25rem] items-center gap-4 px-6">
       <div class="flex min-w-0 items-baseline gap-3">
         <h1 class="truncate text-[1.375rem] font-bold tracking-tight text-ink">{{ title() }}</h1>
         @if (subtitle(); as sub) {

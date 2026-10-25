@@ -33,7 +33,6 @@ import { DeviceConfigService } from '@panary/shared/data-access-config'
 
 import { KasseDraftRegistry } from './kasse-draft-registry'
 import { OrderDialogComponent } from './order-dialog.component'
-import type { PosButton } from './pos-button.model'
 
 /**
  * Charakterisierungs-Specs der Rabatt- und Checkout-Verdrahtung (#231).

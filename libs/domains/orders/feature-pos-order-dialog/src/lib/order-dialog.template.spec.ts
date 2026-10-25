@@ -241,7 +241,10 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
       template.indexOf('<mat-menu #optionen'),
       template.indexOf('</mat-menu>', template.indexOf('<mat-menu #optionen')),
     )
-    const leiste = template.slice(template.indexOf('<div class="grid grid-cols-3'), template.indexOf('<mat-menu #optionen'))
+    const leiste = template.slice(
+      template.indexOf('<div class="grid grid-cols-3'),
+      template.indexOf('<mat-menu #optionen'),
+    )
     expect(leiste).toContain('(click)="setCombiSubButtons()"')
     expect(leiste).toContain('(click)="openDiscountPicker()"')
     expect(leiste).not.toContain('openLineDiscountPicker()')

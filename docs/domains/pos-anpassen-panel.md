@@ -80,8 +80,9 @@ Seitdem gilt:
   Menüschritte, die der Bundle-Flow mit seinen Pflichtschritten abarbeitet. Bis core#1085 öffnete ein
   Menü gar kein Panel, sondern ebenfalls das Raster.
 - Nur die ganz markierte Kombination öffnet nichts. Dort heißt die Taste „Kombi lösen".
-- Das Raster-Gerüst (`setExtraSubButtons`, `#fillAllModifierButtons`, `#increaseExtraFromRaster`) und der
-  Legacy-Zweig `showExtrasAfterSelect` im Soßen-Schritt sind entfernt. Das Feld kennt das Produktschema
+- Das Raster-Gerüst (`setExtraSubButtons`, `#fillAllModifierButtons`, `#increaseExtraFromRaster`, die
+  Funktionstaste „Herauslösen") und die Legacy-Abfragen von `showExtrasAfterSelect` (Soßen-Schritt,
+  Ziffernblock) sind entfernt. Das Feld kennt das Produktschema
   nicht mehr (`additionalProperties: false`), der Zweig war unerreichbar.
 
 `ui.showOptionsAuto` pflegt die Cloud-Produktdetailseite.
@@ -145,6 +146,9 @@ Modifier sortiert und je Id/Preis/`topic`/`pricingMode`/Abwahl summiert, dazu de
   stehen (sonst zählte ihre Menge in beiden Gruppen). Unbegrenzt, gebucht unter dem allgemeinen
   Extra-Thema wie früher im Raster. Abspalten regelt der Umschalter „1 Stück | alle n" wie bei jedem
   anderen Extra. Vorher wechselte die Taste ins Raster aller Modifier.
+  Ein so gebuchtes Extra bleibt in der Gruppe stehen, auch ausgeblendet und nach dem Wiederöffnen.
+  Sonst zeigte ein Produkt ohne eigene Extras danach „Keine Extras hinterlegt", und das Extra ließe sich
+  nicht zurücknehmen. Als solches Extra zählt nur ein Modifier mit dem Extra-Thema, kein Menüschritt.
 
 Gebucht wird über dieselben Methoden wie bisher. Zutaten nutzen `toggleIngredientRemoval`, also den
 Modifier „Ohne X" (siehe [„OHNE"-Modifier](modifier-ohne-marker.md)). Extras laufen über

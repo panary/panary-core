@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: POS-Navigation — Rail statt Dashboard-Kacheln
-description: 'Wie der POS seit core#832 navigiert — Rail mit fünf direkten Einträgen, „Mehr" mit Gruppen und Einstellungen-Untermenü, ruhige Fußzone mit Stempeltaste, Abmelden und Avatar (core#942), Rail gegenüber dem Warenkorb, Avatar-Menü mit Bedienhand und Darstellung; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
+description: 'Wie der POS seit core#832 navigiert — Rail mit fünf direkten Einträgen, „Mehr" mit Gruppen und direktem Einstellungen-Eintrag, ruhige Fußzone mit Stempeltaste, Abmelden und Avatar (core#942), Rail gegenüber dem Warenkorb, Avatar-Menü mit Bedienhand und Darstellung; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-25T09:10:00Z }
@@ -26,8 +26,8 @@ Anmelden im Blick sein. Vorlage: Konzept §3 und Mockup 2.7 in `sandbox/design-s
 
 | Platz | Einträge |
 | --- | --- |
-| Rail, direkt | Übersicht · Kasse · Offen (Badge) · Vorbest. · Historie |
-| Rail, „Mehr" | Personal: Arbeitszeiten · Ware: Abschreiben · Geschäftstag & Kasse: Tag eröffnen, Tagesabschluss, Kassenlade · Gerät: Einstellungen › Allgemein, Benutzer, Design, Drucker, Verbindung, Info |
+| Rail, direkt | Start · Kasse · Offen (Badge) · Vorbest. · Historie |
+| Rail, „Mehr" | Personal: Arbeitszeiten · Ware: Abschreiben · Geschäftstag & Kasse: Tag eröffnen, Tagesabschluss, Kassenlade · Gerät: Einstellungen (direkt, ohne Untermenü) |
 | Rail, unten (core#942, nur Icons) | Stempeltaste · Abmelden (Schloss) · ganz unten Avatar mit Online-Punkt (grün/rot); offline zusätzlich „Offline" über dem Avatar |
 | Avatar-Menü | Name, Stempelstatus · Bedienhand (Linkshänder/Rechtshänder, Hand-Icon) · Darstellung (Hell/Dunkel/System) |
 
@@ -35,9 +35,9 @@ Login und Einrichtung liegen außerhalb der Shell (`AppPosShellComponent`) und h
 
 **Badge „Offen"** zählt `OrderService.ordersActive()`, dieselbe Menge, die „Offene Bestellungen" listet.
 
-**Einstellungen-Untermenü** springt per `/settings?section=<abschnitt>` direkt in den Abschnitt;
-`SettingsComponent` leitet den Abschnitt allein daraus ab, auch ihre eigene Seitenleiste schreibt ihn in die URL. Die Liste der Abschnitte steht in beiden Dateien
-(`SETTINGS_SECTIONS`).
+**Einstellungen** sind ein direkter Eintrag (`SETTINGS_ENTRY`, [core#971](https://github.com/panary/panary-core/issues/971)) und öffnen `/settings`, ohne `?section=` also „Allgemein".
+Die Abschnitte wechselt die Seite in ihrer eigenen Seitenleiste (`?section=`, nur dort geführt). „Mehr" leuchtet auf jeder Route des Menüs.
+Der Hinweis der Stempeltaste ist ein `matTooltip` zur Bildschirmmitte hin (core#968); das native `title` erschien im Tauri-Fenster oben links.
 
 Die Warenkorb-Seite (Bedienhand, [core#833](https://github.com/panary/panary-core/issues/833)) liegt im
 Avatar-Menü.
@@ -77,10 +77,8 @@ Wechsel A→B neu rechnen, lesen beide `posOperatorSession()` mit (`@panary/shar
 Zeiterfassung selbst an das Bediener-Token bindet, ist [core#903](https://github.com/panary/panary-core/issues/903);
 die Stempel-Aufrufe schicken das Token dafür seit core#907 mit (`withPosOperatorToken`).
 
-Die Menüs sind `@angular/cdk/menu` (Tastatur, Fokus, Schließen bei Klick daneben). Zwei Eigenheiten
-der CDK sind im Code begründet: Ein Untermenü öffnet mit der Maus schon beim Überfahren, und der
-anschließende Klick schaltete es wieder zu — `PosRail.keepOpen()` öffnet es danach erneut.
-`cdkMenuItemDisabled` setzt nur `aria-disabled`; die Grautönung hängt deshalb an diesem Attribut.
+Die Menüs sind `@angular/cdk/menu` (Tastatur, Fokus, Schließen bei Klick daneben). Eine Eigenheit
+der CDK ist im Code begründet: `cdkMenuItemDisabled` setzt nur `aria-disabled`; die Grautönung hängt deshalb an diesem Attribut.
 
 ## Sichtbarkeitsregeln
 

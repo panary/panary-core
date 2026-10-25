@@ -46,7 +46,7 @@ function setup(state: { offline?: boolean; sheetOpen?: boolean } = {}) {
   })
   const service = runInInjectionContext(injector, () => new PosNavigationService())
   const item = (id: string): PosNavItem => {
-    const all = [...service.rail(), ...service.moreGroups().flatMap(g => g.items), ...service.settings()]
+    const all = [...service.rail(), ...service.moreGroups().flatMap(g => g.items), service.settings()]
     const found = all.find(i => i.entry.id === id)
     if (!found) throw new Error(`${id} nicht sichtbar`)
     return found

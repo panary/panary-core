@@ -6,7 +6,7 @@ import {
   RAIL_ENTRIES,
   resolveNavGroups,
   resolveNavItems,
-  SETTINGS_ENTRIES,
+  SETTINGS_ENTRY,
   railSide,
   timeClockState,
   timeClockTapAction,
@@ -109,16 +109,10 @@ describe('„Mehr"-Menü', () => {
     for (const id of ids(offline)) expect(blockOf(id, offline), id).toBe('DASHBOARD.ACTION_OFFLINE_BLOCKED')
   })
 
-  it('Einstellungen: sechs Abschnitte, immer sichtbar und offline nutzbar', () => {
-    const items = resolveNavItems(SETTINGS_ENTRIES, { ...PAIRED, offline: true, bookingSuspended: true })
-    expect(items.map(item => item.entry.target)).toEqual(
-      ['general', 'users', 'design', 'printer', 'connection', 'info'].map(section => ({
-        kind: 'route',
-        path: '/settings',
-        queryParams: { section },
-      })),
-    )
-    expect(items.filter(item => item.block !== null)).toEqual([])
+  it('Einstellungen: ein direkter Eintrag ohne Abschnitt, immer sichtbar und offline nutzbar', () => {
+    const [item] = resolveNavItems([SETTINGS_ENTRY], { ...PAIRED, offline: true, bookingSuspended: true })
+    expect(item.entry.target).toEqual({ kind: 'route', path: '/settings', queryParams: undefined })
+    expect(item.block).toBeNull()
   })
 })
 

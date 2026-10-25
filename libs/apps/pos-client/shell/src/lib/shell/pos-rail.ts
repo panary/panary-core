@@ -11,7 +11,7 @@ import { PosTimeClock } from './pos-time-clock'
 
 /**
  * Navigationsleiste des POS (core#832, Konzept §3 und Mockup 2.7): fünf direkte Einträge, „Mehr" mit
- * Gruppen und Einstellungen-Untermenü, unten die ruhige Fußzone aus core#942 — Stempeltaste,
+ * Gruppen und direktem Einstellungen-Eintrag, unten die ruhige Fußzone aus core#942 — Stempeltaste,
  * Abmelden und ganz unten der Avatar mit Online-Punkt. Die Rail sitzt dem Warenkorb gegenüber
  * (`PosStaffService.railSide`), ihre Menüs öffnen deshalb immer zur Bildschirmmitte hin.
  * Was sichtbar und was gesperrt ist, entscheidet `PosNavigationService`.
@@ -41,15 +41,6 @@ export class PosRail {
   protected readonly menuPositions = computed(() => besides(8, this.staff.railSide()))
   /** Der Avatar ist schmaler als ein Eintrag; sein Menü beginnt trotzdem erst hinter der Rail. */
   protected readonly accountMenuPositions = computed(() => besides(24, this.staff.railSide()))
-
-  /**
-   * Mit der Maus öffnet das Überfahren das Untermenü schon, und der Klick danach schaltete es
-   * wieder zu (CDK `toggle()`). Ein Klick soll immer öffnen; nach dem Umschalten der CDK wird
-   * deshalb nachgezogen — am Touchgerät öffnet der Klick selbst, das Nachziehen ist dann leer.
-   */
-  protected keepOpen(trigger: CdkMenuTrigger): void {
-    queueMicrotask(() => trigger.open())
-  }
 }
 
 function besides(offset: number, railSide: ScreenSide): ConnectedPosition[] {

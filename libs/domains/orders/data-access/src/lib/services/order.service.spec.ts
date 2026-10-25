@@ -477,7 +477,9 @@ describe('OrderService — Realtime-Meldung (#657)', () => {
     expect(openFremd).toHaveBeenCalledTimes(1)
 
     vi.useFakeTimers()
-    onTestFinished(() => vi.useRealTimers())
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
     const eigen = setup()
     await eigen.service.createOrder(baseInput)
     vi.advanceTimersByTime(10_001)

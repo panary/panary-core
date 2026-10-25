@@ -23,7 +23,6 @@
     "tse-gateway",
     "user-preferences-data-access",
     "user-preferences-domain",
-    "working-times-data-access",
-    "working-times-feature-pos-history"
+    "working-times-data-access"
   ]
 }

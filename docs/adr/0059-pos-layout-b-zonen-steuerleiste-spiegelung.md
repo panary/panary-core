@@ -5,7 +5,7 @@ description: Warum der Kassenbildschirm seit core#829 ein Zonen-Grid mit einzeil
 tags: [orders, pos, ux, design-system]
 status: stable
 decision: accepted
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T14:20:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T15:20:00Z }
 ---
 
 # POS-Layout B — Gruppenleiste, Warenkorbspalte, Steuerleiste, Spiegelung
@@ -47,7 +47,10 @@ Ziffern. Drei Befunde aus der Designstudie (Anker [core#819](https://github.com/
    *Nachgeschärft ([core#1019](https://github.com/panary/panary-core/issues/1019)):* Die Inhaltsbreite
    kostete auf der Sunmi Gruppen in der Zeile. Seither ist jede Gruppe gleich breit (`--pnry-group-chip`,
    5,25rem), lange Namen brechen in zwei Zeilen um, mit Silbentrennung nur in dieser Taste. Die Aufteilung
-   misst weiter, statt die Breite als Konstante zu wiederholen.
+   misst weiter, statt die Breite als Konstante zu wiederholen. Das Maß ist seit
+   [core#1046](https://github.com/panary/panary-core/issues/1046) nur noch Grundmaß der Zählung: Freien Platz
+   teilen die sichtbaren Tasten bis 8,5rem unter sich, sonst kürzte die Sandbox „ALKOHOLFREIE GETRÄNKE“ bei
+   halb leerer Leiste.
 5. **Spiegelung je Mitarbeiter** über `grid-template-areas` und `data-hand` aus `posHandedness`
    ([core#827](https://github.com/panary/panary-core/issues/827)). Gespiegelt werden Zonen
    (Warenkorb ↔ Raster, Primärtaste ↔ Ziffernleiste), nie Inhalte: Die Ziffern laufen 0–9 von links

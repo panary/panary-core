@@ -502,12 +502,14 @@
   <!-- ═══════════════ RASTER ═══════════════ -->
   <div class="kasse__grid flex flex-col min-h-0 mr-3 relative">
     <!-- Solange das Anpassen-Sheet offen ist, entfällt das Raster darunter (bis core#909 stand es im @else des Sheets). -->
-    @if (!customizeModel()) {
-      <!-- Ansichtswechsel (core#1069): Der Inhalt hängt an `viewKey` und wird bei jedem Wechsel neu aufgebaut — so gleitet
-           er von der Rasterseite herein (order-dialog.component.scss). Ein Tipp in derselben Ansicht ändert den
-           Schlüssel nicht. Eine Erstnutzerin bemerkte den Wechsel von Pager zu Tisch sonst nicht. -->
-      @for (view of [viewKey]; track view) {
-        <div class="kasse__view kasse-view-enter flex flex-1 flex-col min-h-0">
+    <!-- Ansichtswechsel (core#1069): Der Inhalt hängt an `viewKey` und wird bei jedem Wechsel neu aufgebaut — so gleitet
+         er von der Rasterseite herein (order-dialog.component.scss). Ein Tipp in derselben Ansicht ändert den
+         Schlüssel nicht. Eine Erstnutzerin bemerkte den Wechsel von Pager zu Tisch sonst nicht. -->
+    @for (view of [viewKey]; track view) {
+      <div class="kasse__view kasse-view-enter flex flex-1 flex-col min-h-0">
+        <!-- Das Sheet nimmt nur den Inhalt, nicht den Rahmen: Schließt es, kehrt das Raster ohne erneutes
+             Hereingleiten zurück (`viewKey` bleibt stehen, solange das Sheet offen ist). -->
+        @if (!customizeModel()) {
           <!-- Schrittkopf (core#1069): Titel des Funktionsblocks groß; in der Abschlusskette davor die Schritte mit den schon
            gewählten Werten. Vorher stand der Titel 10 px grau neben den Funktionstasten. -->
           @if (functionBlockLabel) {
@@ -518,34 +520,38 @@
                   [attr.aria-label]="'ORDER_DIALOG.ARIA_STEPS' | translate"
                 >
                   @for (step of closingStepViews; track step.key; let i = $index) {
-                    @if (i > 0) {
-                      <li class="h-0.5 w-3.5 rounded-full bg-line-strong" aria-hidden="true"></li>
-                    }
                     <li
-                      class="h-10 px-3.5 rounded-pill border flex items-center gap-2 text-sm font-semibold"
-                      [ngClass]="
-                        step.state === 'current'
-                          ? 'bg-action border-transparent text-on-action'
-                          : step.state === 'done'
-                            ? 'bg-accent-soft border-accent-line text-accent-ink'
-                            : 'bg-surface-panel border-line text-ink-muted'
-                      "
+                      class="flex items-center gap-1.5"
                       [attr.aria-current]="step.state === 'current' ? 'step' : null"
-                      [attr.data-step]="step.key"
                     >
+                      @if (i > 0) {
+                        <span class="h-0.5 w-3.5 rounded-full bg-line-strong" aria-hidden="true"></span>
+                      }
                       <span
-                        class="h-[1.375rem] w-[1.375rem] shrink-0 rounded-full flex items-center justify-center text-xs font-bold"
-                        [ngClass]="step.state === 'next' ? 'bg-surface-rail' : 'bg-surface-panel/60'"
+                        class="h-10 px-3.5 rounded-pill border flex items-center gap-2 text-sm font-semibold"
+                        [ngClass]="
+                          step.state === 'current'
+                            ? 'bg-action border-transparent text-on-action'
+                            : step.state === 'done'
+                              ? 'bg-accent-soft border-accent-line text-accent-ink'
+                              : 'bg-surface-panel border-line text-ink-muted'
+                        "
+                        [attr.data-step]="step.key"
                       >
-                        @if (step.state === 'done') {
-                          <lib-icon name="check" class="!text-[0.875rem]" />
-                        } @else {
-                          {{ i + 1 }}
-                        }
+                        <span
+                          class="h-[1.375rem] w-[1.375rem] shrink-0 rounded-full flex items-center justify-center text-xs font-bold"
+                          [ngClass]="step.state === 'next' ? 'bg-surface-rail' : 'bg-surface-panel/60'"
+                        >
+                          @if (step.state === 'done') {
+                            <lib-icon name="check" class="!text-[0.875rem]" />
+                          } @else {
+                            {{ i + 1 }}
+                          }
+                        </span>
+                        {{
+                          step.state === 'done' ? (step.value ?? ('ORDER_DIALOG.STEP_SKIPPED' | translate)) : step.label
+                        }}
                       </span>
-                      {{
-                        step.state === 'done' ? (step.value ?? ('ORDER_DIALOG.STEP_SKIPPED' | translate)) : step.label
-                      }}
                     </li>
                   }
                 </ol>
@@ -685,8 +691,8 @@
               }
             </div>
           </div>
-        </div>
-      }
+        }
+      </div>
     }
 
     <!-- Hinweis statt Infozeile (core#908): liegt über dem unteren Rasterrand, nimmt keine Tipps an und

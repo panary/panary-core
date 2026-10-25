@@ -638,6 +638,14 @@ describe('Kasse-Template — Schrittkopf und Ansichtswechsel (core#1069)', () =>
     expect(raster).toMatch(/@for \(view of \[viewKey\]; track view\) \{\s*<div class="kasse__view kasse-view-enter/)
   })
 
+  it('lässt das Anpassen-Sheet nur den Inhalt nehmen, nicht den Rahmen der Ansicht', () => {
+    const rahmen = raster.indexOf('<div class="kasse__view')
+    const sheet = raster.indexOf('@if (!customizeModel())')
+    expect(rahmen).toBeGreaterThan(-1)
+    expect(sheet).toBeGreaterThan(rahmen)
+    expect(scss).toMatch(/\.kasse__view \{\s*overflow-x: clip;/)
+  })
+
   it('zeigt den Titel groß im Schrittkopf, die Schritte nur bei mehr als einem', () => {
     const kopf = raster.slice(raster.indexOf('data-testid="step-head"'))
     expect(raster.indexOf('data-testid="step-head"')).toBeGreaterThan(-1)

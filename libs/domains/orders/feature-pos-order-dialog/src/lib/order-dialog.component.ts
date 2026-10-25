@@ -302,6 +302,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _table: string | undefined = undefined
   /** Schritt der Abschlusskette, den das Raster gerade zeigt (core#1069). */
   #closingStep: ClosingStep | null = null
+  #lastViewKey = ''
   private _dineLocation: (typeof DineLocation)[keyof typeof DineLocation] | undefined = undefined
 
   /**
@@ -503,7 +504,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * (core#1069). Ein Tipp auf eine Kachel derselben Ansicht ändert ihn nicht — sonst zuckte jedes Buchen.
    */
   get viewKey(): string {
-    return `${this._functionBlockLabel}|${this.#closingStep ?? ''}|${this.activeProductGroupId() ?? ''}`
+    // Solange das Anpassen-Sheet offen ist, bleibt der Schlüssel stehen: `clearButtons()` beim Öffnen und der Rückweg
+    // ins Gruppenraster beim Schließen ergäben sonst zwei Wechsel, und das Raster glitte nach jedem Anpassen herein.
+    if (this.customizeModel()) return this.#lastViewKey
+    this.#lastViewKey = `${this._functionBlockLabel}|${this.#closingStep ?? ''}|${this.activeProductGroupId() ?? ''}`
+    return this.#lastViewKey
   }
 
   get selectedCombinationIndex() {
@@ -1090,6 +1095,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   selectDineLocation(location: 'INSIDE' | 'OUTSIDE'): void {
     this.showDineLocationSelection = false
     this._dineLocation = location === 'INSIDE' ? DineLocation.DINE_IN : DineLocation.TAKE_OUT
+    // Neue Kette, neue Wahl: Ein abgebrochener Versuch ließ Pager und Tisch sonst stehen — die Bestellung trug sie
+    // still mit, und seit core#1069 zeigte sie auch der Schrittkopf.
+    this._pager = undefined
+    this._table = undefined
 
     if (this.locationService.showPagers) {
       this.setPagerSubbuttons()
@@ -1177,6 +1186,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       variant: 'skip',
       iconName: 'arrow-right',
       callback: () => {
+        this._table = undefined
         this.setProductionTimeSubbuttons()
       },
     })
@@ -1227,6 +1237,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       variant: 'skip',
       iconName: 'arrow-right',
       callback: () => {
+        this._pager = undefined
         this.setProductionTimeSubbuttons()
       },
     })

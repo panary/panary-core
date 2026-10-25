@@ -3358,6 +3358,41 @@ describe('Kasse — Schrittkopf und Ansichtswechsel (core#1069)', () => {
     expect(byName(component.productButtons, '3').kindLabel).toBe('Tisch')
   })
 
+  it('hält den Ansichtsschlüssel, solange das Anpassen-Sheet offen ist', () => {
+    const { component } = setup()
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke' } as never)
+    const vorher = component.viewKey
+
+    component.customizeModel.set({} as never)
+    component.clearButtons()
+    component.customizeModel.set({} as never)
+
+    expect(component.viewKey).toBe(vorher)
+  })
+
+  it('beginnt jede Kette ohne Pager und Tisch eines abgebrochenen Versuchs', () => {
+    const component = chain()
+    component.selectDineLocation('OUTSIDE')
+    byName(component.productButtons, '7').callback()
+    component.createProductButtons({ _id: 'g-1', name: 'Getränke' } as never)
+
+    component.selectDineLocation('OUTSIDE')
+    expect(states(component)).toEqual(['pager:current', 'table:next', 'time:next'])
+    byName(component.functionButtons, 'KEIN PAGER').callback()
+
+    expect(states(component)).toEqual(['pager:done', 'table:done', 'time:current'])
+  })
+
+  it('vergisst den Pager bei „KEIN PAGER", auch wenn er schon gewählt war', () => {
+    const component = chain()
+    component.selectDineLocation('OUTSIDE')
+    ;(component as unknown as { _pager: number })._pager = 8
+
+    byName(component.functionButtons, 'KEIN PAGER').callback()
+
+    expect(states(component)[0]).toBe('pager:done')
+  })
+
   it('wechselt den Ansichtsschlüssel mit Schritt und Gruppe, nicht beim Buchen', () => {
     const { component } = setup()
     component['productService'].getProductsByGroupId = () => [product('p-1')]

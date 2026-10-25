@@ -138,6 +138,12 @@
   --kasse-view-from: -2rem;
 }
 
+/* Beim Einschieben ragt der Inhalt 2rem über den Rand — horizontal abschneiden, mit Rand für die Mengen-Badges. */
+.kasse__view {
+  overflow-x: clip;
+  overflow-clip-margin: 0.5rem;
+}
+
 .kasse-view-enter {
   animation: kasse-view-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }

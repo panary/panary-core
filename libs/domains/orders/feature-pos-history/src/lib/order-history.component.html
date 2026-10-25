@@ -32,7 +32,6 @@
         <button
           class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
           [class.bg-accent-soft]="selectedTimeRange() === 'today'"
-          [class.]="selectedTimeRange() === 'today'"
           [class.text-accent-ink]="selectedTimeRange() === 'today'"
           [class.border-accent-line]="selectedTimeRange() === 'today'"
           (click)="selectTimeRange('today')"
@@ -42,7 +41,6 @@
         <button
           class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
           [class.bg-accent-soft]="selectedTimeRange() === 'yesterday'"
-          [class.]="selectedTimeRange() === 'yesterday'"
           [class.text-accent-ink]="selectedTimeRange() === 'yesterday'"
           [class.border-accent-line]="selectedTimeRange() === 'yesterday'"
           (click)="selectTimeRange('yesterday')"
@@ -52,7 +50,6 @@
         <button
           class="px-4 h-9 rounded-xl text-ink border border-line bg-surface-elevated hover:bg-line transition-colors"
           [class.bg-accent-soft]="selectedTimeRange() === 'week'"
-          [class.]="selectedTimeRange() === 'week'"
           [class.text-accent-ink]="selectedTimeRange() === 'week'"
           [class.border-accent-line]="selectedTimeRange() === 'week'"
           (click)="selectTimeRange('week')"

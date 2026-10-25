@@ -477,7 +477,12 @@
     "STATUS_ACTIVE": "Aktif",
     "STATUS_OFF": "İzinli",
     "STATUS_WORKED": "Çalışıldı",
-    "HIDE_OFF_DAYS": "Boş günleri gizle"
+    "HIDE_OFF_DAYS": "Boş günleri gizle",
+    "TOTAL_WORK_EXCL_TODAY": "Çalışma süresi, bugün hariç",
+    "TOTAL_BREAKS_SHORT": "Molalar",
+    "WORKED_DAYS": "Çalışılan gün",
+    "SHOW_OFF_DAYS": "Boş günleri göster",
+    "EMPTY_MONTH": "{{month}} ayında henüz kayıt yok. Giriş yaptığınızda burada görünür."
   },
   "WRITE_OFF": {
     "TITLE": "Atık kaydet",

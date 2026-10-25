@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms'
 import { WorkingTime } from '@panary/working-times/domain'
 import { WorkingTimeService } from '@panary/working-times/data-access'
 import { UserService } from '@panary/users/data-access'
-import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PageHeaderComponent } from '@panary/shared/ui-common'
+import { formatHoursMinutes, formatTotal, monthTotals, newestFirst } from './working-time-summary'
 
 export interface DailySummary {
   date: Date
@@ -22,13 +22,12 @@ export interface DailySummary {
 @Component({
   selector: 'lib-working-time-history',
   standalone: true,
-  imports: [IconComponent, DatePipe, FormsModule, TranslateModule],
+  imports: [IconComponent, PageHeaderComponent, DatePipe, FormsModule, TranslateModule],
   templateUrl: './working-time-history.component.html',
   styleUrl: './working-time-history.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WorkingTimeHistoryComponent {
-  #router = inject(Router)
   #workingTimeService = inject(WorkingTimeService)
   #userService = inject(UserService)
   #translate = inject(TranslateService)
@@ -37,7 +36,7 @@ export class WorkingTimeHistoryComponent {
   selectedMonth = signal(new Date().getMonth())
   selectedYear = signal(new Date().getFullYear())
   expandedBreakRow = signal<DailySummary | null>(null)
-  hideOffDays = signal(true)
+  showOffDays = signal(false)
 
   // Computed: aktueller Monatsname
   currentMonthLabel = computed(() => {
@@ -61,6 +60,11 @@ export class WorkingTimeHistoryComponent {
     return undefined
   })
 
+  userName = computed(() => {
+    const user = this.currentUser()
+    return user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : ''
+  })
+
   months = computed(() => [
     { value: 0, label: this.#translate.instant('MONTHS.JANUARY') },
     { value: 1, label: this.#translate.instant('MONTHS.FEBRUARY') },
@@ -76,18 +80,26 @@ export class WorkingTimeHistoryComponent {
     { value: 11, label: this.#translate.instant('MONTHS.DECEMBER') },
   ])
 
-  years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
-
   monthlyData = signal<DailySummary[]>([])
 
-  /** Gefilterte Daten: blendet freie Tage aus wenn Checkbox aktiv */
+  /** Neueste Tage zuerst; freie Tage nur auf Wunsch. */
   filteredData = computed(() => {
     const data = this.monthlyData()
-    return this.hideOffDays() ? data.filter(d => d.status !== 'off') : data
+    return newestFirst(this.showOffDays() ? data : data.filter(d => d.status !== 'off'))
   })
 
-  totalNetDuration = computed(() => this.monthlyData().reduce((sum, day) => sum + day.netDuration, 0))
-  totalBreakDuration = computed(() => this.monthlyData().reduce((sum, day) => sum + day.breakDuration, 0))
+  /** Der Monat ohne einen einzigen Eintrag (freie Tage gibt es immer, zählen aber nicht). */
+  monthIsEmpty = computed(() => this.monthlyData().length > 0 && this.monthlyData().every(d => d.status === 'off'))
+
+  totals = computed(() => monthTotals(this.monthlyData(), new Date()))
+  totalNetLabel = computed(() => formatTotal(this.totals().netMs))
+  totalBreakLabel = computed(() => formatTotal(this.totals().breakMs))
+
+  /** Weiter als der laufende Monat gibt es nichts zu sehen. */
+  isCurrentMonth = computed(() => {
+    const now = new Date()
+    return this.selectedYear() === now.getFullYear() && this.selectedMonth() === now.getMonth()
+  })
 
   constructor() {
     this.initialLoad()
@@ -150,6 +162,8 @@ export class WorkingTimeHistoryComponent {
           $gte: start.toISOString(),
           $lte: end.toISOString(),
         },
+        // Aufsteigend, weil `newestFirst` mehrere Einträge eines Tages danach ordnet (später zuerst).
+        $sort: { checkinDate: 1 },
       },
     })
 
@@ -237,10 +251,7 @@ export class WorkingTimeHistoryComponent {
   }
 
   formatDuration(ms: number): string {
-    if (ms < 0) ms = 0
-    const h = Math.floor(ms / (1000 * 60 * 60))
-    const m = Math.floor((ms / (1000 * 60)) % 60)
-    return `${h}h ${m}m`
+    return formatHoursMinutes(ms)
   }
 
   getBreakDetails(wt: WorkingTime | undefined): string {
@@ -253,10 +264,6 @@ export class WorkingTimeHistoryComponent {
         return `${from} - ${to}`
       })
       .join('\n')
-  }
-
-  goBack() {
-    this.#router.navigate(['/dashboard'])
   }
 
   onFilterChange() {

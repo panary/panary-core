@@ -43,7 +43,12 @@ describe('Übersicht-Kennzahlen (core#832)', () => {
 
   it('preOrderSummary nennt den ersten Artikel und zählt den Rest', () => {
     expect(preOrderSummary([{ name: 'Brötchen', amount: 12 }])).toBe('12× Brötchen')
-    expect(preOrderSummary([{ name: 'Torte', amount: 1 }, { name: 'Kuchen', amount: 2 }])).toBe('Torte +1')
+    expect(
+      preOrderSummary([
+        { name: 'Torte', amount: 1 },
+        { name: 'Kuchen', amount: 2 },
+      ]),
+    ).toBe('Torte +1')
     expect(preOrderSummary([])).toBe('')
   })
 

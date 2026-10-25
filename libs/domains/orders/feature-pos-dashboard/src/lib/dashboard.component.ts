@@ -11,13 +11,7 @@ import { LocationService } from '@panary/locations/data-access'
 import { getOpeningHoursForDate, type HourException, type RegularHour, formatDateISO } from '@panary/locations/domain'
 import { ConnectionService } from '@panary/shared/data-access'
 import { formatDecimal } from '@panary/shared/util-helpers'
-import {
-  averageWaitingMinutes,
-  chartWindow,
-  hourlyOrderCounts,
-  ordersPerHour,
-  preOrderSummary,
-} from './dashboard-kpis'
+import { averageWaitingMinutes, chartWindow, hourlyOrderCounts, ordersPerHour, preOrderSummary } from './dashboard-kpis'
 
 /**
  * „Übersicht" der Rail: Kennzahlen, Stundenlast, Vorbestellungen heute.

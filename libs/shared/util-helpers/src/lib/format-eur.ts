@@ -24,7 +24,10 @@ export function formatDecimal(value: number | null | undefined, fractionDigits =
   if (value == null || !Number.isFinite(value)) return ''
   let format = DECIMAL_FORMATS.get(fractionDigits)
   if (!format) {
-    format = new Intl.NumberFormat('de-DE', { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits })
+    format = new Intl.NumberFormat('de-DE', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    })
     DECIMAL_FORMATS.set(fractionDigits, format)
   }
   return format.format(value)

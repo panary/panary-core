@@ -116,7 +116,10 @@ einzigen MatDialog und wich nie aus (im Sichttest #1093 gemessen).
 - Ohne Popover-API (alte WebView) wird nicht zurückgehalten: Dort gibt es kein `toggle` beim Schließen des Dialogs,
   die Meldungen blieben sonst bis zur nächsten verborgen.
 - Neu gerechnet wird nach jeder neuen Meldung und bei jedem Öffnen oder Schließen eines fremden Popovers, dazu
-  noch einmal 250 ms später, weil die CDK Dialoge hereinwachsen lässt.
+  noch einmal 250 ms später, weil die CDK Dialoge hereinwachsen lässt. Das Schließen meldet ein `MutationObserver`
+  (`touchesDialog`): Die CDK entfernt das Overlay ohne `hidePopover`, dabei kommt kein `toggle` (#1094).
+- Gerechnet wird über die Meldungsliste des Dienstes; fehlt eine Höhe noch (vor Angulars Render), gilt 3,5rem. Über
+  die DOM-Elemente gerechnet blieben neue Meldungen sonst mit `count: 0` verborgen (#1094, im Sichttest gemessen).
 - Die Auto-Logout-Vorwarnung (#1080) ist davon unberührt: Sie ist ein eigenes Popover und bleibt bewusst über Dialogen.
 
 Nicht abgedeckt: Ein Dialog, der seine Höhe nach dem Öffnen ändert (nachgeladene Liste), verschiebt die Ebene erst mit

@@ -1,19 +1,8 @@
-<div class="h-full w-full bg-surface-bg p-4 md:p-6 flex flex-col gap-6 overflow-hidden max-h-screen box-border">
+<div class="h-full w-full bg-surface-bg flex flex-col overflow-hidden max-h-screen box-border">
   <!-- Header -->
-  <header class="flex-none bg-surface-input rounded-2xl border border-line-soft p-4 flex items-center gap-4">
-    <button
-      (click)="goBack()"
-      class="flex items-center justify-center w-10 h-10 bg-surface-elevated border border-line text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
-    >
-      <lib-icon name="arrow-left" class="text-[1.25rem]" />
-    </button>
-    <h1 class="text-xl font-bold text-ink flex items-center gap-2">
-      <lib-icon name="gear" class="text-[1.25rem] text-ink-muted" />
-      {{ 'SETTINGS.TITLE' | translate }}
-    </h1>
-
+  <lib-page-header [title]="'SETTINGS.TITLE' | translate">
     <!-- Mobile: Hamburger-Button mit Dropdown -->
-    <div class="relative ml-auto md:hidden">
+    <div pageHeaderActions class="relative md:hidden">
       <button
         (click)="menuOpen.set(!menuOpen())"
         class="flex items-center justify-center w-10 h-10 bg-surface-elevated border border-line text-ink-muted dark:text-ink rounded-xl hover:bg-line transition-colors"
@@ -125,9 +114,9 @@
         </div>
       }
     </div>
-  </header>
+  </lib-page-header>
 
-  <main class="flex-1 flex gap-6 min-h-0">
+  <main class="flex-1 flex gap-6 min-h-0 p-4 pt-2 md:p-6 md:pt-2">
     <!-- Sidebar -->
     <nav
       class="hidden md:flex w-64 flex-none bg-surface-input rounded-2xl border border-line-soft p-4 flex-col gap-2 overflow-y-auto"

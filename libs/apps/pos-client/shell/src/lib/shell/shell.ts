@@ -23,6 +23,7 @@ import { PosRail } from './pos-rail'
     <div
       id="app-frame"
       class="flex h-full w-full bg-surface-bg"
+      [attr.data-rail-side]="staff.railSide()"
       [class.flex-row-reverse]="staff.railSide() === 'right'"
     >
       <lib-pos-rail class="shrink-0" />

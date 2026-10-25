@@ -30,26 +30,41 @@ import { IconComponent } from '@panary/shared/ui-common'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (banner(); as b) {
-      <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] w-auto max-w-[min(92vw,40rem)]">
-        <div [class]="cardClasses()" role="status" aria-live="polite">
-          <div class="flex items-start gap-2.5">
-            <lib-icon [name]="b.icon" class="text-[18px] leading-none mt-0.5" aria-hidden="true" />
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold leading-snug">{{ b.messageKey | translate: b.params ?? {} }}</p>
-              @if (b.sublineKey) {
-                <p class="text-xs opacity-90 mt-0.5 leading-snug">
-                  {{ b.sublineKey | translate: b.sublineParams ?? {} }}
-                </p>
+      @if (layout() === 'strip') {
+        <div [class]="stripClasses()" role="status" aria-live="polite">
+          <lib-icon [name]="b.icon" class="text-[1.125rem] leading-none" aria-hidden="true" />
+          <span class="text-sm font-semibold leading-snug">{{ b.messageKey | translate: b.params ?? {} }}</span>
+          @if (b.sublineKey) {
+            <span class="text-sm opacity-90 leading-snug">{{ b.sublineKey | translate: b.sublineParams ?? {} }}</span>
+          }
+          @if (showAction()) {
+            <button type="button" (click)="onAction()" [class]="actionClasses()">
+              {{ b.action!.labelKey | translate }}
+            </button>
+          }
+        </div>
+      } @else {
+        <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[1000] w-auto max-w-[min(92vw,40rem)]">
+          <div [class]="cardClasses()" role="status" aria-live="polite">
+            <div class="flex items-start gap-2.5">
+              <lib-icon [name]="b.icon" class="text-[18px] leading-none mt-0.5" aria-hidden="true" />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold leading-snug">{{ b.messageKey | translate: b.params ?? {} }}</p>
+                @if (b.sublineKey) {
+                  <p class="text-xs opacity-90 mt-0.5 leading-snug">
+                    {{ b.sublineKey | translate: b.sublineParams ?? {} }}
+                  </p>
+                }
+              </div>
+              @if (showAction()) {
+                <button type="button" (click)="onAction()" [class]="actionClasses()">
+                  {{ b.action!.labelKey | translate }}
+                </button>
               }
             </div>
-            @if (showAction()) {
-              <button type="button" (click)="onAction()" [class]="actionClasses()">
-                {{ b.action!.labelKey | translate }}
-              </button>
-            }
           </div>
         </div>
-      </div>
+      }
     }
   `,
 })
@@ -57,6 +72,12 @@ export class CloudStatusBannerComponent {
   banner = input<CloudBanner | null>(null)
   enableOfflineModeAction = input<boolean>(false)
   enableEmergencyOverrideAction = input<boolean>(false)
+
+  /**
+   * `floating`: zentrierte Karte über dem Inhalt (Admin). `strip`: Streifen in voller Breite im Fluss,
+   * der den Inhalt nach unten schiebt und nichts verdeckt (POS, core#972).
+   */
+  layout = input<'floating' | 'strip'>('floating')
 
   action = output<CloudBannerActionKind>()
 
@@ -71,6 +92,16 @@ export class CloudStatusBannerComponent {
       return `${this.BASE_CARD} bg-amber-50/95 dark:bg-amber-900/90 text-amber-900 dark:text-amber-100 border-amber-300 dark:border-amber-800`
     }
     return `${this.BASE_CARD} bg-surface-panel/95 dark:bg-surface-bg/90 text-ink border-line`
+  })
+
+  protected readonly stripClasses = computed(() => {
+    const base = 'flex w-full flex-none items-center justify-center gap-3 px-4 py-2 border-b'
+    const level = this.banner()?.level ?? 'info'
+    if (level === 'crit')
+      return `${base} bg-red-50 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-800`
+    if (level === 'warn')
+      return `${base} bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-900 dark:text-amber-100 dark:border-amber-800`
+    return `${base} bg-surface-panel text-ink border-line`
   })
 
   protected readonly actionClasses = computed(() => {

@@ -700,3 +700,20 @@ describe('Kasse-Template — Modifier-Sheet als Ebene (core#1066)', () => {
     expect(reduziert).toMatch(/\.kasse-sheet-enter[\s\S]*?animation: kasse-fade-in 120ms/)
   })
 })
+
+describe('Anpassen-Sheet — eine Ansicht für jedes Produkt (#1085)', () => {
+  const panel = readFileSync(fileURLToPath(new URL('./product-customize-panel.component.ts', import.meta.url)), 'utf8')
+  const dialog = readFileSync(fileURLToPath(new URL('./order-dialog.component.ts', import.meta.url)), 'utf8')
+
+  it('zeigt ohne Zutaten und Extras einen Leerzustand im Sheet', () => {
+    const empty = panel.slice(panel.indexOf('@if (m.empty)'))
+    expect(panel).toContain('@if (m.empty)')
+    expect(empty.slice(0, empty.indexOf('</div>'))).toContain('data-testid="customize-empty"')
+  })
+
+  it('schaltet „Alle Modifier" im Sheet um, statt in ein Raster zu wechseln', () => {
+    expect(panel).toContain('[attr.aria-pressed]="m.showingAllModifiers"')
+    expect(dialog).not.toContain("'Extras auswählen'")
+    expect(dialog).not.toContain("'Alle Modifier anzeigen'")
+  })
+})

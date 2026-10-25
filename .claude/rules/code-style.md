@@ -144,7 +144,7 @@ Klassen-Matrix in `functionButtonClasses()`:
 | --------- | ----- | --------------------------- | ------------------------------------------- |
 | `cancel`  | Rot   | verwirft / bricht ab        | ABBRUCH, Lösch-Tasten, Kombination auflösen |
 | `skip`    | Amber | lässt weg / überspringt     | ÜBERSPRINGEN, KEIN TISCH, KEIN PAGER        |
-| `confirm` | Mint  | übernimmt / bestätigt       | Alle Modifier anzeigen, Kombinieren         |
+| `confirm` | Mint  | übernimmt / bestätigt       | Kombinieren                                 |
 | — (weiß)  | Weiß  | Produkte — **nie** Funktion | Produktkacheln                              |
 
 Regeln:

@@ -477,7 +477,12 @@
     "STATUS_ACTIVE": "Aktiv",
     "STATUS_OFF": "Frei",
     "STATUS_WORKED": "Erledigt",
-    "HIDE_OFF_DAYS": "Freie Tage ausblenden"
+    "HIDE_OFF_DAYS": "Freie Tage ausblenden",
+    "TOTAL_WORK_EXCL_TODAY": "Arbeitszeit, ohne heute",
+    "TOTAL_BREAKS_SHORT": "Pausen",
+    "WORKED_DAYS": "Arbeitstage",
+    "SHOW_OFF_DAYS": "Freie Tage zeigen",
+    "EMPTY_MONTH": "Im {{month}} noch keine Zeiten erfasst. Sobald du dich einstempelst, erscheinen sie hier."
   },
   "WRITE_OFF": {
     "TITLE": "Abfall erfassen",

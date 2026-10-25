@@ -7,6 +7,7 @@ import { UserService } from '@panary/users/data-access'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { IconComponent } from '@panary/shared/ui-common'
+import { formatHoursMinutes, formatTotal, monthTotals, newestFirst } from './working-time-summary'
 
 export interface DailySummary {
   date: Date
@@ -37,7 +38,7 @@ export class WorkingTimeHistoryComponent {
   selectedMonth = signal(new Date().getMonth())
   selectedYear = signal(new Date().getFullYear())
   expandedBreakRow = signal<DailySummary | null>(null)
-  hideOffDays = signal(true)
+  showOffDays = signal(false)
 
   // Computed: aktueller Monatsname
   currentMonthLabel = computed(() => {
@@ -76,18 +77,26 @@ export class WorkingTimeHistoryComponent {
     { value: 11, label: this.#translate.instant('MONTHS.DECEMBER') },
   ])
 
-  years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
-
   monthlyData = signal<DailySummary[]>([])
 
-  /** Gefilterte Daten: blendet freie Tage aus wenn Checkbox aktiv */
+  /** Neueste Tage zuerst; freie Tage nur auf Wunsch. */
   filteredData = computed(() => {
     const data = this.monthlyData()
-    return this.hideOffDays() ? data.filter(d => d.status !== 'off') : data
+    return newestFirst(this.showOffDays() ? data : data.filter(d => d.status !== 'off'))
   })
 
-  totalNetDuration = computed(() => this.monthlyData().reduce((sum, day) => sum + day.netDuration, 0))
-  totalBreakDuration = computed(() => this.monthlyData().reduce((sum, day) => sum + day.breakDuration, 0))
+  /** Der Monat ohne einen einzigen Eintrag (freie Tage gibt es immer, zählen aber nicht). */
+  monthIsEmpty = computed(() => this.monthlyData().every(d => d.status === 'off'))
+
+  totals = computed(() => monthTotals(this.monthlyData(), new Date()))
+  totalNetLabel = computed(() => formatTotal(this.totals().netMs))
+  totalBreakLabel = computed(() => formatTotal(this.totals().breakMs))
+
+  /** Weiter als der laufende Monat gibt es nichts zu sehen. */
+  isCurrentMonth = computed(() => {
+    const now = new Date()
+    return this.selectedYear() === now.getFullYear() && this.selectedMonth() === now.getMonth()
+  })
 
   constructor() {
     this.initialLoad()
@@ -237,10 +246,7 @@ export class WorkingTimeHistoryComponent {
   }
 
   formatDuration(ms: number): string {
-    if (ms < 0) ms = 0
-    const h = Math.floor(ms / (1000 * 60 * 60))
-    const m = Math.floor((ms / (1000 * 60)) % 60)
-    return `${h}h ${m}m`
+    return formatHoursMinutes(ms)
   }
 
   getBreakDetails(wt: WorkingTime | undefined): string {

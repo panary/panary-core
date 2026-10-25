@@ -146,3 +146,12 @@ bisher von `kasseLeaveGuard` gefragt, sobald etwas eingegeben ist ([Kasse als Ro
   ausgeblendet — Bestand, nicht neu geprüft.
 - Die Zurück-Pfeile auf Historie, Arbeitszeiten, Vorbestellungen, Einstellungen und Offene Bestellungen
   führen weiter zur Übersicht. Mit der Rail sind sie doppelt; sie fallen mit dem Umbau der Seiten.
+
+## Arbeitszeiten-Seite
+
+Seit [core#978](https://github.com/panary/panary-core/issues/978) stehen die Monatssummen **oben**: Arbeitszeit
+(ohne den laufenden Tag, der noch nicht fertig ist), Pausen und Arbeitstage (der laufende Tag zählt mit). Die Tabelle
+zeigt die **neuesten Tage zuerst**, freie Tage nur mit dem Schalter „Freie Tage zeigen" (Standard aus). Ein Monat ohne
+Eintrag zeigt einen erklärenden Satz statt einer leeren Tabelle. Der Monatswechsler trägt das Jahr im Label und
+sperrt „weiter" im laufenden Monat; das Jahres-Dropdown entfällt. Die Rechenlogik liegt testbar in
+`working-time-summary.ts`. Es gibt nur noch die Akzentfarbe — kein Orange mehr.

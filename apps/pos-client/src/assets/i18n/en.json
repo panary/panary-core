@@ -477,7 +477,12 @@
     "STATUS_ACTIVE": "Active",
     "STATUS_OFF": "Off",
     "STATUS_WORKED": "Worked",
-    "HIDE_OFF_DAYS": "Hide days off"
+    "HIDE_OFF_DAYS": "Hide days off",
+    "TOTAL_WORK_EXCL_TODAY": "Work time, excluding today",
+    "TOTAL_BREAKS_SHORT": "Breaks",
+    "WORKED_DAYS": "Days worked",
+    "SHOW_OFF_DAYS": "Show days off",
+    "EMPTY_MONTH": "No times recorded in {{month}} yet. They show up here once you clock in."
   },
   "WRITE_OFF": {
     "TITLE": "Record waste",

@@ -86,6 +86,10 @@ die Stempel-Aufrufe schicken das Token dafür seit core#907 mit (`withPosOperato
 Die Menüs sind `@angular/cdk/menu` (Tastatur, Fokus, Schließen bei Klick daneben). Eine Eigenheit
 der CDK ist im Code begründet: `cdkMenuItemDisabled` setzt nur `aria-disabled`; die Grautönung hängt deshalb an diesem Attribut.
 
+## Seitenkopf
+
+`<lib-page-header>` (`@panary/shared/ui-common`, [core#972](https://github.com/panary/panary-core/issues/972), Designstudie E6) ist der eine Kopf aller POS-Seiten: 68 px, `title`, grauer `subtitle`, Standard-Slot für Zähler und Suche, `[pageHeaderActions]` für Aktionen. Ohne Zurück-Pfeil und Kopf-Icon, ohne Kasten. `railSide` (`PosStaffService.railSide()`) spiegelt die Reihenfolge, wenn die Rail rechts sitzt. Jede Seite setzt ihn selbst ein; eine DOM-Spec gibt es nicht, weil der Workspace keine Komponenten-Tests fährt.
+
 ## Sichtbarkeitsregeln
 
 Die Regeln stammen **unverändert** aus den früheren `quickActions` des Dashboards. Ausblenden und

@@ -182,6 +182,7 @@ export class PosStaffService {
     this.#endSession()
   }
 
+  /** Zweite Offline-Prüfung mit Absicht: Zwischen Rückfrage bzw. Ausstempeln und hier kann die Verbindung weg sein. */
   #endSession(): void {
     if (this.isOffline()) {
       this.#notify('DASHBOARD.LOGOUT_OFFLINE_BLOCKED')

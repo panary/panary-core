@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: POS-Kasse als Route /kasse
-description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen nachfragt, warum der Auto-Logout jetzt an der Eingabe hängt und wie sie ein Neuladen auf /kasse übersteht.'
+description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen und Abmelden nachfragt, warum der Auto-Logout eine angefangene Bestellung verwirft (core#1064) und wie sie ein Neuladen auf /kasse übersteht.'
 tags: [orders, pos, ui, routing]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:10:00Z }
@@ -85,6 +85,16 @@ und `clockOut()` rufen `KasseDraftRegistry.confirmLeave()`, das an `confirmLeave
 weitergibt: derselbe Dialog „Bestellung verwerfen?" wie beim Seitenwechsel, bei leerer Kasse ohne Dialog.
 „Weiter bearbeiten" lässt angemeldet, bei „Gehen" auch eingestempelt. Ein zweiter Tipp während der offenen
 Rückfrage öffnet keine zweite. Das Avatar-Menü hat seit core#907 kein Abmelden mehr.
+
+Mit „Bestellung verwerfen" steht die Kasse sofort leer (`#clearForSessionEnd`), nicht erst nach dem Logout.
+Scheitert das Abmelden danach (Verbindung gerade weg, Ausstempeln abgelehnt), zeigt die Kasse keine
+Bestellung, die schon als abgebrochen protokolliert ist, und ein späteres Verlassen schreibt keinen zweiten
+Abbruch. Dasselbe gilt für das Verwerfen beim Inaktivitäts-Logout.
+
+Läuft die Inaktivitätsfrist ab, während die Rückfrage offen ist, schließt `endSession` den Dialog
+(`closeAll()` umgeht `disableClose`). Die Rückfrage endet dann mit „nicht verlassen", Abmelden bzw.
+Gehen brechen ab, und der Inaktivitäts-Logout hat die Bestellung zuvor schon verworfen und protokolliert. Der
+Logout hängt also nicht an der Rückfrage. Gemessen ist dieser Pfad nur am Code, ein Spec dafür fehlt.
 
 ## Neuladen direkt auf `/kasse`
 

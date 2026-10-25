@@ -548,8 +548,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     inject(DestroyRef).onDestroy(
       kasse.attach({
         hasInput: () => this.#hadInput,
-        confirmLeave: () => this.confirmLeave(),
-        discard: () => this.#logCancelled(),
+        confirmLeave: async () => {
+          if (!(await this.confirmLeave())) return false
+          this.#clearForSessionEnd()
+          return true
+        },
+        discard: () => {
+          this.#logCancelled()
+          this.#clearForSessionEnd()
+        },
       }),
     )
     inject(DestroyRef).onDestroy(kasse.attachSheet(this.sheetOpen))
@@ -3643,6 +3650,16 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.deleteOrder()
         this.unselectProduct()
       })
+  }
+
+  /**
+   * Verworfen ist verworfen, auch wenn das Abmelden danach scheitert (offline, Ausstempeln abgelehnt): Die Kasse
+   * steht dann leer, statt eine schon als abgebrochen protokollierte Bestellung weiter zu zeigen (core#1064).
+   */
+  #clearForSessionEnd(): void {
+    this.deleteOrder()
+    this.unselectProduct()
+    this.#hadInput = false
   }
 
   #logCancelled(): void {

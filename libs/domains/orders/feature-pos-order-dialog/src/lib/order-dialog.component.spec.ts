@@ -2399,15 +2399,29 @@ describe('Kasse — Abmelden mit angefangener Bestellung (core#1064)', () => {
     expect(confirmLeave).toHaveBeenCalledTimes(1)
   })
 
-  it('die Kasse protokolliert beim Inaktivitäts-Logout den Abbruch mit ihren Positionen', () => {
+  it('die Kasse protokolliert beim Inaktivitäts-Logout den Abbruch mit ihren Positionen und steht danach leer', () => {
     const { component, kasseDraft, interactions } = setup()
     component.increaseLineItem(product('p-1'))
 
+    kasseDraft.discardDraft()
     kasseDraft.discardDraft()
 
     expect(interactions).toEqual([
       expect.objectContaining({ type: 'order-cancel', hadLineItems: true, lineItemCountAtCancel: 1 }),
     ])
+    expect(component.lineItems).toEqual([])
+    expect(kasseDraft.hasDraft()).toBe(false)
+  })
+
+  it('nach „Bestellung verwerfen" vor dem Abmelden steht die Kasse leer — scheitert das Abmelden, gibt es keinen zweiten Abbruch', async () => {
+    const { component, kasseDraft } = setup()
+    component.increaseLineItem(product('p-1'))
+    vi.spyOn(component, 'confirmLeave').mockResolvedValue(true)
+
+    expect(await kasseDraft.confirmLeave()).toBe(true)
+
+    expect(component.lineItems).toEqual([])
+    expect(kasseDraft.hasDraft()).toBe(false)
   })
 
   it('ohne Kasse darf sofort abgemeldet werden', async () => {

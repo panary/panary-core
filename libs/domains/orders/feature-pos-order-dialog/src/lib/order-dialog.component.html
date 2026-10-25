@@ -468,8 +468,8 @@
       </div>
     </div>
 
-    <!-- Warenkorb-Aktionen unter der Summe: Rabatt, Positionsrabatt (nur mit Auswahl), Optionen. Code steht seit
-         core#908 unter „Optionen" — er wird selten getippt, und die Kombination brauchte den Platz als Funktionstaste. -->
+    <!-- Warenkorb-Aktionen unter der Summe: Rabatt, Kombination, Optionen. Positionsrabatt (nur mit Auswahl) und Code
+         stehen seit core#965 unter „Optionen". -->
     <div class="grid grid-cols-3 gap-1.5 px-3 pb-3 shrink-0">
       <button
         type="button"
@@ -485,19 +485,15 @@
         <lib-icon name="tag" style="font-size: 1.25rem" />
         {{ 'ORDER_DIALOG.DISCOUNT' | translate }}
       </button>
-      <!-- Positionsrabatt wirkt auf die markierte Zeile; ohne Auswahl aus (kein stilles Umlenken). -->
+      <!-- Kombination (Mint, code-style.md §9.1) sitzt seit core#965 hier; der Hauptbereich zeigt nur Produkte. -->
       <button
         type="button"
-        class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform disabled:opacity-40 disabled:active:scale-100"
-        [ngClass]="
-          hasLineDiscounts() ? 'bg-warn-soft border-warn-line text-warn-ink' : 'bg-pos-key border-pos-key-line text-ink'
-        "
-        [disabled]="!canApplyLineDiscount()"
-        (click)="openLineDiscountPicker()"
-        aria-label="Rabatt auf markierte Position"
+        class="pnry-touch h-14 rounded-control border flex flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-semibold active:scale-[0.97] transition-transform bg-accent-soft border-accent-line text-accent-ink"
+        (click)="setCombiSubButtons()"
+        aria-label="Kombination"
       >
-        <lib-icon name="percent" style="font-size: 1.25rem" />
-        {{ 'ORDER_DIALOG.LINE_DISCOUNT' | translate }}
+        <lib-icon name="arrows-merge" style="font-size: 1.25rem" />
+        Kombination
       </button>
       <!-- „Optionen" sammelt die frühere Spalte 2, Personalessen, Firmenkunde und den Rabattcode (core#829, core#908). -->
       <button
@@ -510,6 +506,19 @@
         {{ 'ORDER_DIALOG.OPTIONS' | translate }}
       </button>
       <mat-menu #optionen="matMenu" yPosition="above">
+        <!-- Positionsrabatt wirkt auf die markierte Zeile; ohne Auswahl aus (kein stilles Umlenken). -->
+        <button
+          mat-menu-item
+          (click)="openLineDiscountPicker()"
+          [disabled]="!canApplyLineDiscount()"
+          aria-label="Rabatt auf markierte Position"
+        >
+          <lib-icon name="percent" class="mr-3" style="font-size: 1.25rem" />
+          {{ 'ORDER_DIALOG.LINE_DISCOUNT' | translate }}
+          @if (hasLineDiscounts()) {
+            <span class="ml-1 text-warn-ink">·</span>
+          }
+        </button>
         <button mat-menu-item (click)="setAsStaffMealOrder()" [disabled]="disableStaffMealButton">
           <lib-icon name="fork-knife" class="mr-3" style="font-size: 1.25rem" />
           {{ 'ORDER_DIALOG.STAFF_MEAL' | translate }}
@@ -547,7 +556,7 @@
     <!-- Solange das Anpassen-Sheet offen ist, entfällt das Raster darunter (bis core#909 stand es im @else des Sheets). -->
     @if (!customizeModel()) {
       <!-- Function Buttons: linksbündige Kacheln im Produktkachel-Maß, farbcodiert nach Wirkung (code-style.md §9.1).
-           Ohne eigene Tasten der Ansicht stehen die des Hauptbildschirms da (Kombination, core#908). -->
+           Der Hauptbildschirm hat keine; nur Abläufe setzen welche (core#965). -->
       @if (boardFunctionButtons.length > 0) {
         <div class="flex flex-wrap items-stretch gap-2 shrink-0 px-3 pt-0 pb-3">
           @for (functionButton of boardFunctionButtons; track functionButton._id) {

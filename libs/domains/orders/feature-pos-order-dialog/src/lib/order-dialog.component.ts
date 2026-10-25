@@ -427,22 +427,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly notice = signal<{ text: string; tone: 'danger' | 'neutral' } | null>(null)
   #noticeTimer: ReturnType<typeof setTimeout> | undefined
 
-  /**
-   * Funktionstasten des Hauptbildschirms (core#908): Stehen, solange keine Ansicht eigene setzt. „Kombination"
-   * war bis core#829 eine eigene Taste und ist dann unter „Optionen" verschwunden — zwei Tipps für eine häufige
-   * Aktion. Mint nach code-style.md §9.1 („Kombinieren").
-   */
-  readonly #mainFunctionButtons: readonly PosButton[] = [
-    {
-      _id: 'main-combination',
-      name: 'Kombination',
-      isFunctionButton: true,
-      variant: 'confirm',
-      iconName: 'arrows-merge',
-      callback: () => this.setCombiSubButtons(),
-    },
-  ]
-
   get combinations(): OrderLineItem[][] {
     return getCombinations({ lineItems: this.#lineItems } as any)
   }
@@ -464,9 +448,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return this._functionButtons
   }
 
-  /** Was über dem Raster steht: die Tasten der aktuellen Ansicht, sonst die des Hauptbildschirms. */
+  /** Was über dem Raster steht: nur die Tasten eines laufenden Ablaufs — der Hauptbildschirm zeigt keine (core#965). */
   get boardFunctionButtons(): readonly PosButton[] {
-    return this._functionButtons.length > 0 ? this._functionButtons : this.#mainFunctionButtons
+    return this._functionButtons
   }
 
   get infoBoxText() {

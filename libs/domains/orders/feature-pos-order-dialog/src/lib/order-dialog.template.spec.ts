@@ -236,15 +236,20 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     expect(template.match(/\[style\.background-color\]="productGroup\.color"/g)).toHaveLength(2)
   })
 
-  it('führt Kombination als Funktionstaste und Code unter „Optionen"', () => {
-    expect(template).toContain('@for (functionButton of boardFunctionButtons; track functionButton._id)')
+  it('führt Kombination in der Warenkorb-Leiste, Positionsrabatt und Code unter „Optionen" (core#965)', () => {
     const optionen = template.slice(
       template.indexOf('<mat-menu #optionen'),
       template.indexOf('</mat-menu>', template.indexOf('<mat-menu #optionen')),
     )
+    const leiste = template.slice(template.indexOf('<div class="grid grid-cols-3'), template.indexOf('<mat-menu #optionen'))
+    expect(leiste).toContain('(click)="setCombiSubButtons()"')
+    expect(leiste).toContain('(click)="openDiscountPicker()"')
+    expect(leiste).not.toContain('openLineDiscountPicker()')
+    expect(optionen).toContain('(click)="openLineDiscountPicker()"')
+    expect(optionen).toContain('[disabled]="!canApplyLineDiscount()"')
     expect(optionen).toContain('(click)="openPromoCodeDialog()"')
     expect(optionen).not.toContain('setCombiSubButtons()')
-    expect(template.match(/\(click\)="openPromoCodeDialog\(\)"/g)).toHaveLength(1)
+    expect(template.match(/\(click\)="setCombiSubButtons\(\)"/g)).toHaveLength(1)
   })
 
   it('macht Primärtaste und Ziffern gleich hoch', () => {

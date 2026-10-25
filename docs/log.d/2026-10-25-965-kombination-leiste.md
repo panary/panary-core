@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#965): [POS-Kasse — Bedienung](../domains/pos-bestelldialog-bedienung.md) — Die Warenkorb-Leiste heißt Rabatt · Kombination · Optionen; Positionsrabatt wandert unter „Optionen", der Hauptbereich zeigt keine Funktionstasten mehr (ADR 0059 Punkt 6 nachgezogen).

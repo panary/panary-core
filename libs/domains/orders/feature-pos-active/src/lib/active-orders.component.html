@@ -1,13 +1,7 @@
 <div class="h-full w-full bg-surface-bg flex flex-col overflow-hidden">
-  <!-- Seitenkopf: Titel, Zähler, Kartengröße (je Gerät gespeichert) -->
-  <header class="flex-none h-14 px-6 flex items-center gap-3 border-b border-line-soft" data-testid="orders-header">
-    <h1 class="text-lg font-bold text-ink">{{ 'ACTIVE_ORDERS.TITLE' | translate }}</h1>
-    <span
-      class="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold"
-      >{{ orders().length }}</span
-    >
-    <div class="flex-1"></div>
-    <div class="flex items-center gap-1.5" data-testid="zoom-controls">
+  <!-- Seitenkopf: gemeinsame Komponente (core#972); Kartengröße je Gerät gespeichert (core#973) -->
+  <lib-page-header [title]="'ACTIVE_ORDERS.TITLE' | translate" [subtitle]="orders().length ? '' + orders().length : ''">
+    <div pageHeaderActions class="flex items-center gap-1.5" data-testid="zoom-controls">
       <button
         (click)="decreaseZoom()"
         class="flex items-center justify-center w-10 h-10 rounded-xl bg-surface-elevated border border-line text-ink-muted dark:text-ink hover:bg-line active:scale-95 transition-all"
@@ -24,7 +18,7 @@
         <lib-icon name="plus" class="text-[1.125rem]" />
       </button>
     </div>
-  </header>
+  </lib-page-header>
 
   <!-- Horizontaler Scroll-Container (nur X) -->
   <main class="flex-1 overflow-x-auto overflow-y-hidden p-6 relative">

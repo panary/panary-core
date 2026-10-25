@@ -49,7 +49,7 @@ describe('Offene Bestellungen — Kopf statt Leiste (core#973)', () => {
 
   it('hat keine schwebende Leiste mehr, die Kartengröße steht im Seitenkopf', () => {
     expect(template).not.toMatch(/fixed bottom-6 right-6/)
-    const header = template.slice(template.indexOf('<header'), template.indexOf('</header>'))
+    const header = template.slice(template.indexOf('<lib-page-header'), template.indexOf('</lib-page-header>'))
     expect(header).toMatch(/decreaseZoom\(\)/)
     expect(header).toMatch(/increaseZoom\(\)/)
   })

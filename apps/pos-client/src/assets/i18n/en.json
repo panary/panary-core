@@ -7,7 +7,7 @@
   },
   "POS_NAV": {
     "LABEL": "Main navigation",
-    "KASSE": "Till",
+    "KASSE": "Order",
     "OPEN": "Open",
     "OPEN_COUNT": "{{count}} open orders",
     "PRE_ORDERS": "Pre-orders",

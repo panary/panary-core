@@ -7,7 +7,7 @@
   },
   "POS_NAV": {
     "LABEL": "Ana gezinme",
-    "KASSE": "Kasa",
+    "KASSE": "Sipariş",
     "OPEN": "Açık",
     "OPEN_COUNT": "{{count}} açık sipariş",
     "PRE_ORDERS": "Ön sip.",

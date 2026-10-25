@@ -437,9 +437,10 @@ describe('Kasse-Template — Sheet über Raster und Ziffernleiste (core#909)', (
     expect(template.slice(raster, host)).toContain('@if (!customizeModel())')
   })
 
-  it('spannt den Host über Raster- und Ziffernzone derselben Spalte und füllt ihn bis unten', () => {
+  it('spannt den Host über Raster- und Ziffernzone derselben Spalte und füllt ihn bis unten, oben mit Abstand', () => {
     expect(block('.kasse__sheet-host {')).toContain('grid-area: grid-start / grid-start / keys-end / grid-end')
-    expect(block('.kasse__sheet {')).toMatch(/inset: 0;/)
+    // Seit core#1066 mit 1,25rem Abstand oben: Der Scrim steht als Streifen darüber statt als Zwickel an den Ecken.
+    expect(block('.kasse__sheet {')).toMatch(/inset: 1\.25rem 0 0;/)
     expect(block('.kasse__sheet {')).toContain('border-radius: 1rem 1rem 0 0')
     expect(block('.kasse__sheet {')).toContain('border-bottom-width: 0')
   })
@@ -672,5 +673,30 @@ describe('Kasse-Template — Schrittkopf und Ansichtswechsel (core#1069)', () =>
     const reduziert = scss.slice(scss.indexOf('@media (prefers-reduced-motion: reduce)'))
     expect(reduziert).toMatch(/\.kasse-view-enter \{\s*animation: kasse-fade-in 120ms/)
     expect(reduziert).toMatch(/\.kasse-step-title \{\s*animation: none;/)
+  })
+})
+
+// core#1066: Das Modifier-Sheet ist erkennbar ein Menü über dem Raster — Abstand oben, Griffleiste, Schatten nach oben,
+// fährt von unten herein; „Bewegung reduzieren" blendet nur ein.
+describe('Kasse-Template — Modifier-Sheet als Ebene (core#1066)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  const sheet = scss.slice(scss.indexOf('.kasse__sheet {'), scss.indexOf('.kasse-sheet-enter {'))
+
+  it('findet den Sheet-Block', () => {
+    expect(scss.indexOf('.kasse__sheet {')).toBeGreaterThan(-1)
+    expect(sheet.length).toBeGreaterThan(0)
+  })
+
+  it('trägt Griffleiste und Schatten nach oben', () => {
+    expect(sheet).toMatch(/&::before \{[^}]*width: 2\.5rem;[^}]*height: 0\.25rem;/)
+    expect(sheet).toMatch(/box-shadow: 0 -0\.5rem 1rem -0\.5rem/)
+    // Die Komponenten-SCSS überschreibt `box-shadow` — eine Tailwind-Schattenklasse am Sheet wäre wirkungslos.
+    expect(template).not.toContain('kasse-sheet-enter bg-surface-panel border border-line shadow-card')
+  })
+
+  it('fährt von unten herein und blendet bei „Bewegung reduzieren" nur ein', () => {
+    expect(scss).toMatch(/@keyframes kasse-sheet-in \{\s*from \{\s*transform: translateY\(100%\);/)
+    const reduziert = scss.slice(scss.indexOf('@media (prefers-reduced-motion: reduce)'))
+    expect(reduziert).toMatch(/\.kasse-sheet-enter[\s\S]*?animation: kasse-fade-in 120ms/)
   })
 })

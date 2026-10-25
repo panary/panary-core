@@ -5,7 +5,7 @@ description: Warum der Kassenbildschirm seit core#829 ein Zonen-Grid mit einzeil
 tags: [orders, pos, ux, design-system]
 status: stable
 decision: accepted
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T15:20:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:30:00Z }
 ---
 
 # POS-Layout B — Gruppenleiste, Warenkorbspalte, Steuerleiste, Spiegelung

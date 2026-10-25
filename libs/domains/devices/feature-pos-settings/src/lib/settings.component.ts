@@ -19,7 +19,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
-import { IconComponent, type IconName } from '@panary/shared/ui-common'
+import { IconComponent, type IconName, PageHeaderComponent } from '@panary/shared/ui-common'
 
 /**
  * Serverseitiger Ausschnitt des eingeloggten Mitarbeiters. Wird per
@@ -56,7 +56,7 @@ interface EdgeServerInfo {
   database: { type: string }
 }
 
-/** Gleiche Liste wie `SETTINGS_SECTIONS` der POS-Navigation (Shell), die per `?section=` hierher springt. */
+/** Abschnitte der Seite; `?section=` wählt einen (Seitenleiste dieser Seite). */
 const SETTINGS_SECTIONS = ['general', 'users', 'design', 'printer', 'connection', 'info'] as const
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 
@@ -67,7 +67,15 @@ function isSettingsSection(value: string | null): value is SettingsSection {
 @Component({
   selector: 'lib-settings',
   standalone: true,
-  imports: [IconComponent, CommonModule, FormsModule, MatTooltipModule, TranslateModule, UnpairDeviceDialogComponent],
+  imports: [
+    IconComponent,
+    PageHeaderComponent,
+    CommonModule,
+    FormsModule,
+    MatTooltipModule,
+    TranslateModule,
+    UnpairDeviceDialogComponent,
+  ],
   templateUrl: './settings.component.html',
 })
 export class SettingsComponent implements OnInit {
@@ -396,10 +404,6 @@ export class SettingsComponent implements OnInit {
   setUiDensity(level: UiDensityLevel) {
     // Wirkt sofort (Live-Vorschau) — der Service aendert nur --pnry-density, kein Reload noetig.
     this.uiScaleService.setDensity(level)
-  }
-
-  goBack() {
-    this.router.navigate(['/dashboard'])
   }
 
   /** Nur im gepackten Tauri-Client verfügbar (Browser/Dev/admin → ausgeblendet). */

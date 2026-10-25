@@ -13,16 +13,27 @@ import { NotificationOutletComponent } from '@panary/shared/ui-notifications'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Genau EIN priorisierter Cloud-Status-Banner (positioniert sich selbst,
-         höchste Gewichtung gewinnt). Im Setup-Wizard ausgeblendet. Der
+         höchste Gewichtung gewinnt) als Streifen oben, der den Inhalt schiebt (core#972). Im Setup-Wizard ausgeblendet. Der
          „Offline-Modus aktivieren"-Button ist auf dem Device nicht verfügbar
          (kein RBAC-Write auf cloud-connection) → enableOfflineModeAction bleibt false. -->
     @if (!isSetupRoute()) {
-      <lib-cloud-status-banner [banner]="banner()" (action)="onBannerAction($event)" />
+      <lib-cloud-status-banner layout="strip" [banner]="banner()" (action)="onBannerAction($event)" />
     }
     <!-- Globaler Toast-Outlet: zeigt NotificationService-Meldungen (u.a. aus
          handleError). Außerhalb des Setup-Guards, damit auch dort Fehler sichtbar sind. -->
     <lib-notification-outlet />
     <router-outlet></router-outlet>
+  `,
+  // Spalte: Streifen oben, die geroutete Seite füllt den Rest (ohne Streifen unverändert Vollhöhe).
+  styles: `
+    :host {
+      display: flex;
+      flex-direction: column;
+    }
+    :host > router-outlet + * {
+      flex: 1 1 0;
+      min-height: 0;
+    }
   `,
 })
 export class AppComponent {

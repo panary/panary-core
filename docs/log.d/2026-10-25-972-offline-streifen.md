@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#972): [POS-Navigation](../domains/pos-navigation.md) — Offline-Streifen oben in der App-Wurzel statt schwebender Karte, Seitenkopf spiegelt über `data-rail-side`, Einstellungen mit `lib-page-header` ohne Zurück-Pfeil.

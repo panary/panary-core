@@ -656,6 +656,7 @@
     "CHANNEL_POS": "Kasse",
     "CHANNEL_PHONE": "Telefon",
     "DISCOUNT": "Rabatt",
+    "WITHOUT_DISCOUNT": "Ohne Rabatt",
     "LINE_DISCOUNT": "Pos.-Rab.",
     "PROMO_CODE": "Rabattcode",
     "OPTIONS": "Optionen",

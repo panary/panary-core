@@ -428,7 +428,7 @@
 
     <!-- Aktiver Rabatt über dem Kartenende. Die Summe steht seit core#1067 nur noch auf der Primärtaste, die Anzahl im
          Kopf: Summenzeile und Aktionsleiste kosteten 121 px, bei 1366 × 768 sah man 9 statt 12 Positionen. -->
-    @if (selectedManualDiscount() || appliedCodeDiscount()) {
+    @if (selectedManualDiscount() || appliedCodeDiscount() || hasDiscountPreview()) {
       <div class="shrink-0 border-t border-line-soft pb-2" data-testid="cart-discounts">
         @if (selectedManualDiscount(); as md) {
           <div class="flex items-center gap-2 px-4 pt-2">
@@ -472,6 +472,15 @@
             >
               <lib-icon name="x" class="text-[1rem]" />
             </button>
+          </div>
+        }
+        @if (hasDiscountPreview()) {
+          <div
+            class="flex items-baseline justify-between px-4 pt-1.5 text-xs text-ink-faint"
+            data-testid="cart-undiscounted"
+          >
+            <span>{{ 'ORDER_DIALOG.WITHOUT_DISCOUNT' | translate }}</span>
+            <span class="font-medium line-through tabular-nums">{{ calculateSumPrice() | eur }}</span>
           </div>
         }
       </div>
@@ -731,7 +740,7 @@
         <lib-icon name="buildings" class="mr-3" style="font-size: 1.25rem" />
         {{ (isStandaloneMode() ? 'ORDER_DIALOG.ENTERPRISE_ONLY' : 'ORDER_DIALOG.CORPORATE_CUSTOMER') | translate }}
       </button>
-      <!-- Ein geprüfter Code steht unter der Summe und hier am Eintrag — eingelöst wird er erst beim Abschluss. -->
+      <!-- Ein geprüfter Code steht über dem Kartenende und hier am Eintrag — eingelöst wird er erst beim Abschluss. -->
       <button mat-menu-item (click)="openPromoCodeDialog()" aria-label="Rabattcode eingeben">
         <lib-icon name="ticket" class="mr-3" style="font-size: 1.25rem" />
         {{ 'ORDER_DIALOG.PROMO_CODE' | translate }}
@@ -758,14 +767,10 @@
         {{ (paysAtCounter() ? 'ORDER_DIALOG.PAY' : 'ORDER_DIALOG.ORDER') | translate }}
         <lib-icon name="arrow-right" style="font-size: 1rem" />
       </span>
-      <span class="flex items-baseline gap-1.5 max-w-full text-lg font-black tabular-nums" data-testid="pay-total">
-        @if (hasDiscountPreview()) {
-          <span class="text-[0.6875rem] font-medium line-through opacity-70">{{ calculateSumPrice() | eur }}</span>
-          {{ discountedTotal() | eur }}
-        } @else {
-          {{ calculateSumPrice() | eur }}
-        }
-      </span>
+      <!-- Nur der gültige Betrag: In gut 7rem passt kein zweiter daneben, der Betrag vor Rabatt steht über dem Kartenende. -->
+      <span class="max-w-full truncate text-lg font-black tabular-nums" data-testid="pay-total">{{
+        (hasDiscountPreview() ? discountedTotal() : calculateSumPrice()) | eur
+      }}</span>
     </button>
   </div>
 

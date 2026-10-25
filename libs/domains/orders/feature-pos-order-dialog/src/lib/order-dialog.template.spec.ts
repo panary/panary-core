@@ -530,14 +530,18 @@ describe('Kasse-Template — Warenkorb-Fuß in einer Reihe (core#1067)', () => {
 
   it('zeigt die Summe nicht mehr im Warenkorb, die Anzahl steht im Kopf', () => {
     expect(karte).not.toContain("'COMMON.TOTAL' | translate")
-    expect(karte).not.toContain('calculateSumPrice()')
+    // Einziger Betrag im Warenkorb ist der durchgestrichene „ohne Rabatt" (Test unten).
+    expect(karte.match(/calculateSumPrice\(\)/g)).toHaveLength(1)
     expect(karte).not.toContain('discountedTotal()')
     expect(karte).toContain('data-testid="cart-count"')
     expect(karte).toContain("{{ articleCount() }} {{ 'COMMON.ITEMS' | translate }}")
   })
 
-  it('zeigt die Rabattzeilen nur bei aktivem Rabatt', () => {
-    expect(karte).toContain('@if (selectedManualDiscount() || appliedCodeDiscount())')
+  it('zeigt die Rabattzeilen nur bei aktivem Rabatt, mit dem Betrag ohne Rabatt durchgestrichen', () => {
+    expect(karte).toContain('@if (selectedManualDiscount() || appliedCodeDiscount() || hasDiscountPreview())')
+    const ohne = karte.slice(karte.indexOf('data-testid="cart-undiscounted"'))
+    expect(karte.indexOf('data-testid="cart-undiscounted"')).toBeGreaterThan(-1)
+    expect(ohne).toMatch(/line-through[^>]*>\{\{ calculateSumPrice\(\) \| eur \}\}/)
   })
 
   it('stellt Rabatt, Kombination und Optionen vor die Primärtaste, je 4,5rem breit', () => {
@@ -554,12 +558,15 @@ describe('Kasse-Template — Warenkorb-Fuß in einer Reihe (core#1067)', () => {
       expect(klassenIn(reihe, m)).toEqual(expect.arrayContaining(['w-[4.5rem]', 'shrink-0', 'h-14']))
   })
 
-  it('trägt den Betrag nur auf der Primärtaste, mit Rabatt den alten durchgestrichen', () => {
-    const betrag = reihe.slice(reihe.indexOf('data-testid="pay-total"'))
-    expect(betrag).toContain('@if (hasDiscountPreview())')
-    expect(betrag).toMatch(/line-through[^>]*>\{\{ calculateSumPrice\(\) \| eur \}\}/)
-    expect(betrag).toContain('{{ discountedTotal() | eur }}')
-    expect(template.match(/discountedTotal\(\) \| eur/g)).toHaveLength(1)
+  it('trägt auf der Primärtaste nur den gültigen Betrag', () => {
+    const betrag = reihe.slice(
+      reihe.lastIndexOf('<', reihe.indexOf('data-testid="pay-total"')),
+      reihe.indexOf('</span>', reihe.indexOf('data-testid="pay-total"')),
+    )
+    expect(betrag).toContain('(hasDiscountPreview() ? discountedTotal() : calculateSumPrice()) | eur')
+    expect(betrag).not.toContain('line-through')
+    expect(betrag).toContain('truncate')
+    expect(template.match(/discountedTotal\(\)/g)).toHaveLength(1)
   })
 
   it('spiegelt nur die Primärtaste zum Raster hin', () => {

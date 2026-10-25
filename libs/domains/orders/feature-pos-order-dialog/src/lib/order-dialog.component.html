@@ -3,8 +3,9 @@
      Ziffern — nie den Inhalt einer Zone (order-dialog.component.scss). Die Infozeile darüber ist mit core#908
      entfallen; Meldungen erscheinen als Hinweis über dem Raster. -->
 <section class="kasse relative h-full min-h-0 overflow-hidden bg-surface-bg text-ink" [attr.data-hand]="handedness()">
-  <!-- Gruppenleiste (core#908): eine Zeile, jede Gruppe so breit wie ihr Name, Farbe als Punkt. Was nicht passt,
-       liegt hinter dem Burger. Abstand und Burger-Breite stecken auch in group-bar.ts — beide zusammen ändern. -->
+  <!-- Gruppenleiste (core#908, core#1019): eine Zeile, jede Gruppe gleich breit (`--pnry-group-chip`), lange Namen
+       brechen in zwei Zeilen um, Farbe als Punkt. Was nicht passt, liegt hinter dem Burger. Abstand und
+       Burger-Breite stecken auch in group-bar.ts — beide zusammen ändern. -->
   <div #productGroupContainer class="kasse__groups relative flex items-center gap-2 px-3 pt-2 pb-2 overflow-hidden">
     @for (productGroup of visibleProductGroups; track productGroup._id) {
       <ng-container [ngTemplateOutlet]="groupChip" [ngTemplateOutletContext]="{ $implicit: productGroup }" />
@@ -50,7 +51,7 @@
       </mat-menu>
     }
 
-    <!-- Messzeile: alle Gruppen in Inhaltsbreite, unsichtbar und ohne Platzbedarf. Sie liefert die Breiten, nach
+    <!-- Messzeile: alle Gruppen in ihrer gerenderten Breite, unsichtbar und ohne Platzbedarf. Sie liefert die Breiten, nach
          denen calculateVisibleProductGroups() aufteilt; unsichtbare Tasten sind weder antipp- noch fokussierbar. -->
     <div #productGroupMeasure class="invisible absolute left-0 top-0 flex gap-2 pointer-events-none" aria-hidden="true">
       @for (productGroup of productGroups; track productGroup._id) {
@@ -62,16 +63,21 @@
   <ng-template #groupChip let-productGroup>
     <button
       type="button"
-      class="pnry-touch h-12 min-w-[4.5rem] max-w-[13rem] shrink-0 rounded-control px-3 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase whitespace-nowrap shadow-card flex items-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-40"
+      class="pnry-touch h-12 w-[var(--pnry-group-chip)] shrink-0 rounded-control px-2 bg-surface-panel border border-line text-ink text-xs font-semibold uppercase shadow-card flex items-center justify-center active:scale-[0.97] transition-transform disabled:opacity-40"
       (click)="createProductButtons(productGroup)"
       [disabled]="sheetOpen()"
     >
-      <span
-        class="h-2.5 w-2.5 shrink-0 rounded-full"
-        [style.background-color]="productGroup.color"
-        aria-hidden="true"
-      ></span>
-      <span class="truncate">{{ productGroup.name }}</span>
+      <!-- Feste Breite statt Inhaltsbreite (core#1019): Breite Namen kosteten auf der Sunmi Gruppen in der Zeile.
+           Silbentrennung statt break-words, sonst bricht „HAUPTGERICHTE" hinter dem T um (#795). Der Punkt steht im
+           Textfluss, damit er die zweite Zeile nicht einrückt. -->
+      <span class="w-full text-center leading-tight line-clamp-2 [hyphens:auto]" lang="de"
+        ><span
+          class="mr-1.5 inline-block h-2.5 w-2.5 rounded-full align-[-0.0625rem]"
+          [style.background-color]="productGroup.color"
+          aria-hidden="true"
+        ></span
+        >{{ productGroup.name }}</span
+      >
     </button>
   </ng-template>
 

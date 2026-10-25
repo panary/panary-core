@@ -121,10 +121,10 @@ import { splitGroupBar } from './group-bar'
 import { revealCartSelection } from './cart-scroll'
 import { type ClosingStep, type ClosingStepView, closingStepViews, closingSteps } from './closing-flow'
 import {
+  ALL_MODIFIERS_GROUP_ID,
   type CustomizeModel,
   REMOVED_INGREDIENT_PREFIX,
   buildCustomizeModel,
-  hasCustomizableContent,
   opensCustomizeAutomatically,
   toggleIngredientRemoval,
   type CustomizeScope,
@@ -156,15 +156,17 @@ export class AbsPipe implements PipeTransform {
   }
 }
 
-/** Funktionstaste „Herauslösen" (#795) — die Beschriftung folgt dem Multiplikator. */
-const RELEASE_BUTTON_ID = 'releaseFromCombination'
-
 /** Leerlauf-Text der früheren Infozeile — als Hinweis wäre er nur Rauschen (core#908). */
 const IDLE_INFO_TEXT = 'Bitte wählen Sie eine Produktkategorie'
 const IDLE_INFO_TEXTS: ReadonlySet<string> = new Set([IDLE_INFO_TEXT, `${IDLE_INFO_TEXT}!`])
 /** Standzeit des Hinweises; ein Fehler bleibt länger, weil er meist erklärt, warum ein Tipp nichts tat. */
 const NOTICE_MS = 4000
 const NOTICE_DANGER_MS = 6000
+
+/** „Alle Modifier" bucht wie das frühere Extras-Raster unter dem allgemeinen Extra-Thema, nicht unter einer Optionsgruppe. */
+function extraTopicOf(event: CustomizeOptionEvent): string | undefined {
+  return event.groupId === ALL_MODIFIERS_GROUP_ID ? undefined : event.groupName
+}
 
 /**
  * Die eine Meldung nach dem Abschicken (core#1087). Vorher standen „Bestellung wurde erstellt“,
@@ -368,6 +370,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly customizeScope = signal<CustomizeScope>('all')
   /** Nach der ersten Änderung ist der Umschalter fest — sonst müsste ein Split zurückgenommen werden. */
   readonly customizeScopeLocked = signal(false)
+  /** Blendet im Sheet die Gruppe „Alle Modifier" ein (#1085, vorher ein eigenes Raster). */
+  readonly customizeShowAll = signal(false)
   /**
    * Die Zeile, die gerade im Hinzufügen-Ablauf entstanden ist. Ihre Anpassung gilt für alle
    * Stück (D2), auch über das Extras-Raster; jede andere Auswahl beendet diesen Zustand.
@@ -393,8 +397,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private _deleteOrderName = 'Bestellung leeren'
   private _extraTopic = 'Extras'
   private _productionTimeTopic: UUID = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx03'
-  private _skipExtraId = 'skipExtra'
-  private _skipExtraName = 'ABBRUCH'
   private _skipSauceId = 'skipSauce'
   private _skipSauceName = 'ÜBERSPRINGEN'
   private _skipSuccessorId = 'skipSuccessor'
@@ -842,13 +844,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Tipp auf eine Warenkorbzeile: wählt sie aus, der zweite Tipp hebt die Auswahl auf (core#829).
    * Darunter klappt die Steuerleiste auf; das Anpassen öffnet erst deren Taste. Bis dahin öffnete
    * der Tipp das Panel sofort und nahm das Raster weg, auch wenn nur die Menge zu ändern war.
-   * Ist das Panel schon offen, zieht es mit der Auswahl mit (`#followSelectionInPanel`).
+   * Ist das Sheet offen, schließt der Tipp es (`#selectFromCart`, core#1086).
    */
   toggleProductSelection(index: number) {
     if (this._isBlocked) return
 
     this.#freshLine = null
-    this.applyBoardSelection({
+    this.#selectFromCart({
       productIndex: this._selectedProductIndex === index ? null : index,
       combinationIndex: [null, null],
     })
@@ -861,14 +863,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#freshLine = null
     this._selectedCombinationIndex = [null, null]
     this._selectedProductIndex = this._selectedProductIndex != index ? index : null
-    this.setExtraSubButtons()
+    this.#customizeCurrentSelection()
   }
 
   selectCombinationByIndex(combinationIndex: number, articleIndex: number | null) {
     if (this._isBlocked) return
 
     // Wie eine freie Zeile: Der Tipp wählt nur aus, angepasst wird über die Steuerleiste (core#829).
-    this.applyBoardSelection(toggleCombinationSelection(this.boardSelection(), combinationIndex, articleIndex))
+    this.#selectFromCart(toggleCombinationSelection(this.boardSelection(), combinationIndex, articleIndex))
   }
 
   /**
@@ -882,11 +884,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const wholeSelected =
       this._selectedCombinationIndex[0] === combinationIndex && this._selectedCombinationIndex[1] === null
-    this.applyBoardSelection({
+    this.#selectFromCart({
       productIndex: null,
       combinationIndex: wholeSelected ? [null, null] : [combinationIndex, null],
     })
-    if (!wholeSelected) this.setInfoBoxText(`Kombination ${combinationIndex + 1} ausgewählt`)
+    // Nach dem Index, den die Markierung jetzt trägt — das Schließen eines Sheets kann ihn verschoben haben.
+    const selected = this._selectedCombinationIndex[0]
+    if (!wholeSelected && selected !== null) this.setInfoBoxText(`Kombination ${selected + 1} ausgewählt`)
   }
 
   /** Stückzahl im Warenkorb für „Gesamt · n Artikel" — Zeilen samt Positionen in Kombinationen. */
@@ -906,7 +910,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** „Anpassen" in der Steuerleiste: Panel bzw. Extras für die markierte Zeile oder Position. */
   customizeSelection(): void {
-    this.setExtraSubButtons()
+    this.#customizeCurrentSelection()
   }
 
   /** „Kombi lösen" in der Steuerleiste: die markierte Kombination wird zu freien Zeilen. */
@@ -942,6 +946,40 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return {
       productIndex: this._selectedProductIndex,
       combinationIndex: [this._selectedCombinationIndex[0], this._selectedCombinationIndex[1]],
+    }
+  }
+
+  /**
+   * Auswahl per Tipp in den Warenkorb (core#1086). Bei offenem Sheet endet die Anpassung wie mit „Fertig“:
+   * Die Änderungen bleiben, gleiche Zeilen werden zusammengeführt, das Sheet schließt, und die getippte
+   * Zeile ist markiert. Vorher zog das Sheet zur neuen Zeile mit (oder schloss, wenn sie nichts zum
+   * Anpassen hatte) — auf der Sunmi war dann nicht zu erkennen, welches Produkt man gerade bearbeitete.
+   * Die Pfeiltasten ziehen weiter mit (`#followSelectionInPanel`).
+   */
+  #selectFromCart(selection: BoardSelection): void {
+    if (!this.#customizeLine) {
+      this.applyBoardSelection(selection)
+      return
+    }
+    this._selectedProductIndex = selection.productIndex
+    this._selectedCombinationIndex = [selection.combinationIndex[0], selection.combinationIndex[1]]
+    // Die Markierung hängt an der Zeile, nicht am Index: Das Zusammenführen kann Zeilen davor entfernen.
+    const target = this.getCurrentSelectedLineItem()
+    // Eine ganze Kombination merkt sich über ihre Zeilen: Das Zusammenführen kann Kombinationen davor
+    // auflösen (`#resolveSingletonBundles`), dann zeigte der alte Index daneben. Was in ihr zusammenfällt,
+    // geht in einer ihrer eigenen Zeilen auf — die Kombination nennt den Schlüssel der Zeile (`bundleNumber`).
+    const combinationLines = this.isWholeCombinationSelected()
+      ? [...(this.combinations[selection.combinationIndex[0] ?? -1] ?? [])]
+      : []
+    this.#freshLine = null
+    const follow = this.#mergeLines(target)
+    this.#closeCustomize()
+    // `#closeCustomize` stellt das Raster der Gruppe wieder her und hebt dabei die Auswahl auf.
+    if (follow) {
+      this.#selectLine(follow)
+    } else if (combinationLines.length > 0) {
+      const combination = this.combinations.findIndex(bundle => bundle.some(line => combinationLines.includes(line)))
+      if (combination !== -1) this._selectedCombinationIndex = [combination, null]
     }
   }
 
@@ -1455,189 +1493,39 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     })
   }
 
-  setExtraSubButtons(
-    ids: Array<UUID> | undefined = undefined,
-    groupId: string | undefined = undefined,
-    unblock = false,
-    grid = false,
-  ) {
-    if (this._isBlocked && !unblock) return
+  /**
+   * „Anpassen" für die markierte Zeile oder Position: immer das Sheet (#1085). Bis dahin nahm ein
+   * Produkt ohne abwählbare Zutat und ohne Optionsgruppe ein altes Extras-Raster („Extras auswählen"
+   * mit ABBRUCH und „Alle Modifier anzeigen") — dieselbe Taste zeigte je nach Produkt zwei Ansichten.
+   */
+  #customizeCurrentSelection(): void {
+    if (this._isBlocked) return
 
     if (this.#lineItems.length === 0 && this.combinations.length === 0) {
       this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
       return
     }
-    if (
-      this._selectedCombinationIndex[0] !== null &&
-      this._selectedCombinationIndex[1] === null &&
-      this._selectedProductIndex === null
-    ) {
+    if (this.isWholeCombinationSelected()) {
       this.setInfoBoxText('Extras können nur für normale Artikel hinzugefügt werde. Nicht für Kombinationen.', 'red')
       return
     }
-    if (
-      this._selectedProductIndex === null &&
-      this._selectedCombinationIndex[0] === null &&
-      this._selectedCombinationIndex[1] === null
-    ) {
+    const line = this.getCurrentSelectedLineItem()
+    if (!line) {
       this.setInfoBoxText('Bitte wählen Sie zunächst einen Artikel aus.', 'red')
       return
     }
-
-    // Ohne Legacy-Extras-Liste und mit Anpassbarem am Produkt: das Panel statt des Rasters.
-    // `grid` erzwingt das Raster — der Weg „Alle Modifier" aus dem Panel heraus.
-    if (!grid && !(ids && ids.length > 0)) {
-      const line = this.getCurrentSelectedLineItem()
-      if (line && this.#canCustomize(line)) {
-        this.openCustomizePanel(line)
-        return
-      }
-    }
-
-    this.clearButtons()
-    this.setInfoBoxText('Welche Extras möchten Sie hinzufügen?')
-    this._functionBlockLabel = 'Extras auswählen'
-
-    let parentButton: ProductSchema | undefined
-
-    if (!this._lastParentId) {
-      parentButton = undefined
-    } else {
-      parentButton = this.productService.findProductById(this._lastParentId)
-    }
-
-    this.functionButtons.push({
-      _id: this._skipExtraId,
-      externalId: this.#functionButtonExternalId,
-      locationId: this.userService.currentUser()?.activeLocationId || '',
-      tenantId: this.authService.tenantId()?.toString() || '',
-      name: this._skipExtraName,
-      index: -2,
-      isFunctionButton: true,
-      isExtra: true,
-      variant: 'cancel',
-      iconName: 'x',
-      callback: () => {
-        if (this._isBlocked) {
-          if (parentButton && (parentButton as any).itemType === ItemType.mainDish && (parentButton as any).isMenu) {
-            this.setMenuSideDishButtons((parentButton as any).sideDishes)
-          }
-          return
-        }
-        this.setProductButtonsByGroupId(groupId)
-      },
-    })
-    this.#pushReleaseButton()
-    if (ids && ids.length > 0) {
-      const extras: Array<PosProductButton> = []
-
-      ids.forEach((externalId: UUID): void => {
-        const product: undefined | ProductSchema = this.productService.findProductByExternalId(externalId)
-
-        if (product) {
-          // VM-Kopie statt Store-Referenz — der Dialog darf Cache-Objekte nicht mutieren
-          const extra = toPosButton(product)
-          extra.callback = (): void => {
-            if (this._isBlocked && !unblock) return
-
-            this.#increaseExtraFromRaster(extra)
-          }
-          extras.push(extra)
-        }
-      })
-
-      this.productButtons.push(
-        ...extras.sort((a, b) => {
-          return a.name.localeCompare(b.name)
-        }),
-      )
-    } else {
-      let parentId: UUID | null | undefined
-      let externalId: UUID | null | undefined
-
-      if (this._selectedProductIndex !== null) {
-        parentId = this.#lineItems[this._selectedProductIndex].parentId
-        externalId = this.#lineItems[this._selectedProductIndex].externalId
-      } else {
-        if (this._selectedCombinationIndex[0] === null || this._selectedCombinationIndex[1] === null) return
-
-        const combinationIndex: number = this._selectedCombinationIndex[0]
-        const articleIndex: number = this._selectedCombinationIndex[1]
-
-        parentId = this.combinations[combinationIndex][articleIndex].parentId
-        externalId = this.combinations[combinationIndex][articleIndex].externalId
-      }
-
-      // Produkt des ausgewählten LineItems ermitteln
-      const selectedProduct = externalId ? this.productService.findProductByExternalId(externalId) : undefined
-      const productOptions = selectedProduct?.optionGroups?.flatMap(g => g.options) ?? []
-
-      if (productOptions.length > 0) {
-        // Nur die im Produkt definierten Modifier anzeigen — als VM-Kopie, nie die Store-Referenz
-        for (const opt of productOptions) {
-          const product = this.productService.findProductById(opt.productId)
-          if (!product) continue
-          // Die Optionsgruppe zeigt ihre Mitglieder unabhängig vom `productType`;
-          // `increaseExtra` bucht aber nur Modifier. Ein Warnzeichen auf der Kachel
-          // macht die Fehlkonfiguration sichtbar, BEVOR jemand tippt (#273). Kein
-          // `variant` — das wirkt nur auf Funktionstasten, nicht auf Produktkacheln.
-          const extra = toPosButton(product)
-          if (!isModifierButton(extra)) extra.iconName = 'warning'
-          extra.callback = () => {
-            if (this._isBlocked && !unblock) return
-            this.#increaseExtraFromRaster(extra)
-          }
-          this._productButtons.push(extra)
-        }
-      } else {
-        this.setInfoBoxText('Keine Extras für dieses Produkt hinterlegt.')
-      }
-
-      // "Alle Extras"-Button: lädt alle Modifier aus der Datenbank
-      this.functionButtons.push({
-        _id: 'load-all-extras',
-        externalId: this.#functionButtonExternalId,
-        locationId: this.userService.currentUser()?.activeLocationId || '',
-        tenantId: this.authService.tenantId()?.toString() || '',
-        name: 'Alle Modifier anzeigen',
-        index: 0,
-        isFunctionButton: true,
-        isExtra: true,
-        variant: 'confirm',
-        iconName: 'check',
-        callback: () => {
-          if (this._isBlocked && !unblock) return
-          this.#fillAllModifierButtons(parentId, externalId, unblock)
-        },
-      })
-
-      this._lastParentId = parentId
-    }
+    this.openCustomizePanel(line)
   }
 
-  /** Alle Modifier des Katalogs als Raster — ohne die für diese Zeile ausgeschlossenen. */
-  #fillAllModifierButtons(parentId: UUID | null | undefined, externalId: UUID | null | undefined, unblock: boolean) {
-    this._productButtons = []
-    this.setInfoBoxText('Welche Extras möchten Sie hinzufügen?')
-    this.productService.extras().forEach((product: ProductSchema): void => {
-      if ((product as any).excludedButtons && parentId && (product as any).excludedButtons.includes(parentId)) {
-        return
-      } else if (
-        (product as any).excludedSubButtons &&
-        externalId &&
-        (product as any).excludedSubButtons.includes(externalId)
-      ) {
-        return
-      } else {
-        // VM-Kopie statt Store-Referenz — der Dialog darf Cache-Objekte nicht mutieren
-        const extra = toPosButton(product)
-        extra.callback = () => {
-          if (this._isBlocked && !unblock) return
-          this.#increaseExtraFromRaster(extra)
-        }
-        this._productButtons.push(extra)
-      }
-    })
+  /** „Alle Modifier" im Sheet: alle Modifier des Katalogs ohne die für diese Zeile ausgeschlossenen. */
+  #allModifiersFor(line: OrderLineItem): ProductSchema[] {
+    return this.productService
+      .extras()
+      .filter(
+        (product: ProductSchema) =>
+          !(line.parentId && (product as any).excludedButtons?.includes(line.parentId)) &&
+          !(line.externalId && (product as any).excludedSubButtons?.includes(line.externalId)),
+      )
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -1652,24 +1540,17 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     )
   }
 
-  /** Bundles laufen durch ihren eigenen Flow — ihre Optionsgruppen sind Menüschritte, keine Extras. */
-  #canCustomize(line: OrderLineItem): boolean {
-    const product = this.#productOfLine(line)
-    return !!product && hasCustomizableContent(product) && !this.#bundleFlow.isBundleProduct(product)
-  }
-
   /**
    * Die Auswahl hat gewechselt, während das Panel offen war (Kombinations-Position, Pfeile).
    * Das Panel zieht mit, statt die alte Zeile zu zeigen — sonst landeten Zutaten und Extras
-   * auf zwei verschiedenen Zeilen. Ist die neue Auswahl nicht anpassbar, schließt es; die
-   * Auswahl selbst bleibt stehen.
+   * auf zwei verschiedenen Zeilen. Ohne Auswahl schließt es.
    */
   #followSelectionInPanel(): void {
     if (!this.#customizeLine) return
     this.#freshLine = null
     const line = this.getCurrentSelectedLineItem()
     if (line === this.#customizeLine) return
-    if (line && this.#canCustomize(line)) {
+    if (line) {
       this.openCustomizePanel(line)
     } else {
       this.clearButtons()
@@ -1696,6 +1577,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const fresh = wasFresh && target === line
     this.customizeScope.set(fresh || target.amount <= 1 ? 'all' : 'one')
     this.customizeScopeLocked.set(false)
+    this.customizeShowAll.set(false)
     // Kein Hinweis „… anpassen": Der Sheet-Kopf nennt das Produkt, ein Hinweis darüber verdeckte die Fußleiste (core#909).
     this.#refreshCustomize()
   }
@@ -1762,31 +1644,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Wie viele Stück „Herauslösen" nimmt: der Multiplikator, höchstens die Stückzahl der Position (#795). */
   #releaseCount(line: OrderLineItem): number {
     return Math.min(Math.max(this.multiplier, 1), line.amount)
-  }
-
-  /** „Herauslösen" als Funktionstaste — für Positionen in einer Kombination, die kein Anpassen-Panel haben. */
-  #pushReleaseButton(): void {
-    const label = this.releaseLabel()
-    if (!label) return
-    this._functionButtons.push({
-      _id: RELEASE_BUTTON_ID,
-      externalId: this.#functionButtonExternalId,
-      locationId: this.userService.currentUser()?.activeLocationId || '',
-      tenantId: this.authService.tenantId()?.toString() || '',
-      name: label,
-      index: -1,
-      isFunctionButton: true,
-      variant: 'skip',
-      iconName: 'arrows-split',
-      callback: () => this.releaseFromCombination(),
-    })
-  }
-
-  /** Die Taste nennt die Zahl, die sie nimmt — sie zieht deshalb mit jedem Ziffernblock-Tipp mit. */
-  #refreshReleaseButton(): void {
-    const button = this._functionButtons.find(b => b._id === RELEASE_BUTTON_ID)
-    const label = this.releaseLabel()
-    if (button && label) button.name = label
   }
 
   /** Beschriftung der Taste „Herauslösen" mit der Zahl, die sie nimmt — `null`, wenn es nichts zu lösen gibt. */
@@ -1895,21 +1752,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Extra aus dem Raster auf die markierte Zeile (#699). Trägt sie mehrere Stück und stammt
-   * sie nicht aus dem laufenden Hinzufügen-Ablauf, gilt das Extra für ein Stück: Es wird
-   * abgespalten, danach wird zusammengeführt — „2× Burger" + Käse auf eines wird
-   * „1× Burger" und „1× Burger + Käse", ein zweites Käse auf den anderen wieder eine Zeile.
-   */
-  #increaseExtraFromRaster(extra: PosProductButton): void {
-    const line = this.getCurrentSelectedLineItem()
-    if (line && line !== this.#freshLine && line.amount > 1 && isModifierButton(extra)) {
-      this.#splitOffOnePiece(line)
-    }
-    this.increaseExtra(extra)
-    this.#mergeLines()
-  }
-
-  /**
    * Neues Modell für die angepasste Zeile — nach jeder Bedienung im Panel und nach jeder
    * Änderung von außen (Menge in Spalte 2, Undo, Löschen). Gibt es die Zeile nicht mehr,
    * schließt das Panel.
@@ -1921,11 +1763,20 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this.#closeCustomize()
       return
     }
+    const product = this.#productOfLine(line)
+    // Die Optionsgruppen eines Menüs sind Menüschritte (BundleFlow), keine Extras.
+    const extrasSource = product && this.#bundleFlow.isBundleProduct(product) ? undefined : product
     this.customizeModel.set(
-      buildCustomizeModel(line, this.#productOfLine(line), {
-        findProductById: id => this.productService.findProductById(id),
-        isModifier: product => isModifierButton(product),
-      }),
+      buildCustomizeModel(
+        line,
+        extrasSource,
+        {
+          findProductById: id => this.productService.findProductById(id),
+          isModifier: candidate => isModifierButton(candidate),
+        },
+        this.customizeShowAll() ? this.#allModifiersFor(line) : undefined,
+        this._extraTopic,
+      ),
     )
     this.#cdr.markForCheck()
   }
@@ -1943,24 +1794,24 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onCustomizeOptionIncreased(event: CustomizeOptionEvent): void {
     const product = this.productService.findProductById(event.productId)
-    const group = this.customizeModel()?.groups.find(g => g.name === event.groupName)
+    const group = this.customizeModel()?.groups.find(g => g.id === event.groupId)
     if (!this.#customizeLine || !product || !group || group.full) return
     const line = this.#customizeTarget()
     if (!line) return
-    this.increaseExtra(toPosButton(product), event.groupName, line)
+    this.increaseExtra(toPosButton(product), extraTopicOf(event), line)
     this.#refreshCustomize()
   }
 
   onCustomizeOptionDecreased(event: CustomizeOptionEvent): void {
     const product = this.productService.findProductById(event.productId)
     const booked = this.customizeModel()
-      ?.groups.find(g => g.name === event.groupName)
+      ?.groups.find(g => g.id === event.groupId)
       ?.options.find(option => option.productId === event.productId)?.amount
     // Minus auf ein ungebuchtes Extra ändert nichts — dann auch nichts abspalten.
     if (!this.#customizeLine || !product || !booked) return
     const line = this.#customizeTarget()
     if (!line) return
-    this.decreaseExtra(toPosButton(product), event.groupName, line)
+    this.decreaseExtra(toPosButton(product), extraTopicOf(event), line)
     this.#refreshCustomize()
   }
 
@@ -1978,14 +1829,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.#closeCustomize()
   }
 
-  /** Das Raster mit allen Modifiern — für Extras, die nicht in den Optionsgruppen des Produkts stehen. */
+  /** „Alle Modifier" im Sheet ein- und ausblenden — für Extras außerhalb der Optionsgruppen des Produkts. */
   onCustomizeShowAllModifiers(): void {
-    const line = this.#customizeLine
-    if (!line) return
-    // Steht der Umschalter auf „alle", gilt das auch im Raster — es spaltet dann nicht ab (#699).
-    if (this.customizeScope() === 'all') this.#freshLine = line
-    this.setExtraSubButtons(undefined, line.parentId, false, true)
-    this.#fillAllModifierButtons(line.parentId, line.externalId, false)
+    if (!this.#customizeLine) return
+    this.customizeShowAll.update(shown => !shown)
+    this.#refreshCustomize()
   }
 
   /** Zurück zum Raster der Produktgruppe, aus der die Zeile stammt — wie ABBRUCH im Extras-Raster. */
@@ -2070,13 +1918,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       iconName: 'arrow-right',
       callback: () => {
         if (this._isBlocked) {
-          if (
-            parentButton &&
-            (parentButton as any).itemType === ItemType.mainDish &&
-            (parentButton as any).showExtrasAfterSelect
-          ) {
-            this.setExtraSubButtons((parentButton as any).extras, (parentButton as any)?.categoryIds?.[0], true)
-          } else if (parentButton && (parentButton as any).isMenu !== undefined && (parentButton as any).isMenu) {
+          if (parentButton && (parentButton as any).isMenu !== undefined && (parentButton as any).isMenu) {
             this._isBlocked = true
             this.setMenuSideDishButtons((parentButton as any).sideDishes)
           } else if (parentButton && (parentButton as any).nextProductGroupExternalId !== undefined) {
@@ -3805,7 +3647,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   numpadAction(number: number): void {
     this.concatMultiplier(number)
     this.concatProductSearch(number)
-    this.#refreshReleaseButton()
   }
 
   private concatMultiplier(number: number) {
@@ -3856,7 +3697,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       (article as any).isMenu ||
       (article as any).showSaucesAfterSelect ||
       (article as any).isMenuDrink ||
-      ((article as any).showExtrasAfterSelect !== undefined && (article as any).showExtrasAfterSelect) ||
       (article as any).nextProductGroupExternalId !== undefined
     )
     this.clearNumpad(skipViewChange)
@@ -3865,7 +3705,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   numpadReset(): void {
     this.resetMultiplier()
     this.resetProductSearch()
-    this.#refreshReleaseButton()
   }
 
   private resetMultiplier() {

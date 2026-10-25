@@ -484,7 +484,9 @@ describe('Kasse — markierte Zeile in den Sichtbereich (core#1021)', () => {
 
   it('scrollt nach jedem neuen Rendern der Leiste, mit ihrem Außenabstand', () => {
     expect(component).toContain("viewChild<ElementRef<HTMLElement>>('selectionToolbar')")
-    expect(component).toContain('effect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))')
+    // core#1047: Ein `effect()` lief erst im nächsten Uhr-Takt — gescrollt wird nach dem Rendern.
+    expect(component).toContain('afterRenderEffect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))')
+    expect(component).not.toMatch(/[^r]effect\(\(\) => revealCartSelection/)
     expect(tag.match(/class="([^"]*)"/)?.[1].split(/\s+/)).toContain('scroll-mb-2')
   })
 })

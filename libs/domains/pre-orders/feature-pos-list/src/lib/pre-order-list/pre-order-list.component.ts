@@ -329,7 +329,7 @@ export class PreOrderListComponent implements OnInit {
     if (order) {
       this.selectedOrder.set(order)
     } else {
-      this.#snackBar.open(this.#translate.instant('PRE_ORDERS.NOT_OPEN_ANYMORE'), undefined, { duration: 4000 })
+      this.#notifications.warning(this.#translate.instant('PRE_ORDERS.NOT_OPEN_ANYMORE'))
     }
   }
 

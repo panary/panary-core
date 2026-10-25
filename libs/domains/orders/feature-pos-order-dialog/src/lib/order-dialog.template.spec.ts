@@ -448,16 +448,18 @@ describe('Bezahlansicht-Template — Karte und Gutschein (core#831)', () => {
 describe('Kasse — markierte Zeile in den Sichtbereich (core#1021)', () => {
   const component = readFileSync(fileURLToPath(new URL('./order-dialog.component.ts', import.meta.url)), 'utf8')
   const leiste = template.slice(template.indexOf('<ng-template #steuerleiste>'))
+  // Der öffnende Tag der Leiste selbst — Kommentare davor zählen nicht.
+  const tag = leiste.match(/<div\s[^>]*role="toolbar"/)?.[0] ?? ''
 
   it('markiert die eine Steuerleiste, die alle Zeilenarten teilen', () => {
     expect(template.match(/#selectionToolbar\b/g)).toHaveLength(1)
-    expect(leiste.slice(0, leiste.indexOf('role="toolbar"'))).toContain('#selectionToolbar')
+    expect(tag).toMatch(/\s#selectionToolbar\s/)
     expect(template.match(/\[ngTemplateOutlet\]="steuerleiste"/g)).toHaveLength(3)
   })
 
   it('scrollt nach jedem neuen Rendern der Leiste, mit ihrem Außenabstand', () => {
     expect(component).toContain("viewChild<ElementRef<HTMLElement>>('selectionToolbar')")
     expect(component).toContain('effect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))')
-    expect(leiste.slice(0, leiste.indexOf('role="toolbar"'))).toContain('scroll-mb-2')
+    expect(tag.match(/class="([^"]*)"/)?.[1].split(/\s+/)).toContain('scroll-mb-2')
   })
 })

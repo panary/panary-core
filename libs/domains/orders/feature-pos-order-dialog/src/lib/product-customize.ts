@@ -138,10 +138,13 @@ export function toggleIngredientRemoval(
   return true
 }
 
-/** Gebuchte Menge eines Options-Produkts auf der Zeile — Bestands-Marker mit `amount −1` zählen nicht. */
+/**
+ * Gebuchte Menge eines Options-Produkts auf der Zeile — Bestands-Marker mit `amount −1` zählen nicht, Modifier einer
+ * Menü-Komponente (#1127) auch nicht: Das Sheet passt den Hauptartikel an.
+ */
 function amountOf(lineItem: OrderLineItem, productId: string): number {
   return lineItem.modifiers
-    .filter(mod => mod._id === productId && !isRemovalModifier(mod))
+    .filter(mod => mod._id === productId && !isRemovalModifier(mod) && !mod.componentExternalId)
     .reduce((sum, mod) => sum + Math.max(0, mod.amount), 0)
 }
 
@@ -202,7 +205,7 @@ export function buildCustomizeModel(
   // — sonst zeigte das Sheet nach dem Wiederöffnen „Keine Extras" und das Extra ließe sich nicht zurücknehmen.
   const inProductGroups = new Set(groups.flatMap(group => group.options.map(option => option.productId)))
   const booked = lineItem.modifiers
-    .filter(mod => mod.topic === extraTopic && mod.amount > 0 && !isRemovalModifier(mod))
+    .filter(mod => mod.topic === extraTopic && mod.amount > 0 && !isRemovalModifier(mod) && !mod.componentExternalId)
     .map(
       mod => catalog.findProductById(mod._id) ?? ({ _id: mod._id, name: mod.name, price: mod.price } as ProductSchema),
     )

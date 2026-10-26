@@ -2422,8 +2422,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
     const extraTopic = topic !== undefined ? topic : this._extraTopic
+    // Nur Modifier des Hauptartikels: Die Mayo der Pommes (#1127) ist eine andere als die des Burgers.
     const extraIndex = selectedArticle.modifiers.findIndex(extra => {
-      return extra._id === article._id && extra.price === article.price
+      return extra._id === article._id && extra.price === article.price && !extra.componentExternalId
     })
     if (extraIndex !== -1 && selectedArticle.modifiers[extraIndex].price === article.price) {
       if (selectedArticle.modifiers[extraIndex].amount < 0) {
@@ -2480,7 +2481,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
     const extraTopic = topic !== undefined ? topic : this._extraTopic
-    const extraIndex = selectedArticle.modifiers.findIndex(extra => extra._id === article._id && extra.amount > 0)
+    const extraIndex = selectedArticle.modifiers.findIndex(
+      extra => extra._id === article._id && extra.amount > 0 && !extra.componentExternalId,
+    )
     if (extraIndex === -1) return
     if (selectedArticle.modifiers[extraIndex].amount > 1) {
       selectedArticle.modifiers[extraIndex].amount -= 1

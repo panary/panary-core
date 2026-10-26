@@ -3909,6 +3909,27 @@ describe('OrderDialog — Modifier je Menü-Komponente (#1127)', () => {
     expect(mods(component)).toEqual([['Mayo', undefined]])
   })
 
+  it('das Extras-Raster bucht eine zweite Mayo für den Burger, statt die der Pommes zu erhöhen (Review #1127)', () => {
+    const { component } = setup({ catalog: [menu(), pommes(), mayo(), cola()] })
+    component.increaseLineItem(menu())
+    tap(component, 'Pommes')
+    tap(component, 'Mayo')
+    tap(component, 'Cola')
+    const line = component.lineItems[0]
+
+    component.increaseExtra(mayo() as never, 'Extras', line)
+    expect(mods(component)).toEqual([
+      ['Mayo', POMMES],
+      ['Mayo', undefined],
+    ])
+
+    // Minus nimmt die Burger-Mayo zurück und lässt die der Pommes stehen.
+    component.decreaseExtra(mayo() as never, 'Extras', line)
+    expect(mods(component)).toEqual([['Mayo', POMMES]])
+    component.decreaseExtra(mayo() as never, 'Extras', line)
+    expect(mods(component)).toEqual([['Mayo', POMMES]])
+  })
+
   it('nimmt die zugeordneten Modifier mit, wenn die Beilage ersetzt wird', () => {
     const { component } = setup({ catalog: [menu(), pommes(), salat(), mayo(), cola()] })
     component.increaseLineItem(menu())

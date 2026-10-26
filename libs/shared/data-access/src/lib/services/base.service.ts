@@ -390,11 +390,7 @@ export abstract class BaseService<T> {
    * @param {Params} [params={}] - Additional parameters or query options to customize the patch operation.
    * @return {Promise<T | T[]>} A promise that resolves to the patched resource(s).
    */
-  async patch(
-    id: Id | Id[] | null,
-    data: Partial<T>,
-    params: Params & ExpectedErrorParams = {},
-  ): Promise<T | T[]> {
+  async patch(id: Id | Id[] | null, data: Partial<T>, params: Params & ExpectedErrorParams = {}): Promise<T | T[]> {
     const { isExpectedError, ...serviceParams } = params
     const result = await this.service.patch(id, data, withPosOperatorToken(serviceParams)).catch((error: unknown) => {
       if (!isExpectedError?.(error)) this.helper.handleError(this.serviceName, error)

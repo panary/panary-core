@@ -270,6 +270,19 @@
   transform-origin: right center;
 }
 
+/* Abstand, den das Mitscrollen unten lässt (core#1121): Außenabstand der Zeile (`mb-1`) und Innenabstand der Liste
+   (`p-2`), wie `scroll-mb-2` an der Steuerleiste. `scrollIntoView` misst die neue Zeile, während sie noch um den
+   Versatz des Einfahrens höher steht (`kasse-line-in`, 8px); ohne diesen Zuschlag blieb sie danach 8px angeschnitten. */
+.kasse-line-more-0,
+.kasse-line-more-1 {
+  scroll-margin-bottom: 0.75rem;
+}
+
+.kasse-line-new-0,
+.kasse-line-new-1 {
+  scroll-margin-bottom: calc(0.75rem + 8px);
+}
+
 @each $n in 0, 1 {
   .kasse-line-new-#{$n} {
     animation: kasse-line-in-#{$n} 200ms ease-out both;
@@ -409,6 +422,11 @@
 
     .kasse-line-more-#{$n} .kasse-qty {
       animation: none;
+    }
+
+    /* Ohne Einfahren kein Versatz, also kein Zuschlag (core#1121). */
+    .kasse-line-new-#{$n} {
+      scroll-margin-bottom: 0.75rem;
     }
   }
 

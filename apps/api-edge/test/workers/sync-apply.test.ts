@@ -38,7 +38,7 @@ describe('sync-apply — applyPulledRecords', () => {
   const service = {
     find: async (params: { query: { _id: { $in: string[] } } }) => {
       calls.find.push(params.query as unknown as Record<string, unknown>)
-      return params.query._id.$in.filter(id => store.has(id)).map(id => ({ _id: id }))
+      return params.query._id.$in.filter(id => store.has(id)).map(id => ({ ...store.get(id) }))
     },
     get: async (id: string) => {
       calls.get.push(id)
@@ -168,11 +168,10 @@ describe('sync-apply — applyPulledRecords', () => {
     // deletedAt-Records gehoeren NICHT in den $in-Existenz-Check.
     assert.deepStrictEqual(calls.find[0], {
       _id: { $in: ['p-1', 'p-2', 'p-3'] },
-      $select: ['_id'],
     })
   })
 
-  it('ist idempotent bei doppelt angewandter Seite (zweiter Lauf nur Patches)', async () => {
+  it('ist idempotent bei doppelt angewandter Seite (zweiter Lauf schreibt nichts)', async () => {
     const page = [pullRecord('p-1'), pullRecord('p-2')]
 
     const first = await applyPulledRecords(app, 'products', page)
@@ -180,15 +179,90 @@ describe('sync-apply — applyPulledRecords', () => {
 
     assert.strictEqual(first.rejected, 0)
     assert.strictEqual(second.rejected, 0)
-    assert.strictEqual(second.applied, 2)
-    // Erster Lauf: 2 creates. Zweiter Lauf: 0 creates, 2 patches.
+    // Erster Lauf: 2 creates. Zweiter Lauf: weder create noch patch (#1105).
     assert.strictEqual(calls.create.length, 2)
+    assert.deepStrictEqual(calls.patch, [])
+    assert.strictEqual(second.applied, 0)
+    assert.strictEqual(second.unchanged, 2)
+    assert.deepStrictEqual(second.details, [])
+    assert.strictEqual(store.size, 2)
+  })
+
+  // --- Unveraenderte Records (#1105) ------------------------------------------------
+  //
+  // Nach einem Voll-Pull (leerer Cursor nach Bootstrap) kam jeder Geschaeftstag erneut an
+  // und wurde gepatcht, obwohl sich nichts geaendert hatte. Jeder Patch stempelte
+  // `updatedAt` und schickte ein `patched`-Event an den POS: „Geschaeftstag wurde
+  // geaendert +43".
+
+  it('patcht einen Record nicht, der lokal schon genau so steht (#1105)', async () => {
+    store.set('p-1', { _id: 'p-1', name: 'Produkt p-1', tenantId: 't-1', extra: { a: 1, b: [1, 2] } })
+    const page = [
+      pullRecord('p-1', { record: { _id: 'p-1', name: 'Produkt p-1', tenantId: 't-1', extra: { b: [1, 2], a: 1 } } }),
+    ]
+
+    const result = await applyPulledRecords(app, 'products', page)
+
+    assert.deepStrictEqual(calls.patch, [])
+    assert.strictEqual(result.unchanged, 1)
+    assert.strictEqual(result.applied, 0)
+  })
+
+  it('wertet einen Unterschied nur in `updatedAt` nicht als Aenderung (#1105)', async () => {
+    store.set('p-1', { _id: 'p-1', name: 'Produkt p-1', tenantId: 't-1', updatedAt: '2026-10-26T11:50:42.000Z' })
+    const page = [
+      pullRecord('p-1', {
+        record: { _id: 'p-1', name: 'Produkt p-1', tenantId: 't-1', updatedAt: '2026-10-01T08:00:00.000Z' },
+      }),
+    ]
+
+    const result = await applyPulledRecords(app, 'products', page)
+
+    assert.deepStrictEqual(calls.patch, [])
+    assert.strictEqual(result.unchanged, 1)
+  })
+
+  it('wertet SQLite-0/1 als gleich zum Boolean der Cloud, Gegenrichtung als Aenderung (#1105)', async () => {
+    store.set('p-1', { _id: 'p-1', name: 'Produkt p-1', tenantId: 't-1', isOpen: 0 })
+    store.set('p-2', { _id: 'p-2', name: 'Produkt p-2', tenantId: 't-1', isOpen: 0 })
+    const page = [
+      pullRecord('p-1', { record: { _id: 'p-1', name: 'Produkt p-1', tenantId: 't-1', isOpen: false } }),
+      pullRecord('p-2', { record: { _id: 'p-2', name: 'Produkt p-2', tenantId: 't-1', isOpen: true } }),
+    ]
+
+    const result = await applyPulledRecords(app, 'products', page)
+
     assert.deepStrictEqual(
       calls.patch.map(p => p.id),
-      ['p-1', 'p-2'],
+      ['p-2'],
     )
-    assert.strictEqual(store.size, 2)
-    assert.ok(second.details.every(d => d.status === SyncRunRecordStatus.ACCEPTED && d.op === SyncOp.PATCH))
+    assert.strictEqual(result.unchanged, 1)
+  })
+
+  it('patcht weiter, sobald ein Feld abweicht (#1105)', async () => {
+    store.set('p-1', { _id: 'p-1', name: 'Alt', tenantId: 't-1' })
+
+    const result = await applyPulledRecords(app, 'products', [pullRecord('p-1')])
+
+    assert.deepStrictEqual(
+      calls.patch.map(p => p.id),
+      ['p-1'],
+    )
+    assert.strictEqual(result.unchanged, 0)
+    assert.strictEqual(result.applied, 1)
+  })
+
+  it('patcht, wenn das eingehende Feld lokal fehlt, auch bei Wert `null` (#1105)', async () => {
+    store.set('p-1', { _id: 'p-1', name: 'Produkt p-1', tenantId: 't-1' })
+    const page = [pullRecord('p-1', { record: { _id: 'p-1', name: 'Produkt p-1', tenantId: 't-1', note: null } })]
+
+    const result = await applyPulledRecords(app, 'products', page)
+
+    assert.deepStrictEqual(
+      calls.patch.map(p => p.id),
+      ['p-1'],
+    )
+    assert.strictEqual(result.unchanged, 0)
   })
 
   it('insert-Modus (Bootstrap nach Truncate): direkter create ohne Existenz-Find', async () => {
@@ -220,7 +294,7 @@ describe('sync-apply — applyPulledRecords', () => {
   it('liefert bei leerer Seite ein leeres Ergebnis ohne Service-Calls', async () => {
     const result = await applyPulledRecords(app, 'products', [])
 
-    assert.deepStrictEqual(result, { applied: 0, rejected: 0, details: [], foreignTenant: 0 })
+    assert.deepStrictEqual(result, { applied: 0, rejected: 0, details: [], foreignTenant: 0, unchanged: 0 })
     assert.strictEqual(calls.find.length + calls.create.length + calls.patch.length, 0)
   })
 

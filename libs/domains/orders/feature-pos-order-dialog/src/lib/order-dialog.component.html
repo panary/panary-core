@@ -862,16 +862,20 @@
 
   <!-- ═══════════════ ZIFFERNLEISTE ═══════════════ -->
   <!-- Die Leiste ist ihr eigener Container: Ob die Ziffern inline passen, hängt an ihrer Breite, nicht am
-       Viewport. Die Schwelle ist die Summe der festen Breiten (53.25rem) und wächst über rem mit der Dichte,
-       ein Media-Breakpoint täte das nicht (#798). Multiplier-Logik unverändert (Konzept §5). Die Zeile liegt am
-       Rand gegenüber dem Warenkorb (core#908, `.kasse__keys-row`); ihre Reihenfolge spiegelt nie. -->
+       Viewport. Die Schwelle ist die Summe der Mindestbreiten und wächst über rem mit der Dichte, ein
+       Media-Breakpoint täte das nicht (#798). Die Ziffern sind flexibel (core#1126): 3,5rem breit, bei Platzmangel
+       bis 3rem (48 px bei Dichte 1). Schwelle 44rem = Feld 8rem + 11 Tasten à 3rem + 11 Lücken à 0,25rem
+       (43,75rem) + 0,25rem Luft. Gemessen bei Dichte 1: Zone 48,5rem bei 1280 px, 53,9rem bei 1366 px, 88,5rem bei
+       1920 px; die alte Schwelle 53,25rem (feste Breiten) zeigte bei 1280 px das Popup. Multiplier-Logik
+       unverändert (Konzept §5). Die Zeile liegt am Rand gegenüber dem Warenkorb (core#908, `.kasse__keys-row`);
+       ihre Reihenfolge spiegelt nie. -->
   <div class="kasse__keys relative mr-3 py-3 min-w-0">
     <div class="@container">
-      <div class="kasse__keys-row flex flex-row gap-1.5 items-stretch">
+      <div class="kasse__keys-row flex flex-row gap-1 items-stretch">
         <!-- Tipp aufs Feld bucht den Artikel mit dieser Nummer 1× (applyProductSearch) -->
         <button
           type="button"
-          class="h-14 w-[10.5rem] shrink-0 rounded-control bg-surface-panel border border-line text-left flex flex-col justify-center gap-0.5 px-3 overflow-hidden active:scale-[0.97] transition-transform disabled:opacity-40"
+          class="h-14 w-[8rem] shrink-0 rounded-control bg-surface-panel border border-line text-left flex flex-col justify-center gap-0.5 px-3 overflow-hidden active:scale-[0.97] transition-transform disabled:opacity-40"
           (click)="applyProductSearch()"
           [disabled]="sheetOpen()"
         >
@@ -890,11 +894,11 @@
           </span>
         </button>
         <!-- Ziffern inline (breite Leiste): 0–9 von links nach rechts, auch gespiegelt -->
-        <div class="hidden @min-[53.25rem]:flex gap-1.5">
+        <div class="hidden @min-[44rem]:flex gap-1 min-w-0">
           @for (number of numbers; track number) {
             <button
               type="button"
-              class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-ink active:scale-[0.97] transition-transform flex items-center justify-center tabular-nums disabled:opacity-40"
+              class="pnry-touch h-14 w-14 min-w-12 shrink rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-ink active:scale-[0.97] transition-transform flex items-center justify-center tabular-nums disabled:opacity-40"
               (click)="numpadAction(number)"
               [disabled]="sheetOpen()"
             >
@@ -903,7 +907,7 @@
           }
           <button
             type="button"
-            class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center disabled:opacity-40"
+            class="pnry-touch h-14 w-14 min-w-12 shrink rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center disabled:opacity-40"
             (click)="numpadReset()"
             [disabled]="sheetOpen()"
           >
@@ -911,7 +915,7 @@
           </button>
         </div>
         <!-- Kompakt (schmale Leiste): C + Ziffern-Popup -->
-        <div class="@min-[53.25rem]:hidden flex gap-1.5">
+        <div class="@min-[44rem]:hidden flex gap-1">
           <button
             type="button"
             class="pnry-touch h-14 w-14 shrink-0 rounded-control bg-pos-key border border-pos-key-line font-bold text-xl text-danger-ink active:scale-[0.97] transition-transform flex items-center justify-center disabled:opacity-40"

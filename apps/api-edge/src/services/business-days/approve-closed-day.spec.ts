@@ -74,7 +74,11 @@ beforeEach(() => {
 })
 
 const call = (app: any, data: Record<string, unknown> = {}) =>
-  approveClosedDay(app, { authorizedByUserId: 'manager-1', pin: '1234', ...data }, { provider: 'socketio', user: DEVICE })
+  approveClosedDay(
+    app,
+    { authorizedByUserId: 'manager-1', pin: '1234', ...data },
+    { provider: 'socketio', user: DEVICE },
+  )
 
 describe('approveClosedDay', () => {
   it('ist als Custom-Method registriert', () => {

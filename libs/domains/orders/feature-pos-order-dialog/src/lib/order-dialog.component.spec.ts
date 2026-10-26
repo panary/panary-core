@@ -277,7 +277,14 @@ function setup(options: SetupOptions = {}) {
         useValue: {
           getClosedDayStatus: async () => {
             if (options.closedDayStatus instanceof Error) throw options.closedDayStatus
-            return options.closedDayStatus ?? { approvalRequired: false, state: 'open', date: '', policy: 'manager-approval' }
+            return (
+              options.closedDayStatus ?? {
+                approvalRequired: false,
+                state: 'open',
+                date: '',
+                policy: 'manager-approval',
+              }
+            )
           },
         },
       },
@@ -3966,7 +3973,9 @@ describe('OrderDialogComponent — Ruhetag-Freigabe vor dem Anlegen (#1133)', ()
 
     await component.placeOrder()
 
-    expect(openedDialogs).toContainEqual(expect.objectContaining({ data: expect.objectContaining({ date: '2026-10-26' }) }))
+    expect(openedDialogs).toContainEqual(
+      expect.objectContaining({ data: expect.objectContaining({ date: '2026-10-26' }) }),
+    )
     expect(createdOrders).toHaveLength(1)
   })
 

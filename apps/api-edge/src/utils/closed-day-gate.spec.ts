@@ -25,7 +25,9 @@ const location = (closedDayPolicy?: string, enabled = true): ClosedDayGateLocati
   },
 })
 
-function makeApp(opts: { exceptions?: unknown[]; exceptionsError?: Error; businessDay?: Record<string, unknown> } = {}) {
+function makeApp(
+  opts: { exceptions?: unknown[]; exceptionsError?: Error; businessDay?: Record<string, unknown> } = {},
+) {
   const exceptionsFind = vi.fn(async () => {
     if (opts.exceptionsError) throw opts.exceptionsError
     return opts.exceptions ?? []
@@ -45,7 +47,10 @@ describe('loadClosedDayCheck', () => {
     const { app, exceptionsFind } = makeApp()
     const check = await loadClosedDayCheck(app, location(), MONDAY)
 
-    expect(check).toEqual({ status: { state: 'closed', date: '2026-10-26', reason: 'regular' }, policy: 'manager-approval' })
+    expect(check).toEqual({
+      status: { state: 'closed', date: '2026-10-26', reason: 'regular' },
+      policy: 'manager-approval',
+    })
     expect(exceptionsFind).toHaveBeenCalledWith({
       query: { date: '2026-10-26', locationId: 'loc-1' },
       paginate: false,
@@ -89,14 +94,15 @@ describe('hasClosedDayApproval', () => {
 
   it('verwirft unter block eine Manager-Freigabe, nimmt die des Inhabers', () => {
     expect(hasClosedDayApproval(stamp, '2026-10-26', 'block')).toBe(false)
-    expect(
-      hasClosedDayApproval({ ...stamp, openedOnClosedDayRole: 'tenant:owner' }, '2026-10-26', 'block'),
-    ).toBe(true)
+    expect(hasClosedDayApproval({ ...stamp, openedOnClosedDayRole: 'tenant:owner' }, '2026-10-26', 'block')).toBe(true)
   })
 })
 
 describe('assertClosedDayApproved', () => {
-  const closed = { status: { state: 'closed' as const, date: '2026-10-26', reason: 'regular' as const }, policy: 'manager-approval' as const }
+  const closed = {
+    status: { state: 'closed' as const, date: '2026-10-26', reason: 'regular' as const },
+    policy: 'manager-approval' as const,
+  }
 
   it('lässt durch, wenn kein Ruhetag ist oder nicht geprüft werden konnte', async () => {
     const { app, businessDayGet } = makeApp()

@@ -1,11 +1,7 @@
 import type { HookContext } from '@feathersjs/feathers'
 import { OrderStatus } from '@panary/orders/domain'
 
-import {
-  assertClosedDayApproved,
-  loadClosedDayCheck,
-  type ClosedDayGateLocation,
-} from '../utils/closed-day-gate'
+import { assertClosedDayApproved, loadClosedDayCheck, type ClosedDayGateLocation } from '../utils/closed-day-gate'
 
 type LocationWithDay = ClosedDayGateLocation & { currentBusinessDay?: { businessDayId?: string } | null }
 

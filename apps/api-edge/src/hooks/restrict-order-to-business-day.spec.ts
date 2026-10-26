@@ -526,13 +526,22 @@ describe('restrictOrderToBusinessDay — Ruhetag (#1133)', () => {
     shouldAutoRotate.mockReturnValue(true)
     loadClosedDayCheck.mockResolvedValue(closedCheck)
     const ctx = makeContext({
-      location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: { businessDayId: 'bd-vortag', date: '2026-10-25' } },
+      location: {
+        _id: 'loc-1',
+        tenantId: 't-1',
+        currentBusinessDay: { businessDayId: 'bd-vortag', date: '2026-10-25' },
+      },
     })
 
     await restrictOrderToBusinessDay()(ctx)
 
     expect(rotateBusinessDay).not.toHaveBeenCalled()
-    expect(assertClosedDayApproved).toHaveBeenCalledWith(ctx.app, expect.objectContaining({ _id: 'loc-1' }), closedCheck, 'bd-vortag')
+    expect(assertClosedDayApproved).toHaveBeenCalledWith(
+      ctx.app,
+      expect.objectContaining({ _id: 'loc-1' }),
+      closedCheck,
+      'bd-vortag',
+    )
     // Mit Freigabe (Mock wirft nicht) landet die Bestellung auf dem freigegebenen Tag.
     expect(ctx.data.businessDayId).toBe('bd-vortag')
   })
@@ -542,7 +551,11 @@ describe('restrictOrderToBusinessDay — Ruhetag (#1133)', () => {
     loadClosedDayCheck.mockResolvedValue(closedCheck)
     assertClosedDayApproved.mockRejectedValue(closedError)
     const ctx = makeContext({
-      location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: { businessDayId: 'bd-vortag', date: '2026-10-25' } },
+      location: {
+        _id: 'loc-1',
+        tenantId: 't-1',
+        currentBusinessDay: { businessDayId: 'bd-vortag', date: '2026-10-25' },
+      },
     })
 
     await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBe(closedError)

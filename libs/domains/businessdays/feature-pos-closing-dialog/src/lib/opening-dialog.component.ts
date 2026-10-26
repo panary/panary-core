@@ -107,7 +107,11 @@ export class OpeningDialogComponent {
           }).afterClosed(),
         )
         if (approval?.approved && approval.businessDayId) {
-          this.createdBusinessDay = (await this.businessDayService.get(approval.businessDayId)) as BusinessDay
+          // Eröffnet ist der Tag mit der Freigabe; das Nachladen ist nur für den Rückgabewert.
+          this.createdBusinessDay = await this.businessDayService
+            .get(approval.businessDayId)
+            .then(day => day as BusinessDay)
+            .catch(() => null)
           this.phase.set('submitted')
           return
         }

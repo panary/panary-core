@@ -536,7 +536,8 @@ export async function approveClosedDay(
   params: OpenDayParams = {},
 ): Promise<ApproveClosedDayResult> {
   const user = params.user
-  if (!user?.tenantId) throw new BadRequest('Tenant-Kontext fehlt — approveClosedDay benötigt einen authentifizierten User')
+  if (!user?.tenantId)
+    throw new BadRequest('Tenant-Kontext fehlt — approveClosedDay benötigt einen authentifizierten User')
   const { authorizedByUserId, pin } = data ?? ({} as ApproveClosedDayData)
   if (!authorizedByUserId || !pin) throw new BadRequest('authorizedByUserId und pin sind erforderlich')
 
@@ -545,7 +546,10 @@ export async function approveClosedDay(
 
   const location = (await (app.service('locations') as any).get(locationId, {
     provider: undefined,
-  })) as ClosedDayGateLocation & { tenantId: string; currentBusinessDay?: { businessDayId: string; date: string } | null }
+  })) as ClosedDayGateLocation & {
+    tenantId: string
+    currentBusinessDay?: { businessDayId: string; date: string } | null
+  }
   // Custom-Methods scoped `multiTenancy()` nicht — der Mandant wird hier geprueft.
   assertCallerOwnsRecord(user, location)
 
@@ -666,7 +670,8 @@ export async function getClosedDayStatus(
   params: OpenDayParams = {},
 ): Promise<ClosedDayStatusResult> {
   const user = params.user
-  if (!user?.tenantId) throw new BadRequest('Tenant-Kontext fehlt — getClosedDayStatus benötigt einen authentifizierten User')
+  if (!user?.tenantId)
+    throw new BadRequest('Tenant-Kontext fehlt — getClosedDayStatus benötigt einen authentifizierten User')
   const locationId = data?.locationId ?? resolveUserLocationId(user) ?? null
   if (!locationId) throw new BadRequest('locationId muss am User oder im Payload gesetzt sein')
 
@@ -1165,8 +1170,7 @@ export const businessDays = (app: Application) => {
   service.refreshClosingStatus = (data: RefreshClosingStatusData, params?: OpenDayParams) =>
     refreshClosingStatus(app, data, params)
   service.discardOrphanDay = (data: DiscardOrphanDayData, params?: OpenDayParams) => discardOrphanDay(app, data, params)
-  service.approveClosedDay = (data: ApproveClosedDayData, params?: OpenDayParams) =>
-    approveClosedDay(app, data, params)
+  service.approveClosedDay = (data: ApproveClosedDayData, params?: OpenDayParams) => approveClosedDay(app, data, params)
   service.getClosedDayStatus = (data: { locationId?: string | null }, params?: OpenDayParams) =>
     getClosedDayStatus(app, data, params)
   ;(service as any).setup = async (app: Application) =>

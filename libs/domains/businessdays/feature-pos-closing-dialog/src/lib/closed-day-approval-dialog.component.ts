@@ -80,6 +80,7 @@ export class ClosedDayApprovalDialogComponent {
 
   #result: ClosedDayApproval | null = null
   #autoCloseTimer: ReturnType<typeof setTimeout> | null = null
+  #submitTimer: ReturnType<typeof setTimeout> | null = null
   #closed = false
 
   constructor() {
@@ -115,7 +116,11 @@ export class ClosedDayApprovalDialogComponent {
     this.pinError.set(false)
     this.errorMessage.set(null)
     if (this.pin().length === PIN_LENGTH) {
-      setTimeout(() => void this.submit(), 100)
+      // Kurz verzögert, damit der vierte Punkt sichtbar wird. Abbruch in der Lücke stoppt ihn (#close).
+      this.#submitTimer = setTimeout(() => {
+        this.#submitTimer = null
+        void this.submit()
+      }, 100)
     }
   }
 
@@ -152,7 +157,8 @@ export class ClosedDayApprovalDialogComponent {
 
   protected cancel(): void {
     if (this.step() === 'submitting') return
-    this.#close(null)
+    // Nach erteilter Freigabe ist X/Escape kein Abbruch mehr: Die Edge hat schon gestempelt.
+    this.#close(this.step() === 'submitted' ? this.#result : null)
   }
 
   protected close(): void {
@@ -228,6 +234,7 @@ export class ClosedDayApprovalDialogComponent {
     if (this.#closed) return
     this.#closed = true
     this.#clearAutoClose()
+    if (this.#submitTimer !== null) clearTimeout(this.#submitTimer)
     this.#dialogRef.close(result)
   }
 

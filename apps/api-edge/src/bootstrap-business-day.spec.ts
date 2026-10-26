@@ -84,7 +84,9 @@ describe('autoEnsureBusinessDay — Ruhetag (#1133)', () => {
     const settings = { openingHoursSettings: { enabled: true, regular: [] } }
 
     await autoEnsureBusinessDay(
-      makeApp({ locations: [{ _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null, settings: JSON.stringify(settings) }] }),
+      makeApp({
+        locations: [{ _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null, settings: JSON.stringify(settings) }],
+      }),
     )
 
     expect(loadClosedDayCheck).toHaveBeenCalledWith(expect.anything(), { _id: 'loc-1', settings }, expect.any(Date))

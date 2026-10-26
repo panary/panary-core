@@ -160,7 +160,7 @@ async fn mqtt_publish(
         // Abgewiesen statt still uebergangen — der Druckdialog zeigt die Meldung.
         Some("wss") => {
             return Err(
-                "MQTT ueber wss wird vom POS derzeit nicht unterstuetzt — Broker-Protokoll auf ws stellen."
+                "MQTT ueber wss wird vom POS derzeit nicht unterstuetzt. Broker-Protokoll auf ws stellen."
                     .to_string(),
             )
         }

@@ -71,7 +71,7 @@ Empfohlen: **DevTools → Network → Throttling → „Offline"**. Das trennt d
 
 **Erwartet**
 - Oben mittig erscheint das **Banner `connect-offline`** (gelb/Warn, Icon `wifi_off`):
-  **„Offline — nur Barzahlung möglich"** mit Subline zum TSE-Ausfall.
+  **„Offline · Nur Barzahlung möglich"** mit Subline zum TSE-Ausfall.
 - Der Banner ist **nicht** der rote `client-offline`-Banner mit „Neu laden"-Button — wenn dieser
   erscheint, war der Cache nicht aktiv (Gerät nicht gepairt / Bootstrap nicht gelaufen).
 - Der **Katalog bleibt navigierbar** (Produktgruppen/Produkte werden aus dem Cache angezeigt).

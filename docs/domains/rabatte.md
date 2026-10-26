@@ -362,7 +362,7 @@ Weitere Regeln:
   und Kassiervorgang kann eine andere Kasse dasselbe Limit aufgebraucht haben.
   Schlägt das fehl, läuft die Bestellung **ohne** Code weiter — der Gast steht an
   der Kasse, die Ware ist erfasst. Gemeldet wird der Grund über eine **Snackbar
-  ohne `duration`**: „Rabattcode nicht eingelöst — …", quittierbar über „OK".
+  ohne `duration`**: „Rabattcode nicht eingelöst: …", quittierbar über „OK".
 
   🚨 **Die Infobox taugt hier nicht** — sie lebt im Dialog. `placeOrder` überschrieb
   sie noch selbst über `unselectProduct()`, und `matDialogRef.close()` nahm sie

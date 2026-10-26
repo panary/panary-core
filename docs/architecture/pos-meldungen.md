@@ -24,8 +24,8 @@ in `apps/pos-client/src/app/app.ts`. Warum es keine Material-Snackbar mehr gibt,
 readonly #notifications = inject(NotificationService)
 
 this.#notifications.success('Abschreibung gespeichert')
-this.#notifications.warning('Kasse nicht freigegeben — die Bestellung bleibt offen')
-this.#notifications.error(`Rabattcode nicht eingelöst — ${grund}`, { sticky: true })
+this.#notifications.warning('Kasse nicht freigegeben. Die Bestellung bleibt offen.')
+this.#notifications.error(`Rabattcode nicht eingelöst: ${grund}`, { sticky: true })
 this.#undoRef = this.#notifications.info('Bauernbrot entfernt', {
   action: { label: 'Rückgängig', run: () => this.restore() },
 })

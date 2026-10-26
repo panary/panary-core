@@ -50,7 +50,7 @@ describe('DiscountCodeService — Zugangs-Ablehnung (cloud#1429)', () => {
   it('zählt „nicht zugelassen" als technisch und nennt den Support statt der Verbindung', () => {
     expect(isTechnicalCodeFailure(CodeProxyReason.NOT_AUTHORIZED)).toEqual(true)
     expect(codeResultMessage(CodeProxyReason.NOT_AUTHORIZED)).toEqual(
-      'Kasse ist für Rabattcodes nicht zugelassen — bitte den Support kontaktieren',
+      'Kasse ist für Rabattcodes nicht zugelassen. Bitte den Support kontaktieren.',
     )
   })
 })

@@ -179,6 +179,6 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
       const extra = params && typeof params.additionalProperty === 'string' ? ` (${params.additionalProperty})` : ''
       return `${path}: ${msg}${extra}`
     })
-    return `${base} — ${details.join('; ')}`
+    return `${base}: ${details.join('; ')}`
   }
 }

@@ -29,7 +29,7 @@
         <true/>
     </dict>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>Panary — Terminal sucht im lokalen Netzwerk nach dem Panary-Edge-Hub.</string>
+    <string>Panary Terminal sucht im lokalen Netzwerk nach dem Panary-Edge-Hub.</string>
     <key>NSBonjourServices</key>
     <array>
         <string>_panary._tcp</string>

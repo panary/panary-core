@@ -41,7 +41,7 @@ export interface CustomizeOptionEvent {
           </div>
           <h2 class="truncate text-lg font-bold leading-tight text-ink">{{ m.name }}</h2>
           <p class="truncate text-sm text-ink-muted" data-testid="customize-summary" [attr.title]="m.summary || null">
-            {{ m.summary || 'Wie bestellt — nichts geändert' }}
+            {{ m.summary || 'Wie bestellt, nichts geändert' }}
           </p>
         </div>
         <!-- Umschalter (#699): Die Zeile hat mehrere Stück — gilt die Anpassung für eines (es wird
@@ -185,7 +185,7 @@ export interface CustomizeOptionEvent {
                         @if (!option.isModifier) {
                           <span class="flex items-center gap-1 text-[0.6875rem] text-amber-700 dark:text-amber-400">
                             <lib-icon name="warning" class="!text-[0.875rem]" aria-hidden="true" />
-                            kein Extra — im Admin auf Modifier stellen
+                            kein Extra: im Admin auf Modifier stellen
                           </span>
                         } @else if (option.price > 0) {
                           <span class="text-xs text-ink-muted">+{{ option.price | eur }}</span>

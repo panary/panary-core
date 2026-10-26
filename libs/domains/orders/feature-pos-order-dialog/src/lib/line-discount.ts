@@ -14,7 +14,7 @@ import type { Discount as ManagedDiscount } from '@panary/discounts/domain'
 
 export const LINE_DISCOUNT_BLOCKED_STAFF_MEAL = 'Personalessen: kein zusätzlicher Rabatt möglich'
 export const LINE_DISCOUNT_BLOCKED_NO_SELECTION = 'Erst eine Position im Warenkorb antippen'
-export const LINE_DISCOUNT_BLOCKED_AMBIGUOUS = 'Position mehrfach im Warenkorb — bitte Menge nutzen statt zweiter Zeile'
+export const LINE_DISCOUNT_BLOCKED_AMBIGUOUS = 'Position mehrfach im Warenkorb. Bitte Menge nutzen statt zweiter Zeile.'
 
 /** Ein Positionsrabatt je Zeile, abgelegt unter der `lineItemId`. */
 export type LineDiscountMap = Readonly<Record<string, ManagedDiscount>>

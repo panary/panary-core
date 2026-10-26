@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-utils/schema.json",
-  "productName": "Panary — Terminal",
+  "productName": "Panary Terminal",
   "version": "26.10.33",
   "identifier": "de.panary.pos",
   "build": {
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Panary — Terminal",
+        "title": "Panary Terminal",
         "width": 1280,
         "height": 800,
         "fullscreen": false,

@@ -8,7 +8,7 @@ import type { CodeCheckResult } from '@panary/discounts/data-access'
  */
 
 export const PROMO_CODE_BLOCKED_STAFF_MEAL = 'Personalessen: kein zusätzlicher Rabatt möglich'
-export const PROMO_CODE_BLOCKED_MANUAL = 'Es ist bereits ein Rabatt gewählt — erst entfernen'
+export const PROMO_CODE_BLOCKED_MANUAL = 'Es ist bereits ein Rabatt gewählt. Erst entfernen.'
 export const PROMO_CODE_BLOCKED_CLOUD_DIRECT = 'Rabattcodes sind an dieser Kasse (Cloud direkt) noch nicht verfügbar'
 
 export interface PromoCodeGateInput {

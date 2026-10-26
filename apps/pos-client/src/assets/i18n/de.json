@@ -531,6 +531,26 @@
     "TITLE": "Geschäftstag eröffnen",
     "SUBMIT": "Eröffnen"
   },
+  "CLOSED_DAY": {
+    "TITLE": "Heute laut Öffnungszeiten geschlossen",
+    "INTRO_SALES": "Für heute ist in den Öffnungszeiten der Filiale ein Ruhetag eingetragen. Verkauft werden kann nur nach Freigabe.",
+    "INTRO_ORDERS": "Für heute ist in den Öffnungszeiten der Filiale ein Ruhetag eingetragen. Bestellungen können nur nach Freigabe angenommen werden.",
+    "WHO_MANAGER": "Freigeben kann ein Manager oder der Inhaber mit seiner PIN. Die Freigabe gilt für den ganzen Tag.",
+    "WHO_OWNER": "Dieser Standort sperrt Ruhetage. Freigeben kann nur der Inhaber mit seiner PIN. Die Freigabe gilt für den ganzen Tag.",
+    "SELECT_APPROVER": "Wer gibt frei?",
+    "LOADING_USERS": "Berechtigte Mitarbeiter werden geladen …",
+    "NO_PIN_USERS": "Es gibt berechtigte Mitarbeiter, aber keiner hat eine POS-PIN.",
+    "NO_ELIGIBLE_USERS": "Kein berechtigter Mitarbeiter gefunden.",
+    "ENTER_PIN": "PIN eingeben, um den Ruhetag freizugeben",
+    "IN_PROGRESS": "Freigabe wird geprüft …",
+    "SUCCESS": "Freigegeben für heute",
+    "LOAD_ERROR": "Mitarbeiter konnten nicht geladen werden",
+    "ERROR_PIN_INVALID": "PIN ungültig.",
+    "ERROR_ROLE_DENIED": "Dieser Mitarbeiter darf den Ruhetag nicht freigeben.",
+    "ERROR_OWNER_ONLY": "An diesem Standort darf nur der Inhaber freigeben.",
+    "ERROR_GENERIC": "Freigabe fehlgeschlagen.",
+    "DECLINED": "Nicht freigegeben. Heute ist laut Öffnungszeiten geschlossen."
+  },
   "CASH_SESSION": {
     "AUTH_TITLE": "Kasse freigeben",
     "AUTH_CASHIER_FALLBACK": "den Kassierer",

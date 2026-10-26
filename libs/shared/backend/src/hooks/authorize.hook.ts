@@ -62,6 +62,8 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
   // eroeffnen, deshalb dieselbe Action wie `openDay`. Die eigentliche Berechtigung
   // ist die PIN eines Managers/Inhabers, geprueft in der Methode.
   approveClosedDay: AppAction.CREATE,
+  // businessdays: fragt nur ab, ob heute eine Ruhetag-Freigabe fehlt → READ.
+  getClosedDayStatus: AppAction.READ,
   // sync-outbox (REV-Sync): modifiziert den Workflow-State
   // (rejected → pending + neuer Eintrag), daher UPDATE.
   reEnqueue: AppAction.UPDATE,

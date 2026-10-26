@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
+import { firstValueFrom } from 'rxjs'
 
 import { BusinessDay, BusinessDayOperationMode } from '@panary/businessdays/domain'
-import { BusinessDayService } from '@panary/businessdays/data-access'
+import { BusinessDayService, isLocationClosedToday } from '@panary/businessdays/data-access'
+import { openClosedDayApprovalDialog } from './closed-day-approval-dialog.component'
 
 export interface OpeningDialogData {
   locationId: string | null
@@ -75,6 +77,7 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
 export class OpeningDialogComponent {
   private dialogRef = inject(MatDialogRef<OpeningDialogComponent>)
   private businessDayService = inject(BusinessDayService)
+  private dialog = inject(MatDialog)
   protected readonly data = inject<OpeningDialogData>(MAT_DIALOG_DATA)
 
   protected readonly phase = signal<DialogPhase>('input')
@@ -93,6 +96,22 @@ export class OpeningDialogComponent {
       })
       this.phase.set('submitted')
     } catch (err) {
+      // Ruhetag (#1133): Die Freigabe eröffnet den Tag selbst (`approveClosedDay`), ein
+      // zweites `openDay` danach ist nicht nötig.
+      if (isLocationClosedToday(err)) {
+        const approval = await firstValueFrom(
+          openClosedDayApprovalDialog(this.dialog, {
+            date: (err as { data?: { date?: string } }).data?.date ?? '',
+            policy: (err as { data?: { policy?: string } }).data?.policy === 'block' ? 'block' : 'manager-approval',
+            operationMode: this.data.operationMode,
+          }).afterClosed(),
+        )
+        if (approval?.approved && approval.businessDayId) {
+          this.createdBusinessDay = (await this.businessDayService.get(approval.businessDayId)) as BusinessDay
+          this.phase.set('submitted')
+          return
+        }
+      }
       this.phase.set('failed')
       this.errorMessage.set((err as Error).message ?? 'Eröffnung fehlgeschlagen')
     }

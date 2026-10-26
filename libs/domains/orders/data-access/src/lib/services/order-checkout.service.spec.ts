@@ -127,3 +127,58 @@ describe('isCashSessionRequired / buildCashPayment', () => {
     expect(payment.transactions[0].timestamp).toBe('2026-10-22T10:00:00.000Z')
   })
 })
+
+describe('OrderCheckoutService.payCash — Ruhetag (#1133)', () => {
+  const CLOSED_DAY_ERROR = { data: { code: 'BD_6010', date: '2026-10-26', policy: 'manager-approval' } }
+
+  it('fragt bei BD_6010 die Ruhetag-Freigabe mit dem Fehler an und wiederholt', async () => {
+    const { service, calls } = setup([CLOSED_DAY_ERROR, 'ok'])
+    const requestClosedDayApproval = vi.fn().mockResolvedValue(true)
+
+    await expect(service.payCash({ ...input(), requestClosedDayApproval })).resolves.toBe('paid')
+
+    expect(requestClosedDayApproval).toHaveBeenCalledExactlyOnceWith(CLOSED_DAY_ERROR)
+    expect(calls).toHaveLength(2)
+    expect(calls[1].data).toBe(calls[0].data)
+  })
+
+  it('erwartet BD_6010 beim ersten Versuch still, danach meldet die Wiederholung wieder alles', async () => {
+    const { service, patch } = setup([CLOSED_DAY_ERROR, 'ok'])
+
+    await service.payCash({ ...input(), requestClosedDayApproval: vi.fn().mockResolvedValue(true) })
+
+    const first = patch.mock.calls[0][2] as { isExpectedError: (err: unknown) => boolean }
+    expect(first.isExpectedError(CLOSED_DAY_ERROR)).toBe(true)
+    const second = patch.mock.calls[1][2] as { isExpectedError: (err: unknown) => boolean }
+    expect(second.isExpectedError(CLOSED_DAY_ERROR)).toBe(false)
+  })
+
+  it('verlangt nach der Ruhetag-Freigabe noch die Kasse, wenn der Server sie meldet', async () => {
+    const { service, calls } = setup([CLOSED_DAY_ERROR, CASH_SESSION_ERROR, 'ok'])
+    const requestClosedDayApproval = vi.fn().mockResolvedValue(true)
+    const requestCashSession = vi.fn().mockResolvedValue(true)
+
+    await expect(service.payCash({ ...input(requestCashSession), requestClosedDayApproval })).resolves.toBe('paid')
+
+    expect(requestClosedDayApproval).toHaveBeenCalledTimes(1)
+    expect(requestCashSession).toHaveBeenCalledTimes(1)
+    expect(calls).toHaveLength(3)
+  })
+
+  it('bricht ab, wenn nicht freigegeben wird', async () => {
+    const { service, calls } = setup([CLOSED_DAY_ERROR, 'ok'])
+
+    await expect(
+      service.payCash({ ...input(), requestClosedDayApproval: vi.fn().mockResolvedValue(false) }),
+    ).resolves.toBe('closed-day-declined')
+    expect(calls).toHaveLength(1)
+  })
+
+  it('behandelt BD_6010 ohne Rückfrage als gewöhnlichen Fehler', async () => {
+    const { service, patch } = setup([CLOSED_DAY_ERROR])
+
+    await expect(service.payCash(input())).resolves.toBe('failed')
+    const params = patch.mock.calls[0][2] as { isExpectedError: (err: unknown) => boolean }
+    expect(params.isExpectedError(CLOSED_DAY_ERROR)).toBe(false)
+  })
+})

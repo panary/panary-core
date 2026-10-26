@@ -1,0 +1,26 @@
+/* Shake-Feedback bei falscher PIN — komponenten-scoped, weil es global keine
+   .animate-shake-Regel gibt (dieselbe Lösung wie in login.component.scss).
+   Eigene Klasse statt Tailwind-Arbitrary-Value, weil `[class.animate-[…]]`
+   im Angular-Template nicht parsebar ist. */
+.pin-shake {
+  animation: shake 0.3s ease-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-0.5rem);
+  }
+  40% {
+    transform: translateX(0.5rem);
+  }
+  60% {
+    transform: translateX(-0.25rem);
+  }
+  80% {
+    transform: translateX(0.25rem);
+  }
+}

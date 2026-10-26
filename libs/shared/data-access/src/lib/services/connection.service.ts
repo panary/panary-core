@@ -612,8 +612,23 @@ export class ConnectionService {
     this.#app.use('orders', socketClient.service('orders'), {
       methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'multiPatchStatus', 'split'],
     })
+    // Die Edge heißt die Lifecycle-Methoden `openDay`/`closeDay`/`refreshClosingStatus`;
+    // registriert waren hier nur `open`/`close`, die es dort nicht gibt — der Aufruf
+    // aus dem POS lief damit ins Leere. Dazu die Ruhetag-Freigabe (panary/panary-core#1133).
     this.#app.use('businessdays', socketClient.service('businessdays'), {
-      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'open', 'close'],
+      methods: [
+        'find',
+        'get',
+        'create',
+        'update',
+        'patch',
+        'remove',
+        'openDay',
+        'closeDay',
+        'refreshClosingStatus',
+        'approveClosedDay',
+        'getClosedDayStatus',
+      ],
     })
     // cash-sessions inkl. Custom-Method openAuthorized (manager-autorisierte
     // Kassen-Eröffnung am POS) — ohne explizite Registrierung wäre die

@@ -44,6 +44,7 @@ import {
 import type {
   ApproveClosedDayData,
   ApproveClosedDayResult,
+  ClosedDayStatusResult,
   BusinessDay,
   BusinessDayService,
   CloseDayData,
@@ -60,7 +61,12 @@ import {
   rotateBusinessDay,
   shouldAutoRotate,
 } from '../../utils/business-day.utils'
-import { closedDayError, loadClosedDayCheck, type ClosedDayGateLocation } from '../../utils/closed-day-gate'
+import {
+  closedDayError,
+  hasClosedDayApproval,
+  loadClosedDayCheck,
+  type ClosedDayGateLocation,
+} from '../../utils/closed-day-gate'
 
 import type { Application, HookContext } from '../../declarations'
 
@@ -76,6 +82,7 @@ export const businessDaysMethods = [
   'refreshClosingStatus',
   'discardOrphanDay',
   'approveClosedDay',
+  'getClosedDayStatus',
 ] as const
 
 export * from './business-days.schema'
@@ -648,6 +655,44 @@ export async function approveClosedDay(
 }
 
 /**
+ * Vorabfrage fuer den POS (#1133): Fehlt heute eine Ruhetag-Freigabe? Damit zeigt
+ * die Kasse den Freigabe-Dialog VOR dem Verkauf, statt erst am 400 der Anlage —
+ * dann ist der Warenkorb noch da. Erzwungen wird die Regel trotzdem allein im
+ * Order-Gate; diese Methode entscheidet nichts.
+ */
+export async function getClosedDayStatus(
+  app: Application,
+  data: { locationId?: string | null } = {},
+  params: OpenDayParams = {},
+): Promise<ClosedDayStatusResult> {
+  const user = params.user
+  if (!user?.tenantId) throw new BadRequest('Tenant-Kontext fehlt — getClosedDayStatus benötigt einen authentifizierten User')
+  const locationId = data?.locationId ?? resolveUserLocationId(user) ?? null
+  if (!locationId) throw new BadRequest('locationId muss am User oder im Payload gesetzt sein')
+
+  const location = (await (app.service('locations') as any).get(locationId, {
+    provider: undefined,
+  })) as ClosedDayGateLocation & { tenantId: string; currentBusinessDay?: { businessDayId: string } | null }
+  assertCallerOwnsRecord(user, location)
+
+  const check = await loadClosedDayCheck(app, location)
+  if (!check) return { approvalRequired: false, state: 'unknown', date: '', policy: 'manager-approval' }
+  const { state, date } = check.status
+  if (state !== 'closed') return { approvalRequired: false, state, date, policy: check.policy }
+
+  const businessDayId = location.currentBusinessDay?.businessDayId
+  const businessDay = businessDayId
+    ? ((await (app.service(businessDaysPath) as any).get(businessDayId, { provider: undefined })) as BusinessDay)
+    : null
+  return {
+    approvalRequired: !hasClosedDayApproval(businessDay, date, check.policy),
+    state,
+    date,
+    policy: check.policy,
+  }
+}
+
+/**
  * Audit-Spur der Freigabe. `AuditAction.UPDATE` statt eines neuen Enum-Werts —
  * dieselbe Begruendung wie bei `recordOrphanDiscardAudit`: `audit-events` wird
  * in die Cloud gepusht und dort gegen dasselbe Enum validiert. Der Sonderfall
@@ -1111,6 +1156,7 @@ export const businessDays = (app: Application) => {
     refreshClosingStatus: (data: RefreshClosingStatusData, params?: OpenDayParams) => Promise<BusinessDay>
     discardOrphanDay: (data: DiscardOrphanDayData, params?: OpenDayParams) => Promise<{ discarded: true; _id: string }>
     approveClosedDay: (data: ApproveClosedDayData, params?: OpenDayParams) => Promise<ApproveClosedDayResult>
+    getClosedDayStatus: (data: { locationId?: string | null }, params?: OpenDayParams) => Promise<ClosedDayStatusResult>
   }
 
   // Custom-Methods auf den Service-Proxy haengen
@@ -1121,6 +1167,8 @@ export const businessDays = (app: Application) => {
   service.discardOrphanDay = (data: DiscardOrphanDayData, params?: OpenDayParams) => discardOrphanDay(app, data, params)
   service.approveClosedDay = (data: ApproveClosedDayData, params?: OpenDayParams) =>
     approveClosedDay(app, data, params)
+  service.getClosedDayStatus = (data: { locationId?: string | null }, params?: OpenDayParams) =>
+    getClosedDayStatus(app, data, params)
   ;(service as any).setup = async (app: Application) =>
     ensureIndexes(
       app,

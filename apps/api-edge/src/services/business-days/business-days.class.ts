@@ -48,6 +48,15 @@ export interface ApproveClosedDayResult {
   role?: string
 }
 
+/** Muss der POS vor dem nächsten Verkauf eine Ruhetag-Freigabe einholen? */
+export interface ClosedDayStatusResult {
+  /** `true`: heute Ruhetag und der laufende Tag trägt keine heute gültige Freigabe. */
+  approvalRequired: boolean
+  state: 'closed' | 'open' | 'unknown'
+  date: string
+  policy: 'manager-approval' | 'block'
+}
+
 export interface BusinessDayService extends ServiceInterface<
   BusinessDay,
   BusinessDayData,
@@ -59,4 +68,5 @@ export interface BusinessDayService extends ServiceInterface<
   refreshClosingStatus(data: RefreshClosingStatusData, params?: BusinessDayParams): Promise<BusinessDay>
   discardOrphanDay(data: DiscardOrphanDayData, params?: BusinessDayParams): Promise<{ discarded: true; _id: string }>
   approveClosedDay(data: ApproveClosedDayData, params?: BusinessDayParams): Promise<ApproveClosedDayResult>
+  getClosedDayStatus(data: { locationId?: string | null }, params?: BusinessDayParams): Promise<ClosedDayStatusResult>
 }

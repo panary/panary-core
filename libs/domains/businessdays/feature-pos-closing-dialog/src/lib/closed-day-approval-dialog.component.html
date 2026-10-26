@@ -1,0 +1,234 @@
+<!-- Aufbau wie die Kassen-Freigabe (manager-authorize-cash-session-dialog): Person wählen, dann PIN. -->
+<div class="flex flex-col max-h-[85vh] bg-surface-input">
+  <!-- Header -->
+  <div class="flex items-center justify-between p-5 border-b border-line-soft">
+    <div class="flex items-center gap-3">
+      <div
+        class="h-10 w-10 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center text-amber-600 dark:text-amber-400"
+      >
+        <lib-icon name="calendar-x" class="text-[1.25rem]" />
+      </div>
+      <div>
+        <h2 class="text-base font-bold text-ink">{{ 'CLOSED_DAY.TITLE' | translate }}</h2>
+        <p class="text-xs text-ink-muted">{{ dateLabel() }}</p>
+      </div>
+    </div>
+    <button
+      type="button"
+      (click)="cancel()"
+      [disabled]="step() === 'submitting'"
+      class="flex items-center justify-center w-9 h-9 rounded-lg text-ink-faint hover:bg-line-soft disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      [attr.aria-label]="'COMMON.CLOSE' | translate"
+    >
+      <lib-icon name="x" class="text-[1.25rem]" />
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="flex-1 overflow-y-auto p-5">
+    @switch (step()) {
+      @case ('loading') {
+        <div class="flex flex-col items-center justify-center py-12 gap-3">
+          <lib-icon name="arrows-clockwise" class="text-[2.5rem] text-ink-faint animate-spin" />
+          <p class="text-sm text-ink-muted">{{ 'CLOSED_DAY.LOADING_USERS' | translate }}</p>
+        </div>
+      }
+
+      @case ('input') {
+        <div class="flex flex-col gap-4">
+          <p class="text-sm text-ink-muted dark:text-ink">
+            {{ (isOrdersOnly() ? 'CLOSED_DAY.INTRO_ORDERS' : 'CLOSED_DAY.INTRO_SALES') | translate }}
+          </p>
+          <p class="text-sm text-ink-muted dark:text-ink">
+            {{ (isBlock() ? 'CLOSED_DAY.WHO_OWNER' : 'CLOSED_DAY.WHO_MANAGER') | translate }}
+          </p>
+
+          <div class="flex flex-col gap-2">
+            <span class="text-xs font-medium text-ink-muted">{{ 'CLOSED_DAY.SELECT_APPROVER' | translate }}</span>
+
+            @if (hasApprovers()) {
+              @for (approver of approvers(); track approver._id) {
+                <button
+                  type="button"
+                  (click)="selectApprover(approver)"
+                  class="flex items-center gap-3 p-3 bg-surface-bg hover:bg-line-soft rounded-xl border border-line-soft transition-colors text-left"
+                >
+                  <div
+                    class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold flex items-center justify-center"
+                  >
+                    {{ approver.initials || '??' }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-ink truncate">{{ approver.fullName }}</p>
+                    <p class="text-xs text-ink-muted truncate">{{ approver.staffRole || approver.role }}</p>
+                  </div>
+                  <lib-icon name="caret-right" class="text-line-strong text-[1.25rem]" />
+                </button>
+              }
+            } @else {
+              <div class="flex flex-col items-center text-center gap-3 py-8">
+                <lib-icon name="user-minus" class="text-[2.5rem] text-empty-icon" />
+                <p class="text-sm text-ink-muted">
+                  @if (approversWithoutPin() > 0) {
+                    {{ 'CLOSED_DAY.NO_PIN_USERS' | translate }}
+                  } @else {
+                    {{ 'CLOSED_DAY.NO_ELIGIBLE_USERS' | translate }}
+                  }
+                </p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @case ('enter-pin') {
+        @if (selectedApprover(); as approver) {
+          <div class="flex flex-col items-center gap-4">
+            <div class="flex items-center gap-3">
+              <div
+                class="h-12 w-12 shrink-0 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold text-lg flex items-center justify-center"
+              >
+                {{ approver.initials || '??' }}
+              </div>
+              <div class="flex flex-col min-w-0">
+                <p class="font-semibold text-ink truncate">{{ approver.fullName }}</p>
+                <p class="text-xs text-ink-muted">{{ approver.staffRole || approver.role }}</p>
+              </div>
+            </div>
+
+            <p class="text-sm text-ink-muted dark:text-ink text-center">{{ 'CLOSED_DAY.ENTER_PIN' | translate }}</p>
+
+            <div class="flex gap-3" [class.pin-shake]="pinError()">
+              @for (i of pinSlots; track i) {
+                <div
+                  class="w-3.5 h-3.5 rounded-full transition-colors"
+                  [class.bg-blue-500]="pin().length > i && !pinError()"
+                  [class.bg-red-500]="pinError()"
+                  [class.bg-line]="pin().length <= i && !pinError()"
+                ></div>
+              }
+            </div>
+
+            @if (errorMessage()) {
+              <p class="text-xs text-red-600 dark:text-red-400 text-center">{{ errorMessage() }}</p>
+            }
+
+            <div class="grid grid-cols-3 gap-2 w-full max-w-[16.25rem]">
+              @for (digit of digits; track digit) {
+                <button
+                  type="button"
+                  (click)="addDigit(digit)"
+                  class="h-14 rounded-xl bg-line-soft text-xl font-semibold text-ink hover:bg-line active:scale-95 transition-all"
+                >
+                  {{ digit }}
+                </button>
+              }
+              <button
+                type="button"
+                (click)="backToInput()"
+                class="h-14 rounded-xl bg-line-soft text-ink-muted hover:bg-line active:scale-95 transition-all flex items-center justify-center"
+                [attr.aria-label]="'COMMON.BACK' | translate"
+              >
+                <lib-icon name="user" class="text-[1.25rem]" />
+              </button>
+              <button
+                type="button"
+                (click)="addDigit('0')"
+                class="h-14 rounded-xl bg-line-soft text-xl font-semibold text-ink hover:bg-line active:scale-95 transition-all"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                (click)="deleteDigit()"
+                class="h-14 rounded-xl bg-line-soft text-ink-muted hover:bg-line active:scale-95 transition-all flex items-center justify-center"
+                [attr.aria-label]="'COMMON.DELETE' | translate"
+              >
+                <lib-icon name="backspace" class="text-[1.25rem]" />
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      @case ('submitting') {
+        <div class="flex flex-col items-center justify-center py-12 gap-3">
+          <lib-icon name="arrows-clockwise" class="text-[2.5rem] text-blue-500 animate-spin" />
+          <p class="text-sm text-ink-muted">{{ 'CLOSED_DAY.IN_PROGRESS' | translate }}</p>
+        </div>
+      }
+
+      @case ('submitted') {
+        <div class="flex flex-col items-center text-center justify-center py-10 gap-3">
+          <lib-icon name="check-circle" class="text-[2.5rem] text-emerald-500" />
+          <p class="text-sm font-semibold text-ink">{{ 'CLOSED_DAY.SUCCESS' | translate }}</p>
+        </div>
+      }
+
+      @case ('load-error') {
+        <div class="flex flex-col items-center text-center gap-3 py-6">
+          <lib-icon name="warning-circle" class="text-[2.5rem] text-red-500" />
+          <p class="text-sm font-semibold text-ink">{{ 'CLOSED_DAY.LOAD_ERROR' | translate }}</p>
+          @if (errorMessage()) {
+            <p class="text-xs text-ink-muted break-words max-w-full">{{ errorMessage() }}</p>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Footer -->
+  @switch (step()) {
+    @case ('input') {
+      <div class="flex gap-2 p-4 border-t border-line-soft">
+        <button
+          type="button"
+          (click)="cancel()"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
+        >
+          {{ 'COMMON.CANCEL' | translate }}
+        </button>
+      </div>
+    }
+    @case ('enter-pin') {
+      <div class="flex gap-2 p-4 border-t border-line-soft">
+        <button
+          type="button"
+          (click)="cancel()"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
+        >
+          {{ 'COMMON.CANCEL' | translate }}
+        </button>
+      </div>
+    }
+    @case ('submitted') {
+      <div class="flex gap-2 p-4 border-t border-line-soft">
+        <button
+          type="button"
+          (click)="close()"
+          class="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors"
+        >
+          {{ 'COMMON.CLOSE' | translate }}
+        </button>
+      </div>
+    }
+    @case ('load-error') {
+      <div class="flex gap-2 p-4 border-t border-line-soft">
+        <button
+          type="button"
+          (click)="cancel()"
+          class="flex-1 h-12 rounded-xl bg-line-soft text-ink font-semibold hover:bg-line transition-colors"
+        >
+          {{ 'COMMON.CLOSE' | translate }}
+        </button>
+        <button
+          type="button"
+          (click)="retryLoad()"
+          class="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors"
+        >
+          {{ 'COMMON.RETRY' | translate }}
+        </button>
+      </div>
+    }
+  }
+</div>

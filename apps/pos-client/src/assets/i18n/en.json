@@ -531,6 +531,26 @@
     "TITLE": "Open business day",
     "SUBMIT": "Open"
   },
+  "CLOSED_DAY": {
+    "TITLE": "Closed today according to opening hours",
+    "INTRO_SALES": "Today is marked as a closed day in this location's opening hours. Sales require approval.",
+    "INTRO_ORDERS": "Today is marked as a closed day in this location's opening hours. Orders require approval.",
+    "WHO_MANAGER": "A manager or the owner can approve with their PIN. The approval applies to the whole day.",
+    "WHO_OWNER": "This location blocks closed days. Only the owner can approve with their PIN. The approval applies to the whole day.",
+    "SELECT_APPROVER": "Who approves?",
+    "LOADING_USERS": "Loading authorised staff …",
+    "NO_PIN_USERS": "There are authorised staff, but none has a POS PIN.",
+    "NO_ELIGIBLE_USERS": "No authorised staff found.",
+    "ENTER_PIN": "Enter PIN to approve the closed day",
+    "IN_PROGRESS": "Checking approval …",
+    "SUCCESS": "Approved for today",
+    "LOAD_ERROR": "Staff could not be loaded",
+    "ERROR_PIN_INVALID": "Invalid PIN.",
+    "ERROR_ROLE_DENIED": "This employee may not approve the closed day.",
+    "ERROR_OWNER_ONLY": "At this location only the owner may approve.",
+    "ERROR_GENERIC": "Approval failed.",
+    "DECLINED": "Not approved. The location is closed today according to its opening hours."
+  },
   "CASH_SESSION": {
     "AUTH_TITLE": "Authorize cash drawer",
     "AUTH_CASHIER_FALLBACK": "the cashier",

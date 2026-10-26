@@ -44,6 +44,9 @@ bekommen `componentExternalId`; direkt getippte Extras und Modifier aus den Grup
   `@panary/orders`-Bump in der Cloud abgelehnt — als TERMINAL-Fehler in der Outbox.
 - **Komponente ersetzt** (andere Beilage bzw. anderes Getränk): Die zugeordneten Modifier der alten Komponente fallen
   mit weg (`dropComponentModifiers`).
+- **Extras-Raster und Anpassen-Sheet** passen nur den Hauptartikel an: `increaseExtra`/`decreaseExtra` und die
+  Mengen im Sheet übergehen Modifier mit `componentExternalId`. Eine Mayo per Raster neben der Pommes-Mayo ist ein
+  zweiter Eintrag ohne Zuordnung, Minus nimmt nie die Mayo der Pommes zurück.
 - Der Legacy-Menüfluss (`setMenuSideDishSauce` → `increaseExtra`) setzt das Feld **nicht**; seine Soßen stehen weiter
   am Hauptartikel.
 - Split: Menüs wandern als ganze Zeile, Teilmengen kopieren Modifier per Spread — das Feld reist in beiden Fällen mit.

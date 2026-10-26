@@ -32,11 +32,11 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
       @if (phase() === 'input') {
         @if (isPosCashier()) {
           <p>
-            Kassen-Modus — das Wechselgeld wird pro Kasse beim Eröffnen der jeweiligen Kasse erfasst, nicht beim
+            Kassen-Modus: Das Wechselgeld wird pro Kasse beim Eröffnen der jeweiligen Kasse erfasst, nicht beim
             Geschäftstag.
           </p>
         } @else {
-          <p>Bestellsystem-Modus — kein Wechselgeld-Anfangsbestand nötig.</p>
+          <p>Bestellsystem-Modus: kein Wechselgeld-Anfangsbestand nötig.</p>
         }
       } @else if (phase() === 'submitting') {
         <p>Geschäftstag wird eröffnet…</p>

@@ -29,7 +29,7 @@ export interface EdgeBaseUrlSources {
  */
 export function resolveEdgeBaseUrl(sources: EdgeBaseUrlSources): string {
   const raw = sources.deviceServerUrl?.trim() || sources.configuredApiUrl?.trim()
-  if (!raw) throw new Error('Kein Edge-Server konfiguriert — Druckauftrag hat kein Ziel.')
+  if (!raw) throw new Error('Kein Edge-Server konfiguriert. Druckauftrag hat kein Ziel.')
 
   return Utils.getBaseUrl(raw)
 }

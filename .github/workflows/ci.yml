@@ -207,6 +207,13 @@ jobs:
           node scripts/android-xml-gate.spec.mjs
           pnpm android-xml:gate
 
+      # Kein Em-Dash in sichtbaren POS-Texten (#1106, code-style.md §9.2): i18n-Werte, tauri.conf.json,
+      # <title>. Fail-closed: fehlende Dateien oder 0 i18n-Dateien = rot.
+      - name: Gedankenstriche in POS-Texten pruefen
+        run: |
+          node scripts/pos-gedankenstrich-gate.spec.mjs
+          pnpm pos-gedankenstrich:gate
+
       # Libs mit `paths`-Override auf ein fremdes dist muessen `panaryVitestPlugins()` in ihre
       # vitest.config.mts einhaengen (CLAUDE.md §2.1, #404): sonst laedt Vitest je nach
       # Task-Reihenfolge eine .d.ts statt Code — mal rot, meist still gruen. Das Gate faengt

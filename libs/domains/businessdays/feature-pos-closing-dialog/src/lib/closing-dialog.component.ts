@@ -39,8 +39,8 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
           </p>
         } @else {
           <p>
-            Bestellsystem-Modus — kein Kassen-Count nötig. Bestätigen Sie den Tagesabschluss und der Cloud-Report wird
-            im Hintergrund erstellt.
+            Bestellsystem-Modus: kein Kassen-Count nötig. Bestätigen Sie den Tagesabschluss und der Cloud-Report wird im
+            Hintergrund erstellt.
           </p>
         }
       } @else if (phase() === 'submitting') {

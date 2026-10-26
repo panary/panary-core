@@ -806,7 +806,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     component.increaseExtra(extraProduct('mayo', { name: 'Mayo', productType: 'PRODUCT' }))
 
     expect(component.lineItems[0].modifiers).toEqual([])
-    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT): im Admin auf Modifier stellen')
     expect(component.notice()?.tone).toBe('danger')
   })
 
@@ -819,7 +819,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
 
     component.increaseExtra(extraProduct('mayo', { name: 'Mayo', productType: undefined }))
 
-    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: fehlt) — im Admin auf Modifier stellen')
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: fehlt): im Admin auf Modifier stellen')
   })
 
   it('ohne markierte Zeile meldet der Tap die fehlende Markierung', () => {
@@ -853,7 +853,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     component.decreaseExtra(extraProduct('mayo', { name: 'Mayo', productType: 'PRODUCT' }))
 
     expect(component.lineItems[0].modifiers).toEqual([])
-    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT): im Admin auf Modifier stellen')
   })
 
   it('Minus akzeptiert Legacy-Extras genauso wie Plus', () => {
@@ -1087,7 +1087,7 @@ describe('OrderDialog — Gate-Verdrahtung der Rabatt-Picker', () => {
     component.openPromoCodeDialog()
 
     expect(openedDialogs).toHaveLength(0)
-    expect(component.infoBoxText).toBe('Es ist bereits ein Rabatt gewählt — erst entfernen')
+    expect(component.infoBoxText).toBe('Es ist bereits ein Rabatt gewählt. Erst entfernen.')
   })
 })
 
@@ -1312,7 +1312,7 @@ describe('OrderDialog — Snapshot-Bau in placeOrder', () => {
     // Neben der Bestätigung „Bestellung abgeschickt" (core#1087) genau diese eine Meldung.
     const codeNotices = notices.filter(n => n.message !== ORDER_PLACED_MESSAGE)
     expect(codeNotices).toHaveLength(1)
-    expect(codeNotices[0].message).toMatch(/^Rabattcode nicht eingelöst — /)
+    expect(codeNotices[0].message).toMatch(/^Rabattcode nicht eingelöst: /)
     // Quittierpflichtig: kein Ablauf, nur das × schliesst sie.
     expect(codeNotices[0].sticky).toBe(true)
 
@@ -1542,7 +1542,7 @@ describe('OrderDialog — Mandantensperre (#489)', () => {
     await component.placeOrder()
 
     expect(createdOrders).toHaveLength(0)
-    expect(notices.map(c => c.message)).toEqual(['Konto gesperrt — bitte den Inhaber kontaktieren'])
+    expect(notices.map(c => c.message)).toEqual(['Konto gesperrt: bitte den Inhaber kontaktieren'])
     // Der Warenkorb bleibt stehen: Nach dem Ende der Sperre geht derselbe Bon durch.
     expect(component.lineItems).toHaveLength(1)
     // Die Kasse bleibt mit dem Warenkorb offen (core#828).
@@ -2225,7 +2225,7 @@ describe('OrderDialog — Numpad-Artikelsuche (#709)', () => {
 
     expect(component.lineItems).toEqual([])
     expect(component.infoBoxText).toBe(
-      'Artikelnummer 3 ist mehrfach vergeben (Artikel cola, Artikel fanta) — bitte im Raster wählen.',
+      'Artikelnummer 3 ist mehrfach vergeben (Artikel cola, Artikel fanta). Bitte im Raster wählen.',
     )
   })
 
@@ -2970,7 +2970,7 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
 
     await component.onCollect()
 
-    expect(notices.map(c => c.message)).toEqual(['Kasse nicht freigegeben — die Bestellung bleibt offen'])
+    expect(notices.map(c => c.message)).toEqual(['Kasse nicht freigegeben. Die Bestellung bleibt offen.'])
     expect(component.payment()).not.toBeNull()
     expect(closeCalls).toEqual([])
   })

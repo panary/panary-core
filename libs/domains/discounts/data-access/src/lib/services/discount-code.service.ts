@@ -62,11 +62,11 @@ export const codeResultMessage = (reason: CodeResultReason): string => {
     case 'discount_inactive':
       return 'Rabatt ist nicht aktiv'
     case CodeProxyReason.NOT_PAIRED:
-      return 'Keine Cloud-Verbindung eingerichtet — Rabattcodes sind hier nicht verfügbar'
+      return 'Keine Cloud-Verbindung eingerichtet. Rabattcodes sind hier nicht verfügbar.'
     case CodeProxyReason.CLOUD_UNREACHABLE:
-      return 'Cloud nicht erreichbar — Code kann gerade nicht geprüft werden'
+      return 'Cloud nicht erreichbar. Code kann gerade nicht geprüft werden.'
     case CodeProxyReason.NOT_AUTHORIZED:
-      return 'Kasse ist für Rabattcodes nicht zugelassen — bitte den Support kontaktieren'
+      return 'Kasse ist für Rabattcodes nicht zugelassen. Bitte den Support kontaktieren.'
     default:
       return 'Code kann nicht eingelöst werden'
   }

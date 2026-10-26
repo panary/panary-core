@@ -82,5 +82,5 @@ export function isModifierButton(article: Partial<ProductSchema> & PosButtonUiSt
  */
 export function extraNotModifierMessage(article: Partial<ProductSchema> & PosButtonUiState): string {
   const name = article.name ?? 'Dieses Produkt'
-  return `„${name}" ist kein Extra (Produkttyp: ${article.productType ?? 'fehlt'}) — im Admin auf Modifier stellen`
+  return `„${name}" ist kein Extra (Produkttyp: ${article.productType ?? 'fehlt'}): im Admin auf Modifier stellen`
 }

@@ -186,7 +186,7 @@ export function assertOrderIsSplittable(order: Pick<Order, 'status' | 'payment'>
   if (hasStampedPayment(order)) {
     throw new OrderSplitError(
       OrderSplitErrorCode.SOURCE_ALREADY_PAID,
-      'Fuer diese Bestellung ist bereits eine Zahlung erfasst — sie kann nicht mehr gesplittet werden.',
+      'Fuer diese Bestellung ist bereits eine Zahlung erfasst. Sie kann nicht mehr gesplittet werden.',
     )
   }
 }

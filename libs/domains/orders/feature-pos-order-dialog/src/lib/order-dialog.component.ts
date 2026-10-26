@@ -1664,7 +1664,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const count = this.#releaseCount(line)
     const freed = count < line.amount ? this.#splitOff(line, count) : line
     if (!freed) {
-      this.setInfoBoxText('Diese Position lässt sich nicht teilen — nur als Ganzes herauslösen.', 'red')
+      this.setInfoBoxText('Diese Position lässt sich nicht teilen. Nur als Ganzes herauslösen.', 'red')
       return
     }
     this.unselectProduct()
@@ -2892,7 +2892,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Mandant in der Cloud gesperrt: der Bon liefe sicher in den 403. Der Warenkorb bleibt
     // stehen, die Meldung ist ein globales Overlay (core#489).
     if (this.#tenantSuspension.suspended()) {
-      this.#notifications.error('Konto gesperrt — bitte den Inhaber kontaktieren')
+      this.#notifications.error('Konto gesperrt: bitte den Inhaber kontaktieren')
       return
     }
     let staffMealDetails: StaffPaymentInfo | undefined = undefined
@@ -3006,7 +3006,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         // überlebt beides. Quittierpflichtig (`sticky`) bleibt sie bis zum × stehen
         // — eine Meldung, die von selbst verschwindet, ist im Kassenbetrieb
         // genauso übersehbar wie gar keine.
-        this.#notifications.error(`Rabattcode nicht eingelöst — ${codeResultMessage(outcome.reason)}`, { sticky: true })
+        this.#notifications.error(`Rabattcode nicht eingelöst: ${codeResultMessage(outcome.reason)}`, { sticky: true })
         this.appliedCodeDiscount.set(null)
       }
     }
@@ -3116,7 +3116,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.#notifications.success(ORDER_PLACED_MESSAGE)
         this.closed.emit('order-placed')
       } else if (result === 'cash-session-declined') {
-        this.#notifications.warning('Kasse nicht freigegeben — die Bestellung bleibt offen')
+        this.#notifications.warning('Kasse nicht freigegeben. Die Bestellung bleibt offen.')
       }
       // `failed`: `handleError` hat schon gemeldet, die Ansicht bleibt für einen neuen Versuch stehen.
     } finally {
@@ -3679,7 +3679,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (matches.length > 1) {
       // Bei Doppelvergabe entschied früher die Cache-Reihenfolge still über das gebuchte Produkt.
       this.setInfoBoxText(
-        `Artikelnummer ${this._numpadNumber} ist mehrfach vergeben (${matches.map(p => p.name).join(', ')}) — bitte im Raster wählen.`,
+        `Artikelnummer ${this._numpadNumber} ist mehrfach vergeben (${matches.map(p => p.name).join(', ')}). Bitte im Raster wählen.`,
         'red',
       )
       // Die Ziffern standen zugleich im Multiplier; ohne Reset bucht die Kachel danach die Nummer als Menge.

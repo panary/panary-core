@@ -194,7 +194,7 @@ Für einen **Testbuild ohne Release** — etwa um die App auf einem Mac auszupro
 taggen, sondern `build-pos.yml` per Workflow-Dispatch starten: baut von jedem Branch,
 ohne Versions-Bump und ohne den produktiven Updater-Rollout auszulösen. Das heruntergeladene
 macOS-Bundle ist nur ad-hoc signiert und braucht einmalig
-`xattr -dr com.apple.quarantine "/Applications/Panary — Terminal.app"` (oder Rechtsklick →
+`xattr -dr com.apple.quarantine "/Applications/Panary Terminal.app"` (oder Rechtsklick →
 Öffnen). Details: [ADR 0014](docs/adr/0014-pos-build-plattformen.md).
 
 ### Installation auf Zielsystemen

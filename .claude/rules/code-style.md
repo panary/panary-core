@@ -163,4 +163,22 @@ Regeln:
   `active:`-Feedback. Der einzige Toggle war OHNE; er ist mit dem Anpassen-Panel entfallen
   (panary/panary-core#639, `docs/domains/pos-anpassen-panel.md`).
 
+### 9.2 Kein Gedankenstrich in POS-Texten
+
+In sichtbaren Texten des POS-Clients steht kein Em-Dash („—“): i18n-Werte aller Sprachen, App-Name,
+Fenstertitel und fest verdrahtete Meldungen (Michael, 2026-10-26, panary/panary-core#1106). Ersetzt wird
+nach Satzbau, nicht blind:
+
+| Satzbau                                   | Ersatz                           | Beispiel                             |
+| ----------------------------------------- | -------------------------------- | ------------------------------------ |
+| zwei Aussagen                             | zwei Sätze mit Punkt             | „Offline. Profildaten konnten …“     |
+| kurze Statuszeile + Handlungsaufforderung | Mittelpunkt „·“ oder Doppelpunkt | „Ausgestempelt · Tippen zum Kommen“  |
+| Fehler + Grund                            | Doppelpunkt                      | „Druckfehler: {{reason}}“            |
+| Leerwert                                  | Halbgeviertstrich „–“            | `{{ user.employeeNumber \|\| '–' }}` |
+
+Kommentare sind nicht betroffen. `pnpm pos-gedankenstrich:gate` (CI) prüft i18n, `tauri.conf.json` und den
+`<title>` der `index.html`. Fest verdrahtete Texte in `.ts`/`.html` misst es nicht, weil sie sich ohne
+Parser nicht von Kommentaren trennen lassen. Dort gilt diese Regel allein. Admin- und Setup-Client sind
+nicht erfasst.
+
 ---

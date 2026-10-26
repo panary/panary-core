@@ -4,7 +4,7 @@ title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
 description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, beim Hinzufügen zur Zeile scrollt und sie hervorhebt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-26T19:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-26T20:00:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -83,6 +83,10 @@ Nach jedem Produkt-Tipp zeigt der Warenkorb die betroffene Zeile und hebt sie ku
 - **Ein Weg zum Scrollen.** `revealCartLine` in `cart-scroll.ts` scrollt mit derselben Bewegung wie die
   Steuerleiste (`block: 'nearest'`, sanft), ebenfalls per `afterRenderEffect`. Öffnet das Hinzufügen zugleich
   eine Steuerleiste (Anpassen, Menü-Ablauf), läuft deren Effekt danach und hat das letzte Wort.
+  Unten bleibt Platz für Außenabstand und Listenrand (`scroll-margin-bottom` 0,75rem). Eine neue Zeile bekommt
+  8px dazu, denn `scrollIntoView` misst sie, während sie noch einfährt und um diesen Versatz höher steht. Ohne
+  den Zuschlag blieb sie danach 8px angeschnitten ([core#1121](https://github.com/panary/panary-core/issues/1121),
+  im Sichttest #1119 gemessen).
 - **Eigenes Wischen geht vor.** Hat die Bedienung in den letzten 1,5 s selbst in der Liste gewischt
   (`touchmove`, `wheel`; passive Listener außerhalb der Change Detection), springt sie nicht. Das
   `scroll`-Ereignis taugt dafür nicht, es feuert auch beim Scrollen von selbst. Die Hervorhebung kommt trotzdem.

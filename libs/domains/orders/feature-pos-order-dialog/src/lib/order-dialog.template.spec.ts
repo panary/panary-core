@@ -770,6 +770,17 @@ describe('Kasse — Hinzufügen zeigt die Zeile (core#1116)', () => {
     )
   })
 
+  // core#1121: `scrollIntoView` misst die neue Zeile, während sie noch 8px höher steht (Einfahren), und ohne
+  // Außenabstand und Listenrand. Sie blieb nach dem Einfahren 8px unter dem Rand.
+  it('scrollt mit Außenabstand und, solange die Zeile einfährt, um deren Versatz weiter', () => {
+    const margin = (selector: string) =>
+      scss.match(new RegExp(`${selector}[^{]*\\{[^}]*?scroll-margin-bottom: ([^;]+);`))?.[1]
+    expect(margin('\\.kasse-line-more-0,\\s*\\.kasse-line-more-1')).toBe('0.75rem')
+    expect(margin('\\.kasse-line-new-0,\\s*\\.kasse-line-new-1')).toBe('calc(0.75rem + 8px)')
+    expect(keyframes('kasse-line-in')[0]).toContain('translateY(-8px)')
+    expect(reduced).toMatch(/\.kasse-line-new-#\{\$n\}\s*\{\s*scroll-margin-bottom: 0\.75rem;/)
+  })
+
   it('lässt bei „Bewegung reduzieren" nur das Aufleuchten', () => {
     expect(reduced).toMatch(
       /\.kasse-line-new-#\{\$n\},\s*\.kasse-line-new-#\{\$n\}\.kasse-line-customizing\s*\{\s*animation: none;/,

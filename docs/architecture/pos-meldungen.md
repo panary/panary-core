@@ -35,6 +35,12 @@ this.#undoRef?.dismiss()
 Weitere Optionen: `title` (fett vor dem Text, z. B. „Fehler HTTP-Code 500" aus `handleError`) und
 `duration` für Ausnahmen.
 
+**Erwartete Serverfehler (core#1091).** `BaseService.patch` meldet jeden Fehler über `handleError`. Behandelt ein
+Aufrufer einen bestimmten Fehler selbst, nennt er ihn für **diesen einen Aufruf**:
+`patch(id, data, { isExpectedError: isCashSessionRequired })`. Nur dieser Fehler bleibt still, jeder andere wird
+gemeldet, und der Schlüssel geht nicht an den Server. Ein pauschales Stillschalten nach HTTP-Code würde echte
+400er verdecken.
+
 ## Arten und Dauer
 
 | Art | Wann | Dauer | Fläche (hell / dunkel) |

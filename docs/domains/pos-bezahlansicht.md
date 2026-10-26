@@ -39,7 +39,12 @@ Sonst heißt die Taste „Bestellen" und alles läuft wie vorher.
 4. **Bar kassieren** ist erst frei, wenn der Betrag die Summe deckt. Es ruft `OrderCheckoutService.payCash`: eine
    Bar-Transaktion über die ganze Summe, Status `COMPLETED`, `performedBy` = Kassierer. Fehlt die offene Kasse
    (`BD_6004`), erscheint die Manager-PIN-Freigabe und der Abschluss wird einmal wiederholt
-   (`promptCashSessionAuthorization`, derselbe Dialog wie in „Offene Bestellungen").
+   (`promptCashSessionAuthorization`, derselbe Dialog wie in „Offene Bestellungen"). Seit
+   [core#1091](https://github.com/panary/panary-core/issues/1091) erscheint dabei keine rote Meldung mehr: Der
+   erste Versuch nennt `BD_6004` als erwarteten Fehler (`isExpectedError` an `BaseService.patch`), der Dialog
+   erklärt die Lage allein. Nach der Freigabe bestätigt der Dialog selbst; das Realtime-Echo „Kasse wurde
+   erstellt" schweigt 10 s nach der eigenen Eröffnung (`CashSessionService`), Kassen anderer Terminals melden
+   sich weiter.
 5. **Offen lassen** schließt die Ansicht ohne Zahlung; die Bestellung steht in „Offene Bestellungen".
 
 Karte und Gutschein sind sichtbar, aber nicht antippbar („bald").
@@ -59,6 +64,8 @@ keine Navigation: Der Warenkorb der Kasse bleibt unberührt.
 | --- | --- |
 | Anlegen scheitert | keine Bezahlansicht, Warenkorb bleibt |
 | Kassieren scheitert (Server lehnt ab) | Ansicht bleibt, `handleError` hat gemeldet, neuer Versuch möglich |
+| Keine offene Kasse (`BD_6004`) | nur der Freigabe-Dialog, keine Fehlermeldung (core#1091) |
+| `BD_6004` auch nach der Freigabe | Fehlermeldung aus `handleError`, die Wiederholung meldet alles |
 | Kassen-Freigabe verweigert | Warnung „Kasse nicht freigegeben", Ansicht bleibt, Bestellung bleibt offen |
 | Abbruch nach dem Anlegen, vor dem Kassieren (Netz, Neustart) | offene Bestellung in „Offene Bestellungen" |
 | Zwei schnelle Tipps auf INNEN/Sofort | genau eine Bestellung (`placing` sperrt, bis das Anlegen fertig ist) |

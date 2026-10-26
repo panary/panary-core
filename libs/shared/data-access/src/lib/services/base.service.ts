@@ -20,6 +20,15 @@ import { ConnectionService } from './connection.service'
 export type PaginatedOrArray<T> = Promise<Paginated<T> | T[]>
 
 /**
+ * Opt-out der Fehlermeldung für einen einzelnen Aufruf (core#1091): Ein Aufrufer, der einen bestimmten,
+ * erwarteten Fehler selbst behandelt, nennt ihn hier. Nur dieser Fehler bleibt still, jeder andere wird
+ * weiter gemeldet. Der Schlüssel geht nicht an den Server.
+ */
+export interface ExpectedErrorParams {
+  isExpectedError?: (error: unknown) => boolean
+}
+
+/**
  * Abstract class. Creates a new resource or multiple resources and handles any errors that may occur during creation.
  *
  * @param {T | T[]} data - The data representing the resource(s) to be created.
@@ -381,9 +390,10 @@ export abstract class BaseService<T> {
    * @param {Params} [params={}] - Additional parameters or query options to customize the patch operation.
    * @return {Promise<T | T[]>} A promise that resolves to the patched resource(s).
    */
-  async patch(id: Id | Id[] | null, data: Partial<T>, params: Params = {}): Promise<T | T[]> {
-    const result = await this.service.patch(id, data, withPosOperatorToken(params)).catch((error: unknown) => {
-      this.helper.handleError(this.serviceName, error)
+  async patch(id: Id | Id[] | null, data: Partial<T>, params: Params & ExpectedErrorParams = {}): Promise<T | T[]> {
+    const { isExpectedError, ...serviceParams } = params
+    const result = await this.service.patch(id, data, withPosOperatorToken(serviceParams)).catch((error: unknown) => {
+      if (!isExpectedError?.(error)) this.helper.handleError(this.serviceName, error)
       throw error
     })
     this.#cacheUpsert(result)

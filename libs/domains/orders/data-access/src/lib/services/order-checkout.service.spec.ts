@@ -11,7 +11,7 @@ const CASH_SESSION_ERROR = { data: { code: 'BD_6004' } }
 function setup(patchResults: Array<'ok' | unknown>) {
   const calls: Array<{ id: unknown; data: Record<string, any> }> = []
   const results = [...patchResults]
-  const patch = vi.fn(async (id: unknown, data: Record<string, any>) => {
+  const patch = vi.fn(async (id: unknown, data: Record<string, any>, _params?: unknown) => {
     calls.push({ id, data })
     const next = results.shift()
     if (next === 'ok' || next === undefined) return {}
@@ -65,6 +65,26 @@ describe('OrderCheckoutService.payCash — Verhalten wie finalizeOrder vorher', 
     expect(requestCashSession).toHaveBeenCalledExactlyOnceWith('u-1')
     expect(calls).toHaveLength(2)
     expect(calls[1].data).toBe(calls[0].data)
+  })
+
+  it('meldet BD_6004 beim ersten Versuch nicht als Fehler — der Freigabe-Dialog erklärt die Lage (core#1091)', async () => {
+    const { service, patch } = setup([CASH_SESSION_ERROR, 'ok'])
+
+    await service.payCash(input())
+
+    const params = patch.mock.calls[0][2] as { isExpectedError?: (err: unknown) => boolean } | undefined
+    expect(params?.isExpectedError?.(CASH_SESSION_ERROR)).toBe(true)
+    expect(params?.isExpectedError?.({ data: { code: 'BD_6005' } })).toBe(false)
+    expect(params?.isExpectedError?.(new Error('offline'))).toBe(false)
+  })
+
+  it('meldet bei der Wiederholung nach der Freigabe jeden Fehler, auch BD_6004 (core#1091)', async () => {
+    const { service, patch } = setup([CASH_SESSION_ERROR, 'ok'])
+
+    await service.payCash(input())
+
+    expect(patch).toHaveBeenCalledTimes(2)
+    expect(patch.mock.calls[1][2]).toBeUndefined()
   })
 
   it('wiederholt nicht, wenn die Freigabe ausbleibt', async () => {

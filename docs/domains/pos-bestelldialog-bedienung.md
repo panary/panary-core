@@ -93,6 +93,8 @@ Nach jedem Produkt-Tipp zeigt der Warenkorb die betroffene Zeile und hebt sie ku
 - **Nur `transform` und `opacity`.** Das Mint liegt als Fläche in `::before` hinter dem Inhalt und blendet über
   `opacity` aus. Hell und dunkel kommen aus dem Token. Bei „Bewegung reduzieren" entfallen Einfahren und
   Hüpfen, das Aufleuchten bleibt.
+- Öffnet die neue Zeile sofort das Anpassen-Sheet, läuft der Hinweis-Impuls „wird angepasst" neben dem
+  Einfahren weiter; beide setzen `animation` auf dasselbe Element und müssen deshalb gemeinsam deklariert sein.
 - Gilt für Einzelzeilen und Positionen einer markierten Kombination. `+` in der Steuerleiste ist kein
   Hinzufügen: Die Zeile ist dort schon markiert und sichtbar.
 

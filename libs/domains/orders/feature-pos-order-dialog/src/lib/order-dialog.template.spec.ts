@@ -137,11 +137,14 @@ describe('Kasse-Template — Ziffernleiste (#798, core#829)', () => {
 
   it('schaltet die Ziffern erst inline, wenn Multiplier, 0–9 und C nebeneinander passen', () => {
     const feld = Number(leiste.match(/<button[^>]*class="[^"]*\bw-\[([\d.]+)rem\]/)?.[1])
-    const taste = Number(inline.match(/<button[^>]*class="[^"]*\bw-(\d+)\b/)?.[1]) * 0.25
-    // Feld + zehn Ziffern + C, dazwischen elf Lücken à gap-1.5 = 0.375rem.
-    const bedarf = feld + 11 * taste + 11 * 0.375
+    const taste = Number(inline.match(/<button[^>]*class="[^"]*?(?<![-\w])w-(\d+)\b/)?.[1]) * 0.25
+    // Die Tasten schrumpfen bis zu ihrer Mindestbreite (core#1126); die Schwelle trägt deren Summe.
+    const mindestens = Number(inline.match(/<button[^>]*class="[^"]*\bmin-w-(\d+)\b/)?.[1]) * 0.25
+    // Feld + zehn Ziffern + C, dazwischen elf Lücken à gap-1 = 0.25rem.
+    const bedarf = feld + 11 * mindestens + 11 * 0.25
     expect(feld).toBeGreaterThan(0)
     expect(taste).toBe(3.5)
+    expect(mindestens).toBe(3)
     expect(Number(schwelle(inlineKlassen, 'flex'))).toBeGreaterThanOrEqual(bedarf)
   })
 
@@ -344,7 +347,40 @@ describe('Kasse-Template — Feinschliff (core#908)', () => {
     }
     expect(block(scss, '.kasse__numpad-popup {')).toContain('right: 0')
     const rechts = scss.slice(scss.indexOf(".kasse[data-hand='right'] {"))
-    expect(block(rechts, '.kasse__numpad-popup {')).toContain('left: 10.375rem')
+    expect(block(rechts, '.kasse__numpad-popup {')).toContain('left: 7.625rem')
+  })
+})
+
+// core#1126: Die Ziffernleiste stand bei 1280 px (Zone gemessen 48,5rem) als Popup, weil die Schwelle die Summe fester
+// Breiten war (53,25rem). Die Ziffern sind jetzt flexibel; die Schwelle folgt aus den Mindestbreiten im Template.
+describe('Kasse-Template — Ziffernleiste flexibel (core#1126)', () => {
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  const keys = template.slice(template.indexOf('<div class="kasse__keys '), template.indexOf('Ende Ziffernleiste'))
+  const inline = keys.slice(keys.indexOf('<!-- Ziffern inline'), keys.indexOf('Kompakt (schmale Leiste)'))
+  const feld = Number(keys.match(/class="h-14 w-\[([\d.]+)rem\] shrink-0/)?.[1])
+  const schwellen = [...keys.matchAll(/@min-\[([\d.]+)rem\]/g)].map(m => Number(m[1]))
+
+  it('Inline und Kompakt schalten an derselben Schwelle', () => {
+    expect(schwellen).toHaveLength(2)
+    expect(new Set(schwellen).size).toBe(1)
+  })
+
+  it('die Mindestsumme liegt unter der Zone bei 1280 px', () => {
+    expect(feld).toBe(8)
+    expect(keys).toContain('kasse__keys-row flex flex-row gap-1 ')
+    expect(inline).toContain('flex gap-1 min-w-0"')
+    // 0–9 und C: je 3,5rem breit, bis 3rem schrumpfbar
+    expect(inline.match(/pnry-touch h-14 w-14 min-w-12 shrink /g)).toHaveLength(2)
+    const mindestsumme = feld + 11 * 3 + 11 * 0.25
+    expect(schwellen[0]).toBeGreaterThanOrEqual(mindestsumme)
+    expect(schwellen[0]).toBeLessThan(48.5)
+  })
+
+  it('das Popup steht rechts bedient über der Ziffern-Taste der Kompaktansicht', () => {
+    const rechts = scss.slice(scss.indexOf(".kasse[data-hand='right'] {"))
+    const links = Number(rechts.match(/\.kasse__numpad-popup \{\s*right: auto;\s*left: ([\d.]+)rem/)?.[1])
+    // Feld + Lücke + C + Lücke + halbe Taste − halbe Popup-Breite (12,25rem)
+    expect(links).toBe(feld + 0.25 + 3.5 + 0.25 + 1.75 - 12.25 / 2)
   })
 })
 

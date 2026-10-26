@@ -68,7 +68,8 @@
  * Ziffernleiste am Rand gegenüber dem Warenkorb (core#908): Die freie Hand liegt außen, nicht neben dem Warenkorb.
  * Gespiegelt wird nur die Ausrichtung der Zeile, nie ihre Reihenfolge (Feld, 0–9, C bleiben von links nach rechts).
  * Das Popup steht über der Ziffern-Taste: rechtsbündig an der Zone, sonst wie bisher links verankert —
- * Feld 10,5rem + C + zwei Lücken bis zur Tastenmitte (16,5rem) minus halbe Popup-Breite (6,125rem).
+ * Feld 8rem + C 3,5rem + zwei Lücken à 0,25rem + halbe Taste 1,75rem bis zur Tastenmitte (13,75rem) minus halbe
+ * Popup-Breite (6,125rem), core#1126.
  */
 .kasse__keys-row {
   justify-content: flex-end;
@@ -90,7 +91,7 @@
 
   .kasse__numpad-popup {
     right: auto;
-    left: 10.375rem;
+    left: 7.625rem;
   }
 
   .kasse__numpad-arrow {

@@ -21,7 +21,9 @@ describe('businessdays.getClosedDayStatus — Vorabfrage des POS', () => {
       } as never,
       internal,
     )) as { _id: string }
-    onTestFinished(() => app.service('locations').remove(location._id, internal))
+    onTestFinished(async () => {
+      await app.service('locations').remove(location._id, internal)
+    })
     if (settings) await app.service('locations').patch(location._id, { settings } as never, internal)
 
     return (

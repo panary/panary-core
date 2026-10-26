@@ -126,7 +126,9 @@ Der Cloud-Guard `assertTenantStatus` antwortet bei SUSPENDED/ARCHIVED mit `403`,
 `ServiceHelper.handleError` erkennt den Code (Rückfall: Message-Präfix), zeigt **keinen Toast** und setzt den Zustand im
 `TenantSuspensionService`. Ein generischer 403 setzt ihn nie. Der Zustand läuft nach 60 s ohne weiteren 403 von selbst
 ab: Geräte haben keinen Statusendpunkt, der nächste schreibende Request ist die Nachprüfung und setzt ihn bei fortbestehender
-Sperre sofort neu. Nur Tier `cloud-direct`; Edge-Tiers kennen die Sperre am POS nicht (eigene Frage). Bei ARCHIVED nennt die
+Sperre sofort neu. Der Zustand liegt samt Ablaufzeitpunkt in `sessionStorage` (`panary.tenantSuspension`, core#1030): Ein Neuladen stellt die Sperre
+mit der Restlaufzeit wieder her, ein abgelaufener oder unlesbarer Eintrag wird verworfen, `clear()` löscht ihn mit. Eine Sperre, die
+erst nach dem Neuladen verhängt wird, greift wie bisher beim ersten schreibenden Request. Nur Tier `cloud-direct`; Edge-Tiers kennen die Sperre am POS nicht (eigene Frage). Bei ARCHIVED nennt die
 Subline keinen Ausweg über den Tagesabschluss (auch der ist dort gesperrt).
 
 **Sperre der Auslöser (core#489):** Solange `TenantSuspensionService.suspended()` gilt, sind am POS die Stempel-/Pausen-Buttons

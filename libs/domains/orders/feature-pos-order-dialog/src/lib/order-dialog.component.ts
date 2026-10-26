@@ -175,6 +175,23 @@ function extraTopicOf(event: CustomizeOptionEvent): string | undefined {
   return event.groupId === ALL_MODIFIERS_GROUP_ID ? undefined : event.groupName
 }
 
+/** Format, das das Order-Schema für `componentExternalId` verlangt (#1127). */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Wird eine Menü-Komponente durch eine andere ersetzt, gehen die Modifier mit, die zu ihr gewählt wurden (#1127):
+ * Die Mayonnaise der Pommes gehört nicht zum Salat, der sie ersetzt.
+ */
+function dropComponentModifiers(
+  line: OrderLineItem,
+  previous: { externalId?: string } | null | undefined,
+  next: { externalId?: string },
+): void {
+  const ref = previous?.externalId
+  if (!ref || ref === next.externalId) return
+  line.modifiers = line.modifiers.filter(mod => mod.componentExternalId !== ref)
+}
+
 /**
  * Die eine Meldung nach dem Abschicken (core#1087). Vorher standen „Bestellung wurde erstellt“,
  * „Bestellungen aktualisiert“ und „Bestellung abgeschickt · Neue Bestellung“ zugleich über dem Druckdialog.
@@ -2405,8 +2422,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
     const extraTopic = topic !== undefined ? topic : this._extraTopic
+    // Nur Modifier des Hauptartikels: Die Mayo der Pommes (#1127) ist eine andere als die des Burgers.
     const extraIndex = selectedArticle.modifiers.findIndex(extra => {
-      return extra._id === article._id && extra.price === article.price
+      return extra._id === article._id && extra.price === article.price && !extra.componentExternalId
     })
     if (extraIndex !== -1 && selectedArticle.modifiers[extraIndex].price === article.price) {
       if (selectedArticle.modifiers[extraIndex].amount < 0) {
@@ -2463,7 +2481,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       return
     }
     const extraTopic = topic !== undefined ? topic : this._extraTopic
-    const extraIndex = selectedArticle.modifiers.findIndex(extra => extra._id === article._id && extra.amount > 0)
+    const extraIndex = selectedArticle.modifiers.findIndex(
+      extra => extra._id === article._id && extra.amount > 0 && !extra.componentExternalId,
+    )
     if (extraIndex === -1) return
     if (selectedArticle.modifiers[extraIndex].amount > 1) {
       selectedArticle.modifiers[extraIndex].amount -= 1
@@ -2481,8 +2501,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // Bundle/Menü-Flow Helper-Methoden
   // ──────────────────────────────────────────────────────────────────────
 
-  /** Zeigt die Auswahl-Buttons für eine OptionGroup an */
-  private showOptionGroupButtons(group: any, parentProduct: ProductSchema): void {
+  /**
+   * Zeigt die Auswahl-Buttons für eine OptionGroup an. `componentExternalId`: Die Gruppe gehört zu einer gewählten
+   * Menü-Komponente (Unterschritt „Pommes → Soßen"), dort gewählte Modifier tragen deren Zuordnung (#1127).
+   */
+  private showOptionGroupButtons(group: any, parentProduct: ProductSchema, componentExternalId?: string): void {
     this.clearButtons()
     this._functionBlockLabel = group.name
     this.setInfoBoxText(group.name)
@@ -2544,7 +2567,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // VM-Kopien statt Store-Referenzen — der Dialog darf Cache-Objekte nicht mutieren
     this._productButtons = products.map(product => {
       const button = toPosButton(product)
-      button.callback = () => this.selectOptionGroupItem(button, group, parentProduct)
+      button.callback = () => this.selectOptionGroupItem(button, group, parentProduct, componentExternalId)
       return button
     })
 
@@ -2552,7 +2575,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Verarbeitet die Auswahl eines Items aus einer OptionGroup */
-  private selectOptionGroupItem(selected: ProductSchema, group: any, parentProduct: ProductSchema): void {
+  private selectOptionGroupItem(
+    selected: ProductSchema,
+    group: any,
+    parentProduct: ProductSchema,
+    componentExternalId?: string,
+  ): void {
     const lineItem = this.getCurrentSelectedLineItem()
     if (!lineItem) return
 
@@ -2561,8 +2589,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Speichern basierend auf Gruppen-Name
     const groupName = (group.name || '').toLowerCase()
     if (groupName.includes('beilage') || groupName.includes('side')) {
+      dropComponentModifiers(lineItem, lineItem.menuSideDish, genericItem)
       lineItem.menuSideDish = genericItem
     } else if (groupName.includes('getränk') || groupName.includes('drink')) {
+      dropComponentModifiers(lineItem, lineItem.menuDrink, genericItem)
       lineItem.menuDrink = genericItem
     } else {
       // Soßen, Extras etc. als Modifier (freeQuantity berücksichtigen)
@@ -2572,6 +2602,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         genericItem.price = 0 // Kostenlos innerhalb freeQuantity
       }
       genericItem.topic = group.name
+      // Gewählt im Unterschritt einer Komponente → steht auf Karte und Bon unter ihr (#1127). Nur eine UUID: Die
+      // Cloud prüft das Feld nach dem Pin-Bump und lehnte die Bestellung sonst endgültig am Sync ab.
+      if (componentExternalId && UUID_PATTERN.test(componentExternalId)) {
+        genericItem.componentExternalId = componentExternalId
+      }
       // pricingMode der Herkunftsgruppe auf das Modifier-Item STEMPELN (Order-Snapshot).
       if (group.pricingMode === 'HIGHEST') genericItem.pricingMode = 'HIGHEST'
       lineItem.modifiers.push(genericItem)
@@ -2596,7 +2631,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // aber den parentProduct beibehalten für den Rückweg
     const subGroups = this.#bundleFlow.pendingGroups(selected)
     if (subGroups.length > 0) {
-      this.showOptionGroupButtons(subGroups[0], parentProduct)
+      this.showOptionGroupButtons(subGroups[0], parentProduct, selected.externalId ?? undefined)
       return
     }
 

@@ -35,7 +35,12 @@ import {
   type SplitOrderDialogData,
   type SplitOrderDialogResult,
 } from '@panary/orders/data-access'
-import { effectiveLineItems, type AppliedDiscount } from '@panary/orders/domain'
+import {
+  effectiveLineItems,
+  groupModifiersByComponent,
+  type AppliedDiscount,
+  type ModifierLineItem,
+} from '@panary/orders/domain'
 import { DiscountService } from '@panary/discounts/data-access'
 import type { Discount as ManagedDiscount } from '@panary/discounts/domain'
 import { AuthService } from '@panary/auth/data-access'
@@ -67,7 +72,10 @@ interface ModifierVm {
 interface OrderLineVm {
   item: OrderLineItem
   lineTotalFormatted: string
+  /** Modifier des Hauptartikels; die einer Beilage oder eines Getränks stehen unter der Komponente (#1127). */
   modifiers: ModifierVm[]
+  sideDishModifiers: ModifierVm[]
+  drinkModifiers: ModifierVm[]
   sideDishPriceFormatted: string | null
   drinkPriceFormatted: string | null
 }
@@ -711,17 +719,14 @@ export class ActiveOrdersComponent {
   }
 
   #buildLineVm(item: OrderLineItem): OrderLineVm {
+    // Die Karte gibt `components[]` nicht aus — deren Modifier bleiben am Hauptartikel statt zu verschwinden.
+    const groups = groupModifiersByComponent(item, { components: false })
     return {
       item,
       lineTotalFormatted: this.formatPrice(item.price * item.amount),
-      modifiers: (item.modifiers ?? []).map(extra => ({
-        id: extra._id,
-        name: extra.name,
-        icon: extra.icon,
-        // Betrag wie Engine und Bon (#698): bei `modifierScope: 'unit'` für alle Stück. Mit „+“ wie der
-        // Menü-Aufpreis (core#1126), der Positionspreis darüber steht ohne.
-        priceFormatted: extra.price > 0 ? `+${this.formatPrice(calculateModifierPrice(item, extra))}` : null,
-      })),
+      modifiers: groups.main.map(extra => this.#buildModifierVm(item, extra)),
+      sideDishModifiers: groups.sideDish.map(extra => this.#buildModifierVm(item, extra)),
+      drinkModifiers: groups.drink.map(extra => this.#buildModifierVm(item, extra)),
       // Dieselbe Regel wie im Warenkorb: der Aufpreis je Stück über dem allgemeinen Menüpreis, beim
       // Festpreis-Menü nichts — vorher stand hier der volle Listenpreis der Komponente (core#807).
       sideDishPriceFormatted: this.#menuSurchargeFormatted(
@@ -734,6 +739,17 @@ export class ActiveOrdersComponent {
         item.menuDrink,
         this.#locationService.generalMenuDrinkPrice,
       ),
+    }
+  }
+
+  #buildModifierVm(item: OrderLineItem, extra: ModifierLineItem): ModifierVm {
+    return {
+      id: extra._id,
+      name: extra.name,
+      icon: extra.icon,
+      // Betrag wie Engine und Bon (#698): bei `modifierScope: 'unit'` für alle Stück. Mit „+“ wie der
+      // Menü-Aufpreis (core#1126), der Positionspreis darüber steht ohne.
+      priceFormatted: extra.price > 0 ? `+${this.formatPrice(calculateModifierPrice(item, extra))}` : null,
     }
   }
 

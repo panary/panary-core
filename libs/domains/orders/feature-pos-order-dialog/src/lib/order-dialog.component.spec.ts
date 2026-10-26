@@ -3854,3 +3854,92 @@ describe('Kasse — Hinzufügen zeigt die Zeile (core#1116)', () => {
     expect(component.cartPing()).toBeNull()
   })
 })
+
+/**
+ * Modifier aus dem Unterschritt einer Menü-Komponente tragen deren Zuordnung (#1127): Die Mayonnaise aus
+ * „Pommes → Soßen" gehört zur Pommes, nicht zum Burger. Preis und Freimenge bleiben unberührt.
+ */
+describe('OrderDialog — Modifier je Menü-Komponente (#1127)', () => {
+  const POMMES = '019ecd00-0000-7000-8000-000000000001'
+  const SALAT = '019ecd00-0000-7000-8000-000000000002'
+  const mayo = () => product('mayo', { name: 'Mayo', price: 0.5, productType: 'MODIFIER' } as never)
+  const cola = () => product('cola', { name: 'Cola' } as never)
+  const sauces = { id: 'g-sauce', name: 'Soßen', minSelections: 0, maxSelections: 2, options: [{ productId: 'mayo' }] }
+  const pommes = (externalId = POMMES) =>
+    product('pommes', { name: 'Pommes', externalId, optionGroups: [sauces] } as never)
+  const salat = () => product('salat', { name: 'Salat', externalId: SALAT } as never)
+  const menu = () =>
+    product('menu', {
+      name: 'Burger-Menü',
+      productType: 'BUNDLE',
+      optionGroups: [
+        { id: 'g-side', name: 'Beilage', minSelections: 1, maxSelections: 1, options: [{ productId: 'pommes' }] },
+        { id: 'g-drink', name: 'Getränk', minSelections: 1, maxSelections: 1, options: [{ productId: 'cola' }] },
+      ],
+    } as never)
+  const tap = (component: any, name: string) => component.productButtons.find((b: any) => b.name === name).callback()
+  const mods = (component: any) =>
+    component.lineItems[0].modifiers.map((m: { name: string; componentExternalId?: string }) => [
+      m.name,
+      m.componentExternalId,
+    ])
+
+  it('ordnet die Soße aus dem Unterschritt der Beilage zu', () => {
+    const { component } = setup({ catalog: [menu(), pommes(), mayo(), cola()] })
+    component.increaseLineItem(menu())
+
+    tap(component, 'Pommes')
+    tap(component, 'Mayo')
+    tap(component, 'Cola')
+
+    expect(component.lineItems[0].menuSideDish?.name).toBe('Pommes')
+    expect(component.lineItems[0].menuDrink?.name).toBe('Cola')
+    expect(mods(component)).toEqual([['Mayo', POMMES]])
+    // Preis wie vorher: die Zuordnung ist reine Anzeige.
+    expect(component.lineItems[0].modifiers[0].price).toBe(0.5)
+  })
+
+  it('setzt keine Zuordnung, wenn die Komponente keine UUID trägt — der Sync lehnte sie sonst ab', () => {
+    const { component } = setup({ catalog: [menu(), pommes('ext-pommes'), mayo(), cola()] })
+    component.increaseLineItem(menu())
+
+    tap(component, 'Pommes')
+    tap(component, 'Mayo')
+
+    expect(mods(component)).toEqual([['Mayo', undefined]])
+  })
+
+  it('das Extras-Raster bucht eine zweite Mayo für den Burger, statt die der Pommes zu erhöhen (Review #1127)', () => {
+    const { component } = setup({ catalog: [menu(), pommes(), mayo(), cola()] })
+    component.increaseLineItem(menu())
+    tap(component, 'Pommes')
+    tap(component, 'Mayo')
+    tap(component, 'Cola')
+    const line = component.lineItems[0]
+
+    component.increaseExtra(mayo() as never, 'Extras', line)
+    expect(mods(component)).toEqual([
+      ['Mayo', POMMES],
+      ['Mayo', undefined],
+    ])
+
+    // Minus nimmt die Burger-Mayo zurück und lässt die der Pommes stehen.
+    component.decreaseExtra(mayo() as never, 'Extras', line)
+    expect(mods(component)).toEqual([['Mayo', POMMES]])
+    component.decreaseExtra(mayo() as never, 'Extras', line)
+    expect(mods(component)).toEqual([['Mayo', POMMES]])
+  })
+
+  it('nimmt die zugeordneten Modifier mit, wenn die Beilage ersetzt wird', () => {
+    const { component } = setup({ catalog: [menu(), pommes(), salat(), mayo(), cola()] })
+    component.increaseLineItem(menu())
+    tap(component, 'Pommes')
+    tap(component, 'Mayo')
+    component.lineItems[0].modifiers.push({ name: 'Bacon', _id: 'bacon', amount: 1, price: 1 } as never)
+
+    component['selectOptionGroupItem'](salat(), { id: 'g-side', name: 'Beilage' }, menu())
+
+    expect(component.lineItems[0].menuSideDish?.name).toBe('Salat')
+    expect(mods(component)).toEqual([['Bacon', undefined]])
+  })
+})

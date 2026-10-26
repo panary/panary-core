@@ -4,7 +4,7 @@ title: POS-Offene Bestellungen — Bon-Karte
 description: 'Wie die Bon-Karte unter „Offene Bestellungen“ Positionen, Modifier, Beilage und Getränk in einem Raster mit Preisspalte zeigt, den Kopf in einer Zeile hält und das Aktionsmenü vollständig sichtbar macht.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-26T21:30:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-26T21:50:00Z }
 ---
 
 # POS-Offene Bestellungen — Bon-Karte
@@ -27,8 +27,14 @@ standen die Aufpreise in der Namensspalte und endeten an deren Rand; lange Namen
 
 Die Preiszelle wird auch leer gerendert, damit die Folge der Grid-Zellen nicht verrutscht. Beilage und Getränk liefert
 die Vorlage `#menuParts` als zwei Zellen ins Raster der Position, für freie Positionen und Kombinationen gleich.
-Die Zuordnung von Modifiern zu Menü-Komponenten baut auf diesem Raster auf
-([core#1127](https://github.com/panary/panary-core/issues/1127)).
+
+### Modifier unter ihrer Komponente
+
+Seit [core#1127](https://github.com/panary/panary-core/issues/1127) stehen Modifier, die zu Beilage oder Getränk
+gewählt wurden, direkt unter der Komponente: `text-xs text-ink-muted pl-6`, eine Stufe weiter eingerückt, Preis in
+derselben Preisspalte (Vorlage `#componentModifiers`). Die Gruppierung kommt aus `groupModifiersByComponent(item,
+{ components: false })`; Modifier ohne Zuordnung bleiben unter der Position wie bisher. Modell und Regeln:
+[Modifier je Menü-Komponente](modifier-menue-komponente.md).
 
 ## Kopf in einer Zeile
 

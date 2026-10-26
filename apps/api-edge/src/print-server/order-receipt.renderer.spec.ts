@@ -707,3 +707,87 @@ describe('Gesamtzeile in genau einer Zeile (#758)', () => {
     expect(gesamtZeilen(price, paperWidth)).toEqual([`Gesamt ${betrag}`])
   })
 })
+
+describe('order-receipt.renderer — Modifier je Menü-Komponente (#1127)', () => {
+  const POMMES = '019ecd00-0000-7000-8000-000000000001'
+  const COLA = '019ecd00-0000-7000-8000-000000000002'
+  const mod = (name: string, price: number, componentExternalId?: string) => ({
+    _id: `m-${name}`,
+    name,
+    price,
+    amount: 1,
+    taxInside: 19,
+    taxOutside: 7,
+    topic: 'Extras',
+    ...(componentExternalId ? { componentExternalId } : {}),
+  })
+  const order = (modifiers: Record<string, unknown>[]) => ({
+    dailySequenceNumber: 9,
+    dineLocation: 'take-out',
+    recordingDate: '2026-10-26T10:00:00.000Z',
+    lineItems: [
+      {
+        _id: 'li-1',
+        name: 'XXL Hamburger',
+        topic: 'Menues',
+        amount: 1,
+        price: 12,
+        taxInside: 19,
+        taxOutside: 7,
+        isMenu: true,
+        modifierScope: 'unit',
+        menuSideDish: { externalId: POMMES, name: 'Pommes', price: 1, amount: 1, taxInside: 19, taxOutside: 7 },
+        menuDrink: { externalId: COLA, name: 'Cola Zero', price: 3.5, amount: 1, taxInside: 19, taxOutside: 7 },
+        modifiers,
+      },
+    ],
+  })
+  const lines = (o: Record<string, unknown>, variant: 'full' | 'kitchen') =>
+    decodeEscPosLines(renderOrderReceipt(o, location, { variant }), 20)
+  const positions = (o: Record<string, unknown>, variant: 'full' | 'kitchen') => {
+    const all = lines(o, variant).map(l => l.text)
+    const start = all.findIndex(t => t.includes('XXL Hamburger'))
+    return all.slice(start, start + 5)
+  }
+
+  it.each(['full', 'kitchen'] as const)('druckt auf dem %s-Bon die Soße eingerückt unter der Pommes', variant => {
+    const o = order([mod('Bacon', 1.5), mod('Mayo', 0.5, POMMES)])
+
+    expect(positions(o, variant).map(t => t.replace(/\s+\S+ EUR$/, ''))).toEqual([
+      '1x XXL Hamburger',
+      '1x Bacon',
+      '+ Pommes',
+      '1x Mayo',
+      '+ Cola Zero',
+    ])
+    const all = lines(o, variant)
+    const bacon = all.find(l => l.text.includes('Bacon'))!
+    const mayo = all.find(l => l.text.includes('Mayo'))!
+    expect(mayo.leadDots).toBeGreaterThan(bacon.leadDots)
+    // Preisspalte endet an derselben Stelle.
+    expect(mayo.leadDots + mayo.contentDots).toBe(bacon.leadDots + bacon.contentDots)
+  })
+
+  it('lässt eine Bestellung ohne Zuordnung wie vorher: Komponenten, dann alle Modifier', () => {
+    expect(
+      positions(order([mod('Bacon', 1.5), mod('Mayo', 0.5)]), 'full').map(t => t.replace(/\s+\S+ EUR$/, '')),
+    ).toEqual(['1x XXL Hamburger', '+ Pommes', '+ Cola Zero', '1x Bacon', '1x Mayo'])
+  })
+
+  it('fällt bei einer unbekannten Referenz auf die Bestandsdarstellung zurück', () => {
+    const unbekannt = '019ecd00-0000-7000-8000-0000000000ff'
+    expect(positions(order([mod('Mayo', 0.5, unbekannt)]), 'full')[3]).toContain('1x Mayo')
+  })
+
+  it('ändert keine Summe: Gesamt mit und ohne Zuordnung bitgenau gleich', () => {
+    // Der Fuss mit dem Schnitt liegt hinter dem, was der Layout-Decoder kennt — die Summe steht im Klartext.
+    const gesamt = (o: Record<string, unknown>) => {
+      const text = renderToText(o, location)
+      return /\d+,\d{2}/.exec(text.slice(text.lastIndexOf('Gesamt')))?.[0]
+    }
+    const mit = gesamt(order([mod('Bacon', 1.5), mod('Mayo', 0.5, POMMES)]))
+    // 12,00 Menü + 1,50 Bacon + 0,50 Mayo + 1,00 Pommes + 3,50 Cola — die Engine zählt die Komponenten voll
+    expect(mit).toBe('18,50')
+    expect(mit).toBe(gesamt(order([mod('Bacon', 1.5), mod('Mayo', 0.5)])))
+  })
+})

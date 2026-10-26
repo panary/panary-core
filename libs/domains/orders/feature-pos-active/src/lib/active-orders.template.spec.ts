@@ -65,7 +65,10 @@ describe('Offene Bestellungen — Kopf statt Leiste (core#973)', () => {
 describe('Offene Bestellungen — Bon-Karte (core#1126)', () => {
   const template = read('./active-orders.component.html')
   const component = read('./active-orders.component.ts')
-  const menuParts = template.slice(template.indexOf('<ng-template #menuParts'))
+  const menuParts = template.slice(
+    template.indexOf('<ng-template #menuParts'),
+    template.indexOf('<ng-template #componentModifiers'),
+  )
 
   it('freie Positionen und Kombinationen stehen im Raster Menge | Name | Preis', () => {
     expect(template.match(/data-testid="line-grid"/g)).toHaveLength(2)
@@ -74,7 +77,8 @@ describe('Offene Bestellungen — Bon-Karte (core#1126)', () => {
 
   it('jede Unterzeile trägt eine eigene Preiszelle rechtsbündig in der Preisspalte', () => {
     // Modifier: Name in Spalte 2, Preiszelle immer gerendert (auch leer), damit das Raster nicht verrutscht
-    expect(template.match(/extra\.priceFormatted\s*\}\}<\/span>/g)).toHaveLength(2)
+    // Drei Stellen: freie Position, Kombination und Komponenten-Modifier (core#1127)
+    expect(template.match(/extra\.priceFormatted\s*\}\}<\/span>/g)).toHaveLength(3)
     expect(template).not.toMatch(/@if \(extra\.priceFormatted\)/)
     expect(menuParts).not.toMatch(/@if \(line\.(sideDish|drink)PriceFormatted\)/)
     expect(menuParts.match(/text-right">\{\{/g)).toHaveLength(2)
@@ -103,5 +107,35 @@ describe('Offene Bestellungen — Bon-Karte (core#1126)', () => {
     expect(template).toMatch(
       /row-start-1 col-start-1 min-h-0 flex flex-col overflow-hidden" data-testid="order-receipt"/,
     )
+  })
+})
+
+// core#1127: Modifier, die zu Beilage oder Getränk gewählt wurden, stehen unter der Komponente statt am Hauptartikel.
+describe('Offene Bestellungen — Modifier je Menü-Komponente (core#1127)', () => {
+  const template = read('./active-orders.component.html')
+  const component = read('./active-orders.component.ts')
+  const menuParts = template.slice(
+    template.indexOf('<ng-template #menuParts'),
+    template.indexOf('<ng-template #componentModifiers'),
+  )
+  const componentModifiers = template.slice(template.indexOf('<ng-template #componentModifiers'))
+
+  it('gruppiert über den Domain-Helfer und lässt components[]-Modifier am Hauptartikel', () => {
+    expect(component).toMatch(/groupModifiersByComponent\(item, \{ components: false \}\)/)
+    expect(component).toMatch(/modifiers: groups\.main\.map/)
+    expect(component).toMatch(/sideDishModifiers: groups\.sideDish\.map/)
+    expect(component).toMatch(/drinkModifiers: groups\.drink\.map/)
+  })
+
+  it('Beilage und Getränk geben ihre Modifier direkt unter sich aus', () => {
+    const side = menuParts.slice(menuParts.indexOf('menuSideDish.name'), menuParts.indexOf('@if (line.item.menuDrink)'))
+    const drink = menuParts.slice(menuParts.indexOf('menuDrink.name'))
+    expect(side).toMatch(/\$implicit: line\.sideDishModifiers/)
+    expect(drink).toMatch(/\$implicit: line\.drinkModifiers/)
+  })
+
+  it('Komponenten-Modifier tragen ihre Preiszelle in der Preisspalte', () => {
+    expect(componentModifiers).toMatch(/col-start-2 text-xs text-ink-muted pl-6/)
+    expect(componentModifiers.match(/text-right">\{\{ extra\.priceFormatted \}\}/g)).toHaveLength(1)
   })
 })

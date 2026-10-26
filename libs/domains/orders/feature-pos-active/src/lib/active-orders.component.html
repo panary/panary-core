@@ -583,6 +583,10 @@
       <span class="text-xs text-ink-muted whitespace-nowrap tabular-nums text-right">{{
         line.sideDishPriceFormatted
       }}</span>
+      <ng-container
+        [ngTemplateOutlet]="componentModifiers"
+        [ngTemplateOutletContext]="{ $implicit: line.sideDishModifiers }"
+      />
     }
     @if (line.item.menuDrink) {
       <span class="col-start-2 text-sm text-ink pl-2 flex items-center gap-1 min-w-0" data-testid="menu-part">
@@ -592,6 +596,24 @@
       <span class="text-xs text-ink-muted whitespace-nowrap tabular-nums text-right">{{
         line.drinkPriceFormatted
       }}</span>
+      <ng-container
+        [ngTemplateOutlet]="componentModifiers"
+        [ngTemplateOutletContext]="{ $implicit: line.drinkModifiers }"
+      />
     }
+  }
+</ng-template>
+
+<!-- Modifier, die zu einer Menü-Komponente gewählt wurden (#1127): unter Beilage oder Getränk, eine Stufe weiter
+     eingerückt als die Komponente, Preis in derselben Preisspalte wie alle Unterzeilen (core#1126). -->
+<ng-template #componentModifiers let-modifiers>
+  @for (extra of modifiers; track extra.id) {
+    <span class="col-start-2 text-xs text-ink-muted pl-6" data-testid="component-modifier"
+      >+ {{ extra.name }}
+      @if (extra.icon) {
+        {{ extra.icon }}
+      }
+    </span>
+    <span class="text-xs text-ink-muted whitespace-nowrap tabular-nums text-right">{{ extra.priceFormatted }}</span>
   }
 </ng-template>

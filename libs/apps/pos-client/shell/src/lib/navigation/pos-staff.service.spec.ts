@@ -62,7 +62,8 @@ describe('PosStaffService (core#832)', () => {
     const { service, users, notify } = setup()
     await service.clockIn()
     expect(users.checkin.mock.calls).toEqual([['u-olga', {}]])
-    expect(notify).not.toHaveBeenCalled()
+    // Die eine Rückmeldung, ohne Login-Namen (core#962).
+    expect(notify.mock.calls).toEqual([['success', 'POS_NAV.CLOCKED_IN']])
   })
 
   it('sperrt Stempeln offline mit Hinweis und ruft den Server nicht', async () => {

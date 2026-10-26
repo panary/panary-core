@@ -105,7 +105,7 @@ export class PosStaffService {
   async clockIn(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user) return
-    await this.#run('Clock in', () => this.#users.checkin(user._id, withPosOperatorToken()))
+    await this.#run('Clock in', () => this.#users.checkin(user._id, withPosOperatorToken()), 'POS_NAV.CLOCKED_IN')
   }
 
   /**
@@ -116,19 +116,26 @@ export class PosStaffService {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
     if (!(await this.#kasse.confirmLeave())) return
-    if (await this.#run('Clock out', () => this.#users.checkout(user._id, withPosOperatorToken()))) this.#endSession()
+    if (
+      await this.#run('Clock out', () => this.#users.checkout(user._id, withPosOperatorToken()), 'POS_NAV.CLOCKED_OUT')
+    )
+      this.#endSession()
   }
 
   async startBreak(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    await this.#run('Start break', () => this.#users.startBreak(user._id, withPosOperatorToken()))
+    await this.#run(
+      'Start break',
+      () => this.#users.startBreak(user._id, withPosOperatorToken()),
+      'POS_NAV.BREAK_STARTED',
+    )
   }
 
   async endBreak(): Promise<void> {
     const user = this.#timeTrackingUser()
     if (!user?.stampingId) return
-    await this.#run('End break', () => this.#users.endBreak(user._id, withPosOperatorToken()))
+    await this.#run('End break', () => this.#users.endBreak(user._id, withPosOperatorToken()), 'POS_NAV.BREAK_ENDED')
   }
 
   /** Nennt den Grund, warum Stempeln gerade gesperrt ist; `false`, wenn es nicht gesperrt ist. */
@@ -205,9 +212,11 @@ export class PosStaffService {
     return this.currentUser()
   }
 
-  async #run(label: string, call: () => Promise<unknown>): Promise<boolean> {
+  async #run(label: string, call: () => Promise<unknown>, successKey: string): Promise<boolean> {
     try {
       await call()
+      // Die Standardmeldungen des working-times-Service sind am POS stumm (core#962): das ist die eine Rückmeldung.
+      this.#notify(successKey, 'success')
       return true
     } catch (error) {
       console.error(`${label} failed:`, error)

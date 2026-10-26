@@ -38,7 +38,7 @@ Neues Modul `apps/api-edge/src/workers/sync-apply.ts` als Single Source für:
 | `cloudFetch` | EIN authentifizierter Cloud-HTTP-Call (`X-Edge-Token`), Default-Timeout 10 s; Bootstrap-Call-Sites geben 60 s explizit mit |
 | `extractAjvValidationErrors` | EINE AJV-Fehler-Extraktion (Feathers `BadRequest`: `.data`, alte Builds `.errors`) |
 | `pullMasterDataPage` | eine Seite `/sync-pull` (cursor-basiert, `PULL_PAGE_SIZE` 500) |
-| `applyPulledRecords` | gepullte Records via Service-API anwenden (`fromSync: true`), Rückgabe `{ applied, rejected, details, foreignTenant }`; Optionen `mode`, `expectedTenantId`, `connectionId` |
+| `applyPulledRecords` | gepullte Records via Service-API anwenden (`fromSync: true`), Rückgabe `{ applied, rejected, details, foreignTenant, unchanged }`; Optionen `mode`, `expectedTenantId`, `connectionId` |
 | `detectForeignTenantId` | reine Fallunterscheidung des Fremd-Mandanten-Guards — liefert die fremde `tenantId` oder `null` (siehe unten) |
 | `throwIfRateLimited` | EINE 429-Erkennung inkl. `Retry-After`-Auswertung und der einzigen `sync.rate_limited`-Logzeile; an jeder Call-Site **vor** `!response.ok` aufzurufen |
 | `CloudRateLimitedError` | Marker-Error, an dem die Phasen-Wrapper Cloud-Rückstau von echten Fehlern trennen (trägt `phase` und ausgewertete `retryAfterMs`) |
@@ -75,11 +75,29 @@ Fehlversuch, `Retry-After` ist bindend, die Outbox bleibt `pending` — stehen i
 ### Gebatchter Existenz-Check
 
 `applyPulledRecords` prüft Existenz **pro Pull-Seite** mit EINEM
-`find({ _id: { $in: pageIds }, $select: ['_id'] })` statt einem `get` pro
-Record. Danach `patch` (existiert) bzw. `create` (neu); `deletedAt`-Records
+`find({ _id: { $in: pageIds } })` statt einem `get` pro
+Record. Danach `patch` (existiert und weicht ab) bzw. `create` (neu); `deletedAt`-Records
 werden via `remove` angewandt. Fehler pro Record blockieren nie die Seite
 (REJECTED-Detail + Wide-Event-Log). Idempotent: dieselbe Seite doppelt
-angewandt ergibt beim zweiten Lauf nur Patches.
+angewandt schreibt beim zweiten Lauf nichts.
+
+### Unveränderte Records werden nicht gepatcht (#1105)
+
+Der Existenz-Check lädt seit panary/panary-core#1105 die **volle Zeile** statt nur `_id`.
+`isUnchangedRecord` vergleicht jedes eingehende Feld mit ihr; stimmt alles überein, entfällt
+der Patch, der Record zählt in `unchanged` (nicht in `applied`, kein Detail).
+
+Anlass: Nach einem Voll-Pull (leerer Cursor, etwa der erste Pull nach dem Bootstrap) kam
+jeder Geschäftstag erneut an und wurde gepatcht. Jeder Patch stempelte `updatedAt` neu und
+schickte ein `patched`-Event an den POS, der je Event „Geschäftstag wurde geändert“ zeigte
+(in der Sandbox +43). Echte Änderungen der Cloud patchen und melden weiter.
+
+- `updatedAt` geht nicht in den Vergleich ein: Der Patch-Resolver des Edge stempelt es selbst,
+  der lokale Wert weicht deshalb nach jedem früheren Apply vom Cloud-Wert ab.
+- SQLite speichert Booleans als `0`/`1`. Ein `false` der Cloud gegen eine gespeicherte `0`
+  gilt als gleich, gemessen an `businessdays.isOpen` (`test/workers/sync-apply-unchanged.test.ts`).
+- Fail-open in Richtung Patch: Jede andere abweichende Darstellung (fehlendes Feld statt
+  `null`, Zahl statt String) zählt als Änderung und patcht wie vorher.
 
 ### Bootstrap-Pfad: `mode: 'insert'`
 
@@ -110,7 +128,7 @@ Source in `backoff-schedule.ts` (dort hermetisch getestet).
   (`PULL_TIMEOUT_MS`) — für einen 5-s-Kadenz-Worker angemessen.
 - Tests: `test/workers/sync-apply.test.ts` (Apply happy/gemischt,
   Batch-Existenz-Spy, Idempotenz doppelter Seite, insert-Modus,
-  Reject-Isolation, Legacy-`discount`-Strip sowie die acht Fälle des
+  Reject-Isolation, unveränderte Records (#1105), Legacy-`discount`-Strip sowie die acht Fälle des
   Fremd-Mandanten-Guards: Erkennung ohne Ablehnung, Rasten-Stempel kumulativ,
   Verdichtung, eigener Mandant, Record ohne `tenantId`, fail-open ohne
   erwarteten Mandanten, nicht schreibbare Raste, Treffer der durchgereichten

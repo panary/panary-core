@@ -12,9 +12,11 @@
 //  - `applyPulledRecords`       — gepullte Records via Service-API anwenden
 //
 // Performance-Kern von `applyPulledRecords`: der Existenz-Check laeuft
-// GEBATCHT — EIN `find({ _id: { $in: pageIds }, $select: ['_id'] })` pro
+// GEBATCHT — EIN `find({ _id: { $in: pageIds } })` pro
 // Pull-Seite statt einem `get().catch(() => null)` pro Record. Bei einer
 // vollen 500er-Seite spart das 499 Feathers-Roundtrips (inkl. Hook-Chains).
+import { isDeepStrictEqual } from 'node:util'
+
 import { logger } from '@panary/shared-backend'
 import {
   rateLimitDelayMs,
@@ -207,11 +209,51 @@ export interface ApplyPulledRecordsResult {
   details: SyncRunRecordDetail[]
   /**
    * Records dieser Seite mit fremder `tenantId` (#337). Sie wurden TROTZDEM
-   * angewandt und zaehlen deshalb auch in `applied` — der Wert ist ein Befund,
-   * keine Fehlerzahl.
+   * angewandt und zaehlen deshalb auch in `applied` (oder in `unchanged`, wenn
+   * sie lokal schon genau so standen) — der Wert ist ein Befund, keine Fehlerzahl.
    */
   foreignTenant: number
+  /**
+   * Records, die lokal schon genau so stehen und deshalb NICHT gepatcht wurden
+   * (#1105). Zaehlen nicht in `applied` und erzeugen kein Detail: Es wurde nichts
+   * geschrieben.
+   */
+  unchanged: number
 }
+
+/**
+ * Felder, die der Vergleich in `isUnchangedRecord` uebergeht: `updatedAt` stempelt
+ * der Patch-Resolver des Edge selbst (z.B. `businessDayPatchResolver`), der lokale
+ * Wert weicht deshalb nach jedem frueheren Apply vom Cloud-Wert ab. Ein Unterschied
+ * nur dort ist keine Aenderung.
+ */
+const UNCHANGED_COMPARE_IGNORED_FIELDS = new Set(['updatedAt'])
+
+/**
+ * Steht der eingehende Record lokal schon genau so? Dann wuerde ein Patch nichts
+ * aendern, aber `updatedAt` neu stempeln und ein `patched`-Event an jeden POS
+ * schicken — nach einem Voll-Pull eines je Datensatz. So entstand
+ * „Geschaeftstag wurde geaendert +43" (panary/panary-core#1105).
+ *
+ * Fail-open in Richtung Patch: Nur wenn JEDES eingehende Feld lokal gleich ist,
+ * entfaellt der Schreibvorgang. Abweichende Darstellungen (fehlendes Feld statt
+ * `null`, Zahl statt String) zaehlen als Aenderung und patchen wie bisher.
+ */
+export const isUnchangedRecord = (incoming: Record<string, unknown>, existing: Record<string, unknown>): boolean =>
+  Object.entries(incoming).every(
+    ([key, value]) => UNCHANGED_COMPARE_IGNORED_FIELDS.has(key) || isSameStoredValue(value, existing[key]),
+  )
+
+/**
+ * SQLite kennt keinen Boolean: Knex liefert eine gespeicherte Spalte als `0`/`1`
+ * zurueck (gemessen an `businessdays.isOpen`, #1105). Ein Patch mit `false` schriebe
+ * wieder `0` — das ist keine Aenderung. Nur auf oberster Ebene; JSON-Spalten
+ * behalten ihre Booleans.
+ */
+const isSameStoredValue = (incoming: unknown, stored: unknown): boolean =>
+  typeof incoming === 'boolean' && typeof stored === 'number'
+    ? stored === (incoming ? 1 : 0)
+    : isDeepStrictEqual(incoming, stored)
 
 /**
  * Wendet eine Seite gepullter Cloud-Records auf die Edge-DB an — via
@@ -231,7 +273,7 @@ export interface ApplyPulledRecordsResult {
  *
  * Fehler pro Record werden geloggt + als REJECTED-Detail zurueckgegeben —
  * ein kaputter Record blockiert nie den Rest der Seite. Idempotent: dieselbe
- * Seite doppelt angewandt (upsert) ergibt beim zweiten Lauf nur Patches.
+ * Seite doppelt angewandt (upsert) schreibt beim zweiten Lauf nichts (#1105).
  */
 /**
  * Entfernt das mit ADR 0030 abgeschaffte Legacy-Rabattfeld `order.discount` aus einem
@@ -380,12 +422,14 @@ export const applyPulledRecords = async (
   let foreignTenant = 0
   let lastForeignTenantId: string | null = null
   const foreignSampleIds: string[] = []
-  if (records.length === 0) return { applied, rejected, details, foreignTenant }
+  let unchanged = 0
+  if (records.length === 0) return { applied, rejected, details, foreignTenant, unchanged }
 
   // Existenz-Check gebatcht: EIN find pro Pull-Seite statt get pro Record.
   // Ohne User im Params-Kontext bypassed multiTenancy den Filter — die _ids
-  // stammen ohnehin aus dem tenant-gescopten Cloud-Pull.
-  let existingIds = new Set<string>()
+  // stammen ohnehin aus dem tenant-gescopten Cloud-Pull. Volle Zeilen statt
+  // `$select: ['_id']`, damit unveraenderte Records ohne Patch bleiben (#1105).
+  const existingById = new Map<string, Record<string, unknown>>()
   if (mode === 'upsert') {
     const upsertIds = records.filter(item => !item.deletedAt).map(item => item._id)
     if (upsertIds.length > 0) {
@@ -393,9 +437,9 @@ export const applyPulledRecords = async (
         const found = (await app.service(service as any).find({
           provider: undefined,
           paginate: false,
-          query: { _id: { $in: upsertIds }, $select: ['_id'] },
-        } as any)) as Array<{ _id: string }>
-        existingIds = new Set((Array.isArray(found) ? found : []).map(row => row._id))
+          query: { _id: { $in: upsertIds } },
+        } as any)) as Array<Record<string, unknown> & { _id: string }>
+        for (const row of Array.isArray(found) ? found : []) existingById.set(row._id, row)
       } catch (err) {
         // Degradieren statt Seite verwerfen: ohne Existenz-Wissen behandeln wir
         // alle Records als neu — existierende laufen dann in den Create-Fehlerpfad
@@ -453,7 +497,12 @@ export const applyPulledRecords = async (
         lastForeignTenantId = foreignTenantId
         if (foreignSampleIds.length < 5) foreignSampleIds.push(item._id)
       }
-      if (existingIds.has(item._id)) {
+      const existing = existingById.get(item._id)
+      if (existing && isUnchangedRecord(incoming, existing)) {
+        unchanged++
+        continue
+      }
+      if (existing) {
         op = SyncOp.PATCH
         await app
           .service(service as any)
@@ -502,5 +551,5 @@ export const applyPulledRecords = async (
       connectionId: options.connectionId,
     })
   }
-  return { applied, rejected, details, foreignTenant }
+  return { applied, rejected, details, foreignTenant, unchanged }
 }

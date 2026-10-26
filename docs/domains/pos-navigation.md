@@ -52,7 +52,7 @@ Avatar-Menü.
 (`timeClockState`): grau = ausgestempelt, ein Tipp stempelt ein; mint = eingestempelt, ein Tipp öffnet ein
 Menü mit Uhrzeit und Dauer, **Pause** und **Gehen**; amber = Pause, ein Tipp beendet sie
 (`timeClockTapAction`). Ein Tipp löst genau einen Aufruf aus — `PosStaffService.timeClock()` sperrt, solange
-die Antwort aussteht. Rückmeldung ist die Farbe der Taste: Die generische Realtime-Meldung „Benutzer wurde
+die Antwort aussteht. Rückmeldung sind die Farbe der Taste und eine kurze Meldung ohne Login-Namen („Eingestempelt“, „Pause begonnen“, „Pause beendet“, „Ausgestempelt“, aus `PosStaffService`); die technischen Standardmeldungen des `WorkingTimeService` („Arbeitszeit wurde erstellt/geändert“, [core#962](https://github.com/panary/panary-core/issues/962)) sind am POS stumm. Die generische Realtime-Meldung „Benutzer wurde
 geändert“, die jedes Stempeln über das `patched`-Event auslöste, unterdrückt `UserService`
 ([core#954](https://github.com/panary/panary-core/issues/954), Muster core#657 bei Bestellungen). Gesperrt (offline, Mandantensperre) öffnet die Taste kein Menü, sondern nennt den Grund.
 Stempeltaste und Abmelden sind 48 px hoch (Touch-Minimum). Die Arbeitszeit für Uhrzeit und Dauer lädt

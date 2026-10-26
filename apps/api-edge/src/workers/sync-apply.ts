@@ -241,9 +241,7 @@ const UNCHANGED_COMPARE_IGNORED_FIELDS = new Set(['updatedAt'])
  */
 export const isUnchangedRecord = (incoming: Record<string, unknown>, existing: Record<string, unknown>): boolean =>
   Object.entries(incoming).every(
-    ([key, value]) =>
-      UNCHANGED_COMPARE_IGNORED_FIELDS.has(key) ||
-      (Object.prototype.hasOwnProperty.call(existing, key) && isSameStoredValue(value, existing[key])),
+    ([key, value]) => UNCHANGED_COMPARE_IGNORED_FIELDS.has(key) || isSameStoredValue(value, existing[key]),
   )
 
 /**

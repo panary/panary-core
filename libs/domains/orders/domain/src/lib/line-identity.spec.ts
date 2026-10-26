@@ -76,6 +76,16 @@ describe('lineConfigKey', () => {
     expect(lineConfigKey(burger({ modifiers: [oK(), K()] }))).toBe(lineConfigKey(burger({ modifiers: [K(), oK()] })))
   })
 
+  it('trennt denselben Modifier an verschiedenen Menü-Komponenten (#1127)', () => {
+    const mayo = (componentExternalId?: string) => mod('mayo', { price: 0.5, componentExternalId })
+    expect(lineConfigKey(burger({ modifiers: [mayo('pommes')] }))).not.toBe(
+      lineConfigKey(burger({ modifiers: [mayo()] })),
+    )
+    expect(lineConfigKey(burger({ modifiers: [mayo('pommes')] }))).toBe(
+      lineConfigKey(burger({ modifiers: [mayo('pommes')] })),
+    )
+  })
+
   it('zählt den alten OHNE-Marker (amount −1) nicht als Modifier', () => {
     expect(lineConfigKey(burger({ modifiers: [mod('zwiebel', { amount: -1 })] }))).toBe(lineConfigKey(burger()))
   })

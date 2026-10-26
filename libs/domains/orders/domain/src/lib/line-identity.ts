@@ -11,8 +11,8 @@ import type { OrderLineItem } from './order.schema'
  * Zum Schlüssel gehören, was den Preis oder die Ware des Stücks ändert:
  * - Produkt (`externalId`) und Stückpreis,
  * - die Kombination (`bundleNumber`) — über ihre Grenze wird nie zusammengeführt,
- * - die Modifier, normalisiert und sortiert: je Id, Preis, `topic`, `pricingMode` und
- *   abgewählter Zutat die summierte Menge. Die Reihenfolge der Eingabe zählt nicht, und
+ * - die Modifier, normalisiert und sortiert: je Id, Preis, `topic`, `pricingMode`,
+ *   abgewählter Zutat und Komponente (#1127) die summierte Menge. Die Reihenfolge der Eingabe zählt nicht, und
  *   derselbe Modifier zweimal mit Menge 1 ist dasselbe wie einmal mit Menge 2. Ein
  *   kostenloser Treffer (Freimenge, HIGHEST) unterscheidet sich vom kostenpflichtigen über
  *   den Preis.
@@ -57,6 +57,7 @@ export function lineConfigKey(line: OrderLineItem, discountKey = ''): string | n
       mod.topic ?? '',
       mod.pricingMode ?? '',
       mod.removesIngredientExternalId ?? '',
+      mod.componentExternalId ?? '',
     ].join('|')
     amounts.set(key, (amounts.get(key) ?? 0) + mod.amount)
   }

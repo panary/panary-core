@@ -116,6 +116,21 @@ describe('modifierLineItemSchema — Zutaten-Abwahl (removesIngredientExternalId
   })
 })
 
+describe('modifierLineItemSchema — Zuordnung zur Menü-Komponente (componentExternalId, #1127)', () => {
+  // Wie bei #640: Das Modifier-Schema ist offen, erst die Ablehnung beweist die Deklaration.
+  it('akzeptiert die externalId der Komponente', () => {
+    expect(Value.Check(modifierLineItemSchema, { ...modifier(1), componentExternalId: UUID.product })).toBe(true)
+  })
+
+  it('lehnt einen Wert ab, der keine UUID ist', () => {
+    expect(Value.Check(modifierLineItemSchema, { ...modifier(1), componentExternalId: 'Pommes' })).toBe(false)
+  })
+
+  it('bleibt optional — Bestands-Modifier ohne das Feld gehören zum Hauptartikel', () => {
+    expect(Value.Check(modifierLineItemSchema, modifier(1))).toBe(true)
+  })
+})
+
 describe('orderLineItemSchema', () => {
   it('akzeptiert eine Position mit „OHNE"-Modifier (amount −1)', () => {
     expect(Value.Check(orderLineItemSchema, lineItem({ modifiers: [modifier(-1)] }))).toBe(true)

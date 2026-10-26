@@ -198,6 +198,12 @@ export const modifierLineItemSchema = Type.Object({
   // `externalId` der `ingredientReference`, die `explodeOrderConsumption` dann nicht
   // verbucht (#640). Optional — Bestandsbestellungen und andere Clients tragen es nicht.
   removesIngredientExternalId: Type.Optional(Type.String({ format: 'uuid' })),
+  // Zu welcher Menü-Komponente der Modifier gewählt wurde (#1127): die `externalId` der Beilage,
+  // des Getränks oder eines `components[]`-Eintrags derselben Zeile, z. B. die Mayonnaise aus dem
+  // Unterschritt „Pommes → Soßen". Fehlt = Hauptartikel; so lesen sich auch Bestandsbestellungen.
+  // Reine Anzeige-Zuordnung (Bon-Karte, Druck): Preis, Steuer und Verbrauch bleiben an der Zeile.
+  // Nur UUIDs — ein anderer Wert lehnt die Cloud nach dem Pin-Bump am Sync ab.
+  componentExternalId: Type.Optional(Type.String({ format: 'uuid' })),
 })
 export type ModifierLineItem = Static<typeof modifierLineItemSchema>
 

@@ -806,7 +806,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     component.increaseExtra(extraProduct('mayo', { name: 'Mayo', productType: 'PRODUCT' }))
 
     expect(component.lineItems[0].modifiers).toEqual([])
-    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT): im Admin auf Modifier stellen')
     expect(component.notice()?.tone).toBe('danger')
   })
 
@@ -819,7 +819,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
 
     component.increaseExtra(extraProduct('mayo', { name: 'Mayo', productType: undefined }))
 
-    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: fehlt) — im Admin auf Modifier stellen')
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: fehlt): im Admin auf Modifier stellen')
   })
 
   it('ohne markierte Zeile meldet der Tap die fehlende Markierung', () => {
@@ -853,7 +853,7 @@ describe('OrderDialog — Extras-Tap meldet statt still zurueckzukehren (#273)',
     component.decreaseExtra(extraProduct('mayo', { name: 'Mayo', productType: 'PRODUCT' }))
 
     expect(component.lineItems[0].modifiers).toEqual([])
-    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT) — im Admin auf Modifier stellen')
+    expect(component.infoBoxText).toBe('„Mayo" ist kein Extra (Produkttyp: PRODUCT): im Admin auf Modifier stellen')
   })
 
   it('Minus akzeptiert Legacy-Extras genauso wie Plus', () => {

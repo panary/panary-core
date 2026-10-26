@@ -259,12 +259,16 @@ zwei Einträge, und die alte Verknüpfung startet weiter die alte Version.
 
 1. Prüfen, ob `Panary Terminal` startet und die neue Version zeigt.
 2. Unter „Einstellungen → Apps“ den Eintrag **`Panary — Terminal`** deinstallieren.
+   🚨 **Im Deinstaller das Häkchen „App-Daten löschen“ NICHT setzen.** Es löscht
+   `%APPDATA%\de.panary.pos` und `%LOCALAPPDATA%\de.panary.pos` (`installer.nsi`, Abschnitt
+   `DeleteAppDataCheckboxState`). Diese Ordner hängen am `identifier`, nicht am Produktnamen. Die
+   neue Installation benutzt dieselben Ordner. Mit dem Häkchen gehen Kopplung, Offline-Cache und die
+   **Outbox mit noch nicht übertragenen Bestellungen** verloren.
 3. Alte Verknüpfungen (Desktop, Taskleiste, Autostart) entfernen bzw. auf `Panary Terminal` setzen.
 
 **Was erhalten bleibt:** Die App-Daten (Kopplung, Offline-Cache, Outbox) liegen unter dem
-`identifier` (`%APPDATA%\de.panary.pos` bzw. WebView-Daten unter demselben Namen), nicht unter dem
-Produktnamen. Die neue Installation findet sie wieder. Die Deinstallation der alten App löscht sie
-nicht, solange im Deinstaller nicht „App-Daten löschen“ gewählt wird.
+`identifier` `de.panary.pos`, nicht unter dem Produktnamen. Die neue Installation findet sie wieder,
+solange beim Deinstallieren der alten App das Häkchen oben nicht gesetzt wird.
 
 **Nicht betroffen:**
 

@@ -18,7 +18,8 @@ export interface PayCashInput {
 
 /**
  * `paid` — bezahlt und abgeschlossen. `cash-session-declined` — die Freigabe kam nicht zustande.
- * `failed` — der Server hat abgelehnt (die Fehler-Notification kommt schon aus `handleError`).
+ * `failed` — der Server hat abgelehnt (die Fehler-Notification kommt schon aus `handleError`). Nur `BD_6004` beim
+ * ersten Versuch bleibt still, weil der Freigabe-Dialog die Lage erklärt.
  */
 export type PayCashResult = 'paid' | 'cash-session-declined' | 'failed'
 
@@ -60,7 +61,9 @@ export class OrderCheckoutService {
       status: OrderStatus.COMPLETED,
     }
     try {
-      await this.#orders.patch(input.orderId, payload)
+      // BD_6004 ist hier der erwartete Auslöser der Freigabe, kein Fehler: ohne Opt-out stand die rohe
+      // 400-Meldung über dem Freigabe-Dialog (core#1091). Die Wiederholung unten meldet wieder alles.
+      await this.#orders.patch(input.orderId, payload, { isExpectedError: isCashSessionRequired })
       return 'paid'
     } catch (err) {
       if (!isCashSessionRequired(err)) return 'failed'

@@ -23,6 +23,7 @@ import {
   ConnectionService,
   createEnsureLoaded,
   currentPosOperatorToken,
+  type ExpectedErrorParams,
   OFFLINE_OUTBOX,
   posOperatorTokenOf,
   withPosOperatorToken,
@@ -479,7 +480,11 @@ export class OrderService extends BaseService<Order> {
    * der Checkout (Status/Payment) offline funktioniert. Bargeld-Zwang: offline ist keine
    * Karten-/Online-Zahlung möglich (Stripe braucht Netz) → wird abgelehnt.
    */
-  override async patch(id: Id | Id[] | null, data: Partial<Order>, params: Params = {}): Promise<Order | Order[]> {
+  override async patch(
+    id: Id | Id[] | null,
+    data: Partial<Order>,
+    params: Params & ExpectedErrorParams = {},
+  ): Promise<Order | Order[]> {
     if (this.#shouldQueueOffline() && typeof id === 'string') {
       return this.#patchOffline(id, data, posOperatorTokenOf(withPosOperatorToken(params)))
     }

@@ -36,9 +36,10 @@ function setup(token: string | null) {
   const openAuthorized = vi.fn(async () => ({ _id: 'lade-1' }))
   const find = vi.fn(async () => ({ total: 1, limit: 1, skip: 0, data: [{ _id: 'lade-1' }] }))
   const get = vi.fn(async () => ({ _id: 'lade-1' }))
+  const create = vi.fn(async () => ({ _id: 'lade-1' }))
   const injector = Injector.create({
     providers: [
-      { provide: ConnectionService, useValue: { cashSessionService: { openAuthorized, find, get } } },
+      { provide: ConnectionService, useValue: { cashSessionService: { openAuthorized, find, get, create } } },
       { provide: ServiceHelper, useValue: { handleError: vi.fn() } },
       { provide: NotificationService, useValue: new NotificationService() },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
@@ -125,5 +126,65 @@ describe('CashSessionService — Lesezugriffe mit Bediener-Token (#713)', () => 
     await service.findOpenForUser('bd-1', 'u-kassierer')
 
     expect(find).toHaveBeenCalledWith({ query: OPEN_QUERY })
+  })
+})
+
+// core#1091: Nach der Freigabe im Bestelldialog kam zusätzlich „Kasse wurde erstellt“ — das Realtime-Echo
+// der eigenen Eröffnung. Beide Dialoge bestätigen die Kasse selbst.
+describe('CashSessionService — Realtime-Meldung nach dem eigenen Eröffnen (core#1091)', () => {
+  const spyOnOpen = (service: CashSessionService) => {
+    const notifications = (service as unknown as { notifications: NotificationService }).notifications
+    return vi.spyOn(notifications, 'notify')
+  }
+  const show = (service: CashSessionService, key: string) =>
+    (service as unknown as { showSnackbar: (k: string) => void }).showSnackbar(key)
+
+  it('zeigt nach der Freigabe (openAuthorized) keine „erstellt“-Meldung', async () => {
+    const { service } = setup('tok-kassierer')
+    await service.openAuthorized(INPUT)
+    const open = spyOnOpen(service)
+
+    show(service, 'SNACKBAR.CREATED')
+    show(service, 'SNACKBAR.CREATED_PLURAL')
+
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('zeigt nach dem eigenen Eröffnen (openSession) keine „erstellt“-Meldung', async () => {
+    const { service } = setup('tok-kassierer')
+    await service.openSession({ businessDayId: 'bd-1', label: 'Lade', openingFloatCents: 0 })
+    const open = spyOnOpen(service)
+
+    show(service, 'SNACKBAR.CREATED')
+
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('meldet Kassen anderer Terminals weiter — und die eigene nach Ablauf des Fensters', async () => {
+    const fremd = setup('tok-kassierer')
+    const openFremd = spyOnOpen(fremd.service)
+    show(fremd.service, 'SNACKBAR.CREATED')
+    expect(openFremd).toHaveBeenCalledTimes(1)
+
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    const eigen = setup('tok-kassierer')
+    await eigen.service.openAuthorized(INPUT)
+    vi.advanceTimersByTime(10_001)
+    const openEigen = spyOnOpen(eigen.service)
+    show(eigen.service, 'SNACKBAR.CREATED')
+    expect(openEigen).toHaveBeenCalledTimes(1)
+  })
+
+  it('zeigt weiterhin die übrigen Meldungen', async () => {
+    const { service } = setup('tok-kassierer')
+    await service.openAuthorized(INPUT)
+    const open = spyOnOpen(service)
+
+    show(service, 'SNACKBAR.CHANGED')
+
+    expect(open).toHaveBeenCalledTimes(1)
   })
 })

@@ -9,6 +9,15 @@ import {
   OPEN_CASH_SESSION_STATUSES,
 } from '@panary/businessdays/domain'
 
+/** „Kasse wurde erstellt“ — schweigt kurz nach dem eigenen Eröffnen (core#1091). */
+const CREATED_MESSAGES: ReadonlySet<string> = new Set(['SNACKBAR.CREATED', 'SNACKBAR.CREATED_PLURAL'])
+
+/**
+ * So lange nach dem eigenen Eröffnen gilt ein `created`-Echo als das eigene. Ein Zeitfenster statt der ID wie
+ * bei Bestellungen (core#1087): Das Echo kann vor der Antwort ankommen, die die ID erst trägt.
+ */
+const OWN_OPEN_ECHO_MS = 10_000
+
 /**
  * POS-Data-Access für Kassen-Sessions (edge-nativ). Der Kassierer eröffnet,
  * zählt und schließt seine Lade offline gegen den Edge-Service `cash-sessions`.
@@ -27,8 +36,20 @@ export class CashSessionService extends BaseService<CashSession> {
   readonly #sessions = signal<CashSession[]>([])
   readonly sessions = this.#sessions.asReadonly()
 
+  /** Bis wann ein `created`-Echo als Folge des eigenen Eröffnens gilt (`OWN_OPEN_ECHO_MS`). */
+  #ownOpenEchoUntil = 0
+
   constructor() {
     super(inject(ConnectionService).cashSessionService, 'cashSessionService')
+  }
+
+  /**
+   * Beide Eröffnungs-Dialoge bestätigen die Kasse selbst. Das generische Realtime-Echo „Kasse wurde erstellt“
+   * kam danach noch einmal über den Bestelldialog (core#1091). Kassen anderer Terminals melden sich weiter.
+   */
+  protected override showSnackbar(messageKey: string): void {
+    if (CREATED_MESSAGES.has(messageKey) && Date.now() < this.#ownOpenEchoUntil) return
+    super.showSnackbar(messageKey)
   }
 
   protected override loadDocuments(): void {
@@ -66,6 +87,7 @@ export class CashSessionService extends BaseService<CashSession> {
     openingFloatCents: number
     openedBy?: string
   }): Promise<CashSession> {
+    this.#ownOpenEchoUntil = Date.now() + OWN_OPEN_ECHO_MS
     // Server-Resolver stempeln _id/status/openedBy/openedAt + abgeleitete Felder —
     // daher genügt das minimale Create-Shape (Cast über die strikte Omit-Signatur).
     return (await this.create(input as unknown as Omit<CashSession, '_id' | 'locationId' | 'tenantId'>)) as CashSession
@@ -85,6 +107,7 @@ export class CashSessionService extends BaseService<CashSession> {
     authorizedByUserId: string
     pin: string
   }): Promise<CashSession> {
+    this.#ownOpenEchoUntil = Date.now() + OWN_OPEN_ECHO_MS
     const service = this.connectionService.cashSessionService as unknown as {
       openAuthorized: (data: unknown, params?: Params) => Promise<CashSession>
     }

@@ -243,6 +243,86 @@
   animation: kasse-line-pulse 600ms ease-in-out 2;
 }
 
+/* Hinzufügen im Warenkorb (core#1116): Eine neue Zeile fährt in 200 ms von oben ein und leuchtet danach 900 ms in Mint
+   aus, eine hochgezählte lässt die Anzahl hüpfen und leuchtet. Bewegt werden nur transform und opacity, das Mint liegt
+   als Fläche in `::before` und blendet über opacity aus. Jede Animation gibt es doppelt (`-0`/`-1`): Der Klassenname
+   wechselt mit jedem Tippen, und nur ein neuer Name startet sie neu (`cartPingClass`). */
+.kasse-line-new-0,
+.kasse-line-new-1,
+.kasse-line-more-0,
+.kasse-line-more-1 {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-color: var(--accent-soft);
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.kasse-qty {
+  transform-origin: right center;
+}
+
+@each $n in 0, 1 {
+  .kasse-line-new-#{$n} {
+    animation: kasse-line-in-#{$n} 200ms ease-out both;
+
+    &::before {
+      animation: kasse-line-glow-#{$n} 1100ms ease-out;
+    }
+  }
+
+  /* Öffnet die neue Zeile sofort das Anpassen-Sheet, läuft der Hinweis-Impuls mit; sonst verdrängte ihn das Einfahren. */
+  .kasse-line-new-#{$n}.kasse-line-customizing {
+    animation:
+      kasse-line-in-#{$n} 200ms ease-out both,
+      kasse-line-pulse 600ms ease-in-out 2;
+  }
+
+  .kasse-line-more-#{$n}::before {
+    animation: kasse-line-glow-#{$n} 900ms ease-out;
+  }
+
+  .kasse-line-more-#{$n} .kasse-qty {
+    animation: kasse-qty-pop-#{$n} 180ms ease-out;
+  }
+
+  @keyframes kasse-line-in-#{$n} {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Volles Mint, solange die neue Zeile einfährt (200 von 1100 ms), danach ausblenden. */
+  @keyframes kasse-line-glow-#{$n} {
+    0%,
+    18% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes kasse-qty-pop-#{$n} {
+    50% {
+      transform: scale(1.15);
+    }
+  }
+}
+
 @keyframes kasse-sheet-in {
   from {
     transform: translateY(100%);
@@ -318,6 +398,18 @@
 
   .kasse-line-customizing {
     animation: none;
+  }
+
+  /* core#1116: kein Einfahren, kein Hüpfen; das Aufleuchten in `::before` bleibt. */
+  @each $n in 0, 1 {
+    .kasse-line-new-#{$n},
+    .kasse-line-new-#{$n}.kasse-line-customizing {
+      animation: none;
+    }
+
+    .kasse-line-more-#{$n} .kasse-qty {
+      animation: none;
+    }
   }
 
   .kasse__group-edge {

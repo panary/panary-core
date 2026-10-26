@@ -717,3 +717,64 @@ describe('Anpassen-Sheet — eine Ansicht für jedes Produkt (#1085)', () => {
     expect(dialog).not.toContain("'Alle Modifier anzeigen'")
   })
 })
+
+// core#1116: Mitscrollen und Hervorhebung beim Hinzufügen. Gerendert wird hier nichts (Node), deshalb prüft die Spec
+// Verdrahtung und Stylesheet an der Quelle; was die Helfer tun, prüft cart-scroll.spec.ts.
+describe('Kasse — Hinzufügen zeigt die Zeile (core#1116)', () => {
+  const component = readFileSync(fileURLToPath(new URL('./order-dialog.component.ts', import.meta.url)), 'utf8')
+  const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
+  /** Öffnende Tags der klickbaren Zeilen: Einzelzeile und Position einer Kombination. */
+  const lineTags = template.match(
+    /<div\s[^>]*\(click\)="(?:toggleProductSelection\(i\)|selectCombinationByIndex\(i, j\))"/g,
+  )
+  /** Rumpf jeder `@keyframes`, deren Name mit `prefix` beginnt; die SCSS erzeugt je zwei per `@each`. */
+  const keyframes = (prefix: string) =>
+    [...scss.matchAll(new RegExp(`@keyframes ${prefix}[\\w#{}$-]*\\s*\\{([\\s\\S]*?)\\n  \\}`, 'g'))].map(m => m[1])
+  const reduced = scss.slice(scss.indexOf('@media (prefers-reduced-motion: reduce)'))
+
+  it('markiert beide Zeilenarten mit ihrer ID und der Hervorhebung', () => {
+    expect(lineTags).toHaveLength(2)
+    for (const tag of lineTags ?? []) {
+      expect(tag).toContain('[attr.data-cart-line]="lineItem._id"')
+      expect(tag).toContain('[class]="cartPingClass(lineItem)"')
+    }
+    expect(template.match(/class="kasse-qty /g)).toHaveLength(2)
+  })
+
+  it('scrollt nach dem Rendern über denselben Helfer, die Steuerleiste behält das letzte Wort', () => {
+    expect(template.match(/#cartList\b/g)).toHaveLength(1)
+    expect(template).toMatch(/<div\s+#cartList\s+class="[^"]*overflow-y-auto/)
+    const line = component.search(/afterRenderEffect\(\(\) =>\s*revealCartLine\(/)
+    const toolbar = component.search(/afterRenderEffect\(\(\) =>\s*revealCartSelection\(/)
+    expect(line).toBeGreaterThan(-1)
+    expect(line).toBeLessThan(toolbar)
+    expect(component).toContain('watchCartUserScroll(')
+  })
+
+  it('bewegt nur transform und opacity', () => {
+    const bodies = [...keyframes('kasse-line-in'), ...keyframes('kasse-line-glow'), ...keyframes('kasse-qty-pop')]
+    expect(bodies).toHaveLength(3)
+    const properties = new Set(bodies.flatMap(body => [...body.matchAll(/([a-z-]+)\s*:/g)].map(m => m[1])))
+    expect([...properties].sort()).toEqual(['opacity', 'transform'])
+  })
+
+  it('leuchtet in Mint aus den Tokens, hell wie dunkel', () => {
+    const ping = scss.slice(scss.indexOf('core#1116'))
+    const glow = ping.slice(ping.indexOf('&::before {'))
+    expect(glow.slice(0, glow.indexOf('}'))).toContain('background-color: var(--accent-soft);')
+  })
+
+  it('lässt den Hinweis-Impuls einer Zeile im Anpassen neben dem Einfahren laufen', () => {
+    expect(scss).toMatch(
+      /\.kasse-line-new-#\{\$n\}\.kasse-line-customizing\s*\{\s*animation:\s*kasse-line-in-#\{\$n\}[^;]*,\s*kasse-line-pulse /,
+    )
+  })
+
+  it('lässt bei „Bewegung reduzieren" nur das Aufleuchten', () => {
+    expect(reduced).toMatch(
+      /\.kasse-line-new-#\{\$n\},\s*\.kasse-line-new-#\{\$n\}\.kasse-line-customizing\s*\{\s*animation: none;/,
+    )
+    expect(reduced).toMatch(/\.kasse-line-more-#\{\$n\} \.kasse-qty\s*\{\s*animation: none;/)
+    expect(reduced).not.toMatch(/::before\s*\{\s*animation: none/)
+  })
+})

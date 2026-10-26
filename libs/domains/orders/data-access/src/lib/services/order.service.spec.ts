@@ -15,6 +15,7 @@ import {
   type OrderLineItem,
 } from '@panary/orders/domain'
 import {
+  BaseService,
   ConnectionService,
   DATA_ACCESS_AUTO_LOAD,
   OFFLINE_CACHE,
@@ -389,6 +390,23 @@ describe('OrderService — Bediener-Token', () => {
     await service.patch('order-1', { status: OrderStatus.COMPLETED })
 
     expect(queryOf(patchCalls[0].params)).toEqual({ operatorToken: 'tok-kassierer' })
+  })
+
+  it('online: patch reicht den Opt-out für erwartete Fehler an BaseService weiter (core#1091)', async () => {
+    const { service } = setup()
+    const basePatch = vi.spyOn(BaseService.prototype, 'patch')
+    onTestFinished(() => {
+      basePatch.mockRestore()
+    })
+    const isExpectedError = () => true
+
+    await service.patch('order-1', { status: OrderStatus.COMPLETED }, { isExpectedError })
+
+    expect(basePatch).toHaveBeenCalledExactlyOnceWith(
+      'order-1',
+      { status: OrderStatus.COMPLETED },
+      expect.objectContaining({ isExpectedError }),
+    )
   })
 
   it('offline: createOrder legt das Token der Erfassung in den Outbox-Eintrag', async () => {

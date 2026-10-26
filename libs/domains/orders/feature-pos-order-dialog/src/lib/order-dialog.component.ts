@@ -2822,6 +2822,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this._articlesToCombine = new Map()
+    // Die Markierung zeigte auf eine Zeile von vorher, die jetzt Teil der Kombination ist (#1011).
+    this._selectedProductIndex = null
     this.productButtons.forEach(subButton => {
       if (subButton.productGroupExternalId === undefined) return
       subButton.pressed = false

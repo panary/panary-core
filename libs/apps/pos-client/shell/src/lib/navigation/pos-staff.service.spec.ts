@@ -62,7 +62,8 @@ describe('PosStaffService (core#832)', () => {
     const { service, users, notify } = setup()
     await service.clockIn()
     expect(users.checkin.mock.calls).toEqual([['u-olga', {}]])
-    expect(notify).not.toHaveBeenCalled()
+    // Die eine Rückmeldung, ohne Login-Namen (core#962).
+    expect(notify.mock.calls).toEqual([['success', 'POS_NAV.CLOCKED_IN']])
   })
 
   it('sperrt Stempeln offline mit Hinweis und ruft den Server nicht', async () => {
@@ -98,6 +99,28 @@ describe('PosStaffService (core#832)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     await failed.service.clockOut()
     expect(failed.session.endSession).not.toHaveBeenCalled()
+  })
+
+  it('jede Aktion meldet genau einmal ihren Text, ohne Login-Namen (core#962)', async () => {
+    const { service, notify } = setup({ stampingId: 'wt-1' })
+    await service.timeClock('start-break')
+    await service.timeClock('end-break')
+    await service.timeClock('clock-out')
+    await service.timeClock('clock-in')
+    expect(notify.mock.calls).toEqual([
+      ['success', 'POS_NAV.BREAK_STARTED'],
+      ['success', 'POS_NAV.BREAK_ENDED'],
+      ['success', 'POS_NAV.CLOCKED_OUT'],
+      ['success', 'POS_NAV.CLOCKED_IN'],
+    ])
+  })
+
+  it('schlägt der Aufruf fehl, kommt keine Erfolgsmeldung (core#962)', async () => {
+    const { service, users, notify } = setup()
+    users.checkin.mockRejectedValue(new Error('TIME_CLOCK.ACTION_FAILED'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    await service.clockIn()
+    expect(notify).not.toHaveBeenCalled()
   })
 
   it('Rail-Taste ruft je Aktion den passenden Server-Aufruf (core#907)', async () => {

@@ -2641,6 +2641,18 @@ describe('OrderDialog — Stückzahlen beim Kombinieren und Herauslösen (#795)'
     expect(shape(component)).toEqual({ combinations: [['3×Artikel schnitzel', '1×Artikel wein']], free: [] })
   })
 
+  it('„Alle Artikel kombinieren" hebt die Markierung auf — „Pos.-Rab." ist danach gesperrt (#1011)', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('schnitzel'))
+    component.increaseLineItem(product('wein'))
+    component.selectProduct(0)
+    expect(component.canApplyLineDiscount()).toBe(true)
+
+    component.combineAllArticles()
+
+    expect(component.canApplyLineDiscount()).toBe(false)
+  })
+
   it('Herauslösen nimmt so viele Stück, wie der Multiplikator zeigt, und nennt die Zahl', () => {
     const { component } = setup()
     threeSchnitzelAndWine(component)

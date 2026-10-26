@@ -724,7 +724,9 @@ describe('Kasse — Hinzufügen zeigt die Zeile (core#1116)', () => {
   const component = readFileSync(fileURLToPath(new URL('./order-dialog.component.ts', import.meta.url)), 'utf8')
   const scss = readFileSync(fileURLToPath(new URL('./order-dialog.component.scss', import.meta.url)), 'utf8')
   /** Öffnende Tags der klickbaren Zeilen: Einzelzeile und Position einer Kombination. */
-  const lineTags = template.match(/<div\s[^>]*\(click\)="(?:toggleProductSelection\(i\)|selectCombinationByIndex\(i, j\))"/g)
+  const lineTags = template.match(
+    /<div\s[^>]*\(click\)="(?:toggleProductSelection\(i\)|selectCombinationByIndex\(i, j\))"/g,
+  )
   /** Rumpf jeder `@keyframes`, deren Name mit `prefix` beginnt; die SCSS erzeugt je zwei per `@each`. */
   const keyframes = (prefix: string) =>
     [...scss.matchAll(new RegExp(`@keyframes ${prefix}[\\w#{}$-]*\\s*\\{([\\s\\S]*?)\\n  \\}`, 'g'))].map(m => m[1])
@@ -742,8 +744,8 @@ describe('Kasse — Hinzufügen zeigt die Zeile (core#1116)', () => {
   it('scrollt nach dem Rendern über denselben Helfer, die Steuerleiste behält das letzte Wort', () => {
     expect(template.match(/#cartList\b/g)).toHaveLength(1)
     expect(template).toMatch(/<div\s+#cartList\s+class="[^"]*overflow-y-auto/)
-    const line = component.indexOf('afterRenderEffect(() =>\n      revealCartLine(')
-    const toolbar = component.indexOf('afterRenderEffect(() => revealCartSelection(')
+    const line = component.search(/afterRenderEffect\(\(\) =>\s*revealCartLine\(/)
+    const toolbar = component.search(/afterRenderEffect\(\(\) =>\s*revealCartSelection\(/)
     expect(line).toBeGreaterThan(-1)
     expect(line).toBeLessThan(toolbar)
     expect(component).toContain('watchCartUserScroll(')
@@ -762,8 +764,16 @@ describe('Kasse — Hinzufügen zeigt die Zeile (core#1116)', () => {
     expect(glow.slice(0, glow.indexOf('}'))).toContain('background-color: var(--accent-soft);')
   })
 
+  it('lässt den Hinweis-Impuls einer Zeile im Anpassen neben dem Einfahren laufen', () => {
+    expect(scss).toMatch(
+      /\.kasse-line-new-#\{\$n\}\.kasse-line-customizing\s*\{\s*animation:\s*kasse-line-in-#\{\$n\}[^;]*,\s*kasse-line-pulse /,
+    )
+  })
+
   it('lässt bei „Bewegung reduzieren" nur das Aufleuchten', () => {
-    expect(reduced).toMatch(/\.kasse-line-new-#\{\$n\}\s*\{\s*animation: none;/)
+    expect(reduced).toMatch(
+      /\.kasse-line-new-#\{\$n\},\s*\.kasse-line-new-#\{\$n\}\.kasse-line-customizing\s*\{\s*animation: none;/,
+    )
     expect(reduced).toMatch(/\.kasse-line-more-#\{\$n\} \.kasse-qty\s*\{\s*animation: none;/)
     expect(reduced).not.toMatch(/::before\s*\{\s*animation: none/)
   })

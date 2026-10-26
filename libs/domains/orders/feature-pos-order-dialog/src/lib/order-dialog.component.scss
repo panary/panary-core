@@ -279,6 +279,13 @@
     }
   }
 
+  /* Öffnet die neue Zeile sofort das Anpassen-Sheet, läuft der Hinweis-Impuls mit; sonst verdrängte ihn das Einfahren. */
+  .kasse-line-new-#{$n}.kasse-line-customizing {
+    animation:
+      kasse-line-in-#{$n} 200ms ease-out both,
+      kasse-line-pulse 600ms ease-in-out 2;
+  }
+
   .kasse-line-more-#{$n}::before {
     animation: kasse-line-glow-#{$n} 900ms ease-out;
   }
@@ -395,7 +402,8 @@
 
   /* core#1116: kein Einfahren, kein Hüpfen; das Aufleuchten in `::before` bleibt. */
   @each $n in 0, 1 {
-    .kasse-line-new-#{$n} {
+    .kasse-line-new-#{$n},
+    .kasse-line-new-#{$n}.kasse-line-customizing {
       animation: none;
     }
 

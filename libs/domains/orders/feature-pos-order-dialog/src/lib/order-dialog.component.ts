@@ -2792,9 +2792,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     }, 1200)
   }
 
-  /** Klasse der Hervorhebung im Warenkorb, siehe `cartPingClass` (core#1116). */
-  cartPingClass(line: OrderLineItem): string | null {
-    return cartPingClass(this.cartPing(), line._id)
+  /** Klasse der Hervorhebung im Warenkorb, siehe `cartPingClass` (core#1116). `[class]` verlangt einen String. */
+  cartPingClass(line: OrderLineItem): string {
+    return cartPingClass(this.cartPing(), line._id) ?? ''
   }
 
   /**

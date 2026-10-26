@@ -3786,3 +3786,71 @@ describe('OrderDialog — genau eine Meldung nach dem Abschicken (core#1087)', (
     expect(notices.map(n => n.message)).toEqual([ORDER_PLACED_MESSAGE])
   })
 })
+
+// core#1116: Nach jedem Hinzufügen zeigt der Warenkorb die betroffene Zeile und hebt sie kurz hervor. Ziel von
+// Mitscrollen und Hervorhebung ist `cartPing`; was der Scroll-Helfer daraus macht, prüft cart-scroll.spec.ts.
+describe('Kasse — Hinzufügen zeigt die Zeile (core#1116)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ids = (component: any): string[] => component.lineItems.map((l: { _id: string }) => l._id)
+
+  it('eine neue Position ist die letzte Zeile und fährt ein', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+
+    expect(component.cartPing()).toEqual({ lineId: ids(component)[1], kind: 'new', seq: 2 })
+  })
+
+  it('dasselbe Produkt nochmal zählt die bestehende Zeile hoch und zeigt auf sie', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+
+    component.increaseLineItem(product('p-1'))
+
+    expect(component.lineItems).toHaveLength(2)
+    expect(component.cartPing()).toEqual({ lineId: ids(component)[0], kind: 'more', seq: 3 })
+  })
+
+  it('gilt auch für Positionen einer markierten Kombination', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    component.increaseLineItem(product('p-2'))
+    component.combineAllArticles()
+    component.toggleCombinationSelection(0)
+
+    component.increaseLineItem(product('p-3'))
+    expect(component.cartPing()).toMatchObject({ lineId: ids(component)[2], kind: 'new' })
+
+    component.increaseLineItem(product('p-1'))
+    expect(component.cartPing()).toMatchObject({ lineId: ids(component)[0], kind: 'more' })
+  })
+
+  it('+ in der Steuerleiste ist kein Hinzufügen und lässt die Liste stehen', () => {
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    const before = component.cartPing()
+    component.toggleProductSelection(0)
+
+    component.increaseSelectedQuantity()
+
+    expect(component.lineItems[0].amount).toBe(2)
+    expect(component.cartPing()).toEqual(before)
+  })
+
+  it('räumt die Hervorhebung nach dem Ausblenden ab, damit ein Umbau der Liste sie nicht wiederholt', () => {
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    const { component } = setup()
+    component.increaseLineItem(product('p-1'))
+    vi.advanceTimersByTime(1000)
+    component.increaseLineItem(product('p-1'))
+
+    vi.advanceTimersByTime(1000)
+    expect(component.cartPing()).toMatchObject({ kind: 'more', seq: 2 })
+    vi.advanceTimersByTime(500)
+    expect(component.cartPing()).toBeNull()
+  })
+})

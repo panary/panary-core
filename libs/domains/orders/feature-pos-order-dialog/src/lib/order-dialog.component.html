@@ -144,8 +144,8 @@
       </div>
     </div>
 
-    <!-- Positionen (scrollen allein) -->
-    <div class="flex-1 overflow-x-hidden overflow-y-auto p-2 min-h-0">
+    <!-- Positionen (scrollen allein). Nach dem Hinzufügen scrollt die Kasse zur betroffenen Zeile (core#1116). -->
+    <div #cartList class="flex-1 overflow-x-hidden overflow-y-auto p-2 min-h-0">
       @if (customer) {
         <div class="text-sm my-2 p-3 bg-info-soft text-info-ink rounded-control mx-1">
           <p class="highlight">
@@ -196,12 +196,14 @@
                     : 'hover:bg-surface-rail'
                 "
                 [class.kasse-line-customizing]="isCustomizeLine(lineItem)"
+                [attr.data-cart-line]="lineItem._id"
+                [class]="cartPingClass(lineItem)"
                 (click)="selectCombinationByIndex(i, j)"
               >
                 <div class="flex items-center gap-2 w-full" [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'">
                   <!-- Menge nur als Text — die Zeile ist ein einziges Klickziel (ADR 0034) -->
                   <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
-                  <span class="font-bold text-ink min-w-[2rem] text-right text-sm shrink-0">
+                  <span class="kasse-qty font-bold text-ink min-w-[2rem] text-right text-sm shrink-0">
                     @if (lineItem.amount > 1) {
                       {{ lineItem.amount }}×
                     }
@@ -299,6 +301,8 @@
             class="group mx-1 mb-1 rounded-xl py-2 pl-4 pr-3 transition-colors duration-200"
             [ngClass]="selectedProductIndex === i ? 'bg-accent-soft ring-1 ring-accent-line' : 'hover:bg-surface-rail'"
             [class.kasse-line-customizing]="isCustomizeLine(lineItem)"
+            [attr.data-cart-line]="lineItem._id"
+            [class]="cartPingClass(lineItem)"
             (click)="toggleProductSelection(i)"
           >
             <div class="flex items-start gap-3">
@@ -307,7 +311,9 @@
                        Steuerleiste darunter — ein Fehlklick beim Auswählen kann die Menge nicht
                        verändern (ADR 0034 P1, core#829). -->
               <!-- Menge 1 bleibt leer, die Spalte reserviert — Mehrfach-Positionen fallen so sofort auf (#795) -->
-              <span class="font-bold text-ink min-w-[2rem] text-right text-[0.9375rem] shrink-0 leading-tight">
+              <span
+                class="kasse-qty font-bold text-ink min-w-[2rem] text-right text-[0.9375rem] shrink-0 leading-tight"
+              >
                 @if (lineItem.amount > 1) {
                   {{ lineItem.amount }}×
                 }

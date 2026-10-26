@@ -118,7 +118,14 @@ import {
 import { BundleFlow } from './bundle-flow'
 import { KasseDraftRegistry } from './kasse-draft-registry'
 import { splitGroupBar } from './group-bar'
-import { revealCartSelection } from './cart-scroll'
+import {
+  type CartPing,
+  cartPingClass,
+  nextCartPing,
+  revealCartLine,
+  revealCartSelection,
+  watchCartUserScroll,
+} from './cart-scroll'
 import { type ClosingStep, type ClosingStepView, closingStepViews, closingSteps } from './closing-flow'
 import {
   ALL_MODIFIERS_GROUP_ID,
@@ -222,6 +229,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly productGroupMeasure = viewChild<ElementRef<HTMLElement>>('productGroupMeasure')
   /** Steuerleiste der markierten Zeile — es steht höchstens eine im Warenkorb (core#1021). */
   private readonly selectionToolbar = viewChild<ElementRef<HTMLElement>>('selectionToolbar')
+  /** Die scrollende Positionsliste des Warenkorbs (core#1116). */
+  private readonly cartList = viewChild<ElementRef<HTMLElement>>('cartList')
   #cdr = inject(ChangeDetectorRef)
   readonly discountCodeService = inject(DiscountCodeService)
 
@@ -377,6 +386,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Stück (D2), auch über das Extras-Raster; jede andere Auswahl beendet diesen Zustand.
    */
   #freshLine: OrderLineItem | null = null
+  /** Zuletzt hinzugefügte oder hochgezählte Zeile: Ziel von Mitscrollen und Hervorhebung (core#1116). */
+  readonly cartPing = signal<CartPing | null>(null)
+  #cartPingTimer: ReturnType<typeof setTimeout> | undefined
+  /** Letztes eigenes Wischen im Warenkorb, `Date.now()`. Kein Signal: Es soll nichts neu rendern. */
+  #cartUserScrollAt = 0
 
   // Bundle/Menü-Flow-Logik (OptionGroup-Sequenz, HIGHEST, FIXED_PROPORTIONAL) — plain class, siehe bundle-flow.ts
   readonly #bundleFlow = new BundleFlow({
@@ -611,6 +625,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // (Zeile, Position oder Kopf einer Kombination). `afterRenderEffect` statt `effect` (core#1047): Ein View-Effekt
     // dieser OnPush-Komponente lief erst im nächsten Durchlauf (Uhr-Takt), gemessen ≈ 1,6 s nach dem Antippen. Nach
     // dem Rendern steht die Leiste im DOM, und gescrollt wird im selben Durchlauf.
+    // core#1116: Nach dem Hinzufügen zur betroffenen Zeile, über dieselbe Bewegung. Diese Effekte stehen vor dem der
+    // Steuerleiste: Öffnet das Hinzufügen zugleich eine Leiste (Anpassen, Menü-Ablauf), scrollt sie zuletzt und
+    // behält das letzte Wort, denn sie steht unter der neuen Zeile.
+    afterRenderEffect(onCleanup =>
+      onCleanup(watchCartUserScroll(this.cartList()?.nativeElement, () => (this.#cartUserScrollAt = Date.now()))),
+    )
+    afterRenderEffect(() =>
+      revealCartLine(this.cartList()?.nativeElement, this.cartPing(), this.#cartUserScrollAt, Date.now()),
+    )
     afterRenderEffect(() => revealCartSelection(this.selectionToolbar()?.nativeElement))
 
     this._productionTimes = this.orderService.productionTimes
@@ -716,6 +739,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       this._resizeObserver.disconnect()
     }
     clearTimeout(this.#noticeTimer)
+    clearTimeout(this.#cartPingTimer)
     if (this._timer) {
       clearInterval(this._timer)
     }
@@ -2694,12 +2718,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       orderLineItem.bundleNumber = bundleNumber
       const existingInBundle = productKey ? bundle.find(item => this.#sameConfig(item, orderLineItem)) : undefined
       if (!isBundle && !autoCustomize && existingInBundle) {
+        this.#pingCartLine(existingInBundle, 'more')
         return this.increaseQuantity(existingInBundle, amountToIncrease)
       }
 
       this.#lineItems.push(orderLineItem)
       this.#hadInput = true
       this.#freshLine = orderLineItem
+      this.#pingCartLine(orderLineItem, 'new')
       const index = this.combinations[selectedCombination].indexOf(orderLineItem)
 
       if (isBundle && product.optionGroups?.length) {
@@ -2726,12 +2752,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
       const existing = productKey ? this.#lineItems.find(item => this.#sameConfig(item, orderLineItem)) : undefined
       if (!isBundle && !autoCustomize && existing) {
+        this.#pingCartLine(existing, 'more')
         return this.increaseQuantity(existing, amountToIncrease)
       }
 
       const index = this.#lineItems.push(orderLineItem) - 1
       this.#hadInput = true
       this.#freshLine = orderLineItem
+      this.#pingCartLine(orderLineItem, 'new')
 
       if (isBundle && product.optionGroups?.length) {
         // Neuer Bundle-Flow: OptionGroups sequentiell abarbeiten
@@ -2748,6 +2776,25 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.openCustomizePanel(orderLineItem)
       }
     }
+  }
+
+  /**
+   * Merkt die Zeile für Mitscrollen und Hervorhebung vor (core#1116). Nach dem Ausblenden (längste Animation 1,1 s)
+   * räumt der Timer sie wieder ab. Sonst spielte ein Umbau der Liste, der die Zeile neu rendert (Kombinieren,
+   * Herauslösen), die Animation ein zweites Mal ab.
+   */
+  #pingCartLine(line: OrderLineItem, kind: CartPing['kind']): void {
+    const ping = nextCartPing(this.cartPing(), line._id, kind)
+    this.cartPing.set(ping)
+    clearTimeout(this.#cartPingTimer)
+    this.#cartPingTimer = setTimeout(() => {
+      if (this.cartPing() === ping) this.cartPing.set(null)
+    }, 1200)
+  }
+
+  /** Klasse der Hervorhebung im Warenkorb, siehe `cartPingClass` (core#1116). */
+  cartPingClass(line: OrderLineItem): string | null {
+    return cartPingClass(this.cartPing(), line._id)
   }
 
   /**

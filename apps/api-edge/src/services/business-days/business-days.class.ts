@@ -31,6 +31,23 @@ export interface DiscardOrphanDayData {
   businessDayId: string
 }
 
+/** Freigabe eines Verkaufs am Ruhetag (panary/panary-core#1133, ADR 0062). */
+export interface ApproveClosedDayData {
+  /** Mitarbeiter, dessen PIN die Freigabe erteilt (Manager/Inhaber je nach Ruhetag-Regel). */
+  authorizedByUserId: string
+  pin: string
+  locationId?: string | null
+}
+
+export interface ApproveClosedDayResult {
+  /** `false`, wenn heute laut Öffnungszeiten gar kein Ruhetag ist — dann ist nichts freizugeben. */
+  approved: boolean
+  businessDayId: string | null
+  date: string
+  policy: 'manager-approval' | 'block'
+  role?: string
+}
+
 export interface BusinessDayService extends ServiceInterface<
   BusinessDay,
   BusinessDayData,
@@ -41,4 +58,5 @@ export interface BusinessDayService extends ServiceInterface<
   closeDay(data: CloseDayData, params?: BusinessDayParams): Promise<BusinessDay>
   refreshClosingStatus(data: RefreshClosingStatusData, params?: BusinessDayParams): Promise<BusinessDay>
   discardOrphanDay(data: DiscardOrphanDayData, params?: BusinessDayParams): Promise<{ discarded: true; _id: string }>
+  approveClosedDay(data: ApproveClosedDayData, params?: BusinessDayParams): Promise<ApproveClosedDayResult>
 }

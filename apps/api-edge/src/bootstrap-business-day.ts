@@ -1,6 +1,7 @@
 import { logger } from '@panary/shared-backend'
 import type { Application } from './declarations'
 import { businessDateForLocation, type LocationTimezoneSource } from './utils/business-day-date'
+import { loadClosedDayCheck, type ClosedDayGateLocation } from './utils/closed-day-gate'
 import {
   hasActiveOrders,
   isLocalRotationAllowed,
@@ -111,6 +112,22 @@ export async function autoEnsureBusinessDay(app: Application): Promise<void> {
 
     if (!shouldAutoRotate(currentBusinessDay, today, openHours)) {
       logger.info(`[AutoBusinessDay] Geschaeftstag fuer Location ${location._id} ist aktuell (${today}).`)
+      continue
+    }
+
+    // Am Ruhetag laut Oeffnungszeiten keinen Tag eroeffnen (panary/panary-core#1133,
+    // ADR 0062). Das Schliessen des Vortags faellt damit ebenfalls weg — es ist
+    // Teil von `rotateBusinessDay`, und der Vortag laeuft bis zur Freigabe bzw.
+    // bis zur Altersgrenze weiter. Fail-open: `null` rotiert wie bisher.
+    const closedDay = await loadClosedDayCheck(app, { _id: location._id, settings } as ClosedDayGateLocation, now)
+    if (closedDay?.status.state === 'closed') {
+      logger.info({
+        message: `[AutoBusinessDay] Ruhetag laut Oeffnungszeiten — kein neuer Geschaeftstag fuer Location ${location._id}.`,
+        event: 'business_day.rotation_skipped_closed_day',
+        locationId: location._id,
+        date: closedDay.status.date,
+        trigger: 'scheduled',
+      })
       continue
     }
 

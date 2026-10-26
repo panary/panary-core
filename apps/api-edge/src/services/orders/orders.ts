@@ -42,6 +42,7 @@ import type { Order, OrderService } from './orders.class'
 import { extractOrderInteractions } from '../../hooks/extract-order-interactions'
 import { restrictOrderToBusinessDay } from '../../hooks/restrict-order-to-business-day'
 import { restrictOrderToCashSession } from '../../hooks/restrict-order-to-cash-session'
+import { restrictOrderCompletionToClosedDay } from '../../hooks/restrict-order-completion-to-closed-day'
 import { assignDailySequenceNumber } from '../../hooks/assign-daily-sequence-number'
 import { assignSettlementScope } from '../../hooks/assign-settlement-scope.hook'
 import { calculateTaxDetails, calculateTaxDetailsOnPatch } from '../../hooks/calculate-tax-details'
@@ -213,6 +214,10 @@ export const orders = (app: Application) => {
         // Bediener neuer Zahlungen und Rabatte aus dem Bediener-Token (#619, #631, ADR 0053) —
         // VOR der Kassenprüfung, die die Lade anhand dieses Felds sucht.
         attributeOrderOperators,
+        // Ruhetag-Gate beim Kassieren (#1133, ADR 0062): Abschluss am Ruhetag nur
+        // mit Freigabe am laufenden Geschaeftstag. Vor dem Kassen-Guard, damit der
+        // POS zuerst die Freigabe und erst danach die Kasse verlangt.
+        restrictOrderCompletionToClosedDay(),
         // Kassen-Guard beim Kassieren: greift nur, wenn der Patch auf 'completed'
         // wechselt und eine Bar-Transaktion enthält → verlangt offene Kasse für
         // den Kassierer (performedBy). VOR validate/resolve, damit cashSessionId

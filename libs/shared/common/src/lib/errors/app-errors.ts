@@ -37,6 +37,13 @@ export const AppError = {
   CASH_SESSION_ALREADY_OPEN: 'BD_6008',
   // Statusrückschritt einer Lade, z. B. closed → open (#717).
   CASH_SESSION_STATUS_REGRESSION: 'BD_6009',
+  // Ruhetag laut Öffnungszeiten ohne Freigabe (panary/panary-core#1133, ADR 0062).
+  // Der POS öffnet darauf den Freigabe-Dialog.
+  LOCATION_CLOSED_TODAY: 'BD_6010',
+  // Freigabe (`businessdays.approveClosedDay`): PIN falsch bzw. Rolle reicht nach
+  // der Ruhetag-Regel nicht — getrennt, damit der POS beides lokalisiert anzeigt.
+  CLOSED_DAY_PIN_INVALID: 'BD_6011',
+  CLOSED_DAY_ROLE_DENIED: 'BD_6012',
 
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
@@ -81,6 +88,10 @@ export const AppErrorMessages: Record<AppError, string> = {
     'Die Kassen-Eröffnung muss von einem berechtigten Mitarbeiter (Manager/Inhaber) autorisiert werden.',
   [AppError.CASH_SESSION_ALREADY_OPEN]: 'Für diesen Mitarbeiter ist an diesem Geschäftstag bereits eine Kasse offen.',
   [AppError.CASH_SESSION_STATUS_REGRESSION]: 'Eine geschlossene Kasse lässt sich nicht wieder öffnen.',
+  [AppError.LOCATION_CLOSED_TODAY]:
+    'Laut Öffnungszeiten ist heute geschlossen. Verkauf nur nach Freigabe durch einen berechtigten Mitarbeiter.',
+  [AppError.CLOSED_DAY_PIN_INVALID]: 'PIN ungültig.',
+  [AppError.CLOSED_DAY_ROLE_DENIED]: 'Dieser Mitarbeiter darf den Ruhetag nicht freigeben.',
 
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',

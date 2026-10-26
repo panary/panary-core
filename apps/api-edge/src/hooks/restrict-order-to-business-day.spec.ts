@@ -43,6 +43,16 @@ vi.mock('../utils/business-day.utils', () => ({
   loadBusinessDayRuntime: (...a: unknown[]) => loadBusinessDayRuntime(...a),
 }))
 
+// Das Ruhetag-Gate (#1133) ist in `closed-day-gate.spec.ts` getestet; hier zaehlt
+// nur, wann der Hook es fragt. Default `null` = Pruefung nicht moeglich, also das
+// Verhalten vor #1133 — die bestehenden Faelle bleiben damit unberuehrt.
+const loadClosedDayCheck = vi.fn()
+const assertClosedDayApproved = vi.fn()
+vi.mock('../utils/closed-day-gate', () => ({
+  loadClosedDayCheck: (...a: unknown[]) => loadClosedDayCheck(...a),
+  assertClosedDayApproved: (...a: unknown[]) => assertClosedDayApproved(...a),
+}))
+
 import { restrictOrderToBusinessDay } from './restrict-order-to-business-day'
 
 // Stub-App: ein User mit activeLocationId, eine Location und optional eine
@@ -107,6 +117,8 @@ beforeEach(() => {
   // in alle folgenden. Seit die Grenze in JEDEM Pfad geprueft wird (panary-cloud ADR 0047,
   // vorher nur im Aktive-Orders-Zweig), waere das ein stiller Fehlschlag.
   getHoursSince.mockReturnValue(1)
+  loadClosedDayCheck.mockResolvedValue(null)
+  assertClosedDayApproved.mockResolvedValue(undefined)
 
   // `loadBusinessDayRuntime` ist der gemeinsame Loader von Rotations-Guard und
   // Altersgrenze; er selbst ist in `business-day.utils.spec.ts` abgedeckt. Hier
@@ -498,5 +510,79 @@ describe('Laufzeit-Beschaffung für Rotations-Guard und Altersgrenze', () => {
 
     expect(loadBusinessDayRuntime).not.toHaveBeenCalled()
     expect(shouldAutoRotate.mock.calls[0][2]).toBeNull()
+  })
+})
+
+describe('restrictOrderToBusinessDay — Ruhetag (#1133)', () => {
+  const closedCheck = {
+    status: { state: 'closed', date: '2026-10-26', reason: 'regular' },
+    policy: 'manager-approval',
+  }
+  const closedError = Object.assign(new BadRequest('Laut Öffnungszeiten ist heute geschlossen.'), {
+    data: { code: 'BD_6010' },
+  })
+
+  it('rotiert am Ruhetag nicht, auch wenn der Kalendertag gewechselt hat', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    loadClosedDayCheck.mockResolvedValue(closedCheck)
+    const ctx = makeContext({
+      location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: { businessDayId: 'bd-vortag', date: '2026-10-25' } },
+    })
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(rotateBusinessDay).not.toHaveBeenCalled()
+    expect(assertClosedDayApproved).toHaveBeenCalledWith(ctx.app, expect.objectContaining({ _id: 'loc-1' }), closedCheck, 'bd-vortag')
+    // Mit Freigabe (Mock wirft nicht) landet die Bestellung auf dem freigegebenen Tag.
+    expect(ctx.data.businessDayId).toBe('bd-vortag')
+  })
+
+  it('lehnt ohne Freigabe ab und eröffnet nichts', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    loadClosedDayCheck.mockResolvedValue(closedCheck)
+    assertClosedDayApproved.mockRejectedValue(closedError)
+    const ctx = makeContext({
+      location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: { businessDayId: 'bd-vortag', date: '2026-10-25' } },
+    })
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBe(closedError)
+    expect(rotateBusinessDay).not.toHaveBeenCalled()
+    expect(ctx.data.businessDayId).toBeUndefined()
+  })
+
+  it('meldet ohne Geschäftstag den Ruhetag statt BUSINESS_DAY_NOT_SET', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    loadClosedDayCheck.mockResolvedValue(closedCheck)
+    assertClosedDayApproved.mockRejectedValue(closedError)
+    const ctx = makeContext({ location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null } })
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBe(closedError)
+    expect(assertClosedDayApproved).toHaveBeenCalledWith(ctx.app, expect.anything(), closedCheck, null)
+    expect(rotateBusinessDay).not.toHaveBeenCalled()
+  })
+
+  it('fragt die Freigabe vor der Altersgrenze — sonst gäbe es am Ruhetag keinen Ausweg', async () => {
+    shouldAutoRotate.mockReturnValue(false)
+    loadClosedDayCheck.mockResolvedValue(closedCheck)
+    assertClosedDayApproved.mockRejectedValue(closedError)
+    getHoursSince.mockReturnValue(50)
+    const ctx = makeContext({
+      cloudConnection: { pairingStatus: 'connected', offlineOverrideActiveUntil: null },
+      location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: { businessDayId: 'bd-alt', date: '2026-10-24' } },
+    })
+
+    await expect(restrictOrderToBusinessDay()(ctx)).rejects.toBe(closedError)
+  })
+
+  it('rotiert an einem offenen Tag wie bisher', async () => {
+    shouldAutoRotate.mockReturnValue(true)
+    rotateBusinessDay.mockResolvedValue('bd-neu')
+    loadClosedDayCheck.mockResolvedValue({ ...closedCheck, status: { ...closedCheck.status, state: 'open' } })
+    const ctx = makeContext({ location: { _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null } })
+
+    await restrictOrderToBusinessDay()(ctx)
+
+    expect(rotateBusinessDay).toHaveBeenCalledTimes(1)
+    expect(ctx.data.businessDayId).toBe('bd-neu')
   })
 })

@@ -2,6 +2,8 @@ import {
   computeOrderTax,
   effectiveLineItems,
   fromCents,
+  groupModifiersByComponent,
+  hasComponentModifiers,
   lineItemGrossCents,
   modifierLineGrossCents,
   modifiersCountPerUnit,
@@ -461,6 +463,23 @@ function appendArticle(
   // ausweisen (sonst wirkt der Bon teurer als der fakturierte Festpreis).
   const isFixed = article.bundlePricingMode === 'FIXED_PROPORTIONAL'
 
+  // Modifier einer Beilage oder eines Getränks stehen unter ihrer Komponente (#1127), für `full` und `kitchen`
+  // gleich. `components[]` druckt der Bon nicht, deren Modifier bleiben deshalb am Hauptartikel.
+  const groups = groupModifiersByComponent(article, { components: false })
+  if (article.isMenu && hasComponentModifiers(groups)) {
+    appendModifierLines(enc, article, groups.main, isFixed, subNameW, priceW)
+    if (article.menuSideDish) {
+      appendMenuComponentLine(enc, article, article.menuSideDish, sideDishPrice, isFixed, subNameW, priceW)
+      appendModifierLines(enc, article, groups.sideDish, isFixed, subNameW, priceW, COMPONENT_MODIFIER_INDENT)
+    }
+    if (article.menuDrink) {
+      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, subNameW, priceW)
+      appendModifierLines(enc, article, groups.drink, isFixed, subNameW, priceW, COMPONENT_MODIFIER_INDENT)
+    }
+    return
+  }
+
+  // Ohne Zuordnung (Bestand, à la carte) bleibt die Reihenfolge wie vor #1127: Komponenten, dann alle Modifier.
   // Menü-Beilage & Getränk — Font B, eingerückt
   if (article.isMenu) {
     if (article.menuSideDish) {
@@ -473,8 +492,12 @@ function appendArticle(
 
   // Modifiers — Font B, eingerückt. Bei FIXED sind Menü-Bestandteile inklusive →
   // kein Einzelpreis (der Festpreis steht oben).
-  appendModifierLines(enc, article, isFixed, subNameW, priceW)
+  appendModifierLines(enc, article, article.modifiers ?? [], isFixed, subNameW, priceW)
 }
+
+// Zusätzliche Einrückung der Modifier unter einer Menü-Komponente (#1127). Die Namensspalte wird um denselben
+// Betrag schmaler, damit die Preisspalte an derselben Stelle endet.
+const COMPONENT_MODIFIER_INDENT = 2
 
 // Menü-Beilage/-Getränk als SUB-Zeile. Der Aufpreis (Positionspreis − General-
 // Preis) zählt PRO Menü — dieselbe Skalierung wie die Preis-Engine
@@ -505,10 +528,18 @@ function appendMenuComponentLine(
   enc.font('A')
 }
 
-function appendModifierLines(enc: any, article: any, isFixed: boolean, subNameW: number, priceW: number): void {
-  if (article.modifiers?.length > 0) {
+function appendModifierLines(
+  enc: any,
+  article: any,
+  modifiers: any[],
+  isFixed: boolean,
+  subNameW: number,
+  priceW: number,
+  extraIndent = 0,
+): void {
+  if (modifiers.length > 0) {
     enc.font('B')
-    for (const mod of article.modifiers) {
+    for (const mod of modifiers) {
       let amount = mod.amount
       let modName = mod.name
       if (mod.amount === -1) {
@@ -529,7 +560,7 @@ function appendModifierLines(enc: any, article: any, isFixed: boolean, subNameW:
       const perUnit = mod.amount > 0 && modifiersCountPerUnit(article) ? 'je ' : ''
       enc.table(
         [
-          { width: subNameW, marginLeft: 4, align: 'left' },
+          { width: subNameW - extraIndent, marginLeft: 4 + extraIndent, align: 'left' },
           { width: priceW, align: 'right' },
         ],
         [[`${perUnit}${amount}x ${modName}`, modPrice]],

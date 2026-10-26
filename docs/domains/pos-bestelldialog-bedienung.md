@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
-description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
+description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, beim Hinzufügen zur Zeile scrollt und sie hervorhebt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T18:45:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-26T19:00:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -70,6 +70,32 @@ Kombination auf.
   Entscheidung kommt aus `modifiersCountPerUnit` (`compute-order-tax.ts`), derselben Quelle wie das
   „je 1x" auf dem Bon. Die Summe rechnet weiter allein `compute-order-tax`.
 
+### Beim Hinzufügen (core#1116)
+
+Nach jedem Produkt-Tipp zeigt der Warenkorb die betroffene Zeile und hebt sie kurz hervor
+([core#1116](https://github.com/panary/panary-core/issues/1116), Variante A).
+
+| Fall | Scrollziel | Hervorhebung |
+| --- | --- | --- |
+| neue Position | die neue, letzte Zeile | fährt in 200 ms 8 px von oben ein, leuchtet danach 900 ms in Mint (`--accent-soft`) aus |
+| dasselbe Produkt nochmal | die hochgezählte Zeile | Anzahl hüpft (scale 1.15, 180 ms), Zeile leuchtet 900 ms |
+
+- **Ein Weg zum Scrollen.** `revealCartLine` in `cart-scroll.ts` scrollt mit derselben Bewegung wie die
+  Steuerleiste (`block: 'nearest'`, sanft), ebenfalls per `afterRenderEffect`. Öffnet das Hinzufügen zugleich
+  eine Steuerleiste (Anpassen, Menü-Ablauf), läuft deren Effekt danach und hat das letzte Wort.
+- **Eigenes Wischen geht vor.** Hat die Bedienung in den letzten 1,5 s selbst in der Liste gewischt
+  (`touchmove`, `wheel`; passive Listener außerhalb der Change Detection), springt sie nicht. Das
+  `scroll`-Ereignis taugt dafür nicht, es feuert auch beim Scrollen von selbst. Die Hervorhebung kommt trotzdem.
+- **Neustart statt Stapeln.** Ziel ist das Signal `cartPing` (`lineId`, `kind`, `seq`). Die Klasse wechselt
+  mit jedem Tippen zwischen `kasse-line-<kind>-0` und `-1`, und die SCSS legt jede Animation doppelt an: Nur ein
+  neuer Animationsname startet sie neu. Nach 1,2 s räumt ein Timer `cartPing` ab, sonst spielte ein Umbau der
+  Liste (Kombinieren, Herauslösen) die Animation erneut ab.
+- **Nur `transform` und `opacity`.** Das Mint liegt als Fläche in `::before` hinter dem Inhalt und blendet über
+  `opacity` aus. Hell und dunkel kommen aus dem Token. Bei „Bewegung reduzieren" entfallen Einfahren und
+  Hüpfen, das Aufleuchten bleibt.
+- Gilt für Einzelzeilen und Positionen einer markierten Kombination. `+` in der Steuerleiste ist kein
+  Hinzufügen: Die Zeile ist dort schon markiert und sichtbar.
+
 ## Steuerleiste und Optionen (seit core#829)
 
 Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-spiegelung.md)).
@@ -124,3 +150,8 @@ und nicht im Tauri-WebView. Die untere Leiste lief bei 1280 px über, behoben mi
 [#798](https://github.com/panary/panary-core/issues/798). „Alle Artikel kombinieren" nimmt auch
 Zeilen mit, die schon in einer Kombination stehen. Das war vorher schon so und ist hier nicht
 geändert.
+
+Ob die Hervorhebung beim Hinzufügen (core#1116) auf der Sunmi ruckelfrei läuft, zeigt nur das Gerät;
+geprüft sind Verdrahtung und Stylesheet an der Quelle, nicht das Rendern. Ist die hochgezählte Zeile
+markiert, trägt sie schon `bg-accent-soft`, und ihr Aufleuchten ist kaum zu sehen; dort bleibt das Hüpfen
+der Anzahl.

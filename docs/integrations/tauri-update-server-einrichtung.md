@@ -231,3 +231,50 @@ https://github.com https://*.github.com https://*.githubusercontent.com
 ### Update im Browser-Dev-Modus
 
 Im Browser-Entwicklungsmodus (`nx serve pos-client`) ist der UpdateService inaktiv — er prüft `__TAURI_INTERNALS__` und überspringt alle Operationen, wenn die App nicht in Tauri läuft.
+
+---
+
+## 7. App-Name „Panary Terminal“ (seit panary/panary-core#1106)
+
+Bis `pos-v26.10.33` hieß die App `Panary — Terminal`. Seit #1106 tragen `productName` und Fenstertitel
+in `apps/pos-client/src-tauri/tauri.conf.json` den Namen `Panary Terminal`, ohne Gedankenstrich
+(Regel: `.claude/rules/code-style.md` §9.2). Michael hat die Umbenennung trotz der folgenden Folgen
+freigegeben (2026-10-26). Der `identifier` `de.panary.pos` bleibt unverändert.
+
+### Was die Umbenennung auf Windows auslöst
+
+Tauris NSIS-Vorlage (`tauri-bundler`, `installer.nsi`) leitet drei Dinge aus `PRODUCTNAME` ab:
+
+| Wert | Bisher | Neu |
+|---|---|---|
+| Uninstall-Schlüssel | `…\CurrentVersion\Uninstall\Panary — Terminal` | `…\CurrentVersion\Uninstall\Panary Terminal` |
+| Schlüssel, unter dem der Installer die vorige Installation sucht (`MANUPRODUCTKEY`) | `…\Panary — Terminal` | `…\Panary Terminal` |
+| Standard-Installationsordner (`installMode: perMachine`) | `C:\Program Files\Panary — Terminal` | `C:\Program Files\Panary Terminal` |
+
+Das erste Update auf den neuen Namen, ob über den Updater oder als Installer von Hand, findet die alte
+Installation deshalb nicht. Es installiert **zusätzlich** in den neuen Ordner. Unter „Apps“ stehen danach
+zwei Einträge, und die alte Verknüpfung startet weiter die alte Version.
+
+**Was nach dem Update am Windows-Gerät zu tun ist:**
+
+1. Prüfen, ob `Panary Terminal` startet und die neue Version zeigt.
+2. Unter „Einstellungen → Apps“ den Eintrag **`Panary — Terminal`** deinstallieren.
+3. Alte Verknüpfungen (Desktop, Taskleiste, Autostart) entfernen bzw. auf `Panary Terminal` setzen.
+
+**Was erhalten bleibt:** Die App-Daten (Kopplung, Offline-Cache, Outbox) liegen unter dem
+`identifier` (`%APPDATA%\de.panary.pos` bzw. WebView-Daten unter demselben Namen), nicht unter dem
+Produktnamen. Die neue Installation findet sie wieder. Die Deinstallation der alten App löscht sie
+nicht, solange im Deinstaller nicht „App-Daten löschen“ gewählt wird.
+
+**Nicht betroffen:**
+
+- **Sunmi:** Die Android-APK ist der Capacitor-Wrapper mit `appName: 'Panary POS'`
+  (`apps/pos-client/capacitor.config.ts`). Der Tauri-`productName` spielt dort keine Rolle.
+- **Updater-Manifest:** `release-pos.yml` liest den Namen des `-setup.exe`-Assets aus dem
+  tatsächlich hochgeladenen Release, statt ihn aus dem `productName` zu bilden. Der Endpunkt
+  (`latest.json`) bleibt gleich.
+- **macOS:** Ohne Auto-Updater (§ oben). Das neue Bundle heißt `Panary Terminal.app`, die alte
+  `Panary — Terminal.app` muss von Hand aus `/Applications` gelöscht werden.
+
+Ein NSIS-Hook, der die Altinstallation selbst entfernt, wurde bewusst nicht gebaut (Entscheidung
+Orchestrierung/Michael, 2026-10-26): Es betrifft genau ein Update je Gerät.

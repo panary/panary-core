@@ -209,8 +209,8 @@ export interface ApplyPulledRecordsResult {
   details: SyncRunRecordDetail[]
   /**
    * Records dieser Seite mit fremder `tenantId` (#337). Sie wurden TROTZDEM
-   * angewandt und zaehlen deshalb auch in `applied` — der Wert ist ein Befund,
-   * keine Fehlerzahl.
+   * angewandt und zaehlen deshalb auch in `applied` (oder in `unchanged`, wenn
+   * sie lokal schon genau so standen) — der Wert ist ein Befund, keine Fehlerzahl.
    */
   foreignTenant: number
   /**
@@ -273,7 +273,7 @@ const isSameStoredValue = (incoming: unknown, stored: unknown): boolean =>
  *
  * Fehler pro Record werden geloggt + als REJECTED-Detail zurueckgegeben —
  * ein kaputter Record blockiert nie den Rest der Seite. Idempotent: dieselbe
- * Seite doppelt angewandt (upsert) ergibt beim zweiten Lauf nur Patches.
+ * Seite doppelt angewandt (upsert) schreibt beim zweiten Lauf nichts (#1105).
  */
 /**
  * Entfernt das mit ADR 0030 abgeschaffte Legacy-Rabattfeld `order.discount` aus einem

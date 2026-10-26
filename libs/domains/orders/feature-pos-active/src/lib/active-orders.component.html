@@ -61,20 +61,24 @@
               </button>
             </div>
 
-            <!-- Receipt Card — h-fit, gedeckelt durch zoom-korrigierte Viewport-Höhe -->
+            <!-- Receipt Card — h-fit, gedeckelt durch zoom-korrigierte Viewport-Höhe. Bon-Inhalt und Overlay liegen in
+                 derselben Grid-Zelle (core#1126): Die Karte ist so hoch wie der größere Teil, gedeckelt durch
+                 `cardMaxHeight()`. Vorher lag das Overlay absolut über dem Bon und wurde auf kurzen Karten oben
+                 abgeschnitten. -->
             <div
               (click)="toggleSelection(order._id)"
               (keydown.enter)="toggleSelection(order._id)"
               tabindex="0"
               role="button"
-              class="flex flex-col w-full bg-surface-input border border-line-soft rounded-2xl overflow-hidden relative transition-colors hover:border-line-strong cursor-pointer"
+              class="grid grid-cols-1 grid-rows-[minmax(0,1fr)] w-full bg-surface-input border border-line-soft rounded-2xl overflow-hidden relative transition-colors hover:border-line-strong cursor-pointer"
               [class.split-highlight]="isHighlighted(order._id)"
               [style.max-height]="cardMaxHeight()"
             >
               <!-- Selection Overlay -->
               @if (selectedOrderId() === order._id) {
                 <div
-                  class="absolute inset-0 bg-surface-input z-20 flex flex-col items-center justify-center fade-in px-5 py-4 gap-3 overflow-y-auto"
+                  class="row-start-1 col-start-1 min-h-0 bg-surface-input z-20 flex flex-col items-center justify-center-safe fade-in px-5 py-4 gap-3 overflow-y-auto"
+                  data-testid="order-overlay"
                 >
                   @if (overlayView() === 'actions') {
                     <!-- ── Aktions-Ansicht ─────────────────────── -->
@@ -310,113 +314,116 @@
                 <div class="stamp-canceled">{{ 'ACTIVE_ORDERS.CANCELED' | translate }}</div>
               }
 
-              <!-- ── Fester Bereich: Badges + Header + obere Tearline (scrollt nie) ── -->
-              <div class="flex-none flex flex-col">
-                <!-- Staff/Corporate Badge -->
-                @if (order.staffPaymentInfo) {
-                  <div
-                    class="bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 px-4 py-1.5 text-xs font-bold text-center border-b border-violet-200 dark:border-violet-800"
-                  >
-                    <lib-icon name="identification-badge" class="text-[1rem] align-bottom mr-1" />
-                    {{ 'ACTIVE_ORDERS.EMPLOYEE' | translate }}: {{ order.staffPaymentInfo.userName }}
-                  </div>
-                }
-                @if (order.customerPaymentInfo) {
-                  <div
-                    class="bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 px-4 py-1.5 text-xs font-bold text-center border-b border-orange-200 dark:border-orange-800"
-                  >
-                    <lib-icon name="buildings" class="text-[1rem] align-bottom mr-1" />
-                    {{ 'ACTIVE_ORDERS.COMPANY' | translate }}: {{ order.customerPaymentInfo.customerName }}
-                  </div>
-                }
-
-                <!-- ── Receipt Header ───────── -->
-                <div class="px-6 pt-4 pb-3 text-center bg-surface-input">
-                  <div class="flex justify-between items-start mb-1">
-                    <span class="text-xs font-bold text-ink-faint">#{{ order._id.slice(-4) }}</span>
-                    <div class="flex flex-col items-end">
-                      <span class="text-xs font-bold text-ink-muted">{{ order.recordingDate | date: 'HH:mm' }}</span>
-                      <span class="text-[0.625rem] text-ink-faint">{{ 'COMMON.CLOCK' | translate }}</span>
+              <!-- Bon-Inhalt: dieselbe Grid-Zelle wie das Overlay, inneres Scrollen über `min-h-0` -->
+              <div class="row-start-1 col-start-1 min-h-0 flex flex-col overflow-hidden" data-testid="order-receipt">
+                <!-- ── Fester Bereich: Badges + Header + obere Tearline (scrollt nie) ── -->
+                <div class="flex-none flex flex-col">
+                  <!-- Staff/Corporate Badge -->
+                  @if (order.staffPaymentInfo) {
+                    <div
+                      class="bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 px-4 py-1.5 text-xs font-bold text-center border-b border-violet-200 dark:border-violet-800"
+                    >
+                      <lib-icon name="identification-badge" class="text-[1rem] align-bottom mr-1" />
+                      {{ 'ACTIVE_ORDERS.EMPLOYEE' | translate }}: {{ order.staffPaymentInfo.userName }}
                     </div>
-                  </div>
+                  }
+                  @if (order.customerPaymentInfo) {
+                    <div
+                      class="bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 px-4 py-1.5 text-xs font-bold text-center border-b border-orange-200 dark:border-orange-800"
+                    >
+                      <lib-icon name="buildings" class="text-[1rem] align-bottom mr-1" />
+                      {{ 'ACTIVE_ORDERS.COMPANY' | translate }}: {{ order.customerPaymentInfo.customerName }}
+                    </div>
+                  }
 
-                  <h2 class="text-4xl font-black text-ink my-1">
-                    {{ order.dailySequenceNumber }}
-                  </h2>
+                  <!-- ── Receipt Header ───────── -->
+                  <div class="px-6 pt-4 pb-3 text-center bg-surface-input">
+                    <!-- Kopf in einer Zeile (core#1126): ID links, Bon-Nummer mittig, Uhrzeit rechts, beide zur Nummer zentriert -->
+                    <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2" data-testid="receipt-head">
+                      <span class="justify-self-start text-xs font-bold text-ink-faint"
+                        >#{{ order._id.slice(-4) }}</span
+                      >
+                      <h2 class="text-4xl font-black text-ink">
+                        {{ order.dailySequenceNumber }}
+                      </h2>
+                      <span class="justify-self-end text-xs font-bold text-ink-muted tabular-nums">{{
+                        order.recordingDate | date: 'HH:mm'
+                      }}</span>
+                    </div>
 
-                  <div class="flex justify-center gap-2 mt-2">
-                    @if (order.dineLocation === 'dine-in') {
-                      <span
-                        class="flex items-center gap-1 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded text-xs font-bold uppercase"
-                      >
-                        <lib-icon name="fork-knife" class="text-[1rem]" />
-                        {{ 'ACTIVE_ORDERS.DINE_IN' | translate }}
-                      </span>
-                    } @else {
-                      <span
-                        class="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded text-xs font-bold uppercase"
-                      >
-                        <lib-icon name="shopping-bag" class="text-[1rem]" />
-                        {{ 'ACTIVE_ORDERS.TO_GO' | translate }}
-                      </span>
-                    }
-                    @if (order.table) {
-                      <span class="bg-line-soft text-ink-muted dark:text-ink px-2 py-0.5 rounded text-xs font-bold">
-                        T{{ order.table }}
-                      </span>
-                    } @else if (order.settlementScope) {
-                      <!--
+                    <div class="flex justify-center gap-2 mt-2">
+                      @if (order.dineLocation === 'dine-in') {
+                        <span
+                          class="flex items-center gap-1 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded text-xs font-bold uppercase"
+                        >
+                          <lib-icon name="fork-knife" class="text-[1rem]" />
+                          {{ 'ACTIVE_ORDERS.DINE_IN' | translate }}
+                        </span>
+                      } @else {
+                        <span
+                          class="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded text-xs font-bold uppercase"
+                        >
+                          <lib-icon name="shopping-bag" class="text-[1rem]" />
+                          {{ 'ACTIVE_ORDERS.TO_GO' | translate }}
+                        </span>
+                      }
+                      @if (order.table) {
+                        <span class="bg-line-soft text-ink-muted dark:text-ink px-2 py-0.5 rounded text-xs font-bold">
+                          T{{ order.table }}
+                        </span>
+                      } @else if (order.settlementScope) {
+                        <!--
                         Abrechnungskreis (DSFinV-K `ABRECHNUNGSKREIS`) nur OHNE Tisch zeigen:
                         mit Tisch ist der Wert identisch mit dem Tischwert, und zwei Chips mit
                         derselben Aussage sind auf einer Kassenkachel nur Rauschen. Ohne Tisch
                         ist er die einzige sichtbare Vorgangsklammer — und der Nachweis, dass
                         auch eine Thekenbestellung einen Wert traegt.
                       -->
-                      <span
-                        class="max-w-[9rem] truncate bg-line-soft text-ink-muted px-2 py-0.5 rounded text-xs font-mono"
-                        [title]="('ACTIVE_ORDERS.SETTLEMENT_SCOPE' | translate) + ': ' + order.settlementScope"
-                      >
-                        {{ order.settlementScope }}
-                      </span>
-                    }
-                    @if (order.pager) {
-                      <span
-                        class="flex items-center gap-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded text-xs font-bold"
-                      >
-                        <lib-icon name="bell-ringing" class="text-[1rem] inline-block align-middle" />
-                        {{ 'ACTIVE_ORDERS.PAGER' | translate }} {{ order.pager }}
-                      </span>
-                    }
-                  </div>
-                </div>
-
-                <!-- Torn Paper Separator (oben der Positionen) -->
-                <div class="receipt-tear-line"></div>
-              </div>
-              <!-- Ende fester Header-Bereich -->
-
-              <!-- ── Bestellpositionen: scrollt innerhalb der Karte ── -->
-              <div
-                class="flex-1 overflow-y-auto min-h-0"
-                [attr.data-order-items]="true"
-                [attr.data-order-id]="order._id"
-                (scroll)="onItemsScroll($event, order._id)"
-              >
-                <!-- Scroll-Indikator: mehr Inhalt oben (h-0 + absolute = kein Layout-Einfluss) -->
-                <div
-                  class="sticky top-0 h-0 z-10 pointer-events-none transition-opacity duration-300"
-                  [class.opacity-0]="!hasMoreAbove(order._id)"
-                >
-                  <div class="absolute top-2 left-0 right-0 flex justify-center">
-                    <div class="scroll-pill">
-                      <lib-icon name="caret-up" class="text-[1rem]" />
+                        <span
+                          class="max-w-[9rem] truncate bg-line-soft text-ink-muted px-2 py-0.5 rounded text-xs font-mono"
+                          [title]="('ACTIVE_ORDERS.SETTLEMENT_SCOPE' | translate) + ': ' + order.settlementScope"
+                        >
+                          {{ order.settlementScope }}
+                        </span>
+                      }
+                      @if (order.pager) {
+                        <span
+                          class="flex items-center gap-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded text-xs font-bold"
+                        >
+                          <lib-icon name="bell-ringing" class="text-[1rem] inline-block align-middle" />
+                          {{ 'ACTIVE_ORDERS.PAGER' | translate }} {{ order.pager }}
+                        </span>
+                      }
                     </div>
                   </div>
-                </div>
 
-                <div class="font-mono text-sm" [ngClass]="vm.itemsPaddingClass">
-                  <div class="flex flex-col" [ngClass]="vm.itemsGapClass">
-                    <!--
+                  <!-- Torn Paper Separator (oben der Positionen) -->
+                  <div class="receipt-tear-line"></div>
+                </div>
+                <!-- Ende fester Header-Bereich -->
+
+                <!-- ── Bestellpositionen: scrollt innerhalb der Karte ── -->
+                <div
+                  class="flex-1 overflow-y-auto min-h-0"
+                  [attr.data-order-items]="true"
+                  [attr.data-order-id]="order._id"
+                  (scroll)="onItemsScroll($event, order._id)"
+                >
+                  <!-- Scroll-Indikator: mehr Inhalt oben (h-0 + absolute = kein Layout-Einfluss) -->
+                  <div
+                    class="sticky top-0 h-0 z-10 pointer-events-none transition-opacity duration-300"
+                    [class.opacity-0]="!hasMoreAbove(order._id)"
+                  >
+                    <div class="absolute top-2 left-0 right-0 flex justify-center">
+                      <div class="scroll-pill">
+                        <lib-icon name="caret-up" class="text-[1rem]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="font-mono text-sm" [ngClass]="vm.itemsPaddingClass">
+                    <div class="flex flex-col" [ngClass]="vm.itemsGapClass">
+                      <!--
                       track $index statt line.item._id: BESTANDS-Orders tragen als
                       Zeilen-`_id` weiterhin die Produkt-ID (vor #230 angelegt, bewusst
                       nicht migriert). Zwei gleiche Menues ergeben dort zwei Zeilen mit
@@ -424,139 +431,135 @@
                       eindeutig zu (NG0955 warnt nur im Dev-Build). Die Liste wird nicht
                       umsortiert, $index ist hier also stabil genug.
                     -->
-                    @for (line of vm.unbundledLines; track $index) {
-                      @let item = line.item;
-                      <div class="flex justify-between items-start">
-                        <div class="flex gap-2">
-                          <span class="font-bold w-8 shrink-0">{{ item.amount }}x</span>
-                          <div class="flex flex-col">
-                            <span class="text-ink">{{ item.name }}</span>
+                      @for (line of vm.unbundledLines; track $index) {
+                        @let item = line.item;
+                        <!-- Raster Menge | Name | Preis (core#1126): Unterzeilen tragen ihre Preiszelle in derselben
+                           Spalte, alle Beträge der Karte enden an der rechten Kante. -->
+                        <div
+                          class="grid grid-cols-[2rem_minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 items-baseline"
+                          data-testid="line-grid"
+                        >
+                          <span class="font-bold">{{ item.amount }}x</span>
+                          <span class="text-ink">{{ item.name }}</span>
+                          <span class="font-semibold whitespace-nowrap tabular-nums text-right">{{
+                            line.lineTotalFormatted
+                          }}</span>
 
-                            <!-- Extras -->
-                            @if (line.modifiers.length > 0) {
-                              @for (extra of line.modifiers; track extra.id) {
-                                <div class="text-xs text-ink-muted pl-2 flex items-center justify-between gap-2 mt-0.5">
-                                  <span class="flex items-center gap-1"
-                                    >+ {{ extra.name }}
-                                    @if (extra.icon) {
-                                      {{ extra.icon }}
-                                    }
-                                  </span>
-                                  @if (extra.priceFormatted) {
-                                    <span>{{ extra.priceFormatted }}</span>
-                                  }
-                                </div>
+                          <!-- Extras -->
+                          @for (extra of line.modifiers; track extra.id) {
+                            <span class="col-start-2 text-xs text-ink-muted pl-2"
+                              >+ {{ extra.name }}
+                              @if (extra.icon) {
+                                {{ extra.icon }}
                               }
-                            }
+                            </span>
+                            <span class="text-xs text-ink-muted whitespace-nowrap tabular-nums text-right">{{
+                              extra.priceFormatted
+                            }}</span>
+                          }
 
-                            <!-- Menu Items -->
-                            <ng-container
-                              [ngTemplateOutlet]="menuParts"
-                              [ngTemplateOutletContext]="{ $implicit: line }"
-                            />
-                          </div>
+                          <!-- Menu Items -->
+                          <ng-container
+                            [ngTemplateOutlet]="menuParts"
+                            [ngTemplateOutletContext]="{ $implicit: line }"
+                          />
                         </div>
-                        <span class="font-semibold whitespace-nowrap">{{ line.lineTotalFormatted }}</span>
-                      </div>
-                    }
+                      }
 
-                    <!-- Combinations (Grouped Items) -->
-                    @if (vm.combinations.length > 0) {
-                      <div class="border-t border-dashed border-line my-1 pt-2">
-                        <span class="text-[0.625rem] font-bold text-ink-faint uppercase tracking-wider mb-2 block">{{
-                          'ACTIVE_ORDERS.COMBINATIONS' | translate
-                        }}</span>
-                        @for (combo of vm.combinations; track $index) {
-                          <div
-                            class="bg-indigo-50/50 dark:bg-indigo-950/30 rounded-lg p-2 mb-2 border border-indigo-100 dark:border-indigo-900 relative"
-                          >
+                      <!-- Combinations (Grouped Items) -->
+                      @if (vm.combinations.length > 0) {
+                        <div class="border-t border-dashed border-line my-1 pt-2">
+                          <span class="text-[0.625rem] font-bold text-ink-faint uppercase tracking-wider mb-2 block">{{
+                            'ACTIVE_ORDERS.COMBINATIONS' | translate
+                          }}</span>
+                          @for (combo of vm.combinations; track $index) {
                             <div
-                              class="absolute -left-1 top-3 bottom-3 w-1 bg-indigo-200 dark:bg-indigo-800 rounded-full"
-                            ></div>
-                            <div class="flex flex-col gap-2 pl-2">
-                              @for (line of combo; track $index) {
-                                @let item = line.item;
-                                <div class="flex justify-between items-start">
-                                  <div class="flex gap-2">
-                                    <span class="font-bold w-4 text-xs">{{ item.amount }}x</span>
-                                    <div class="flex flex-col">
-                                      <span class="text-ink text-sm">{{ item.name }}</span>
-                                      @if (line.modifiers.length > 0) {
-                                        @for (extra of line.modifiers; track extra.id) {
-                                          <div
-                                            class="text-[0.625rem] text-ink-muted pl-2 flex items-center justify-between gap-2"
-                                          >
-                                            <span
-                                              >+ {{ extra.name }}
-                                              @if (extra.icon) {
-                                                {{ extra.icon }}
-                                              }
-                                            </span>
-                                            @if (extra.priceFormatted) {
-                                              <span>{{ extra.priceFormatted }}</span>
-                                            }
-                                          </div>
+                              class="bg-indigo-50/50 dark:bg-indigo-950/30 rounded-lg p-2 mb-2 border border-indigo-100 dark:border-indigo-900 relative"
+                            >
+                              <div
+                                class="absolute -left-1 top-3 bottom-3 w-1 bg-indigo-200 dark:bg-indigo-800 rounded-full"
+                              ></div>
+                              <div class="flex flex-col gap-2 pl-2">
+                                @for (line of combo; track $index) {
+                                  @let item = line.item;
+                                  <div
+                                    class="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 items-baseline"
+                                    data-testid="line-grid"
+                                  >
+                                    <span class="font-bold text-xs">{{ item.amount }}x</span>
+                                    <span class="text-ink text-sm">{{ item.name }}</span>
+                                    <span class="font-semibold text-sm whitespace-nowrap tabular-nums text-right">{{
+                                      line.lineTotalFormatted
+                                    }}</span>
+                                    @for (extra of line.modifiers; track extra.id) {
+                                      <span class="col-start-2 text-xs text-ink-muted pl-2"
+                                        >+ {{ extra.name }}
+                                        @if (extra.icon) {
+                                          {{ extra.icon }}
                                         }
-                                      }
-                                      <!-- Menü-Komponenten auch in Kombinationen (core#807) -->
-                                      <ng-container
-                                        [ngTemplateOutlet]="menuParts"
-                                        [ngTemplateOutletContext]="{ $implicit: line }"
-                                      />
-                                    </div>
+                                      </span>
+                                      <span class="text-xs text-ink-muted whitespace-nowrap tabular-nums text-right">{{
+                                        extra.priceFormatted
+                                      }}</span>
+                                    }
+                                    <!-- Menü-Komponenten auch in Kombinationen (core#807) -->
+                                    <ng-container
+                                      [ngTemplateOutlet]="menuParts"
+                                      [ngTemplateOutletContext]="{ $implicit: line }"
+                                    />
                                   </div>
-                                  <span class="font-semibold text-sm">{{ line.lineTotalFormatted }}</span>
-                                </div>
-                              }
+                                }
+                              </div>
                             </div>
-                          </div>
-                        }
-                      </div>
-                    }
+                          }
+                        </div>
+                      }
+                    </div>
                   </div>
-                </div>
 
-                <!-- Scroll-Indikator: mehr Inhalt unten (h-0 + absolute = kein Layout-Einfluss) -->
-                <div
-                  class="sticky bottom-0 h-0 z-10 pointer-events-none transition-opacity duration-300"
-                  [class.opacity-0]="!hasMoreBelow(order._id)"
-                >
-                  <div class="absolute bottom-2 left-0 right-0 flex justify-center">
-                    <div class="scroll-pill">
-                      <lib-icon name="caret-down" class="text-[1rem]" />
+                  <!-- Scroll-Indikator: mehr Inhalt unten (h-0 + absolute = kein Layout-Einfluss) -->
+                  <div
+                    class="sticky bottom-0 h-0 z-10 pointer-events-none transition-opacity duration-300"
+                    [class.opacity-0]="!hasMoreBelow(order._id)"
+                  >
+                    <div class="absolute bottom-2 left-0 right-0 flex justify-center">
+                      <div class="scroll-pill">
+                        <lib-icon name="caret-down" class="text-[1rem]" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <!-- Ende scrollbarer Positions-Bereich -->
+                <!-- Ende scrollbarer Positions-Bereich -->
 
-              <!-- ── Fester Bereich: untere Tearline + Gesamtbetrag ── -->
-              <div class="flex-none">
-                <!-- Torn Paper Separator (unten der Positionen) -->
-                <div class="receipt-tear-line"></div>
+                <!-- ── Fester Bereich: untere Tearline + Gesamtbetrag ── -->
+                <div class="flex-none">
+                  <!-- Torn Paper Separator (unten der Positionen) -->
+                  <div class="receipt-tear-line"></div>
 
-                <!-- ── BOTTOM: Nur Gesamtbetrag ───────────────────── -->
-                <div class="bg-surface-input px-6 py-4 rounded-b-2xl">
-                  <div class="flex justify-between items-center">
-                    @if (order.staffPaymentInfo) {
-                      <!-- Personalessen: bewusst KEIN Betrag. Die Rabattsätze sind pro
+                  <!-- ── BOTTOM: Nur Gesamtbetrag ───────────────────── -->
+                  <div class="bg-surface-input px-6 py-4 rounded-b-2xl">
+                    <div class="flex justify-between items-center">
+                      @if (order.staffPaymentInfo) {
+                        <!-- Personalessen: bewusst KEIN Betrag. Die Rabattsätze sind pro
                        Mitarbeiter unterschiedlich und sollen am Terminal nicht
                        ablesbar/vergleichbar sein. Der Betrag steht im Admin und
                        beim Abschluss. -->
-                      <span class="font-bold text-ink-muted uppercase text-xs">{{
-                        'ACTIVE_ORDERS.STAFF_MEAL' | translate
-                      }}</span>
-                      <span class="text-sm font-bold text-purple-600 dark:text-purple-400">{{
-                        'ACTIVE_ORDERS.STAFF_MEAL_DISCOUNT_NOTE' | translate
-                      }}</span>
-                    } @else {
-                      <span class="font-bold text-ink-muted uppercase text-xs">{{ 'COMMON.TOTAL' | translate }}</span>
-                      <span class="text-xl font-black text-ink">{{ vm.totalFormatted }}</span>
-                    }
+                        <span class="font-bold text-ink-muted uppercase text-xs">{{
+                          'ACTIVE_ORDERS.STAFF_MEAL' | translate
+                        }}</span>
+                        <span class="text-sm font-bold text-purple-600 dark:text-purple-400">{{
+                          'ACTIVE_ORDERS.STAFF_MEAL_DISCOUNT_NOTE' | translate
+                        }}</span>
+                      } @else {
+                        <span class="font-bold text-ink-muted uppercase text-xs">{{ 'COMMON.TOTAL' | translate }}</span>
+                        <span class="text-xl font-black text-ink">{{ vm.totalFormatted }}</span>
+                      }
+                    </div>
                   </div>
                 </div>
+                <!-- Ende fester Footer-Bereich -->
               </div>
-              <!-- Ende fester Footer-Bereich -->
+              <!-- Ende Bon-Inhalt -->
             </div>
             <!-- Ende Karte -->
             <!-- Ende Karten-Wrapper -->
@@ -567,30 +570,28 @@
   </main>
 </div>
 
-<!-- Beilage und Getränk eines Menüs — eine Vorlage für freie Positionen und Kombinationen (core#807) -->
+<!-- Beilage und Getränk eines Menüs — eine Vorlage für freie Positionen und Kombinationen (core#807). Liefert je
+     Komponente zwei Zellen ins Raster der Position (core#1126): Name in der Namensspalte, Aufpreis in der Preisspalte.
+     Weiße Schrift in Positionsgröße hebt sie von den gedämpften Modifiern ab. -->
 <ng-template #menuParts let-line>
   @if (line.item.isMenu) {
     @if (line.item.menuSideDish) {
-      <div class="text-xs text-ink-muted pl-2 flex items-center justify-between gap-2 mt-0.5">
-        <div class="flex items-center gap-1">
-          <lib-icon name="fork-knife" class="text-[0.75rem] -ml-1" />
-          <span>{{ line.item.menuSideDish.name }}</span>
-        </div>
-        @if (line.sideDishPriceFormatted) {
-          <span>{{ line.sideDishPriceFormatted }}</span>
-        }
-      </div>
+      <span class="col-start-2 text-sm text-ink pl-2 flex items-center gap-1 min-w-0" data-testid="menu-part">
+        <lib-icon name="fork-knife" class="text-[0.75rem] -ml-1 shrink-0" />
+        <span>{{ line.item.menuSideDish.name }}</span>
+      </span>
+      <span class="text-xs text-ink-muted whitespace-nowrap tabular-nums text-right">{{
+        line.sideDishPriceFormatted
+      }}</span>
     }
     @if (line.item.menuDrink) {
-      <div class="text-xs text-ink-muted pl-2 flex items-center justify-between gap-2 mt-0.5">
-        <div class="flex items-center gap-1">
-          <lib-icon name="coffee" class="text-[0.75rem] -ml-1" />
-          <span>{{ line.item.menuDrink.name }}</span>
-        </div>
-        @if (line.drinkPriceFormatted) {
-          <span>{{ line.drinkPriceFormatted }}</span>
-        }
-      </div>
+      <span class="col-start-2 text-sm text-ink pl-2 flex items-center gap-1 min-w-0" data-testid="menu-part">
+        <lib-icon name="coffee" class="text-[0.75rem] -ml-1 shrink-0" />
+        <span>{{ line.item.menuDrink.name }}</span>
+      </span>
+      <span class="text-xs text-ink-muted whitespace-nowrap tabular-nums text-right">{{
+        line.drinkPriceFormatted
+      }}</span>
     }
   }
 </ng-template>

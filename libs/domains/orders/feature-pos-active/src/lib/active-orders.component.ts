@@ -718,8 +718,9 @@ export class ActiveOrdersComponent {
         id: extra._id,
         name: extra.name,
         icon: extra.icon,
-        // Betrag wie Engine und Bon (#698): bei `modifierScope: 'unit'` für alle Stück.
-        priceFormatted: extra.price > 0 ? this.formatPrice(calculateModifierPrice(item, extra)) : null,
+        // Betrag wie Engine und Bon (#698): bei `modifierScope: 'unit'` für alle Stück. Mit „+“ wie der
+        // Menü-Aufpreis (core#1126), der Positionspreis darüber steht ohne.
+        priceFormatted: extra.price > 0 ? `+${this.formatPrice(calculateModifierPrice(item, extra))}` : null,
       })),
       // Dieselbe Regel wie im Warenkorb: der Aufpreis je Stück über dem allgemeinen Menüpreis, beim
       // Festpreis-Menü nichts — vorher stand hier der volle Listenpreis der Komponente (core#807).

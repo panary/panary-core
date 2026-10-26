@@ -59,3 +59,49 @@ describe('Offene Bestellungen — Kopf statt Leiste (core#973)', () => {
     expect(component).toMatch(/signal\(readStoredZoom\(\)\)/)
   })
 })
+
+// core#1126: Bon-Karte mit Preisspalte, Kopf in einer Zeile und einem Overlay, das die Karte wachsen lässt statt
+// auf kurzen Karten oben abgeschnitten zu werden.
+describe('Offene Bestellungen — Bon-Karte (core#1126)', () => {
+  const template = read('./active-orders.component.html')
+  const component = read('./active-orders.component.ts')
+  const menuParts = template.slice(template.indexOf('<ng-template #menuParts'))
+
+  it('freie Positionen und Kombinationen stehen im Raster Menge | Name | Preis', () => {
+    expect(template.match(/data-testid="line-grid"/g)).toHaveLength(2)
+    expect(template.match(/grid-cols-\[[\d.]+rem_minmax\(0,1fr\)_auto\]/g)).toHaveLength(2)
+  })
+
+  it('jede Unterzeile trägt eine eigene Preiszelle rechtsbündig in der Preisspalte', () => {
+    // Modifier: Name in Spalte 2, Preiszelle immer gerendert (auch leer), damit das Raster nicht verrutscht
+    expect(template.match(/extra\.priceFormatted\s*\}\}<\/span>/g)).toHaveLength(2)
+    expect(template).not.toMatch(/@if \(extra\.priceFormatted\)/)
+    expect(menuParts).not.toMatch(/@if \(line\.(sideDish|drink)PriceFormatted\)/)
+    expect(menuParts.match(/text-right">\{\{/g)).toHaveLength(2)
+  })
+
+  it('Beilage und Getränk stehen in weißer Schrift, Modifier bleiben gedämpft', () => {
+    expect(menuParts.match(/col-start-2 text-sm text-ink /g)).toHaveLength(2)
+    expect(menuParts).not.toMatch(/text-xs text-ink-muted pl-2/)
+  })
+
+  it('der Modifier-Aufpreis trägt ein Plus wie der Menü-Aufpreis', () => {
+    expect(component).toMatch(/priceFormatted: extra\.price > 0 \? `\+\$\{this\.formatPrice\(/)
+  })
+
+  it('der Kopf steht in einer Zeile, ohne „Uhr“', () => {
+    expect(template).toMatch(/grid-cols-\[1fr_auto_1fr\] items-center gap-2" data-testid="receipt-head"/)
+    expect(template).not.toMatch(/COMMON\.CLOCK/)
+  })
+
+  it('Overlay und Bon-Inhalt teilen eine Grid-Zelle, das Overlay ist nicht mehr absolut', () => {
+    expect(template).toMatch(/class="grid grid-cols-1 grid-rows-\[minmax\(0,1fr\)\] w-full/)
+    const overlay = template.slice(template.indexOf('<!-- Selection Overlay -->'), template.indexOf('order-overlay'))
+    expect(overlay).toMatch(/row-start-1 col-start-1 min-h-0 /)
+    expect(overlay).toMatch(/justify-center-safe/)
+    expect(overlay).not.toMatch(/absolute inset-0/)
+    expect(template).toMatch(
+      /row-start-1 col-start-1 min-h-0 flex flex-col overflow-hidden" data-testid="order-receipt"/,
+    )
+  })
+})

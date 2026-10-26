@@ -1,6 +1,6 @@
 {
   "name": "@panary/tenants",
-  "version": "26.10.32",
+  "version": "26.10.33",
   "license": "BSL-1.1",
   "type": "commonjs",
   "exports": {

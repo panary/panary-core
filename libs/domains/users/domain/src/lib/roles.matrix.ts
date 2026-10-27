@@ -735,6 +735,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.OPEN_SHIFT_APPLICATIONS, action: AppAction.MANAGE },
     { resource: AppResource.LEAVE_REQUESTS, action: [AppAction.READ, AppAction.UPDATE] },
     { resource: AppResource.HOLIDAY_CALENDARS, action: [AppAction.READ, AppAction.UPDATE] },
+    // Ausnahmen werden aus holiday-calendars materialisiert, die der Manager ohnehin liest. Nur READ:
+    // Anlegen an den Kalendern vorbei überschriebe der Materialisierer (panary/panary-core#1151).
+    { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.READ },
     { resource: AppResource.WORKING_TIME_REPORTS, action: AppAction.CREATE },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: AppAction.MANAGE },
@@ -877,6 +880,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // STAFF darf lesen, welche Tage Feiertage sind — fuer eigene Urlaubsantraege
     // und die Personalzeit-Sicht. Editieren bleibt MANAGER/OWNER.
     { resource: AppResource.HOLIDAY_CALENDARS, action: AppAction.READ },
+    // Wie beim Manager: materialisiert aus holiday-calendars, dort schon lesbar (panary/panary-core#1151).
+    { resource: AppResource.OPENING_HOUR_EXCEPTIONS, action: AppAction.READ },
     { resource: AppResource.LOCATIONS, action: AppAction.READ },
     { resource: AppResource.ORDER_INTERACTIONS, action: [AppAction.READ, AppAction.CREATE] },
     // Tenant-First-Class: Staff liest Tenant-Stamm-Daten + Plan-Katalog (UI-

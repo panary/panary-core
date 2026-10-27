@@ -53,7 +53,8 @@ also kein offener Erfassungsvorgang mehr.
 Eine Nachbestellung legt eine **neue `orders`-Zeile** an. Sie trägt den `settlementScope` des
 Tisches, ihren eigenen TSE-Vorgang (`signOrderTseStart` beim Anlegen, wie jede Bestellung) und
 eine Vorgangs-Referenz `refType: Transaktion` mit `sourceOrderId` = die **erste** Bestellung des
-Kreises. Die erste statt der jeweils vorigen, weil der Bezug dann für jede Nachbestellung
+Kreises. `Transaktion` ist der Grundfall des Enums, nicht `Split` oder `Umbuchung`: Es wandert
+nichts, es kommt etwas hinzu. Die erste statt der jeweils vorigen, weil der Bezug dann für jede Nachbestellung
 derselbe ist und ohne Kette nachvollziehbar bleibt.
 
 Die fachliche Klammer „eine Rechnung für den Tisch“ ist der Abrechnungskreis. So sieht es die
@@ -71,7 +72,8 @@ später bricht (Nr. 3).
 
 **Verworfen: Storno der alten Bestellung plus eine neue mit allen Positionen.** Rechtlich
 zulässig, aber für jede Nachbestellung ein Storno im Journal, ein Storno-Küchenbon für schon
-Zubereitetes und eine Bestandsrückbuchung. Der Weg bleibt für echte Korrekturen (A7), nicht für
+Zubereitetes und eine Bestandsrückbuchung. Der Weg bleibt für echte Korrekturen (A7: Storno als eigener Vorgang mit
+Referenz auf das Original), nicht für
 Nachbestellungen.
 
 ### 2. Grenze: ein Kreis ist offen, solange er eine nicht-terminale Bestellung hat

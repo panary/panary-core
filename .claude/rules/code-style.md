@@ -166,6 +166,10 @@ Regeln:
   `aria-pressed`. One-Shot-Tasten (ÜBERSPRINGEN etc.) bekommen nur momentanes
   `active:`-Feedback. Der einzige Toggle war OHNE; er ist mit dem Anpassen-Panel entfallen
   (panary/panary-core#639, `docs/domains/pos-anpassen-panel.md`).
+- **Hover nur für Maus:** kein Tailwind-`hover:` auf Kacheln, Funktionstasten und Rail. Sie tragen
+  `pnry-hover` (styles.scss, nur unter `(hover: hover) and (pointer: fine)`, Tönung als `background-image`),
+  sonst klebt der Hover auf Touch. Flächen daneben per `background-color`, nicht per Kurzform
+  `background` (panary/panary-core#959).
 
 ### 9.2 Kein Gedankenstrich in POS-Texten
 

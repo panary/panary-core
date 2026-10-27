@@ -64,6 +64,18 @@ html {
   min-height: max(4rem, 48px);
 }
 
+/* Maus-Hover (core#959): nur mit feinem Zeiger, sonst bliebe der Hover auf dem Sunmi nach dem
+   Antippen kleben. Die Tönung liegt als background-image über jeder Grundfarbe, auch über der
+   Inline-Farbe einer Produktkachel und den getönten Funktionstasten; kein Layout-Sprung. */
+@media (hover: hover) and (pointer: fine) {
+  .pnry-hover:hover:not(:disabled) {
+    background-image: linear-gradient(
+      color-mix(in oklab, var(--text-primary) 7%, transparent),
+      color-mix(in oklab, var(--text-primary) 7%, transparent)
+    );
+  }
+}
+
 /* Angular Material Theme — Light (Standard) */
 html {
   @include mat.theme(

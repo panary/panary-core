@@ -9,7 +9,7 @@
   @for (item of nav.rail(); track item.entry.id) {
     <button
       type="button"
-      class="rail-item"
+      class="rail-item pnry-hover"
       [class.is-active]="nav.isActive(item)"
       [class.is-blocked]="item.block"
       [disabled]="nav.locked()"
@@ -32,7 +32,7 @@
 
   <button
     type="button"
-    class="rail-item"
+    class="rail-item pnry-hover"
     [class.is-active]="nav.moreActive()"
     [disabled]="nav.locked()"
     [cdkMenuTriggerFor]="moreMenu"
@@ -50,7 +50,7 @@
   <!-- Offline gesperrt mit Hinweis: bleibt antippbar, PosStaffService.logout() meldet den Grund. -->
   <button
     type="button"
-    class="rail-item rail-item--compact"
+    class="rail-item rail-item--compact pnry-hover"
     data-tone="danger"
     [class.is-blocked]="staff.isOffline()"
     [disabled]="nav.locked()"

@@ -825,3 +825,38 @@ describe('Kasse — Hinzufügen zeigt die Zeile (core#1116)', () => {
     expect(reduced).not.toMatch(/::before\s*\{\s*animation: none/)
   })
 })
+
+// core#959: Mit Maus zeigten Produktkacheln und Funktionstasten keinen Hover. Er kommt aus `pnry-hover` (styles.scss),
+// nur unter `(hover: hover) and (pointer: fine)` — ein Tailwind-`hover:` gilt auch für grobe Zeiger und färbte die
+// Funktionstasten im Dunkelmodus hell ein.
+describe('Kasse — Maus-Hover nur mit feinem Zeiger (core#959)', () => {
+  const component = readFileSync(fileURLToPath(new URL('./order-dialog.component.ts', import.meta.url)), 'utf8')
+  const styles = readFileSync(
+    fileURLToPath(new URL('../../../../../../apps/pos-client/src/styles.scss', import.meta.url)),
+    'utf8',
+  )
+  const tileClasses = [...template.matchAll(/class="([^"]*h-\[var\(--pnry-tile-h\)\][^"]*)"/g)].map(m =>
+    m[1].split(/\s+/),
+  )
+
+  it('gibt Produktkachel und Funktionstaste die Klasse pnry-hover', () => {
+    expect(tileClasses).toHaveLength(2)
+    expect(tileClasses.map(classes => classes.includes('pnry-hover'))).toEqual([true, true])
+  })
+
+  it('setzt in der Farbmatrix der Funktionstasten kein hover:', () => {
+    const matrix = component.slice(component.indexOf('functionButtonClasses(button: PosButton)'))
+    const body = matrix.slice(0, matrix.indexOf('\n  }\n'))
+    expect(body).toContain("case 'cancel':")
+    expect(body.match(/hover:/g)).toBeNull()
+  })
+
+  it('tönt nur unter (hover: hover) and (pointer: fine)', () => {
+    const start = styles.indexOf('@media (hover: hover) and (pointer: fine) {')
+    const block = styles.slice(start, styles.indexOf('\n}\n', start))
+    expect(start).toBeGreaterThan(0)
+    expect(block).toContain('.pnry-hover:hover:not(:disabled)')
+    expect(styles.indexOf('.pnry-hover')).toBe(styles.indexOf('.pnry-hover:hover'))
+    expect(styles.match(/\.pnry-hover:hover/g)).toHaveLength(1)
+  })
+})

@@ -37,7 +37,7 @@
 }
 
 .rail-item[aria-expanded='true'] {
-  background: var(--surface-panel);
+  background-color: var(--surface-panel);
   box-shadow: inset 0 0 0 2px var(--text-primary);
 }
 
@@ -75,7 +75,7 @@
 }
 
 .rail-clock[data-state='in'] {
-  background: var(--accent-soft);
+  background-color: var(--accent-soft);
   box-shadow: inset 0 0 0 2px var(--accent-border);
 }
 
@@ -84,7 +84,7 @@
 }
 
 .rail-clock[data-state='break'] {
-  background: var(--warn-soft);
+  background-color: var(--warn-soft);
   box-shadow: inset 0 0 0 2px var(--warn-line);
 }
 

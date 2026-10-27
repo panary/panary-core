@@ -4,7 +4,7 @@ title: Ruhetag-Regel — Verkauf an geschlossenen Tagen nur mit Freigabe
 description: Wie Edge und POS einen laut Öffnungszeiten geschlossenen Tag erkennen, was die Standort-Regel closedDayPolicy erlaubt und wie die PIN-Freigabe den Geschäftstag öffnet bzw. stempelt.
 tags: [businessdays, locations, orders, pos-client, opening-hours]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-27T00:45:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-27T01:20:00Z }
 sources:
   - { id: adr-0062, resource: ../adr/0062-ruhetag-regel-je-standort.md, title: 'ADR 0062' }
   - { id: issue-1133, resource: 'https://github.com/panary/panary-core/issues/1133', title: 'core#1133' }

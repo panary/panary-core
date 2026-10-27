@@ -34,7 +34,8 @@ und Fenster. Die Öffnungszeiten folgen der aktiven Location als `computed` (ein
 Neustart der Seite), filialgenaue Ausnahmen lädt der Minutentakt nach, sobald Filiale oder Kalendertag wechseln, und
 jedes `opening-hour-exceptions`-Event. Die Balken zählen nur Bestellungen des heutigen Kalendertags: Ein über
 Mitternacht offener Geschäftstag faltete sonst die Abendbestellungen von gestern in die Stunden von heute (die Achse
-wuchs bis 24 Uhr). Die Kachel „Offene
+wuchs bis 24 Uhr). Die Kacheln „Bestellungen heute" und „Ø pro Stunde" zählen bewusst weiter den ganzen
+Geschäftstag — sie messen den Umsatztag, nicht den Kalendertag. Die Kachel „Offene
 Bestellungen" öffnet `/orders/active`, daneben listet „Als Nächstes abholen" die nächsten Vorbestellungen; Antippen öffnet `/pre-orders?select=<id>` mit dieser Vorbestellung ausgewählt ([core#1025](https://github.com/panary/panary-core/issues/1025)). Die Liste entfernt den Parameter sofort, holt eine heute schon fällige Vorbestellung, die sie selbst nicht lädt, einzeln nach und zeigt bei abgeholten oder stornierten einen Hinweis statt einer leeren Auswahl (`findRequestedPreOrder`). Zahlen
 laufen über `formatDecimal` (`@panary/shared/util-helpers`, de-DE: „0,6" statt „0.6", core#969).
 

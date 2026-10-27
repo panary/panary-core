@@ -153,7 +153,7 @@ describe('todaysOpening (core#1132)', () => {
     _id: 'loc-1',
     settings: {
       generalSettings: { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-      openingHoursSettings: { enabled, regular: thursday ? [{ day: 4, ...thursday }] : [] },
+      openingHoursSettings: { enabled, regular: thursday ? [{ day: 4, open: '', close: '', ...thursday }] : [] },
     },
   })
 
@@ -185,7 +185,11 @@ describe('todaysOpening (core#1132)', () => {
   it('Ausnahme mit eigenen Zeiten gilt; Ausnahme einer fremden Filiale nicht', () => {
     const loc = location(true, { closed: false, open: '09:00', close: '18:00' })
     expect(
-      todaysOpening(loc, [{ date: '2026-10-22', closed: false, open: '10:00', close: '14:00', locationId: 'loc-1' }], now),
+      todaysOpening(
+        loc,
+        [{ date: '2026-10-22', closed: false, open: '10:00', close: '14:00', locationId: 'loc-1' }],
+        now,
+      ),
     ).toEqual({ kind: 'open', open: '10:00', close: '14:00' })
     expect(todaysOpening(loc, [{ date: '2026-10-22', closed: true, locationId: 'loc-2' }], now)).toEqual({
       kind: 'open',

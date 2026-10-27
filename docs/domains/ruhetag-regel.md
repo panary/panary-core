@@ -66,6 +66,8 @@ Fehlercodes: `BD_6010` Ruhetag ohne Freigabe, `BD_6011` PIN falsch, `BD_6012` Ro
   den Tag selbst.
 - Dialog: `ClosedDayApprovalDialogComponent` (`@panary/businessdays/feature-pos-closing-dialog`),
   Texte unter `CLOSED_DAY.*`.
+- **Startseite:** sagt am Ruhetag „Heute geschlossen" statt einer Öffnungszeit, mit demselben
+  `closedDayStatus` ([POS-Navigation](pos-navigation.md), core#1132).
 
 ## Was der Stempel nicht tut
 

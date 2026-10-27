@@ -1,18 +1,31 @@
-@import 'tailwindcss';
+/* `source(none)` schaltet Tailwinds automatische Quellensuche ab — sonst wurzelt
+   sie in process.cwd() (= Repo-Root, weil `.postcssrc.json` kein `base` setzt)
+   und walkt dabei `.nx/cache`. Bei 15.560 Cache-Eintraegen blieb `nx serve
+   pos-client` unbegrenzt bei „Building..." stehen (core#1138, gleiche Klasse wie
+   panary/panary-cloud#293). Gescannt wird ausschliesslich, was die @source-Zeilen
+   unten deklarieren. */
+@import 'tailwindcss' source(none);
 @import '../../../libs/shared/design-tokens/tokens.css';
 @import '../../../libs/shared/design-tokens/theme.css';
 @import '../../../libs/shared/design-tokens/fonts.css';
 
 /* Explizite Quellpfade für Tailwind v4 JIT — nötig in Docker (kein .git-Verzeichnis) */
 @source "./app";
-/* Nur Quell-Verzeichnisse scannen — tiefenbegrenzte Patterns (kein **):
-   libs/ enthaelt pnpm-Peer-Symlinks (node_modules/@panary/*), die seit
-   Option A Zyklen bilden; ein **-Glob rekursiert dort endlos (Stack-
-   Overflow im angular-sass-Plugin). Zusaetzlich bleiben dist-Artefakte
-   aus dem Klassen-Scan. */
-@source "../../../libs/domains/*/*/src";
-@source "../../../libs/shared/*/src";
-@source "../../../libs/apps/*/*/src";
+/* Nur die Quell-Verzeichnisse der libs scannen. Das `**` steht bewusst ERST
+   unter `src/` — die pnpm-Links (`node_modules/@panary/*`) liegen seit Option A
+   eine Ebene darueber am lib-Root und bilden Symlink-Zyklen; ein `**` weiter oben
+   rekursiert dort endlos (Stack-Overflow im angular-sass-Plugin).
+
+   🚨 Das Dateimuster am Ende ist Pflicht, nicht Kosmetik: Ein `@source`, das
+   einen Stern in einem VERZEICHNIS-Segment hat und auf ein Verzeichnis endet
+   (frueher: libs/shared/<stern>/src), matcht in Tailwind 4 **nichts** — still,
+   ohne Warnung. Bis core#1138 fiel das nicht auf, weil die automatische
+   Quellensuche ohnehin alles mitnahm. Nach Aenderungen an diesen Zeilen
+   `pnpm tailwind:gate` laufen lassen — ein Build bleibt sonst gruen.
+   (Und: kein Stern-Slash in diesem Kommentar, das beendet ihn.) */
+@source "../../../libs/domains/*/*/src/**/*.{html,ts}";
+@source "../../../libs/shared/*/src/**/*.{html,ts}";
+@source "../../../libs/apps/*/*/src/**/*.{html,ts}";
 
 /* Dark-Modus-Variante: greift bei data-theme="dark" auf <html> ODER OS-Präferenz ohne explizites data-theme */
 @custom-variant dark {

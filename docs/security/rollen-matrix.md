@@ -78,7 +78,7 @@ Grenzen der Tabelle:
 | `printer-commands` | – | – | – | M | CR | M | – | – | – | – | – |
 | `apikeys` | – | – | – | M | R | M | – | – | – | – | – |
 | `cloud-connection` | – | – | – | M | – | M | – | – | – | – | – |
-| `opening-hour-exceptions` | – | – | – | M | – | M | – | R | – | – | – |
+| `opening-hour-exceptions` | – | – | – | M | R | M | R | R | – | – | – |
 | `cloud-edges` | – | – | – | M | R | M | – | – | – | – | – |
 | `edge-pairing-codes` | – | – | – | M | R | M | – | – | – | – | – |
 | `sync-conflicts` | – | – | – | M | M | M | – | – | – | – | – |

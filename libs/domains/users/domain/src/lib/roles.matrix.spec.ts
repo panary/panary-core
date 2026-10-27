@@ -383,3 +383,35 @@ describe('RolePermissions — ANNOUNCEMENTS', () => {
     }
   })
 })
+
+/**
+ * Öffnungszeiten-Ausnahmen (panary/panary-core#1151, Bug panary/panary-cloud#1476).
+ *
+ * Ohne Eintrag lieferte die Cloud dem Manager 403, und der Eröffnungs-Assistent
+ * zeigte keinen Ruhetag aus einer Ausnahme. Die Daten werden aus holiday-calendars
+ * materialisiert, das beide Rollen schon lesen. Schreiben bleibt bei Owner und Techniker.
+ */
+describe('RolePermissions — OPENING_HOUR_EXCEPTIONS', () => {
+  it('TENANT_MANAGER und TENANT_STAFF lesen nur', () => {
+    for (const role of [UserSystemRole.TENANT_MANAGER, UserSystemRole.TENANT_STAFF]) {
+      expect(roleActions(role, AppResource.OPENING_HOUR_EXCEPTIONS), role).toEqual([AppAction.READ])
+    }
+  })
+
+  it('TENANT_MANAGER und TENANT_STAFF dürfen weder anlegen noch ändern noch löschen', () => {
+    for (const role of [UserSystemRole.TENANT_MANAGER, UserSystemRole.TENANT_STAFF]) {
+      for (const action of [AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
+        expect(roleCan(role, AppResource.OPENING_HOUR_EXCEPTIONS, action), `${role} ${action}`).toBe(false)
+      }
+    }
+  })
+
+  it('Owner und Techniker pflegen weiterhin, das POS liest', () => {
+    for (const role of [UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_TECHNICIAN]) {
+      for (const action of [AppAction.READ, AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
+        expect(roleCan(role, AppResource.OPENING_HOUR_EXCEPTIONS, action), `${role} ${action}`).toBe(true)
+      }
+    }
+    expect(roleActions(UserSystemRole.DEVICE_POS, AppResource.OPENING_HOUR_EXCEPTIONS)).toEqual([AppAction.READ])
+  })
+})

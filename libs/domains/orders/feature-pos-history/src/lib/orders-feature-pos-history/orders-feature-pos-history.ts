@@ -1,7 +1,8 @@
-import { Component } from '@angular/core'
+import { ChangeDetectionStrategy, Component } from '@angular/core'
 
 @Component({
   selector: 'lib-orders-feature-pos-history',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [],
   templateUrl: './orders-feature-pos-history.html',
   styleUrl: './orders-feature-pos-history.scss',

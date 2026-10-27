@@ -7,7 +7,7 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin'
 // Die tsconfig.app.json schliesst `src/**/*.spec.ts` bereits aus, Specs landen
 // also nicht im Build.
 export default defineConfig(() => ({
-  root: import.meta.dirname,
+  root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/tse-gateway',
   plugins: [nxViteTsPaths()],
   test: {

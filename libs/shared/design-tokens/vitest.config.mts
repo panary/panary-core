@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig(() => ({
-  root: import.meta.dirname,
+  root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/shared/design-tokens',
   test: {
     name: 'design-tokens',

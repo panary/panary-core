@@ -4,7 +4,7 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'
 import { panaryVitestPlugins } from '../../../../tools/vitest/panary-vitest'
 
 export default defineConfig(() => ({
-  root: import.meta.dirname,
+  root: __dirname,
   cacheDir: '../../../../node_modules/.vite/libs/domains/sync/domain',
   // Reihenfolge traegt: Resolver + Waechter MUESSEN vor `nxViteTsPaths()` stehen (tools/vitest/panary-vitest.ts).
   plugins: [...panaryVitestPlugins(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],

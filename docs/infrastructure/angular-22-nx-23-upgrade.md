@@ -48,6 +48,25 @@ Ziel war unveränderte Funktion. Deshalb ist jeder geänderte Default dort, wo e
   `optionalChainNotNullable` sind je Angular-Projekt in `angularCompilerOptions.extendedDiagnostics` unterdrückt.
   Beides ist Übergang, kein Zielzustand.
 
+## Vite 8 in den Vitest-Läufen
+
+Vite 8 transformiert TypeScript mit Oxc statt esbuild. Zwei Fallen, beide im Upgrade-Lauf rot:
+
+- **Decorators:** Oxc senkt nur Legacy-Decorators ab, und nur, wenn die zur Datei nächstgelegene `tsconfig.json`
+  `experimentalDecorators: true` setzt. Ohne das bleibt `@Injectable(...)` im Code stehen und Node bricht beim
+  Laden mit `SyntaxError: Invalid or unexpected token` ab — ohne Zeilenangabe. esbuild hatte die Decorators
+  vorher stillschweigend umgewandelt. Betroffen war `libs/shared/data-access-updater`, und zwar auch für
+  fremde Specs, die ihren `UpdateService` importieren (`login.component.spec.ts`). Jede Lib mit Angular-Decorators
+  braucht den Schalter in ihrer `tsconfig.json`.
+- **Typen von `vite`:** Vite 8 liefert seine Typen nur über `exports`. Unter `moduleResolution: "node"` (die
+  CommonJS-Domain-Libs) findet der Typecheck `'vite'` nicht mehr. Die `vite.config.ts` der Libs importieren
+  `defineConfig` deshalb aus `vitest/config`, wie die `vitest.config.mts`.
+
+Die Nx-Migration `__dirname → import.meta.dirname` in den Vitest-Configs ist zurückgenommen: Die Configs liegen im
+`tsconfig.spec.json` der CommonJS-Libs, und dort ist `import.meta` ein Typfehler (TS1343). Vite meldet `__dirname`
+als inkompatibel mit dem künftigen `configLoader: 'native'` — das ist eine Warnung, kein Fehler, und betrifft erst
+einen späteren Vite-Major.
+
 ## Nicht übernommene Nx-Migrationen
 
 Nx 23 bringt Migrationen für den Umstieg auf TypeScript 6: `ignoreDeprecations: "6.0"` in jeder Projekt-tsconfig,

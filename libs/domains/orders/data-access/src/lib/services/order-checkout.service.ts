@@ -14,14 +14,27 @@ export interface PayCashInput {
    * Feature-Lib — der Service kennt ihn nicht und bekommt nur die Rückfrage.
    */
   requestCashSession: (cashierId: string) => Promise<boolean>
+  /**
+   * Fragt die Ruhetag-Freigabe an, wenn der Server `BD_6010` meldet (panary/panary-core#1133) — der Fehler
+   * trägt Datum und Ruhetag-Regel für den Dialog. `true` = freigegeben, der Abschluss wird wiederholt.
+   * Ohne Rückfrage bleibt `BD_6010` ein gewöhnlicher Fehler.
+   */
+  requestClosedDayApproval?: (error: unknown) => Promise<boolean>
 }
 
 /**
  * `paid` — bezahlt und abgeschlossen. `cash-session-declined` — die Freigabe kam nicht zustande.
- * `failed` — der Server hat abgelehnt (die Fehler-Notification kommt schon aus `handleError`). Nur `BD_6004` beim
- * ersten Versuch bleibt still, weil der Freigabe-Dialog die Lage erklärt.
+ * `closed-day-declined` — am Ruhetag wurde nicht freigegeben.
+ * `failed` — der Server hat abgelehnt (die Fehler-Notification kommt schon aus `handleError`). Nur `BD_6004` und
+ * `BD_6010` beim ersten Auftreten bleiben still, weil der jeweilige Freigabe-Dialog die Lage erklärt.
  */
-export type PayCashResult = 'paid' | 'cash-session-declined' | 'failed'
+export type PayCashResult = 'paid' | 'cash-session-declined' | 'closed-day-declined' | 'failed'
+
+/** Erkennt `LOCATION_CLOSED_TODAY` (AppError BD_6010) aus dem Ruhetag-Gate der Edge. */
+export const isLocationClosedToday = (err: unknown): boolean => {
+  const e = err as { code?: unknown; data?: { code?: unknown } } | undefined
+  return e?.data?.code === 'BD_6010' || e?.code === 'BD_6010'
+}
 
 /** Erkennt den CASH_SESSION_REQUIRED-Fehler (AppError BD_6004) aus dem Guard. */
 export const isCashSessionRequired = (err: unknown): boolean => {
@@ -60,21 +73,31 @@ export class OrderCheckoutService {
       payment: buildCashPayment(input.total, input.cashierId),
       status: OrderStatus.COMPLETED,
     }
-    try {
-      // BD_6004 ist hier der erwartete Auslöser der Freigabe, kein Fehler: ohne Opt-out stand die rohe
-      // 400-Meldung über dem Freigabe-Dialog (core#1091). Die Wiederholung unten meldet wieder alles.
-      await this.#orders.patch(input.orderId, payload, { isExpectedError: isCashSessionRequired })
-      return 'paid'
-    } catch (err) {
-      if (!isCashSessionRequired(err)) return 'failed'
-    }
-
-    if (!(await input.requestCashSession(input.cashierId))) return 'cash-session-declined'
-    try {
-      await this.#orders.patch(input.orderId, payload)
-      return 'paid'
-    } catch {
-      return 'failed'
+    // Höchstens je eine Rückfrage: Ruhetag (das Gate läuft am Server zuerst) und Kasse. Jede wird
+    // beim ersten Auftreten still erwartet — ohne Opt-out stand die rohe 400-Meldung über dem
+    // Freigabe-Dialog (core#1091). Danach meldet die Wiederholung wieder alles.
+    let askedCashSession = false
+    let askedClosedDay = !input.requestClosedDayApproval
+    for (;;) {
+      // Stand dieses Versuchs festhalten — die Rückfrage danach ändert die Flags.
+      const expectCashSession = !askedCashSession
+      const expectClosedDay = !askedClosedDay
+      const expected = (err: unknown): boolean =>
+        (expectCashSession && isCashSessionRequired(err)) || (expectClosedDay && isLocationClosedToday(err))
+      const params = expectCashSession || expectClosedDay ? { isExpectedError: expected } : undefined
+      try {
+        await this.#orders.patch(input.orderId, payload, params)
+        return 'paid'
+      } catch (err) {
+        if (!expected(err)) return 'failed'
+        if (isLocationClosedToday(err)) {
+          askedClosedDay = true
+          if (!(await input.requestClosedDayApproval?.(err))) return 'closed-day-declined'
+        } else {
+          askedCashSession = true
+          if (!(await input.requestCashSession(input.cashierId))) return 'cash-session-declined'
+        }
+      }
     }
   }
 }

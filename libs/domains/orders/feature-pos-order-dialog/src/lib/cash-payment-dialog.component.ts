@@ -7,6 +7,7 @@ import { LocationService } from '@panary/locations/data-access'
 import { UserService } from '@panary/users/data-access'
 import {
   promptCashSessionAuthorization,
+  promptClosedDayApprovalFromError,
   type CashSessionPromptLocation,
 } from '@panary/businessdays/feature-pos-closing-dialog'
 import { CashPaymentComponent } from './cash-payment.component'
@@ -76,6 +77,12 @@ export class CashPaymentDialogComponent {
             this.#userService.users(),
             id,
           ),
+        requestClosedDayApproval: err =>
+          promptClosedDayApprovalFromError(
+            this.#matDialog,
+            err,
+            (this.#locationService.activeLocation() as { operationMode?: string } | undefined)?.operationMode,
+          ),
       })
       if (result === 'paid') {
         this.#ref.close(true)
@@ -83,6 +90,9 @@ export class CashPaymentDialogComponent {
       }
       if (result === 'cash-session-declined') {
         this.#notifications.warning(this.#translate.instant('ORDER_DIALOG.PAYMENT_CASH_SESSION_DECLINED'))
+      }
+      if (result === 'closed-day-declined') {
+        this.#notifications.warning(this.#translate.instant('CLOSED_DAY.DECLINED'))
       }
       // `failed`: `handleError` hat schon gemeldet, die Ansicht bleibt für einen neuen Versuch stehen.
     } finally {

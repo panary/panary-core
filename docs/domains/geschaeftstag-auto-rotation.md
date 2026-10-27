@@ -13,6 +13,9 @@ Ergänzt die [Tagesabschluss-Architektur](tagesabschluss-architektur.md) um zwei
 Mechanismen, die verhindern, dass im Standalone-Modus Bestellungen still auf
 einem veralteten Geschäftstag landen.
 
+> **Ruhetag (core#1133):** An einem laut Öffnungszeiten geschlossenen Tag rotiert keiner der
+> Pfade unten; Bestellungen brauchen dann eine Freigabe. Siehe [Ruhetag-Regel](ruhetag-regel.md).
+
 ## Problem
 
 Im Standalone-Modus rotierte der Geschäftstag bislang nur an **zwei** Stellen:

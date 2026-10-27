@@ -17,6 +17,12 @@ vi.mock('./utils/business-day.utils', () => ({
   loadBusinessDayRuntime: (...a: unknown[]) => loadBusinessDayRuntime(...a),
 }))
 
+const loadClosedDayCheck = vi.fn()
+vi.mock('./utils/closed-day-gate', () => ({
+  loadClosedDayCheck: (...a: unknown[]) => loadClosedDayCheck(...a),
+}))
+
+import { logger } from '@panary/shared-backend'
 import { autoEnsureBusinessDay } from './bootstrap-business-day'
 
 /**
@@ -42,6 +48,49 @@ beforeEach(() => {
   hasActiveOrders.mockResolvedValue(false)
   rotateBusinessDay.mockResolvedValue('bd-new')
   loadBusinessDayRuntime.mockResolvedValue({ openHours: 30 })
+  loadClosedDayCheck.mockResolvedValue(null)
+})
+
+describe('autoEnsureBusinessDay — Ruhetag (#1133)', () => {
+  it('eröffnet am Ruhetag keinen neuen Tag und protokolliert das', async () => {
+    isLocalRotationAllowed.mockResolvedValue(true)
+    shouldAutoRotate.mockReturnValue(true)
+    loadClosedDayCheck.mockResolvedValue({
+      status: { state: 'closed', date: '2026-10-26', reason: 'regular' },
+      policy: 'manager-approval',
+    })
+
+    await autoEnsureBusinessDay(makeApp({}))
+
+    expect(rotateBusinessDay).not.toHaveBeenCalled()
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'business_day.rotation_skipped_closed_day', locationId: 'loc-1' }),
+    )
+  })
+
+  it('rotiert wie bisher, wenn die Prüfung nicht möglich war (fail-open)', async () => {
+    isLocalRotationAllowed.mockResolvedValue(true)
+    shouldAutoRotate.mockReturnValue(true)
+    loadClosedDayCheck.mockResolvedValue(null)
+
+    await autoEnsureBusinessDay(makeApp({}))
+
+    expect(rotateBusinessDay).toHaveBeenCalledTimes(1)
+  })
+
+  it('übergibt die Filial-Settings, damit Zeitzone und Öffnungszeiten ankommen', async () => {
+    isLocalRotationAllowed.mockResolvedValue(true)
+    shouldAutoRotate.mockReturnValue(true)
+    const settings = { openingHoursSettings: { enabled: true, regular: [] } }
+
+    await autoEnsureBusinessDay(
+      makeApp({
+        locations: [{ _id: 'loc-1', tenantId: 't-1', currentBusinessDay: null, settings: JSON.stringify(settings) }],
+      }),
+    )
+
+    expect(loadClosedDayCheck).toHaveBeenCalledWith(expect.anything(), { _id: 'loc-1', settings }, expect.any(Date))
+  })
 })
 
 describe('autoEnsureBusinessDay', () => {

@@ -3,6 +3,29 @@ import { Observer } from 'rxjs'
 import { BaseService, ConnectionService } from '@panary/shared/data-access'
 import { BusinessDay } from '@panary/businessdays/domain'
 
+/** Antwort von `businessdays.getClosedDayStatus` (Edge, panary/panary-core#1133). */
+export interface ClosedDayStatus {
+  approvalRequired: boolean
+  state: 'closed' | 'open' | 'unknown'
+  date: string
+  policy: 'manager-approval' | 'block'
+}
+
+/** Antwort von `businessdays.approveClosedDay` (Edge, panary/panary-core#1133). */
+export interface ClosedDayApproval {
+  approved: boolean
+  businessDayId: string | null
+  date: string
+  policy: 'manager-approval' | 'block'
+  role?: string
+}
+
+/** Erkennt `LOCATION_CLOSED_TODAY` (AppError BD_6010) aus dem Ruhetag-Gate der Edge. */
+export const isLocationClosedToday = (err: unknown): boolean => {
+  const e = err as { code?: unknown; data?: { code?: unknown } } | undefined
+  return e?.data?.code === 'BD_6010' || e?.code === 'BD_6010'
+}
+
 @Injectable({ providedIn: 'root' })
 export class BusinessDayService extends BaseService<BusinessDay> {
   protected override entityLabelKey = 'ENTITY.BUSINESS_DAY'
@@ -33,6 +56,30 @@ export class BusinessDayService extends BaseService<BusinessDay> {
     })
     this.#currentBusinessDay.set(result)
     return result
+  }
+
+  /**
+   * Fehlt heute eine Ruhetag-Freigabe? Bewusst am rohen Service vorbei an
+   * `handleError`: Der Aufrufer entscheidet bei einem Fehler selbst (fail-open,
+   * das Gate der Edge erzwingt die Regel ohnehin).
+   */
+  async getClosedDayStatus(): Promise<ClosedDayStatus> {
+    const service = this.connectionService.businessDayService as unknown as {
+      getClosedDayStatus: (data: unknown) => Promise<ClosedDayStatus>
+    }
+    return service.getClosedDayStatus({})
+  }
+
+  /**
+   * Ruhetag freigeben — die Edge prüft PIN und Rolle nach der Ruhetag-Regel des
+   * Standorts und eröffnet bzw. stempelt den Geschäftstag. Fehler gehen ohne
+   * Notification an den Dialog, der sie inline zeigt.
+   */
+  async approveClosedDay(data: { authorizedByUserId: string; pin: string }): Promise<ClosedDayApproval> {
+    const service = this.connectionService.businessDayService as unknown as {
+      approveClosedDay: (data: unknown) => Promise<ClosedDayApproval>
+    }
+    return service.approveClosedDay(data)
   }
 
   /**

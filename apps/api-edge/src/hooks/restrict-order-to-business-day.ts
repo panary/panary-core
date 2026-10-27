@@ -6,6 +6,7 @@ import { PairingStatus, CloudConnection } from '@panary/cloud-connection/domain'
 import { AppError, AppErrorMessages } from '@panary/shared-common'
 import { logger } from '@panary/shared-backend'
 import { businessDateForLocation } from '../utils/business-day-date'
+import { assertClosedDayApproved, loadClosedDayCheck } from '../utils/closed-day-gate'
 import {
   hasActiveOrders,
   loadBusinessDayRuntime,
@@ -244,6 +245,12 @@ export function restrictOrderToBusinessDay() {
 
     const needsRotation = shouldAutoRotate(activeLocation.currentBusinessDay, today, runtime.openHours)
 
+    // Ruhetag laut Oeffnungszeiten (panary/panary-core#1133, ADR 0062): kein Tag
+    // wird automatisch eroeffnet, und jede Zuordnung braucht die Freigabe des
+    // Tages. `null` = Pruefung nicht moeglich (fail-open, geloggt).
+    const closedDay = await loadClosedDayCheck(app, activeLocation)
+    const closedToday = closedDay?.status.state === 'closed'
+
     // Im Cloud-Managed-Hybrid (siehe ADR business-days-cloud-managed):
     // `rotateBusinessDay()` darf nur laufen, wenn KEIN aktives Pairing besteht
     // ODER der Operator den Offline-Override gesetzt hat (manueller Bypass bei
@@ -256,7 +263,20 @@ export function restrictOrderToBusinessDay() {
     const overrideActive = cloudConnection ? isOfflineOverrideActive(cloudConnection) : false
     const localRotationAllowed = !cloudConnection || overrideActive
 
-    if (needsRotation && localRotationAllowed) {
+    if (needsRotation && localRotationAllowed && closedToday) {
+      // Keine Rotation am Ruhetag. Weiter unten entscheidet die Freigabe: Ohne sie
+      // wird abgelehnt, mit ihr hat `approveClosedDay` den Tag schon eroeffnet bzw.
+      // den hineinlaufenden Vortag gestempelt.
+      logger.info({
+        message: 'Auto-Rotation am Ruhetag uebersprungen',
+        event: 'business_day.rotation_skipped_closed_day',
+        locationId,
+        date: today,
+        trigger: 'order',
+      })
+    }
+
+    if (needsRotation && localRotationAllowed && !closedToday) {
       // Rotation blockieren wenn noch aktive Bestellungen vorhanden
       if (activeLocation.currentBusinessDay?.businessDayId) {
         const blocked = await hasActiveOrders(app, activeLocation.currentBusinessDay.businessDayId)
@@ -302,6 +322,9 @@ export function restrictOrderToBusinessDay() {
     // gerechnet. Sie faellt ersatzlos weg: Ein veraltetes **Datum** ist kein
     // Grund mehr, ein zu langer **Betrieb** schon (panary-cloud ADR 0047).
     if (!activeLocation.currentBusinessDay) {
+      // Am Ruhetag ist die fehlende Freigabe die naechste Handlung, nicht die
+      // Eroeffnung: Die Freigabe eroeffnet den Tag selbst.
+      await assertClosedDayApproved(app, activeLocation, closedDay, null)
       throw new BadRequest(
         cloudConnection && !overrideActive
           ? 'Der aktuelle Geschaeftstag wird in der Cloud verwaltet und ist nicht eroeffnet. ' +
@@ -311,6 +334,10 @@ export function restrictOrderToBusinessDay() {
         { code: AppError.BUSINESS_DAY_NOT_SET },
       )
     }
+
+    // Vor der Altersgrenze: Im Standalone-Betrieb eroeffnet die Freigabe einen
+    // frischen Tag, die Altersgrenze des hineinlaufenden Vortags ist danach erledigt.
+    await assertClosedDayApproved(app, activeLocation, closedDay, activeLocation.currentBusinessDay.businessDayId)
 
     ensureBusinessDayNotOpenTooLong(
       app,

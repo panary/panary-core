@@ -531,6 +531,26 @@
     "TITLE": "İşletme gününü aç",
     "SUBMIT": "Aç"
   },
+  "CLOSED_DAY": {
+    "TITLE": "Çalışma saatlerine göre bugün kapalı",
+    "INTRO_SALES": "Şubenin çalışma saatlerinde bugün kapalı gün olarak girilmiş. Satış yalnızca onayla yapılabilir.",
+    "INTRO_ORDERS": "Şubenin çalışma saatlerinde bugün kapalı gün olarak girilmiş. Siparişler yalnızca onayla alınabilir.",
+    "WHO_MANAGER": "Bir yönetici veya işletme sahibi PIN'i ile onaylayabilir. Onay tüm gün için geçerlidir.",
+    "WHO_OWNER": "Bu şube kapalı günleri engeller. Yalnızca işletme sahibi PIN'i ile onaylayabilir. Onay tüm gün için geçerlidir.",
+    "SELECT_APPROVER": "Kim onaylıyor?",
+    "LOADING_USERS": "Yetkili çalışanlar yükleniyor …",
+    "NO_PIN_USERS": "Yetkili çalışanlar var, ancak hiçbirinin POS PIN'i yok.",
+    "NO_ELIGIBLE_USERS": "Yetkili çalışan bulunamadı.",
+    "ENTER_PIN": "Kapalı günü onaylamak için PIN girin",
+    "IN_PROGRESS": "Onay kontrol ediliyor …",
+    "SUCCESS": "Bugün için onaylandı",
+    "LOAD_ERROR": "Çalışanlar yüklenemedi",
+    "ERROR_PIN_INVALID": "Geçersiz PIN.",
+    "ERROR_ROLE_DENIED": "Bu çalışan kapalı günü onaylayamaz.",
+    "ERROR_OWNER_ONLY": "Bu şubede yalnızca işletme sahibi onaylayabilir.",
+    "ERROR_GENERIC": "Onay başarısız oldu.",
+    "DECLINED": "Onaylanmadı. Çalışma saatlerine göre bugün kapalı."
+  },
   "CASH_SESSION": {
     "AUTH_TITLE": "Kasayı onayla",
     "AUTH_CASHIER_FALLBACK": "kasiyer",

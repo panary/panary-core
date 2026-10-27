@@ -19,6 +19,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
 
 import { OrderCheckoutService, OrderInteractionService, OrderService } from '@panary/orders/data-access'
+import { BusinessDayService } from '@panary/businessdays/data-access'
 import type { AppliedDiscount } from '@panary/orders/domain'
 import { ProductGroupService } from '@panary/product-groups/data-access'
 import { ProductService } from '@panary/products/data-access'
@@ -83,6 +84,8 @@ interface SetupOptions {
   createOrderFailures?: number
   /** `createOrder` bleibt offen, bis der Test `releaseCreate()` ruft — spielt den Server-Roundtrip nach. */
   holdCreate?: boolean
+  /** Antwort der Ruhetag-Vorabfrage (#1133) — Standard: keine Freigabe nötig. Ein `Error` spielt Edge offline nach. */
+  closedDayStatus?: Record<string, unknown> | Error
 }
 
 const CURRENT_USER_ID = '018f0000-0000-7000-8000-000000000001'
@@ -269,6 +272,22 @@ function setup(options: SetupOptions = {}) {
         },
       },
       { provide: PreOrderService, useValue: {} },
+      {
+        provide: BusinessDayService,
+        useValue: {
+          getClosedDayStatus: async () => {
+            if (options.closedDayStatus instanceof Error) throw options.closedDayStatus
+            return (
+              options.closedDayStatus ?? {
+                approvalRequired: false,
+                state: 'open',
+                date: '',
+                policy: 'manager-approval',
+              }
+            )
+          },
+        },
+      },
       { provide: DeviceConfigService, useValue: {} },
       {
         provide: ConnectionService,
@@ -3941,5 +3960,44 @@ describe('OrderDialog — Modifier je Menü-Komponente (#1127)', () => {
 
     expect(component.lineItems[0].menuSideDish?.name).toBe('Salat')
     expect(mods(component)).toEqual([['Bacon', undefined]])
+  })
+})
+
+describe('OrderDialogComponent — Ruhetag-Freigabe vor dem Anlegen (#1133)', () => {
+  const CLOSED = { approvalRequired: true, state: 'closed', date: '2026-10-26', policy: 'manager-approval' }
+
+  it('fragt am Ruhetag vor dem Anlegen und legt nach der Freigabe an', async () => {
+    const { component, createdOrders, openedDialogs, dialogResult } = setup({ closedDayStatus: CLOSED })
+    dialogResult.value = { approved: true, businessDayId: 'bd-1', date: '2026-10-26', policy: 'manager-approval' }
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+
+    expect(openedDialogs).toContainEqual(
+      expect.objectContaining({ data: expect.objectContaining({ date: '2026-10-26' }) }),
+    )
+    expect(createdOrders).toHaveLength(1)
+  })
+
+  it('legt ohne Freigabe nichts an und lässt den Warenkorb stehen', async () => {
+    const { component, createdOrders, notices, dialogResult } = setup({ closedDayStatus: CLOSED })
+    dialogResult.value = null
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+
+    expect(createdOrders).toHaveLength(0)
+    expect(component.lineItems).toHaveLength(1)
+    expect(notices.map(n => n.message)).toContain('CLOSED_DAY.DECLINED')
+  })
+
+  it('legt an, wenn die Vorabfrage scheitert — erzwungen wird an der Edge', async () => {
+    const { component, createdOrders, openedDialogs } = setup({ closedDayStatus: new Error('offline') })
+    component.increaseLineItem(product('p-1'))
+
+    await component.placeOrder()
+
+    expect(createdOrders).toHaveLength(1)
+    expect(openedDialogs).toHaveLength(0)
   })
 })

@@ -64,6 +64,16 @@ export const businessDaySchema = Type.Object({
   tseDaySignatureCounter: Type.Optional(Type.Union([Type.Number({ minimum: 0 }), Type.Null()])),
   tseDaySimulated: Type.Optional(Type.Union([Type.Boolean(), Type.Null()])),
 
+  // Freigabe eines Verkaufs am Ruhetag (panary/panary-core#1133, ADR 0062): wer
+  // (userId, Rolle) wann für welchen Kalendertag freigegeben hat. Gilt für den
+  // ganzen Tag; ein in den Ruhetag hineinlaufender Vortag braucht deshalb ein
+  // eigenes Datum. Flach wie die TSE-Felder (kein JSON-Hook im businessdays-
+  // Service). Extern nicht schreibbar — nur `approveClosedDay` setzt es.
+  openedOnClosedDayBy: Type.Optional(Type.Union([Type.String({ maxLength: 64 }), Type.Null()])),
+  openedOnClosedDayRole: Type.Optional(Type.Union([Type.String({ maxLength: 32 }), Type.Null()])),
+  openedOnClosedDayAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+  openedOnClosedDayDate: Type.Optional(Type.Union([Type.String({ format: 'date' }), Type.Null()])),
+
   createdAt: Type.String({ format: 'date-time' }),
   updatedAt: Type.String({ format: 'date-time' }),
 })

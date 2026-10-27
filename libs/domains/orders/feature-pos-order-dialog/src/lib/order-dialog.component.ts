@@ -139,9 +139,12 @@ import {
 import { type CustomizeOptionEvent, ProductCustomizePanelComponent } from './product-customize-panel.component'
 import { CashPaymentComponent } from './cash-payment.component'
 import {
+  ensureClosedDayApproval,
   promptCashSessionAuthorization,
+  promptClosedDayApprovalFromError,
   type CashSessionPromptLocation,
 } from '@panary/businessdays/feature-pos-closing-dialog'
+import { BusinessDayService } from '@panary/businessdays/data-access'
 import {
   BoardSelection,
   nextBoardSelection,
@@ -234,6 +237,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // Meldeweg für alles, was das Abschließen der Bestellung überleben muss — die Infobox
   // gehört zur Bestellung und ist mit ihr weg (siehe #placeOrder, Rabattcode-Fehlschlag).
   readonly #notifications = inject(NotificationService)
+  readonly #businessDays = inject(BusinessDayService)
   protected readonly orderInteractionService: OrderInteractionService = inject(OrderInteractionService)
   protected readonly deviceConfigService: DeviceConfigService = inject(DeviceConfigService)
   protected readonly preOrderService: PreOrderService = inject(PreOrderService)
@@ -2969,6 +2973,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async #placeOrder(): Promise<void> {
+    // Ruhetag laut Öffnungszeiten (#1133): Freigabe VOR dem Anlegen, solange der Warenkorb noch steht.
+    // Ohne Freigabe bleibt alles, wie es ist — die Edge würde die Bestellung ohnehin ablehnen.
+    if (!(await ensureClosedDayApproval(this.matDialog, this.#businessDays, this.#operationMode()))) {
+      this.#notifications.warning(this.translateService.instant('CLOSED_DAY.DECLINED'))
+      return
+    }
+
     // Gleiche Konfigurationen als eine Zeile auf den Bon (#699) — falls das Panel über einen
     // Ansichtswechsel statt über „Fertig" verlassen wurde.
     this.#freshLine = null
@@ -3171,6 +3182,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     )
   }
 
+  #operationMode(): string | undefined {
+    return (this.locationService.activeLocation() as { operationMode?: string } | undefined)?.operationMode
+  }
+
   /** Kassierer wie in „Offene Bestellungen": der angemeldete Mitarbeiter, sonst der Auth-User. */
   #cashierId(): string | null {
     return this._currentUser?._id?.toString() ?? this.authService.user()?._id?.toString() ?? null
@@ -3194,6 +3209,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
             this.userService.users(),
             id,
           ),
+        requestClosedDayApproval: err => promptClosedDayApprovalFromError(this.matDialog, err, this.#operationMode()),
       })
       if (result === 'paid') {
         this.payment.set(null)
@@ -3201,6 +3217,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.closed.emit('order-placed')
       } else if (result === 'cash-session-declined') {
         this.#notifications.warning('Kasse nicht freigegeben. Die Bestellung bleibt offen.')
+      } else if (result === 'closed-day-declined') {
+        this.#notifications.warning(this.translateService.instant('CLOSED_DAY.DECLINED'))
       }
       // `failed`: `handleError` hat schon gemeldet, die Ansicht bleibt für einen neuen Versuch stehen.
     } finally {

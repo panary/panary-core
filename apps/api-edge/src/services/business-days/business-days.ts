@@ -16,7 +16,7 @@
 import { authenticate } from '@feathersjs/authentication'
 import { hooks as schemaHooks } from '@feathersjs/schema'
 import { markValidateData, validateData } from '../../hooks/validate-data.hook'
-import { BadRequest, Forbidden, NotFound } from '@feathersjs/errors'
+import { BadRequest, Forbidden, NotFound, TooManyRequests } from '@feathersjs/errors'
 import { uuidv7 } from 'uuidv7'
 
 import { AuditAction, AuditCategory, AuditOutcome, AuditSeverity } from '@panary/audit-events/domain'
@@ -25,7 +25,8 @@ import { PairingStatus } from '@panary/cloud-connection/domain'
 import { SyncOutboxStatus } from '@panary/sync/domain'
 import { assertCallerOwnsRecord, authorize, multiTenancy, resolveUserLocationId } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
-import { DatabaseType } from '@panary/shared-common'
+import { AppError, AppErrorMessages, DatabaseType } from '@panary/shared-common'
+import { canApproveClosedDay } from '@panary/locations/domain'
 import { ensureIndexes, logger } from '@panary/shared-backend'
 import { dayTseFieldsFromError, dayTseFieldsFromSignature, type BusinessDayTseFields } from '@panary/tse/domain'
 
@@ -41,6 +42,9 @@ import {
   businessDayValidator,
 } from './business-days.schema'
 import type {
+  ApproveClosedDayData,
+  ApproveClosedDayResult,
+  ClosedDayStatusResult,
   BusinessDay,
   BusinessDayService,
   CloseDayData,
@@ -50,6 +54,19 @@ import type {
 } from './business-days.class'
 
 import { ensureSingleOpenBusinessDay } from '../../hooks/ensure-single-open-business-day.hook'
+import {
+  hasActiveOrders,
+  isLocalRotationAllowed,
+  loadBusinessDayRuntime,
+  rotateBusinessDay,
+  shouldAutoRotate,
+} from '../../utils/business-day.utils'
+import {
+  closedDayError,
+  hasClosedDayApproval,
+  loadClosedDayCheck,
+  type ClosedDayGateLocation,
+} from '../../utils/closed-day-gate'
 
 import type { Application, HookContext } from '../../declarations'
 
@@ -64,6 +81,8 @@ export const businessDaysMethods = [
   'closeDay',
   'refreshClosingStatus',
   'discardOrphanDay',
+  'approveClosedDay',
+  'getClosedDayStatus',
 ] as const
 
 export * from './business-days.schema'
@@ -443,6 +462,17 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
     throw new BadRequest(`Es ist bereits ein Geschaeftstag fuer Location ${locationId} offen`)
   }
 
+  // Ruhetag (#1133, ADR 0062): Von aussen eroeffnet niemand einen Tag ohne Freigabe —
+  // der POS zeigt auf den Fehler den Freigabe-Dialog, und `approveClosedDay`
+  // eroeffnet den Tag mit Stempel. Interne Aufrufer entscheiden selbst.
+  if (params.provider) {
+    const location = (await (app.service('locations') as any).get(locationId, {
+      provider: undefined,
+    })) as ClosedDayGateLocation
+    const check = await loadClosedDayCheck(app, location)
+    if (check?.status.state === 'closed') throw closedDayError(check, location.operationMode)
+  }
+
   const today = data.date ?? new Date().toISOString().slice(0, 10)
 
   // Kein openingFloatCents mehr: das Wechselgeld gehört zur Kasse (cash-sessions),
@@ -475,6 +505,257 @@ async function openDay(app: Application, data: OpenDayData, params: OpenDayParam
     operationMode: (created as { operationMode?: string }).operationMode,
   })
   return created as BusinessDay
+}
+
+type ClosedDayApprover = { _id?: string; role?: string }
+
+/**
+ * Freigabe eines Verkaufs am Ruhetag (panary/panary-core#1133, ADR 0062).
+ *
+ * Prueft die PIN serverseitig (offline-faehig, wie `cash-sessions.openAuthorized`)
+ * und die Rolle nach der Ruhetag-Regel des Standorts: `manager-approval` laesst
+ * Manager und Inhaber zu, `block` nur den Inhaber. Danach stempelt sie den
+ * Geschaeftstag, dem die Bestellungen des heutigen Tages zugeordnet werden:
+ *
+ *  - Darf lokal rotiert werden (Standalone/Offline-Override) und waere ein
+ *    Tageswechsel faellig, eroeffnet sie den Tag selbst — derselbe Weg wie die
+ *    Lazy-Rotation, die das Order-Gate am Ruhetag gerade unterlaesst.
+ *  - Sonst (gepairt, Tag schon von heute oder offene Bestellungen am Vortag)
+ *    stempelt sie den laufenden Tag. Gepairt ohne Tag gibt es nichts zu stempeln:
+ *    Den Tag eroeffnet dort die Cloud.
+ *
+ * Der Stempel bleibt lokal: Geschaeftstage reisen nur Cloud→Edge. Nachvollziehbar
+ * in der Cloud wird die Freigabe ueber das Audit-Event, das Edge→Cloud gepusht wird.
+ *
+ * Ist heute kein Ruhetag, wird nichts geprueft und nichts geschrieben
+ * (`approved: false`) — der POS kann dann einfach wiederholen.
+ */
+export async function approveClosedDay(
+  app: Application,
+  data: ApproveClosedDayData,
+  params: OpenDayParams = {},
+): Promise<ApproveClosedDayResult> {
+  const user = params.user
+  if (!user?.tenantId)
+    throw new BadRequest('Tenant-Kontext fehlt — approveClosedDay benötigt einen authentifizierten User')
+  const { authorizedByUserId, pin } = data ?? ({} as ApproveClosedDayData)
+  if (!authorizedByUserId || !pin) throw new BadRequest('authorizedByUserId und pin sind erforderlich')
+
+  const locationId = data.locationId ?? resolveUserLocationId(user) ?? null
+  if (!locationId) throw new BadRequest('locationId muss am User oder im Payload gesetzt sein')
+
+  const location = (await (app.service('locations') as any).get(locationId, {
+    provider: undefined,
+  })) as ClosedDayGateLocation & {
+    tenantId: string
+    currentBusinessDay?: { businessDayId: string; date: string } | null
+  }
+  // Custom-Methods scoped `multiTenancy()` nicht — der Mandant wird hier geprueft.
+  assertCallerOwnsRecord(user, location)
+
+  const check = await loadClosedDayCheck(app, location)
+  const date = check?.status.date ?? ''
+  const policy = check?.policy ?? 'manager-approval'
+  if (!check || check.status.state !== 'closed') {
+    return { approved: false, businessDayId: location.currentBusinessDay?.businessDayId ?? null, date, policy }
+  }
+
+  // 1. PIN — mit dem Aufrufer als `user`, damit `verifyPin` den Mandanten prueft (#332).
+  let approver: ClosedDayApprover
+  try {
+    approver = (await (app.service('users') as any).verifyPin(
+      { userId: authorizedByUserId, pin },
+      { provider: undefined, user },
+    )) as ClosedDayApprover
+  } catch (err) {
+    if (err instanceof TooManyRequests) throw err
+    // PIN nie loggen (logging.md). Nur das Ereignis.
+    logger.warn({
+      message: 'Ruhetag-Freigabe abgelehnt',
+      event: 'business_day.closed_day_approve_failed',
+      reason: 'pin',
+      authorizedByUserId,
+      locationId,
+      date,
+    })
+    throw new Forbidden(AppErrorMessages[AppError.CLOSED_DAY_PIN_INVALID], { code: AppError.CLOSED_DAY_PIN_INVALID })
+  }
+
+  // 2. Rolle nach der Regel des Standorts.
+  if (!canApproveClosedDay(policy, approver.role)) {
+    logger.warn({
+      message: 'Ruhetag-Freigabe abgelehnt',
+      event: 'business_day.closed_day_approve_failed',
+      reason: 'role',
+      authorizedByUserId,
+      role: approver.role,
+      locationId,
+      date,
+      policy,
+    })
+    throw new Forbidden(
+      policy === 'block'
+        ? 'Laut Ruhetag-Regel dieses Standorts darf nur der Inhaber freigeben.'
+        : AppErrorMessages[AppError.CLOSED_DAY_ROLE_DENIED],
+      { code: AppError.CLOSED_DAY_ROLE_DENIED, policy },
+    )
+  }
+
+  // 3. Zieltag bestimmen — ggf. heute eroeffnen.
+  const current = location.currentBusinessDay ?? null
+  let businessDayId = current?.businessDayId ?? null
+  let opened = false
+  if (await isLocalRotationAllowed(app)) {
+    const runtime = businessDayId ? await loadBusinessDayRuntime(app, businessDayId) : { openHours: null }
+    const blocked = businessDayId ? await hasActiveOrders(app, businessDayId) : false
+    if (shouldAutoRotate(current, date, runtime.openHours) && !blocked) {
+      businessDayId = await rotateBusinessDay(app, location, date)
+      opened = true
+    }
+  }
+  if (!businessDayId) {
+    throw new BadRequest(AppErrorMessages[AppError.BUSINESS_DAY_NOT_SET], { code: AppError.BUSINESS_DAY_NOT_SET })
+  }
+
+  // 4. Stempel. Intern, weil der Patch-Resolver die Felder extern verwirft.
+  const at = new Date().toISOString()
+  await (app.service(businessDaysPath) as any).patch(
+    businessDayId,
+    {
+      openedOnClosedDayBy: approver._id,
+      openedOnClosedDayRole: approver.role,
+      openedOnClosedDayAt: at,
+      openedOnClosedDayDate: date,
+    },
+    { provider: undefined, isEmergencyOverride: true },
+  )
+
+  await recordClosedDayApprovalAudit(app, {
+    tenantId: location.tenantId,
+    locationId,
+    businessDayId,
+    date,
+    policy,
+    approver,
+    device: user,
+    opened,
+  })
+
+  logger.info({
+    message: 'Ruhetag freigegeben',
+    event: 'business_day.closed_day_approved',
+    tenantId: location.tenantId,
+    locationId,
+    businessDayId,
+    date,
+    policy,
+    approvedBy: approver._id,
+    role: approver.role,
+    openedNewDay: opened,
+    reason: check.status.reason,
+  })
+
+  return { approved: true, businessDayId, date, policy, role: approver.role }
+}
+
+/**
+ * Vorabfrage fuer den POS (#1133): Fehlt heute eine Ruhetag-Freigabe? Damit zeigt
+ * die Kasse den Freigabe-Dialog VOR dem Verkauf, statt erst am 400 der Anlage —
+ * dann ist der Warenkorb noch da. Erzwungen wird die Regel trotzdem allein im
+ * Order-Gate; diese Methode entscheidet nichts.
+ */
+export async function getClosedDayStatus(
+  app: Application,
+  data: { locationId?: string | null } = {},
+  params: OpenDayParams = {},
+): Promise<ClosedDayStatusResult> {
+  const user = params.user
+  if (!user?.tenantId)
+    throw new BadRequest('Tenant-Kontext fehlt — getClosedDayStatus benötigt einen authentifizierten User')
+  const locationId = data?.locationId ?? resolveUserLocationId(user) ?? null
+  if (!locationId) throw new BadRequest('locationId muss am User oder im Payload gesetzt sein')
+
+  const location = (await (app.service('locations') as any).get(locationId, {
+    provider: undefined,
+  })) as ClosedDayGateLocation & { tenantId: string; currentBusinessDay?: { businessDayId: string } | null }
+  assertCallerOwnsRecord(user, location)
+
+  const check = await loadClosedDayCheck(app, location)
+  if (!check) return { approvalRequired: false, state: 'unknown', date: '', policy: 'manager-approval' }
+  const { state, date } = check.status
+  if (state !== 'closed') return { approvalRequired: false, state, date, policy: check.policy }
+
+  const businessDayId = location.currentBusinessDay?.businessDayId
+  const businessDay = businessDayId
+    ? ((await (app.service(businessDaysPath) as any).get(businessDayId, { provider: undefined })) as BusinessDay)
+    : null
+  return {
+    approvalRequired: !hasClosedDayApproval(businessDay, date, check.policy),
+    state,
+    date,
+    policy: check.policy,
+  }
+}
+
+/**
+ * Audit-Spur der Freigabe. `AuditAction.UPDATE` statt eines neuen Enum-Werts —
+ * dieselbe Begruendung wie bei `recordOrphanDiscardAudit`: `audit-events` wird
+ * in die Cloud gepusht und dort gegen dasselbe Enum validiert. Der Sonderfall
+ * steht in `metadata.reason`.
+ */
+async function recordClosedDayApprovalAudit(
+  app: Application,
+  input: {
+    tenantId: string
+    locationId: string
+    businessDayId: string
+    date: string
+    policy: string
+    approver: ClosedDayApprover
+    device: { _id?: string; role?: string }
+    opened: boolean
+  },
+): Promise<void> {
+  try {
+    const correlationId = uuidv7()
+    const actorId = input.approver._id ?? input.device._id ?? 'unknown'
+    const event = {
+      _id: uuidv7(),
+      tenantId: input.tenantId,
+      locationId: input.locationId,
+      occurredAt: new Date().toISOString(),
+      actor: { userId: actorId, role: input.approver.role ?? 'unknown', requestId: correlationId },
+      target: {
+        resource: businessDaysPath,
+        entityType: 'business-day',
+        entityId: input.businessDayId,
+        entityRef: input.date,
+      },
+      action: AuditAction.UPDATE,
+      category: AuditCategory.CASH,
+      outcome: AuditOutcome.SUCCESS,
+      severity: AuditSeverity.WARNING,
+      metadata: {
+        reason: 'closed-day-approved',
+        policy: input.policy,
+        openedNewDay: input.opened,
+        deviceUserId: input.device._id ?? null,
+      },
+      correlationId,
+      actor_userId: actorId,
+      target_resource: businessDaysPath,
+      target_entityType: 'business-day',
+      target_entityId: input.businessDayId,
+    }
+    await (app.service('audit-events') as any).create(event, { provider: undefined })
+  } catch (err) {
+    logger.warn({
+      message: 'approveClosedDay: Audit-Event konnte nicht geschrieben werden',
+      event: 'business_day.closed_day_audit_failed',
+      businessDayId: input.businessDayId,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    })
+  }
 }
 
 /**
@@ -879,6 +1160,8 @@ export const businessDays = (app: Application) => {
     closeDay: (data: CloseDayData, params?: OpenDayParams) => Promise<BusinessDay>
     refreshClosingStatus: (data: RefreshClosingStatusData, params?: OpenDayParams) => Promise<BusinessDay>
     discardOrphanDay: (data: DiscardOrphanDayData, params?: OpenDayParams) => Promise<{ discarded: true; _id: string }>
+    approveClosedDay: (data: ApproveClosedDayData, params?: OpenDayParams) => Promise<ApproveClosedDayResult>
+    getClosedDayStatus: (data: { locationId?: string | null }, params?: OpenDayParams) => Promise<ClosedDayStatusResult>
   }
 
   // Custom-Methods auf den Service-Proxy haengen
@@ -887,6 +1170,9 @@ export const businessDays = (app: Application) => {
   service.refreshClosingStatus = (data: RefreshClosingStatusData, params?: OpenDayParams) =>
     refreshClosingStatus(app, data, params)
   service.discardOrphanDay = (data: DiscardOrphanDayData, params?: OpenDayParams) => discardOrphanDay(app, data, params)
+  service.approveClosedDay = (data: ApproveClosedDayData, params?: OpenDayParams) => approveClosedDay(app, data, params)
+  service.getClosedDayStatus = (data: { locationId?: string | null }, params?: OpenDayParams) =>
+    getClosedDayStatus(app, data, params)
   ;(service as any).setup = async (app: Application) =>
     ensureIndexes(
       app,

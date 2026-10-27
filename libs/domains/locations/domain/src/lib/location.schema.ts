@@ -22,6 +22,21 @@ export const PrinterRole = {
 } as const
 export type PrinterRoleValue = (typeof PrinterRole)[keyof typeof PrinterRole]
 
+/**
+ * Ruhetag-Regel eines Standorts (panary/panary-core#1133, ADR 0062).
+ *
+ * - `manager-approval` (Vorgabe): Verkauf am Ruhetag nur nach Freigabe per PIN
+ *   eines Kontos mit Rolle Manager oder Inhaber.
+ * - `block`: Nur eine Ausnahme „heute geöffnet" aus der Cloud öffnet regulär;
+ *   als Ausweg bleibt die PIN eines Inhabers, damit nie an der Kasse vorbei
+ *   kassiert wird (KassenSichV/GoBD).
+ */
+export const ClosedDayPolicy = {
+  MANAGER_APPROVAL: 'manager-approval',
+  BLOCK: 'block',
+} as const
+export type ClosedDayPolicyValue = (typeof ClosedDayPolicy)[keyof typeof ClosedDayPolicy]
+
 export const UnitSystem = {
   METRIC: 'metric',
   IMPERIAL: 'imperial',
@@ -209,6 +224,12 @@ export const settingsSchema = Type.Object({
         closed: Type.Boolean({ default: false }),
       }),
     ),
+    // Ruhetag-Regel (panary/panary-core#1133, ADR 0062): was an einem laut
+    // Öffnungszeiten geschlossenen Tag gilt. Optional und ohne Schema-Default —
+    // „fehlt" heißt `manager-approval` und wird im Leser aufgelöst
+    // (`resolveClosedDayPolicy`), damit Bestandsstandorte keine Migration brauchen.
+    // Gepflegt nur in der Cloud; die Edge übernimmt den Wert per Pull.
+    closedDayPolicy: Type.Optional(StringEnum(Object.values(ClosedDayPolicy))),
   }),
   invoiceSettings: Type.Optional(
     Type.Object({

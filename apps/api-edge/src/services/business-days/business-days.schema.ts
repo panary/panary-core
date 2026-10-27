@@ -107,6 +107,13 @@ export const businessDayPatchResolver = resolve<BusinessDay, HookContext<Busines
   createdAt: async () => undefined,
   openedAt: async () => undefined,
   operationMode: async () => undefined, // Mode-Snapshot ist unveraenderlich
+  // Ruhetag-Freigabe (#1133): extern nie schreibbar, sonst umginge ein direkter
+  // PATCH die PIN-Pruefung von `approveClosedDay`. Interne Aufrufe (die Methode
+  // selbst, Sync-Apply) laufen ohne `provider` und behalten den Wert.
+  openedOnClosedDayBy: async (value, _data, context) => (context.params.provider ? undefined : value),
+  openedOnClosedDayRole: async (value, _data, context) => (context.params.provider ? undefined : value),
+  openedOnClosedDayAt: async (value, _data, context) => (context.params.provider ? undefined : value),
+  openedOnClosedDayDate: async (value, _data, context) => (context.params.provider ? undefined : value),
   updatedAt: async () => new Date().toISOString(),
 })
 

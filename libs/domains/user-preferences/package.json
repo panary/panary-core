@@ -33,6 +33,6 @@
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/typebox": "^5.0.40",
     "@panary/shared-common": "^26.4.20",
-    "@angular/core": "^21.0.0"
+    "@angular/core": "^22.0.0"
   }
 }

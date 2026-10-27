@@ -44,7 +44,7 @@
     "@panary/ingredients": "^26.4.20",
     "@panary/recipes": "^26.4.20",
     "@panary/products": "^26.4.20",
-    "@angular/core": "^21.0.0",
+    "@angular/core": "^22.0.0",
     "@panary/shared": "^26.4.20",
     "rxjs": "~7.8.0"
   }

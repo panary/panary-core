@@ -19,7 +19,8 @@
 # Temp-Kopie aus HEAD, die im Haupt-Checkout gescannt wird. `pnpm audit` kennt
 # das Advisory unten nicht, ein Gegenstueck dort entfaellt.
 # Verlauf: docs/security/osv-befund-2026-10-02-node-forge.md,
-# docs/security/osv-befund-2026-10-03-braces-http-cache-semantics.md.
+# docs/security/osv-befund-2026-10-03-braces-http-cache-semantics.md,
+# docs/security/osv-befund-2026-10-27-qs-deepmerge.md.
 
 [[IgnoredVulns]]
 id = "GHSA-86w9-cpqp-85rv"  # node-forge: RSA-PKCS#1-v1.5-Signaturpruefung akzeptiert verschachtelte DigestAlgorithm-Elemente (CVSS 8.7)
@@ -35,6 +36,11 @@ reason = "Kein Fix: betroffen ist <= 3.0.3, und 3.0.3 ist die neueste braces-Ver
 id = "GHSA-ch52-4w7c-c8xp"  # http-cache-semantics: max-stale gibt gecachte Antworten anderer Nutzer preis (CVSS 8.7)
 ignoreUntil = 2026-11-03
 reason = "Kein Fix: betroffen ist <= 4.2.0, und 4.2.0 ist die neueste http-cache-semantics-Version. Nur Dev-Abhaengigkeit (make-fetch-happen unter pacote/@sigstore/sign/tuf-js, also Angular-CLI- und Sigstore-Paketabruf), nicht im Edge-Image (pnpm why http-cache-semantics --prod ist leer, scan-advisories im Dispatch 37107902781 gruen). make-fetch-happen cacht lokal fuer einen Nutzer; ein von mehreren Nutzern geteilter HTTP-Cache, den das Advisory voraussetzt, kommt nicht vor. Eingetragen 2026-10-03 (panary/panary-core#499, Pendant panary/panary-cloud#912); bei Fix-Version per Override heben und Eintrag entfernen."
+
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"  # deepmerge: mergeObject() erlaubt Prototype-Poisoning des Ergebnisobjekts (CVSS 5.3)
+ignoreUntil = 2026-11-27
+reason = "Kein Fix: betroffen ist 4.2.0 bis 4.3.1 (last_affected), und 4.3.1 (2023-03-16) ist die neueste deepmerge-Version. Advisory am 2026-10-27 21:45 UTC geaendert, seitdem meldet osv-scanner es. Nur Dev-Abhaengigkeit (@rollup/plugin-node-resolve unter @nx/rollup, fork-ts-checker-webpack-plugin unter @nx/webpack, jest-config unter @nx/jest), nicht im Edge-Image (pnpm why deepmerge --prod ist leer). Gemergt werden nur Build- und Test-Konfigurationen aus dem eigenen Repo, nie fremder Input. Eingetragen 2026-10-27 (panary/panary-core#1163, Pendant panary/panary-cloud#1482); bei Fix-Version per Override heben und Eintrag entfernen."
 
 [[IgnoredVulns]]
 id = "GHSA-333x-w4r6-6crp"  # fast-uri: Scheme-Injection (CVSS 3.7)

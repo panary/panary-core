@@ -10,13 +10,13 @@ paths:
 
 Das Backend verwendet **Wide Events** — pro externem Service-Call wird genau **eine strukturierte JSON-Logzeile** erzeugt, die alle relevanten Dimensionen enthält.
 
-**Zentraler Hook:** `apps/api-edge/src/hooks/canonical-log.hook.ts`
+**Zentraler Hook:** `libs/shared/backend/src/hooks/canonical-log.hook.ts` (`@panary/shared-backend`)
 
 - Registriert als äußerster `around.all`-Hook in `app.ts`
 - Umschließt den gesamten Request-Lifecycle (inkl. Fehler)
 - Interne Aufrufe (kein `provider`) werden nicht geloggt
 
-**Logger:** `apps/api-edge/src/logger.ts` (Winston)
+**Logger:** `libs/shared/backend/src/logger.ts` (Winston)
 
 - **Production** (`NODE_ENV=production`): Strukturiertes JSON
 - **Development** (default): Menschenlesbare Konsolenzeile
@@ -59,7 +59,7 @@ Neue Services können Enrichment hinzufügen in `enrichWithBusinessContext()` vi
 
 ## 4. Regeln für neuen Logging-Code
 
-- **Niemals `console.log/error/warn`** im Backend verwenden — ausschließlich `logger` aus `./logger`
+- **Niemals `console.log/error/warn`** im Backend verwenden — ausschließlich `logger` aus `@panary/shared-backend`
 - **Niemals sensitive Daten loggen:** `password`, `posPin`, `apikey`, `secret`, `token`, E-Mail, Telefonnummern, PII
 - **Kein verstreutes Logging** in Service-Hooks — Fehler- und Request-Informationen gehören ins Wide Event
 - **`logError`-Hook** loggt nur noch interne 5xx-Fehler (externe werden durch `canonicalLog` erfasst)

@@ -4,7 +4,7 @@ title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
 description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, beim Hinzufügen zur Zeile scrollt und sie hervorhebt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet und mit Maus einen Hover zeigt.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-27T10:45:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-27T15:00:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -140,6 +140,7 @@ Alle drei tragen jetzt die globale Klasse `pnry-hover` aus `apps/pos-client/src/
 | --- | --- |
 | nur unter `@media (hover: hover) and (pointer: fine)` | Auf Touch (Sunmi) bliebe der Hover nach dem Antippen kleben. Tailwinds `hover:` prüft nur `(hover: hover)`, deshalb trägt die Farbmatrix der Funktionstasten (`functionButtonClasses()`) kein `hover:` mehr; im Dunkelmodus färbte es die getönten Tasten zudem hell ein |
 | Tönung als `background-image` mit `color-mix(var(--text-primary) 7 %)` | liegt über jeder Grundfarbe, auch der Inline-Farbe einer Produktkachel und den Tönungen der Funktionstasten; hell dunkelt sie ab, dunkel hellt sie auf; kein Layout-Sprung |
+| Regel in eigenem `@supports (color: color-mix(in oklab, red, red))` | Steht `color-mix` mit `var()` frei, erzeugt Tailwind einen Rückfall ohne `color-mix`, der die Kachel mit voller Textfarbe deckt ([core#1156](https://github.com/panary/panary-core/issues/1156)). Im eigenen `@supports` unterlässt Tailwind das; Engines ohne `color-mix` (Chromium < 111, Safari < 16.2) zeigen keinen Hover |
 | `pos-rail.css` setzt Flächen per `background-color` | eine `background`-Kurzform setzt das Bild zurück. Nur `.is-active` und `:active` überdecken den Hover bewusst |
 
 Gesperrte Tasten (`:disabled`) bekommen keinen Hover. Gesperrte Rail-Einträge mit Hinweis (`.is-blocked`) behalten ihn, weil sie antippbar bleiben, damit der Hinweis erscheint. Andere Bedienelemente der Kasse (Gruppenleiste,

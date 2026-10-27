@@ -173,7 +173,7 @@
             <div class="text-center mb-6 border-b border-dashed border-line pb-4">
               <h3 class="font-bold text-xl text-ink">{{ getOrderTitle(selectedOrder()!) }}</h3>
               <p class="text-sm text-ink-muted">
-                {{ selectedOrder()?.recordingDate | date: 'dd.MM.yyyy HH:mm' }}
+                {{ $safeNavigationMigration(selectedOrder()?.recordingDate) | date: 'dd.MM.yyyy HH:mm' }}
               </p>
             </div>
 

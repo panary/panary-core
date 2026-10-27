@@ -149,7 +149,7 @@ import { findRequestedPreOrder } from './pre-order-selection'
                 <div class="min-w-0">
                   <h2 class="font-bold text-lg text-ink">{{ 'PRE_ORDERS.DETAILS' | translate }}</h2>
                   <p class="text-xs text-ink-muted">
-                    {{ selectedOrder()?.scheduledFor | date: 'dd.MM.yyyy HH:mm' }}
+                    {{ $safeNavigationMigration(selectedOrder()?.scheduledFor) | date: 'dd.MM.yyyy HH:mm' }}
                   </p>
                   <p class="text-xs text-ink-faint truncate" data-testid="detail-id">
                     <span class="font-bold uppercase mr-1">ID</span>

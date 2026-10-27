@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Plugin } from 'vite'
+// Vite 8 liefert seine Typen nur ueber `exports`; unter `moduleResolution: node` (CommonJS-Libs, die diese
+// Datei im Spec-Typecheck mitpruefen) ist `Plugin` deshalb `any`. Die Hook-Parameter tragen ihre Typen selbst.
+import type { Plugin } from 'vitest/config'
 
 const workspaceRoot = join(__dirname, '../..')
 
@@ -70,7 +72,7 @@ export const forbidDeclarationLoads = (): Plugin => {
   return {
     name: 'panary-forbid-declaration-loads',
     enforce: 'pre',
-    async resolveId(source, importer, options) {
+    async resolveId(source: string, importer: string | undefined, options: Record<string, unknown> | undefined) {
       if (!importer) return null
       const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
       if (resolved && !importerOf.has(resolved.id)) importerOf.set(resolved.id, importer)

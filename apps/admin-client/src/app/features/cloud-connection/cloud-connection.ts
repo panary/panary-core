@@ -741,7 +741,9 @@ const directionLabel = (dir: InitialDirection): string => {
                   </div>
                   <div class="flex items-center justify-between px-4 py-3">
                     <span class="text-xs uppercase tracking-wider text-ink-muted">Verbunden seit</span>
-                    <span class="text-sm">{{ formatDate(connectionInfo()?.connectedAt) }}</span>
+                    <span class="text-sm">{{
+                      formatDate($safeNavigationMigration(connectionInfo()?.connectedAt))
+                    }}</span>
                   </div>
                   <!-- „Datenabgleich", nicht „Sync": das Feld traegt seit ADR 0017
                      ausschliesslich echte Datenuebertragungen. Die blosse
@@ -753,7 +755,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     <span class="text-sm">
                       {{
                         connectionInfo()?.lastSyncAt
-                          ? formatDate(connectionInfo()?.lastSyncAt)
+                          ? formatDate($safeNavigationMigration(connectionInfo()?.lastSyncAt))
                           : 'Noch nicht abgeglichen'
                       }}
                     </span>
@@ -762,7 +764,7 @@ const directionLabel = (dir: InitialDirection): string => {
                     <span class="text-xs uppercase tracking-wider text-ink-muted">Naechster geplanter Abgleich</span>
                     <span class="text-sm">{{ nextExpectedSyncLabel() }}</span>
                   </div>
-                  @if (connectionInfo()?.lastClockSkewMs !== undefined) {
+                  @if ($safeNavigationMigration(connectionInfo()?.lastClockSkewMs) !== undefined) {
                     <div class="flex items-center justify-between px-4 py-3">
                       <span class="text-xs uppercase tracking-wider text-ink-muted">Clock-Skew</span>
                       <span
@@ -772,7 +774,7 @@ const directionLabel = (dir: InitialDirection): string => {
                         [class.text-red-600]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 300000"
                         [class.dark:text-red-400]="abs(connectionInfo()?.lastClockSkewMs ?? 0) > 300000"
                       >
-                        {{ formatSkew(connectionInfo()?.lastClockSkewMs) }}
+                        {{ formatSkew($safeNavigationMigration(connectionInfo()?.lastClockSkewMs)) }}
                       </span>
                     </div>
                   }

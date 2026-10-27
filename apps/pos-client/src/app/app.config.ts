@@ -7,7 +7,7 @@ import {
 } from '@angular/core'
 import { provideRouter, withRouterConfig } from '@angular/router'
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async'
-import { provideHttpClient } from '@angular/common/http'
+import { provideHttpClient, withXhr } from '@angular/common/http'
 import { TranslateModule } from '@ngx-translate/core'
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
 import { appRoutes } from './app.routes'
@@ -24,9 +24,13 @@ export const appConfig: ApplicationConfig = {
     // Die Kasse hält Browser-/Android-Zurück per `canDeactivate` an (core#828). Mit dem Standard
     // 'replace' überschriebe die abgebrochene Navigation den History-Eintrag davor; das nächste
     // Zurück landete dann auf /login statt auf der Übersicht. 'computed' springt zurück an die Stelle.
-    provideRouter(appRoutes, withRouterConfig({ canceledNavigationResolution: 'computed' })),
+    // 'emptyOnly' hält die Parameter-Vererbung von v21 fest; Angular 22 erbt per Default immer (core#129).
+    provideRouter(
+      appRoutes,
+      withRouterConfig({ canceledNavigationResolution: 'computed', paramsInheritanceStrategy: 'emptyOnly' }),
+    ),
     provideAnimationsAsync(),
-    provideHttpClient(),
+    provideHttpClient(withXhr()),
     importProvidersFrom(
       TranslateModule.forRoot({
         fallbackLang: 'de',

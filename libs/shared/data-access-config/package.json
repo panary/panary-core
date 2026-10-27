@@ -5,8 +5,8 @@
   "description": "Interne ng-packagr-Build-Shell — publishable Package liegt in ../package.json (subpath @panary/shared/data-access-config)",
   "sideEffects": false,
   "peerDependencies": {
-    "@angular/core": "^21.0.0",
-    "@angular/common": "^21.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/common": "^22.0.0",
     "@feathersjs/authentication-client": "^5.0.40",
     "@feathersjs/feathers": "^5.0.40",
     "@feathersjs/socketio-client": "^5.0.40",

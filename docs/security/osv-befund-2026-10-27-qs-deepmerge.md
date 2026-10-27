@@ -42,9 +42,9 @@ Ausnahme in `minimumReleaseAgeExclude` war nicht nötig. 6.16.2 (2026-10-27 19:2
 der Karenz, die Auflösung bleibt deshalb bei 6.16.1.
 
 **Verhaltensänderungen in qs 6.16.1:** Neben dem Fix ändert der Parser zwei Randfälle. `[]` gilt nur
-noch am Key-Ende als Array-Syntax, und Punkte werden nur mit `allowDots` zu Klammern. Feathers-Queries
-wie `$in[]=a`, `$in[0]=a` und `$sort[name]=1` sind davon nicht betroffen. Belegt ist das erst durch
-den Sichttest am Edge.
+noch am Key-Ende als Array-Syntax, und Punkte werden nur mit `allowDots` zu Klammern. Nach dem
+Changelog sollten Feathers-Queries wie `$in[]=a`, `$in[0]=a` und `$sort[name]=1` davon nicht betroffen
+sein. Das ist eine Annahme, gemessen wird sie erst im Sichttest am Edge.
 
 ## Gemessen
 

@@ -18,17 +18,19 @@ Nach `tailwindcss`, per relativem Pfad (Pfad ab `apps/<app>/src/`):
 
 ```css
 /* admin-client: styles.css */
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
 @import '../../../libs/shared/design-tokens/tokens.css';
 @import '../../../libs/shared/design-tokens/theme.css';
 ```
 
 ```scss
-// pos-client: styles.scss
-@use 'tailwindcss';
+// pos-client: styles.scss — Sass hebt den Plain-CSS-@import an den Anfang der Ausgabe
 @use '../../../libs/shared/design-tokens/tokens.css';
 @use '../../../libs/shared/design-tokens/theme.css';
+@import 'tailwindcss' source(none);
 ```
+
+`source(none)` und die `@source`-Zeilen dazu: [Tailwind-Quellensuche](../infrastructure/tailwind-quellensuche.md).
 
 Dazu `fonts.css` (Inter, IBM Plex Mono, lokal), ebenfalls nach `tailwindcss`. Die Dateien liegen im Paket (`fonts/`, ca. 240 kB, nur latin und latin-ext). Beträge und
 Zahlenspalten: Tailwind `tabular-nums` (Inter `tnum`) oder `font-mono`.

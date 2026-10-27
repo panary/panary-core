@@ -97,7 +97,11 @@ Kurzübersicht:
 ## 8. Tailwind CSS v4 (Zero-Config)
 
 - **Verboten:** Keine `tailwind.config.js` oder `tailwind.config.ts` erstellen.
-- **Import:** `@import "tailwindcss";` ganz oben in der globalen Styles-Datei.
+- **Import:** `@import 'tailwindcss' source(none);` ganz oben in der globalen Styles-Datei, dazu `@source`-Zeilen mit
+  Dateimuster (`libs/domains/*/*/src/**/*.{html,ts}`). Ohne `source(none)` walkt die automatische Suche `.nx/cache`
+  und `nx serve` hängt (core#1138); ein Glob, der auf ein Verzeichnis endet, findet still nichts. In SCSS als
+  Plain-CSS-`@import` nach den `@use`-Regeln. `pnpm tailwind:gate` (CI) prüft beides:
+  [Tailwind-Quellensuche](../../docs/infrastructure/tailwind-quellensuche.md).
 - **Niemals:** `@tailwind base`, `@tailwind components`, `@tailwind utilities`.
 - **Theme:** Konfiguration ausschließlich im `@theme`-Block via CSS-Variablen.
 - **Custom Utilities:** `@utility`-Block verwenden.

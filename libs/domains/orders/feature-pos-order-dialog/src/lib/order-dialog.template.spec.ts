@@ -856,6 +856,8 @@ describe('Kasse — Maus-Hover nur mit feinem Zeiger (core#959)', () => {
     const block = styles.slice(start, styles.indexOf('\n}\n', start))
     expect(start).toBeGreaterThan(0)
     expect(block).toContain('.pnry-hover:hover:not(:disabled)')
+    // core#1156: ohne eigenes @supports erzeugt Tailwind einen Rückfall mit voller Textfarbe
+    expect(block).toContain('@supports (color: color-mix(in oklab, red, red))')
     expect(styles.indexOf('.pnry-hover')).toBe(styles.indexOf('.pnry-hover:hover'))
     expect(styles.match(/\.pnry-hover:hover/g)).toHaveLength(1)
   })

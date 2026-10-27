@@ -72,3 +72,22 @@ reason = "In zbus 6 aufgegangen; tauri-plugin-opener 2.7.2 (neueste 2.x) verlang
 id = "RUSTSEC-2026-0372"  # zvariant_derive unmaintained
 ignoreUntil = 2026-12-15
 reason = "In zbus 6 aufgegangen; tauri-plugin-opener 2.7.2 (neueste 2.x) verlangt zbus ^5.9. Nur Linux/BSD-Pfad, kein Linux-Build in build-pos.yml. Re-evaluieren, sobald opener zbus 6 erlaubt."
+
+# --- Befristet akzeptiert: block-buffer 0.10.4 (panary/panary-core#1145) --------
+# Fix erst in block-buffer 0.12.1 (digest 0.11). Herkunft laut
+# `cargo tree -i block-buffer`: digest 0.10.7 über
+#  - sha2 0.10 ← tauri-codegen (proc-macro, nur Build-Zeit) und wry (nur Android);
+#    auch tauri-codegen 2.7.4 und wry 0.57.1 (neueste) verlangen sha2 ^0.10,
+#  - sha1 0.10 ← tungstenite 0.26 ← async-tungstenite 0.29 ← rumqttc 0.25.1
+#    (neueste, MQTT-Drucker per WebSocket); erst tungstenite 0.30 nutzt sha1 0.11.
+# Exposure: Der Fehler braucht einen Panic im compress-Callback, der per
+# catch_unwind gefangen und danach am selben Puffer weitergerechnet wird. sha1/sha2
+# übergeben ihre eigene, rein arithmetische Kompression, die nicht panict; weder
+# tauri noch tungstenite fangen dort Panics. Im Windows/macOS-Binary bleibt nur der
+# SHA-1 des WebSocket-Handshakes zum MQTT-Broker. Edge-Image ohne Rust-Seite.
+# Eingetragen 2026-10-27 mit Michaels Freigabe.
+
+[[IgnoredVulns]]
+id = "GHSA-qwgh-2vcv-g2f7"  # block-buffer: Panic hinterlässt ungültige Pufferposition
+ignoreUntil = 2026-12-15
+reason = "Fix block-buffer 0.12.1 (digest 0.11); tauri-codegen/wry verlangen sha2 ^0.10, rumqttc 0.25.1 hängt an tungstenite 0.26 (sha1 0.10). Panic-Pfad nicht erreichbar: sha1/sha2-Kompression panict nicht, niemand fängt dort Panics. Re-evaluieren, sobald tauri sha2 0.11 und rumqttc tungstenite ≥ 0.30 erlauben (panary/panary-core#1145)."

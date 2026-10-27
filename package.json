@@ -48,6 +48,7 @@
     "android-xml:gate": "node scripts/android-xml-gate.mjs",
     "pos-gedankenstrich:gate": "node scripts/pos-gedankenstrich-gate.mjs",
     "vitest-helper:gate": "node scripts/vitest-helper-gate.mjs",
+    "tailwind:gate": "node scripts/tailwind-source-gate.mjs",
     "targets:uncached:gate:update": "node scripts/uncached-targets.mjs --update",
     "security:install": "bash scripts/install-security-tools.sh",
     "security:scan": "node scripts/security-scan.mjs --mode=local",

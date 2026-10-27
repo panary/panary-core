@@ -119,7 +119,9 @@ Das 5-Datei-Muster pro Domain-`data-access` (Referenz: `user-preferences`):
   Peer-Vollständigkeit manuell sichern.
 - Die pnpm-Peer-Links der Parents bilden Symlink-Zyklen unter `libs/`
   (auth⇄users, shared⇄domains) — `**`-Globs (z. B. Tailwind-`@source`)
-  rekursieren dort endlos; nur tiefenbegrenzte Patterns verwenden.
+  rekursieren dort endlos; `**` daher erst unterhalb von `src/`, wo keine Links
+  liegen (`libs/domains/*/*/src/**/*.{html,ts}`, siehe
+  [Tailwind-Quellensuche](../infrastructure/tailwind-quellensuche.md)).
 - `libs/shared/data-access` hat ZWEI Entries: der Browser-Entry
   (`src/index.ts`, ng-packagr → `./data-access`) schließt
   `src/server.ts`/`service.factory.ts` (knex/mongodb) via tsconfig-`exclude`

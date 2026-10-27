@@ -225,6 +225,15 @@ jobs:
           node tools/vitest/panary-vitest.spec.mjs
           pnpm vitest-helper:gate
 
+      # Alle drei Clients laden Tailwind mit `source(none)` (#1138): ohne den Zusatz walkt die
+      # automatische Quellensuche `.nx/cache`, und `nx serve` haengt bei „Building...". Damit
+      # bestimmen allein die @source-Zeilen das CSS, und eine wirkungslose Zeile faellt still weg
+      # (cloud#293: 1666 statt 3162 Klassen bei gruenem Build). Gemessen wird durch Tailwind hindurch.
+      - name: Tailwind-@source-Zeilen pruefen
+        run: |
+          node scripts/tailwind-source-gate.spec.mjs
+          pnpm tailwind:gate
+
       # security-scan.mjs laeuft in keiner Pipeline — die CI scannt ueber
       # google/osv-scanner-action, das Skript nur lokal im pre-push-Hook. Es ist
       # trotzdem zweimal still gebrochen, beide Male mit einer Entwarnung ohne

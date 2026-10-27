@@ -61,6 +61,9 @@ Vite 8 transformiert TypeScript mit Oxc statt esbuild. Zwei Fallen, beide im Upg
 - **Typen von `vite`:** Vite 8 liefert seine Typen nur über `exports`. Unter `moduleResolution: "node"` (die
   CommonJS-Domain-Libs) findet der Typecheck `'vite'` nicht mehr. Die `vite.config.ts` der Libs importieren
   `defineConfig` deshalb aus `vitest/config`, wie die `vitest.config.mts`.
+  Der Typ `Plugin`, den `tools/vitest/panary-vitest.ts` aus `vitest/config` bezieht, wird dort trotzdem still
+  zu `any` (`skipLibCheck` verschluckt die unaufgelöste Weiterleitung auf `vite`); die Hook-Parameter tragen ihre
+  Typen deshalb selbst. Typsicher wird das erst mit `moduleResolution: bundler` in den Domain-Libs.
 
 Die Nx-Migration `__dirname → import.meta.dirname` in den Vitest-Configs ist zurückgenommen: Die Configs liegen im
 `tsconfig.spec.json` der CommonJS-Libs, und dort ist `import.meta` ein Typfehler (TS1343). Vite meldet `__dirname`

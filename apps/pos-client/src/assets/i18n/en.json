@@ -368,6 +368,10 @@
     "KPI_PER_HOUR": "Avg per hour",
     "ORDERS_PER_HOUR": "Orders per hour",
     "OPENING_WINDOW": "Opening hours {{window}} · current hour highlighted",
+    "OPENING_WINDOW_EXTENDED": "Opening hours {{window}} · sales outside recorded",
+    "OPENING_WINDOW_CLOSED": "Closed today",
+    "OPENING_WINDOW_CLOSED_SALES": "Closed today – sales recorded anyway",
+    "OPENING_WINDOW_UNSET": "No opening hours set",
     "PICKUP_NEXT": "Next pickups",
     "PICKUP_NONE": "No more pre-orders today.",
     "PICKUP_ALL": "All pre-orders"

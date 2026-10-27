@@ -8,10 +8,17 @@ import { TranslateModule } from '@ngx-translate/core'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { IconComponent, PageHeaderComponent } from '@panary/shared/ui-common'
 import { LocationService } from '@panary/locations/data-access'
-import { getOpeningHoursForDate, type HourException, type RegularHour, formatDateISO } from '@panary/locations/domain'
+import { locationCalendarDate, type LocationScopedHourException } from '@panary/locations/domain'
 import { ConnectionService } from '@panary/shared/data-access'
 import { formatDecimal } from '@panary/shared/util-helpers'
-import { averageWaitingMinutes, chartWindow, hourlyOrderCounts, ordersPerHour, preOrderSummary } from './dashboard-kpis'
+import {
+  averageWaitingMinutes,
+  chartWindow,
+  hourlyOrderCounts,
+  ordersPerHour,
+  preOrderSummary,
+  todaysOpening,
+} from './dashboard-kpis'
 
 /**
  * „Übersicht" der Rail: Kennzahlen, Stundenlast, Vorbestellungen heute.
@@ -40,28 +47,34 @@ export class DashboardComponent implements OnInit {
   readonly formatDecimal = formatDecimal
   readonly preOrderSummary = preOrderSummary
 
-  #regularHours = signal<RegularHour[]>([])
-  #hourExceptions = signal<HourException[]>([])
-  #openingHoursEnabled = signal(false)
-
-  /** Öffnungszeit des heutigen Tages; `null` ohne gepflegte Zeiten, geschlossen oder Ausnahme ohne Zeiten. */
-  readonly #todaysOpening = computed(() => {
-    if (!this.#openingHoursEnabled()) return null
-    const result = getOpeningHoursForDate(this.#now(), this.#regularHours(), this.#hourExceptions())
-    return result.closed ? null : result
-  })
-
-  todayPreOrders = signal<PreOrder[]>([])
-  orders: Signal<Order[]> = this.#orderService.orders
+  #hourExceptions = signal<LocationScopedHourException[]>([])
 
   /** Minutentakt der Wartezeit — sie wächst auch ohne neue Bestellung. */
   readonly #now = signal(new Date())
+
+  /**
+   * Heute offen, geschlossen oder nicht gepflegt (core#1132). Reaktiv auf die aktive Location: Ein
+   * Settings-Patch aus der Cloud (`patched`-Event im LocationService) erreicht die Startseite ohne Neustart.
+   */
+  readonly #todaysOpening = computed(() =>
+    todaysOpening(this.#locationService.activeLocation(), this.#hourExceptions(), this.#now()),
+  )
+  readonly #locationId = computed(() => this.#locationService.activeLocation()?._id ?? null)
+  /** Kalendertag der Filiale — wechselt um Mitternacht, nicht im Minutentakt. */
+  readonly #calendarDate = computed(() => locationCalendarDate(this.#locationService.activeLocation(), this.#now()))
+  /** Hochgezählt je Ladeauftrag; eine spät eintreffende Antwort für einen alten Tag wird verworfen. */
+  #exceptionsRequest = 0
+  /** Filiale und Tag, für die die Ausnahmen zuletzt angefordert wurden. */
+  #exceptionsKey: string | null = null
+
+  todayPreOrders = signal<PreOrder[]>([])
+  orders: Signal<Order[]> = this.#orderService.orders
 
   readonly chartOptions = computed(() => this.#buildOccupancyChart())
   readonly activeOrdersCount = computed(() => this.orders().filter(o => isOrderOpen(o.status)).length)
   readonly todayOrdersCount = computed(() => this.orders().length)
   readonly productivity = computed(() => {
-    const start = chartWindow(this.#todaysOpening(), hourlyOrderCounts(this.orders())).startHour
+    const start = this.#chartWindow().startHour
     return formatDecimal(ordersPerHour(this.todayOrdersCount(), this.#now(), start))
   })
   /** Die nächsten offenen Vorbestellungen des Tages, nach Abholzeit. */
@@ -72,37 +85,87 @@ export class DashboardComponent implements OnInit {
     const location = (this.#locationService.activeLocation() as { name?: string } | null)?.name
     return location ? `${date} · ${location}` : date
   })
+  readonly #hourlyCounts = computed(() => hourlyOrderCounts(this.orders(), this.#now()))
+  readonly #chartWindow = computed(() => chartWindow(this.#todaysOpening(), this.#hourlyCounts()))
+  /** Unterzeile des Diagramms: Übersetzungsschlüssel und Parameter, Uhrzeit nur bei gepflegter Öffnungszeit. */
   readonly chartSubtitle = computed(() => {
-    const { startHour, endHour } = chartWindow(this.#todaysOpening(), hourlyOrderCounts(this.orders()))
-    return `${String(startHour).padStart(2, '0')}–${String(endHour).padStart(2, '0')}`
+    const { kind, openingLabel, extended, hasOrders } = this.#chartWindow()
+    if (kind === 'closed') {
+      return { key: hasOrders ? 'DASHBOARD.OPENING_WINDOW_CLOSED_SALES' : 'DASHBOARD.OPENING_WINDOW_CLOSED' }
+    }
+    if (kind === 'unset') return { key: 'DASHBOARD.OPENING_WINDOW_UNSET' }
+    return {
+      key: extended ? 'DASHBOARD.OPENING_WINDOW_EXTENDED' : 'DASHBOARD.OPENING_WINDOW',
+      params: { window: openingLabel },
+    }
   })
   // Nur die Zahl: Die Einheit steht im Label, "119 min" brach ab lg in der schmalen Kachel um (core#577)
   readonly avgWaitingMinutes = computed(() => averageWaitingMinutes(this.orders(), this.#now()))
 
   ngOnInit(): void {
-    const tick = setInterval(() => this.#now.set(new Date()), 60_000)
+    // Der Minutentakt holt auch die Ausnahmen nach, wenn Filiale (kam erst nach dem Init) oder
+    // Kalendertag (Mitternacht) wechseln. Bewusst kein `effect()`: Laden setzt Signale (Memory effect+async).
+    const tick = setInterval(() => {
+      this.#now.set(new Date())
+      this.refreshHourExceptions()
+    }, 60_000)
     this.#destroyRef.onDestroy(() => clearInterval(tick))
 
     this.fetchTodayPreOrders()
     this.#listenPreOrderEvents()
-    void this.#loadOpeningHours()
+    this.#listenHourExceptionEvents()
+    this.refreshHourExceptions()
   }
 
-  /** Öffnungszeiten der aktiven Filiale; ohne Pflege oder bei Fehler greift der Rückfall im Diagramm. */
-  async #loadOpeningHours(): Promise<void> {
-    try {
-      const location = this.#locationService.activeLocation() as any
-      const ohs = location?.settings?.openingHoursSettings
-      if (!ohs?.enabled) return
-      this.#regularHours.set(ohs.regular ?? [])
-      const result = await this.#connectionService.openingHourExceptionsService.find({
-        query: { date: formatDateISO(new Date()), locationId: location._id, $limit: 5 },
-      })
-      this.#hourExceptions.set(Array.isArray(result) ? result : ((result as any).data ?? []))
-      this.#openingHoursEnabled.set(true)
-    } catch {
-      this.#openingHoursEnabled.set(this.#regularHours().length > 0)
+  /** Lädt die Ausnahmen, wenn sich Filiale oder Kalendertag seit dem letzten Laden geändert haben (`force`: immer). */
+  refreshHourExceptions(force = false): void {
+    const locationId = this.#locationId()
+    const date = this.#calendarDate()
+    const key = `${locationId}|${date}`
+    if (!force && key === this.#exceptionsKey) return
+    this.#exceptionsKey = key
+    void this.#loadHourExceptions(locationId, date)
+  }
+
+  /**
+   * Filialgenaue Ausnahmen des heutigen Tages. Bei Fehler bleibt die Liste leer, dann entscheidet der reguläre
+   * Wochentag — wie vorher, nur ohne den alten Stand eines anderen Tages stehen zu lassen.
+   */
+  async #loadHourExceptions(locationId: string | null, date: string): Promise<void> {
+    const request = ++this.#exceptionsRequest
+    if (!locationId) {
+      this.#hourExceptions.set([])
+      return
     }
+    let exceptions: LocationScopedHourException[] = []
+    try {
+      const result = await this.#connectionService.openingHourExceptionsService.find({
+        query: { date, locationId, $limit: 5 },
+      })
+      exceptions = Array.isArray(result) ? result : ((result as any).data ?? [])
+    } catch {
+      exceptions = []
+    }
+    if (request === this.#exceptionsRequest) this.#hourExceptions.set(exceptions)
+  }
+
+  /** Eine per Sync angelegte, geänderte oder gelöschte Ausnahme lädt die heutigen neu (core#1132). */
+  #listenHourExceptionEvents(): void {
+    const svc = this.#connectionService.openingHourExceptionsService as any
+    if (!svc || typeof svc.on !== 'function') return
+
+    const reload = () => this.refreshHourExceptions(true)
+    svc.on('created', reload)
+    svc.on('patched', reload)
+    svc.on('updated', reload)
+    svc.on('removed', reload)
+    this.#destroyRef.onDestroy(() => {
+      if (typeof svc.off !== 'function') return
+      svc.off('created', reload)
+      svc.off('patched', reload)
+      svc.off('updated', reload)
+      svc.off('removed', reload)
+    })
   }
 
   /** Lauscht auf Realtime-Events des Pre-Order-Service und aktualisiert die KPI */
@@ -156,8 +219,8 @@ export class DashboardComponent implements OnInit {
   }
 
   #buildOccupancyChart(): EChartsOption {
-    const hourlyCounts = hourlyOrderCounts(this.orders())
-    const { startHour, endHour } = chartWindow(this.#todaysOpening(), hourlyCounts)
+    const hourlyCounts = this.#hourlyCounts()
+    const { startHour, endHour } = this.#chartWindow()
     const currentHour = this.#now().getHours()
     const css = getComputedStyle(document.documentElement)
     const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback

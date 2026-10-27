@@ -4,7 +4,7 @@ title: POS-Navigation — Rail statt Dashboard-Kacheln
 description: 'Wie der POS seit core#832 navigiert — Rail mit fünf direkten Einträgen, „Mehr" mit Gruppen und direktem Einstellungen-Eintrag, ruhige Fußzone mit Stempeltaste, Abmelden und Avatar (core#942), Rail gegenüber dem Warenkorb, Avatar-Menü mit Bedienhand und Darstellung; woher die Sichtbarkeitsregeln kommen, was ausblendet und was sperrt, und warum die Rail bei offenem Sheet gesperrt ist.'
 tags: [pos, ui, navigation, routing]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-25T19:40:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-27T00:30:00Z }
 ---
 
 # POS-Navigation — Rail statt Dashboard-Kacheln
@@ -24,7 +24,18 @@ Anmelden im Blick sein. Vorlage: Konzept §3 und Mockup 2.7 in `sandbox/design-s
 
 Die Start-/Übersichtsseite ([core#977](https://github.com/panary/panary-core/issues/977)) zeigt ein Balkendiagramm
 „Bestellungen je Stunde" nur über die Öffnungszeit des Tages (aufgeweitet um Stunden mit Bestellungen; ohne gepflegte
-Öffnungszeit 08–20 Uhr), die aktuelle Stunde in der Akzentfarbe, künftige Stunden leer. Die Kachel „Offene
+Öffnungszeit 08–20 Uhr), die aktuelle Stunde in der Akzentfarbe, künftige Stunden leer. Seit
+[core#1132](https://github.com/panary/panary-core/issues/1132) nennt die Unterzeile nur eine gepflegte Öffnungszeit:
+„Öffnungszeit 09–18 Uhr" (mit Zusatz „Verkauf außerhalb erfasst", wenn Bestellungen die Achse aufweiten), „Heute
+geschlossen" bzw. „Heute geschlossen – Verkauf trotzdem erfasst" am Ruhetag und „Keine Öffnungszeiten gepflegt" ohne
+Pflege — die Rückfall-Achse 08–20 trägt dann keine Uhrzeit mehr. Das Urteil fällt `closedDayStatus` wie am Order-Gate
+der Edge ([Ruhetag-Regel](ruhetag-regel.md)); `todaysOpening` und `chartWindow` in `dashboard-kpis.ts` liefern Zustand
+und Fenster. Die Öffnungszeiten folgen der aktiven Location als `computed` (ein Settings-Patch aus der Cloud wirkt ohne
+Neustart der Seite), filialgenaue Ausnahmen lädt der Minutentakt nach, sobald Filiale oder Kalendertag wechseln, und
+jedes `opening-hour-exceptions`-Event. Die Balken zählen nur Bestellungen des heutigen Kalendertags: Ein über
+Mitternacht offener Geschäftstag faltete sonst die Abendbestellungen von gestern in die Stunden von heute (die Achse
+wuchs bis 24 Uhr). Die Kacheln „Bestellungen heute" und „Ø pro Stunde" zählen bewusst weiter den ganzen
+Geschäftstag — sie messen den Umsatztag, nicht den Kalendertag. Die Kachel „Offene
 Bestellungen" öffnet `/orders/active`, daneben listet „Als Nächstes abholen" die nächsten Vorbestellungen; Antippen öffnet `/pre-orders?select=<id>` mit dieser Vorbestellung ausgewählt ([core#1025](https://github.com/panary/panary-core/issues/1025)). Die Liste entfernt den Parameter sofort, holt eine heute schon fällige Vorbestellung, die sie selbst nicht lädt, einzeln nach und zeigt bei abgeholten oder stornierten einen Hinweis statt einer leeren Auswahl (`findRequestedPreOrder`). Zahlen
 laufen über `formatDecimal` (`@panary/shared/util-helpers`, de-DE: „0,6" statt „0.6", core#969).
 

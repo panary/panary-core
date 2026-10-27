@@ -8,8 +8,7 @@ import { describe, expect, it } from 'vitest'
  * Hover fehlte gerade auf der eingestempelten Stempeltaste. `.is-active` und `:active` dürfen ihn bewusst überdecken.
  */
 const read = (file: string) => readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8')
-const railItems = (source: string) =>
-  [...source.matchAll(/class="(rail-item[^"]*)"/g)].map(m => m[1].split(/\s+/))
+const railItems = (source: string) => [...source.matchAll(/class="(rail-item[^"]*)"/g)].map(m => m[1].split(/\s+/))
 
 describe('Rail — Maus-Hover (core#959)', () => {
   it('gibt jedem Rail-Eintrag die Klasse pnry-hover', () => {

@@ -142,7 +142,7 @@ Alle drei tragen jetzt die globale Klasse `pnry-hover` aus `apps/pos-client/src/
 | Tönung als `background-image` mit `color-mix(var(--text-primary) 7 %)` | liegt über jeder Grundfarbe, auch der Inline-Farbe einer Produktkachel und den Tönungen der Funktionstasten; hell dunkelt sie ab, dunkel hellt sie auf; kein Layout-Sprung |
 | `pos-rail.css` setzt Flächen per `background-color` | eine `background`-Kurzform setzt das Bild zurück. Nur `.is-active` und `:active` überdecken den Hover bewusst |
 
-Gesperrte Tasten (`:disabled`) bekommen keinen Hover. Andere Bedienelemente der Kasse (Gruppenleiste,
+Gesperrte Tasten (`:disabled`) bekommen keinen Hover. Gesperrte Rail-Einträge mit Hinweis (`.is-blocked`) behalten ihn, weil sie antippbar bleiben, damit der Hinweis erscheint. Andere Bedienelemente der Kasse (Gruppenleiste,
 Warenkorb-Zeilen, Ziffern) behalten ihr bisheriges Verhalten.
 
 ## Designstudie Bestellen (core#1062)

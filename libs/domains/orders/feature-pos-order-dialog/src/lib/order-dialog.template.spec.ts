@@ -835,7 +835,9 @@ describe('Kasse — Maus-Hover nur mit feinem Zeiger (core#959)', () => {
     fileURLToPath(new URL('../../../../../../apps/pos-client/src/styles.scss', import.meta.url)),
     'utf8',
   )
-  const tileClasses = [...template.matchAll(/class="([^"]*h-\[var\(--pnry-tile-h\)\][^"]*)"/g)].map(m => m[1].split(/\s+/))
+  const tileClasses = [...template.matchAll(/class="([^"]*h-\[var\(--pnry-tile-h\)\][^"]*)"/g)].map(m =>
+    m[1].split(/\s+/),
+  )
 
   it('gibt Produktkachel und Funktionstaste die Klasse pnry-hover', () => {
     expect(tileClasses).toHaveLength(2)

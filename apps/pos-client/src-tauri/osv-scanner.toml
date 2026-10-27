@@ -24,22 +24,6 @@ reason = "quick-xml 0.39.4 — Fix erst in 0.41.0, kein 0.39.x-Backport. Einzige
 id = "RUSTSEC-2026-0195"  # quick-xml (DoS: unbegrenzte Namespace-Allokation in NsReader)
 reason = "quick-xml 0.39.4 — Fix erst in 0.41.0, kein 0.39.x-Backport. Einziger Parent plist 1.9.0 (neueste Version, via tauri 2) verlangt strikt ^0.39.2 → nicht isoliert bumpbar. Exposure: plist parst nur eigene Bundle-Metadaten (Info.plist) zur Build-/Bundle-Zeit, kein Angreifer-kontrolliertes XML zur POS-Laufzeit. Re-evaluieren sobald plist quick-xml ≥0.41 erlaubt."
 
-# --- Befristet akzeptiert: rustls-webpki 0.103.15 / webpki-root-certs 1.0.7 (Karenz)
-# Fixes rustls-webpki 0.103.16 (2026-10-20T08:58Z) und webpki-root-certs 1.0.10
-# (2026-10-19T20:11Z) liegen unter der 7-Tage-Karenz. Pfad (rustls-Kette):
-# tauri/tauri-plugin-updater -> reqwest -> rustls/rustls-platform-verifier, dazu
-# rumqttc -> async-tungstenite. Bump und Entfernen: panary/panary-core#790.
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0382"  # rustls-webpki: Zertifikatsprüfung kann nicht mehr vertrauenswürdige Zwischenzertifikate akzeptieren
-ignoreUntil = 2026-10-28
-reason = "Fix rustls-webpki 0.103.16 unter 7-Tage-Karenz (veröffentlicht 2026-10-20). Ausnutzbar nur per MITM mit Zertifikat einer zurückgezogenen Zwischen-CA; Bump in panary/panary-core#790."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0383"  # webpki-root-certs: gebündelte Wurzeln vertrauen zurückgezogenen emSign-Zwischenzertifikaten
-ignoreUntil = 2026-10-28
-reason = "Fix webpki-root-certs 1.0.10 unter 7-Tage-Karenz (veröffentlicht 2026-10-19). Ausnutzbar nur per MITM mit emSign-Zwischenzertifikat; Bump in panary/panary-core#790."
-
 # --- Befristet akzeptiert: zip 4.6.1 (panary/panary-core#740) -------------------
 # Fix erst in zip 9.0.0. Einziger Parent tauri-plugin-updater verlangt bis zur
 # neuesten 2.x (2.14.0) strikt zip ^4; die Plugin-3.0-Reihe ist Alpha.

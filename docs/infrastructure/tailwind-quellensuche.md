@@ -4,7 +4,7 @@ title: Tailwind-Quellensuche — source(none), @source-Globs und das tailwind:ga
 description: Warum pos-client, admin-client und setup-client Tailwind mit source(none) laden, welche Form ein @source-Glob haben muss, damit er überhaupt etwas findet, und was pnpm tailwind:gate misst und nicht sieht.
 tags: [ci, infra, tailwind, pos-client, admin-client, setup-client, gates]
 status: stable
-generated: { by: claude-code/opus-5-5, at: 2026-10-27T09:30:00Z }
+generated: { by: claude-code/opus-5-5, at: 2026-10-27T23:00:00Z }
 sources:
   - { id: core-1138, resource: 'https://github.com/panary/panary-core/issues/1138', title: 'core#1138' }
   - { id: cloud-293, resource: 'https://github.com/panary/panary-cloud/issues/293', title: 'cloud#293' }
@@ -80,9 +80,9 @@ also keine Glob-Semantik nach:
 Unterschiede zum cloud-Gate: `.scss` läuft vorher durch das sass von `@angular/build`, und Kanarienvögel sind
 an die Einstiegsdatei gebunden, weil alle drei Clients `@source "./app"` deklarieren.
 
-`@source "./app"` im pos-client trägt nur 10 Klassen bei, alle aus CSS-Text des Nx-Gerüsts `nx-welcome.ts`;
-dort liegen keine Templates. Entfällt die Datei, meldet das Gate die Zeile als wirkungslos — dann gehört sie
-entfernt.
+`@source "./app"` im pos-client trägt nur 3 Klassen bei, Wörter aus Kommentar- und CSS-Text von `app.ts`;
+dort liegen keine Templates mit Utilities. Bis panary/panary-core#129 waren es 10, alle aus dem gelöschten
+Nx-Gerüst `nx-welcome.ts`. Meldet das Gate die Zeile als wirkungslos, gehört sie entfernt.
 
 ### Was das Gate nicht sieht
 

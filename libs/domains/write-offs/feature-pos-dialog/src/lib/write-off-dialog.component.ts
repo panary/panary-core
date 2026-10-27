@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms'
 import { MatDialogRef, MatDialogModule, MatDialog } from '@angular/material/dialog'
@@ -21,6 +21,7 @@ import { withTimeout, writeOffErrorMessage } from './write-off-error'
 
 @Component({
   selector: 'lib-write-off-dialog',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     IconComponent,

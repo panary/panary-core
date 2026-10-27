@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   HostListener,
@@ -27,6 +28,7 @@ export interface TimeClockEvent {
 
 @Component({
   selector: 'lib-time-clock-panel',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TranslateModule, IconComponent],
   templateUrl: './time-clock-panel.component.html',
   styleUrl: './time-clock-panel.component.scss',

@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { lastValueFrom, map } from 'rxjs'
@@ -72,6 +72,7 @@ function isSettingsSection(value: string | null): value is SettingsSection {
 
 @Component({
   selector: 'lib-settings',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     IconComponent,

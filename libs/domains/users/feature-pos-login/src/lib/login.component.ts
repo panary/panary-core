@@ -1,4 +1,13 @@
-import { Component, computed, HostListener, inject, OnInit, signal, WritableSignal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  HostListener,
+  inject,
+  OnInit,
+  signal,
+  WritableSignal,
+} from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { PosSessionService } from '@panary/auth/data-access'
@@ -56,6 +65,7 @@ type ChangePinPhase = 'new' | 'confirm'
 
 @Component({
   selector: 'lib-login',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     IconComponent,
     PanaryLogoComponent,

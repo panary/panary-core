@@ -107,9 +107,9 @@ const LIB_CANARIES = [
   },
 ]
 
-// `apps/pos-client/src/app` hat bewusst keinen: Dort liegen keine Templates, die Zeile findet
-// nur CSS-Text aus dem Nx-Geruest `nx-welcome.ts`. Faellt die Datei weg, meldet die
-// Beitragspruefung die Zeile als wirkungslos — dann gehoert sie entfernt.
+// `apps/pos-client/src/app` hat bewusst keinen: Dort liegen keine Templates mit Utilities, die Zeile
+// findet nur Woerter aus Kommentar- und CSS-Text von `app.ts` (3 Klassen, seit `nx-welcome.ts` weg ist,
+// panary/panary-core#129). Meldet die Beitragspruefung sie als wirkungslos, gehoert sie entfernt.
 export const CANARIES = [
   ...ENTRIES.flatMap(entry => LIB_CANARIES.map(canary => ({ ...canary, entry }))),
   {

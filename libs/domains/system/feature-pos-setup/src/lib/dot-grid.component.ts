@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, viewChild, afterNextRender } from '@angular/core'
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, viewChild, afterNextRender } from '@angular/core'
 
 interface DotState {
   /** Aktueller interpolierter Wert 0–1 (0 = Ruhe, 1 = voll aktiv) */
@@ -44,6 +44,7 @@ const LIGHT_COLORS: ThemeColors = {
 
 @Component({
   selector: 'lib-dot-grid',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   template: `<canvas #canvas class="absolute inset-0 w-full h-full"></canvas>`,
   styles: [

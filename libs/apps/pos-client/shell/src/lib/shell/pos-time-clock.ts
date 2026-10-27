@@ -42,7 +42,7 @@ const STATE_LABELS: Record<TimeClockState, string> = {
   template: `
     <button
       type="button"
-      class="rail-item rail-item--compact rail-clock"
+      class="rail-item rail-item--compact rail-clock pnry-hover"
       [attr.data-state]="staff.timeClockState()"
       [class.is-blocked]="!!blockedKey()"
       [disabled]="locked() || staff.timeClockBusy()"

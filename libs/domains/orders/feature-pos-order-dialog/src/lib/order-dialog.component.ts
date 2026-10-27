@@ -3533,19 +3533,20 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * cancel=Rot (verwirft), skip=Amber (lässt weg), confirm=Teal (übernimmt).
    * Getönte Fläche + farbiger Rahmen statt Vollton; pressed nur für echte Toggles
    * (bis #639 die OHNE-Taste, derzeit keine — die Klasse bleibt für den nächsten).
+   * Kein `hover:` hier: den Maus-Hover trägt `pnry-hover` am Button, nur mit feinem Zeiger (core#959).
    */
   functionButtonClasses(button: PosButton): string {
     switch (button.variant) {
       case 'cancel':
-        return 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 active:bg-red-200 dark:bg-red-900/30 dark:border-red-900/60 dark:text-red-300 dark:active:bg-red-800/60'
+        return 'bg-red-50 border-red-200 text-red-600 active:bg-red-200 dark:bg-red-900/30 dark:border-red-900/60 dark:text-red-300 dark:active:bg-red-800/60'
       case 'skip':
         return button.pressed
           ? 'bg-amber-200 border-amber-500 text-amber-800 shadow-inner dark:bg-amber-800/60 dark:border-amber-400 dark:text-amber-200'
-          : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 active:bg-amber-200 dark:bg-amber-900/30 dark:border-amber-900/60 dark:text-amber-300 dark:active:bg-amber-800/60'
+          : 'bg-amber-50 border-amber-200 text-amber-700 active:bg-amber-200 dark:bg-amber-900/30 dark:border-amber-900/60 dark:text-amber-300 dark:active:bg-amber-800/60'
       case 'confirm':
-        return 'bg-accent-soft border-accent-line text-accent-ink hover:brightness-95 active:brightness-90'
+        return 'bg-accent-soft border-accent-line text-accent-ink active:brightness-90'
       default:
-        return 'bg-surface-elevated border-line text-ink hover:bg-line'
+        return 'bg-surface-elevated border-line text-ink active:bg-line'
     }
   }
 

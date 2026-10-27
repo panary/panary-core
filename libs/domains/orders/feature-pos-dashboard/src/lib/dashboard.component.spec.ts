@@ -90,4 +90,20 @@ describe('DashboardComponent — Unterzeile der Öffnungszeit (core#1132)', () =
       expect(component.chartSubtitle()).toEqual({ key: 'DASHBOARD.OPENING_WINDOW', params: { window: '09–18' } }),
     )
   })
+
+  it('eine spät eintreffende Antwort eines älteren Ladeauftrags überschreibt den neueren nicht', async () => {
+    const { component, activeLocation, exceptionsFind } = setup()
+    activeLocation.set(location(today, { closed: false, open: '09:00', close: '18:00' }))
+    const date = new Date().toLocaleDateString('sv-SE')
+    let resolveStale: (value: unknown) => void = () => undefined
+    exceptionsFind.mockReturnValueOnce(new Promise(resolve => (resolveStale = resolve)))
+    exceptionsFind.mockResolvedValueOnce([])
+    component.refreshHourExceptions()
+    component.refreshHourExceptions(true)
+    await vi.waitFor(() => expect(exceptionsFind).toHaveBeenCalledTimes(2))
+
+    resolveStale([{ date, closed: true, locationId: 'loc-1' }])
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(component.chartSubtitle()).toEqual({ key: 'DASHBOARD.OPENING_WINDOW', params: { window: '09–18' } })
+  })
 })

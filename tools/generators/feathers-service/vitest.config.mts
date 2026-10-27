@@ -8,7 +8,7 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin'
 // `files/` bleibt aussen vor: Das sind EJS-Templates mit `__tmpl__`-Endung,
 // kein kompilierbarer Code.
 export default defineConfig(() => ({
-  root: __dirname,
+  root: import.meta.dirname,
   cacheDir: '../../../node_modules/.vite/tools/generators/feathers-service',
   plugins: [nxViteTsPaths()],
   test: {

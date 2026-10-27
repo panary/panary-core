@@ -1,6 +1,6 @@
 import { ApplicationConfig, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core'
-import { provideRouter, withComponentInputBinding } from '@angular/router'
-import { provideHttpClient, withInterceptors } from '@angular/common/http'
+import { provideRouter, withComponentInputBinding, withRouterConfig } from '@angular/router'
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http'
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async'
 import { TranslateModule } from '@ngx-translate/core'
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
@@ -16,8 +16,10 @@ const apiUrl = API_BASE_URL
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(appRoutes, withComponentInputBinding()),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    // Angular 22 erbt Routen-Parameter per Default an alle Kinder ('always'). 'emptyOnly' hält das
+    // Verhalten bis v21 fest (panary/panary-core#129); umstellen erst mit Prüfung der Kind-Routen.
+    provideRouter(appRoutes, withComponentInputBinding(), withRouterConfig({ paramsInheritanceStrategy: 'emptyOnly' })),
+    provideHttpClient(withXhr(), withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
     importProvidersFrom(TranslateModule.forRoot({ fallbackLang: 'de' })),
     provideTranslateHttpLoader({ prefix: './assets/i18n/', suffix: '.json' }),

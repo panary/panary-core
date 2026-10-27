@@ -116,7 +116,7 @@ import { EurPipe } from '@panary/shared/ui-common'
     @if (showDeleteConfirm()) {
       <app-confirm-dialog
         [title]="t.instant('ORDERS.DELETE_TITLE')"
-        [message]="t.instant('ORDERS.DELETE_MESSAGE', { seq: order()?.dailySequenceNumber })"
+        [message]="t.instant('ORDERS.DELETE_MESSAGE', { seq: $safeNavigationMigration(order()?.dailySequenceNumber) })"
         [confirmLabel]="t.instant('ORDERS.DELETE_CONFIRM')"
         [dismissLabel]="t.instant('ORDERS.DELETE_CANCEL')"
         (confirmed)="onDelete()"

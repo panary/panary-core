@@ -1,7 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core'
-import { provideRouter } from '@angular/router'
+import { provideRouter, withRouterConfig } from '@angular/router'
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async'
-import { provideHttpClient } from '@angular/common/http'
+import { provideHttpClient, withXhr } from '@angular/common/http'
 import { appRoutes } from './app.routes'
 
 // TODO: Migrate these shared libs or fix imports
@@ -13,9 +13,11 @@ const environment = { production: false } // Mock for now
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(appRoutes),
+    // Angular 22 erbt Routen-Parameter per Default an alle Kinder ('always'). 'emptyOnly' hält das
+    // Verhalten bis v21 fest (panary/panary-core#129); umstellen erst mit Prüfung der Kind-Routen.
+    provideRouter(appRoutes, withRouterConfig({ paramsInheritanceStrategy: 'emptyOnly' })),
     provideAnimationsAsync(),
-    provideHttpClient(),
+    provideHttpClient(withXhr()),
     {
       provide: APP_CONFIG,
       useValue: environment,

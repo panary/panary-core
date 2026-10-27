@@ -68,7 +68,7 @@
             </button>
             <div>
               <h4 class="text-ink font-medium text-sm">
-                {{ getActionConfig(selectedAction()!)?.label! | translate }}
+                {{ $safeNavigationMigration(getActionConfig(selectedAction()!)?.label)! | translate }}
               </h4>
               <p class="text-xs text-ink-muted">{{ 'TIME_CLOCK.ENTER_EMPLOYEE_NUMBER' | translate }}</p>
             </div>
@@ -329,7 +329,7 @@
               </button>
               <div>
                 <h4 class="text-white font-semibold text-lg">
-                  {{ getActionConfig(selectedAction()!)?.label! | translate }}
+                  {{ $safeNavigationMigration(getActionConfig(selectedAction()!)?.label)! | translate }}
                 </h4>
                 <p class="text-sm text-white/60">{{ 'TIME_CLOCK.ENTER_EMPLOYEE_NUMBER' | translate }}</p>
               </div>

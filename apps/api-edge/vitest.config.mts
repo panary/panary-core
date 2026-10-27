@@ -4,7 +4,7 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin'
 import { join } from 'path'
 
 export default defineConfig(() => ({
-  root: __dirname,
+  root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/apps/api-edge',
   plugins: [nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
   test: {
@@ -30,8 +30,8 @@ export default defineConfig(() => ({
     // Config-Pfad (cwd des Vitest-Workers ist der Workspace-Root, nicht apps/api-edge)
     // und eine eigene SQLite-Datei, damit Testlaeufe nie die Dev-Datenbank anfassen.
     env: {
-      NODE_CONFIG_DIR: join(__dirname, 'config'),
-      SQLITE_PATH: join(__dirname, 'data', 'api-edge.test.sqlite'),
+      NODE_CONFIG_DIR: join(import.meta.dirname, 'config'),
+      SQLITE_PATH: join(import.meta.dirname, 'data', 'api-edge.test.sqlite'),
       // Seit #323 traegt `config/default.json` keinen Secret-Platzhalter mehr:
       // Das JWT-Secret hat genau eine Quelle, die Umgebung. Die Tests setzen
       // es deshalb hier statt in einer Config-Datei — sonst gaebe es doch

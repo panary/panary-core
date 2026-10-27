@@ -1,0 +1,2 @@
+* **Creation**: [ADR 0063](../adr/0063-nachbestellung-als-neue-bestellung-im-abrechnungskreis.md) entscheidet die Nachbuchung (#352): jede Nachbestellung ist eine neue Bestellung im selben Abrechnungskreis, der Kreis schließt mit seiner letzten offenen Bestellung, ein Besuchszähler trennt Gäste am selben Tisch, der Sammelbeleg wartet auf #351.
+* **Update**: [ADR 0047](../adr/0047-abrechnungskreis-als-pflichtfeld.md) verweist bei Entscheidung 3 auf den Besuchszähler aus ADR 0063.

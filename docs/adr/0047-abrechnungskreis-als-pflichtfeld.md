@@ -63,6 +63,10 @@ synthetischer Wert mit dem reservierten Präfix `auto:`, gebaut aus Standort, Ge
 und Vorgangsnummer. Das ist fachlich der richtige Zuschnitt: Ohne Tisch gibt es nichts zu
 gruppieren, jede Bestellung ist ihr eigener Abrechnungskreis.
 
+> ⚠️ **Nachtrag (#352):** Der Tischwert allein trennt die Gäste eines Tages nicht.
+> [ADR 0063](0063-nachbestellung-als-neue-bestellung-im-abrechnungskreis.md) Nr. 4 ergänzt
+> einen Besuchszähler (`<Tisch>#<n>`). Noch nicht gebaut; bis dahin gilt der Wert oben.
+
 Drei Punkte, die nicht offensichtlich sind:
 
 **Kein Präfix für den Tischfall.** Naheliegend wäre `tisch:3` gewesen, symmetrisch zu

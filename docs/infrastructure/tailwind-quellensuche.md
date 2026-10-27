@@ -89,6 +89,11 @@ entfernt.
 - **Neue Libs außerhalb der Globs.** Eine Lib unter einem Pfad, den keine Zeile abdeckt, bleibt
   unsichtbar; alle bestehenden Zeilen tragen weiter bei.
 - **Dynamisch zusammengesetzte Klassen** (`'bg-' + farbe`) sieht Tailwind nie.
+- **Klassen in Dateien außerhalb von `*.{html,ts}`** (Komponenten-`.scss`, `.css`, `.json`).
+- **Teilbäume.** Je Lib-Quelle gibt es genau einen Kanarienvogel; ein Glob, der nur einen Teil der Libs
+  trifft, bleibt grün, solange der Kanarienvogel in diesem Teil liegt.
+- **Die Reihenfolge im pos-client.** Dass Sass den Tailwind-Import vor die Token-Dateien hebt, ist am
+  2026-10-27 gemessen, aber nicht abgesichert.
 - **Ob `nx serve` schnell startet.** Das Gate misst die Klassenmenge, nicht die Scan-Zeit.
 
 Verwandt: [Design-Tokens — Aufbau und Einbindung](../architecture/design-tokens.md),

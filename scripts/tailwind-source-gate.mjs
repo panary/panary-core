@@ -98,10 +98,12 @@ const LIB_CANARIES = [
     why: 'feste Hoehe des geteilten Seitenkopfs',
   },
   {
-    className: 'z-[1200]',
+    // Nicht `z-[1200]`: Das steht in idle-warning-overlay auch in Doc-Kommentaren, die Tailwind
+    // mitscannt — der Kanarienvogel bliebe gruen, wenn die Klasse selbst verschwindet.
+    className: 'w-[23.75rem]',
     source: LIB_APPS,
-    file: 'libs/apps/pos-client/shell/src/lib/shell/idle-warning-overlay.component.ts',
-    why: 'Rueckfall-z-index der Auto-Logout-Warnung, kommt nur dort vor',
+    file: 'libs/apps/pos-client/shell/src/lib/shell/pos-rail.html',
+    why: 'Breite eines Rail-Menues, nur im Template, sonst nirgends im Repo',
   },
 ]
 
@@ -364,6 +366,8 @@ const main = async () => {
   console.log(`\ntailwind-source-Gate: ${entries.length} Einstiegsdatei(en) geprueft — alle @source-Zeilen wirksam.`)
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// realpath auf beiden Seiten: `import.meta.url` ist schon aufgeloest, `argv[1]` nicht. Hinter einem
+// Symlink (macOS `/tmp` → `/private/tmp`) liefe `main()` sonst nie, und das Gate endete still mit Exit 0.
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   await main()
 }

@@ -32,7 +32,7 @@ Nach `tailwindcss`, per relativem Pfad (Pfad ab `apps/<app>/src/`):
 
 `source(none)` und die `@source`-Zeilen dazu: [Tailwind-Quellensuche](../infrastructure/tailwind-quellensuche.md).
 
-Dazu `fonts.css` (Inter, IBM Plex Mono, lokal), ebenfalls nach `tailwindcss`. Die Dateien liegen im Paket (`fonts/`, ca. 240 kB, nur latin und latin-ext). Beträge und
+Dazu `fonts.css` (Inter, IBM Plex Mono, lokal), in der Ausgabe ebenfalls nach `tailwindcss`. Die Dateien liegen im Paket (`fonts/`, ca. 240 kB, nur latin und latin-ext). Beträge und
 Zahlenspalten: Tailwind `tabular-nums` (Inter `tnum`) oder `font-mono`.
 
 Dunkel gilt bei `<html data-theme="dark">` oder bei System-Dunkel ohne `data-theme="light"`.

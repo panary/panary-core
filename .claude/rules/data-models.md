@@ -109,8 +109,8 @@ Apps (`api-edge`, `pos-client`) importieren aus Libs — niemals umgekehrt.
 Bei Änderungen an bestehenden Schemas:
 
 - Prüfen, ob eine DB-Migration notwendig ist (SQLite via Knex).
-- Neue Migration erstellen: `npm run db:create` im `panary-core/`-Verzeichnis.
-- Anschließend: `npm run db:migrate`.
+- Neue Migration erstellen: `pnpm db:create` im `panary-core/`-Verzeichnis.
+- Anschließend: `pnpm db:migrate`.
 
 ---
 

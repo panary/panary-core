@@ -111,7 +111,9 @@ Kurzübersicht:
 
 ```css
 /* styles.css */
-@import '../node_modules/tailwindcss';
+@import 'tailwindcss' source(none);
+@source "./app";
+@source "../../../libs/domains/*/*/src/**/*.{html,ts}";
 
 @theme {
   --color-primary: oklch(55% 0.2 250);

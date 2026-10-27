@@ -65,7 +65,7 @@ Dasselbe Pattern gilt für `libs/shared/[name]` ohne Eltern: `name: "shared-[nam
 - **Sobald die Lib Specs hat oder bekommt** (besser: von Anfang an): `vitest.config.mts` bindet `panaryVitestPlugins()` aus `tools/vitest/panary-vitest.ts` per **relativem** Pfad **vor** `nxViteTsPaths()` im `plugins`-Array ein (`plugins: [...panaryVitestPlugins(), nxViteTsPaths(), …]`). Der Helfer biegt jeden `@panary/*`-Import für die Vitest-**Laufzeit** auf die TS-Quelle aus `tsconfig.base.json` um und bricht den Lauf hart ab, wenn trotzdem eine `.d.ts` geladen wird (Meldung: Datei, Importeur, Verweis hierher). `pnpm vitest-helper:gate` (CI) schlägt an, wenn eine Lib mit Override den Helfer nicht einhängt. Grund: `nxViteTsPaths()` liest den `paths`-Override aus `tsconfig.lib.json`; liegt das dist der Ziel-Lib, lädt Vitest die `.d.ts` statt Code (ohne dist fällt das Plugin auf `tsconfig.base.json` und damit auf die Quelle zurück — lokal fehlt das dist oft). Der gesuchte Export ist dann `undefined`: Wird er beim Laden benutzt, stirbt das Modul (#225 „Class extends value undefined", #334 „Cannot read properties of undefined"); wird er nur weitergereicht, bleibt es **still** (#393: `Type.Array(undefined)` nahm jeden Code an, nur die Ablehnungs-Tests wurden rot). Mechanismus: `docs/guides/lib-vitest-test-target.md` §1.
   - ⚠️ **`vitest.config.mts`, nicht `vite.config.ts`.** Vitest sucht `vitest.config.*` zuerst; liegen beide in der Lib (Normalfall), wirkt ein Fix in `vite.config.ts` nicht — und nichts meldet es.
   - **Vollständig** ist der Resolver von selbst: Er kennt jeden `@panary/*`-Schlüssel aus `tsconfig.base.json`, auch die, die Specs nur **transitiv** laden (der Override gilt für alle Module im Testlauf, #225: drei handgepflegte Einträge deckten nur die util-Specs; #398, #403). Keine gepflegte Liste mehr.
-  - `resolve.alias` wirkt ebenso (Vites Alias-Plugin läuft vor allen `enforce: 'pre'`-Plugins; die gegenteilige Aussage aus #334 hielt einer Nachmessung nicht stand, #398), trifft aber auch **Unterpfade**: `@panary/shared/data-access` fängt `@panary/shared/data-access/server` ab (ENOTDIR). Der Resolver vergleicht exakt — deshalb ist er die Vorlage.
+  - `resolve.alias` wirkt ebenso (Vites Alias-Plugin läuft vor allen `enforce: 'pre'`-Plugins), trifft aber auch **Unterpfade**: `@panary/shared/data-access` fängt `@panary/shared/data-access/server` ab (ENOTDIR). Der Resolver vergleicht exakt — deshalb ist er die Vorlage.
   - **Prüfen mit dist, in zwei Läufen und mit Ablehnungs-Tests** — eine Spec nur mit Positivfällen bleibt auch mit kaputtem Import grün:
     ```bash
     nx run-many -t typecheck --projects=<lib> --skip-nx-cache   # baut die dists (build → ^build)
@@ -104,19 +104,10 @@ nx serve api-edge
 nx serve pos-client
 ```
 
-## Neue Features / Anwendungen
-
-1. **Anforderungen:** Prüfen, ob das Feature eine neue Domänenbibliothek (`libs/domains/...`) benötigt.
-2. **Plan vorschlagen:** Ordnerstruktur und notwendige Schema-Änderungen (TypeBox) vorschlagen.
-3. **Implementierung:** Mit Nx scaffolden. Ablauf: Schema → Service → UI.
-
----
-
 # 4. Operative Richtlinien
 
-- **Präzise & direkt:** Fokus auf Code und Logik. Minimale Prosa.
-- **Kein Gerede:** Kein „Ich werde jetzt X tun". Direkt Plan nennen oder umsetzen.
-- **Ablehnung bei Architekturverstößen:** Direkte SQL-Queries, manuelle Datei-Erstellung statt Nx-Generatoren, NgModules → ablehnen und Grund erklären.
+- **Antwortlänge:** so lang, wie die Frage es braucht; vor längeren Arbeitsschritten kurz sagen, was als Nächstes passiert.
+- **Ablehnung bei Architekturverstößen:** Rohe DB-Writes und Standard-Reads an der Adapter-API vorbei, manuelle Datei-Erstellung statt Nx-Generatoren, NgModules → ablehnen und Grund erklären.
 
 ---
 
@@ -160,9 +151,7 @@ Regeln: `.claude/rules/documentation.md` §7.
 
 # 7. Tool-Strategie
 
-- **Parallelität:** Wenn möglich mehrere Dateien gleichzeitig suchen.
 - **Kontext:** Für Datenbanktyp `apps/api-edge/src/app.ts` oder `system`-Konfiguration prüfen, nie raten.
-- **Absolute Pfade:** Bei Tool-Verwendung immer absolute Pfade nutzen.
 
 ---
 
@@ -172,4 +161,3 @@ Regeln: `.claude/rules/documentation.md` §7.
 - Den Nx MCP-Server und seine Tools nutzen, wenn verfügbar.
 - Für Repository-Fragen: `nx_workspace`-Tool. Für Projektanalyse: `nx_project_details`-Tool.
 - Bei Nx-Konfigurationsfragen `nx_docs`-Tool nutzen — keine Annahmen treffen.
-- Nx-Plugin-Best-Practices unter `node_modules/@nx/<plugin>/PLUGIN.md` prüfen.

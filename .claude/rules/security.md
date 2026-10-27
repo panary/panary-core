@@ -86,7 +86,7 @@ Details/ADR: `docs/security/edge-authorize-hybrid-rbac.md`.
 
 ## 4. Hook: `multiTenancy(options)`
 
-**Datei:** `apps/api-edge/src/hooks/multi-tenancy.hook.ts`
+**Datei:** `libs/shared/backend/src/hooks/multi-tenancy.hook.ts`
 
 ### Optionen
 
@@ -118,7 +118,7 @@ Details/ADR: `docs/security/edge-authorize-hybrid-rbac.md`.
 
 ## 5. Hook: `ensureTenantIsolation()`
 
-**Datei:** `apps/api-edge/src/hooks/ensure-tenant-isolation.hook.ts`
+**Datei:** `libs/shared/backend/src/hooks/ensure-tenant-isolation.hook.ts`
 
 After-Hook auf App-Ebene (registriert in `app.ts`) — prüft nach jeder Service-Ausführung, ob zurückgegebene Datensätze zum Tenant des Nutzers gehören.
 
@@ -129,7 +129,7 @@ app.hooks({
 })
 ```
 
-Bei Mismatch: `console.error` Security-Alert + `403 Forbidden`. Verhindert Datenlecks auch bei fehlerhafter Query-Konfiguration.
+Bei Mismatch: `logger.error` Security-Alert + `403 Forbidden`. Verhindert Datenlecks auch bei fehlerhafter Query-Konfiguration.
 
 ---
 

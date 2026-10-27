@@ -368,6 +368,10 @@
     "KPI_PER_HOUR": "Ø pro Stunde",
     "ORDERS_PER_HOUR": "Bestellungen je Stunde",
     "OPENING_WINDOW": "Öffnungszeit {{window}} Uhr · aktuelle Stunde grün",
+    "OPENING_WINDOW_EXTENDED": "Öffnungszeit {{window}} Uhr · Verkauf außerhalb erfasst",
+    "OPENING_WINDOW_CLOSED": "Heute geschlossen",
+    "OPENING_WINDOW_CLOSED_SALES": "Heute geschlossen – Verkauf trotzdem erfasst",
+    "OPENING_WINDOW_UNSET": "Keine Öffnungszeiten gepflegt",
     "PICKUP_NEXT": "Als Nächstes abholen",
     "PICKUP_NONE": "Keine Vorbestellungen mehr für heute.",
     "PICKUP_ALL": "Alle Vorbestellungen"

@@ -133,7 +133,7 @@
           <div class="flex-none flex justify-between items-baseline gap-3 mb-4">
             <h2 class="text-lg font-bold text-ink">{{ 'DASHBOARD.ORDERS_PER_HOUR' | translate }}</h2>
             <p class="text-xs text-ink-muted">
-              {{ 'DASHBOARD.OPENING_WINDOW' | translate: { window: chartSubtitle() } }}
+              {{ chartSubtitle().key | translate: chartSubtitle().params }}
             </p>
           </div>
           <div class="flex-1 w-full min-h-0 relative">

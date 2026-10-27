@@ -368,6 +368,10 @@
     "KPI_PER_HOUR": "Saat başına ort.",
     "ORDERS_PER_HOUR": "Saatlik siparişler",
     "OPENING_WINDOW": "Çalışma saatleri {{window}} · güncel saat vurgulu",
+    "OPENING_WINDOW_EXTENDED": "Çalışma saatleri {{window}} · saat dışı satış kaydedildi",
+    "OPENING_WINDOW_CLOSED": "Bugün kapalı",
+    "OPENING_WINDOW_CLOSED_SALES": "Bugün kapalı – satış yine de kaydedildi",
+    "OPENING_WINDOW_UNSET": "Çalışma saatleri girilmemiş",
     "PICKUP_NEXT": "Sıradaki teslimler",
     "PICKUP_NONE": "Bugün başka ön sipariş yok.",
     "PICKUP_ALL": "Tüm ön siparişler"

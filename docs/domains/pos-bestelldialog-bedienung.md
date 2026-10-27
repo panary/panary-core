@@ -1,10 +1,10 @@
 ---
 type: Domain Concept
 title: POS-Kasse — Schließen, Kombinationen mit Stückzahl, Steuerleiste
-description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, beim Hinzufügen zur Zeile scrollt und sie hervorhebt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet.'
+description: 'Wie die Kasse das Schließen absichert, Kombinationen stückweise bildet und auflöst, Modifier-Mengen anzeigt, beim Hinzufügen zur Zeile scrollt und sie hervorhebt, die markierte Zeile über die Steuerleiste bearbeitet und ihre Zonen auf breiten wie schmalen Kassen anordnet und mit Maus einen Hover zeigt.'
 tags: [orders, pos, ui]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-10-26T20:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-27T10:45:00Z }
 ---
 
 # POS-Bestelldialog — Bedienung
@@ -129,6 +129,21 @@ Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-s
 | Panel-Fuß | Container-Query: unter 42rem Panelbreite werden Abbrechen, Modifier und „n lösen" zu 64-px-Tasten, „Fertig" füllt den Rest |
 | Ziffernleiste | unter dem Raster, am Rand gegenüber dem Warenkorb (`.kasse__keys-row`, spiegelt mit `data-hand`, die Folge nie); Container-Query auf der Leiste selbst: Multiplier-Feld (8rem), 0–9 und `C` inline ab 44rem Inhaltsbreite, darunter `C` und das Ziffern-Popup. Die Ziffern sind 3,5rem breit und schrumpfen bei Platzmangel bis 3rem (48px bei Dichte 1), Lücken 0,25rem: Mindestsumme 43,75rem. Gemessen bei Dichte 1: Zone 48,5rem bei 1280px, 53,9rem bei 1366px, 88,5rem bei 1920px; die Sunmi D3 Pro meldet 1280 × 672 CSS-px (1920 × 1080 bei DPR 1,5, Chrome 155, Dichte 1 am Login), also den 1280er-Fall; bei Dichte 1,1 fällt 1280px aufs Popup zurück, ohne Überlauf. Bis [core#1126](https://github.com/panary/panary-core/issues/1126) feste Breiten und Schwelle 53,25rem, bei 1280px also immer Popup. Die Schwelle wächst über rem mit der Dichte. Das `fixed` Popup steht außerhalb der Leiste ([#798](https://github.com/panary/panary-core/issues/798)) |
 | Primärtaste | unter dem Warenkorb, 3,5rem hoch wie die Ziffern, Mint mit Navy-Schrift, zweizeilig: Beschriftung oben, gültiger Gesamtbetrag groß darunter. Davor in derselben Reihe Rabatt, Kombination und Optionen à 4,5rem. Die Taste liegt zum Raster hin (`.kasse__pay`, `order: -1` bei `data-hand='right'`), die drei Tasten behalten ihre Folge. Die Summe steht nur hier, die Artikelanzahl im Warenkorb-Kopf neben der Uhrzeit; Rabattzeilen und der durchgestrichene Betrag „Ohne Rabatt“ erscheinen nur bei aktivem Rabatt über dem Kartenende ([core#1067](https://github.com/panary/panary-core/issues/1067), vorher Summenzeile und Aktionsleiste im Warenkorb: 9 statt 12 Positionen bei 1366 × 768). „Bestellen" in beiden Betriebsarten bis [core#830](https://github.com/panary/panary-core/issues/830) |
+
+## Maus-Hover (core#959)
+
+Kassen mit Maus oder Trackpad (MacBook, Windows) zeigten auf Produktkacheln, Funktionstasten und der Rail
+keinen Hover ([core#959](https://github.com/panary/panary-core/issues/959), Befund aus Sichttest core#938).
+Alle drei tragen jetzt die globale Klasse `pnry-hover` aus `apps/pos-client/src/styles.scss`:
+
+| Regel | Warum |
+| --- | --- |
+| nur unter `@media (hover: hover) and (pointer: fine)` | Auf Touch (Sunmi) bliebe der Hover nach dem Antippen kleben. Tailwinds `hover:` prüft nur `(hover: hover)`, deshalb trägt die Farbmatrix der Funktionstasten (`functionButtonClasses()`) kein `hover:` mehr; im Dunkelmodus färbte es die getönten Tasten zudem hell ein |
+| Tönung als `background-image` mit `color-mix(var(--text-primary) 7 %)` | liegt über jeder Grundfarbe, auch der Inline-Farbe einer Produktkachel und den Tönungen der Funktionstasten; hell dunkelt sie ab, dunkel hellt sie auf; kein Layout-Sprung |
+| `pos-rail.css` setzt Flächen per `background-color` | eine `background`-Kurzform setzt das Bild zurück. Nur `.is-active` und `:active` überdecken den Hover bewusst |
+
+Gesperrte Tasten (`:disabled`) bekommen keinen Hover. Andere Bedienelemente der Kasse (Gruppenleiste,
+Warenkorb-Zeilen, Ziffern) behalten ihr bisheriges Verhalten.
 
 ## Designstudie Bestellen (core#1062)
 

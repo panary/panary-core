@@ -18,13 +18,16 @@ import {
 
 import { BusinessDayService } from './business-day.service'
 
-function setup() {
+function setup(status = 'authenticated') {
   const client = Object.fromEntries(
     BUSINESSDAYS_CLIENT_METHODS.map(name => [name, vi.fn(async () => ({ _id: 'bd-1', isOpen: true }))]),
   )
   const injector = Injector.create({
     providers: [
-      { provide: ConnectionService, useValue: { businessDayService: client } },
+      {
+        provide: ConnectionService,
+        useValue: { businessDayService: client, connectionState: () => ({ status }) },
+      },
       { provide: ServiceHelper, useValue: { handleError: vi.fn() } },
       { provide: NotificationService, useValue: new NotificationService() },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
@@ -56,4 +59,19 @@ describe('BusinessDayService — registrierte Client-Methoden (core#1120)', () =
     expect(client['getClosedDayStatus'].mock.calls).toEqual([[{}]])
     expect(client['approveClosedDay'].mock.calls).toEqual([[{ authorizedByUserId: 'u-manager', pin: '1234' }]])
   })
+})
+
+// panary/panary-core#1185: Offline hing `getClosedDayStatus()` am Socket, und das Anlegen einer Bestellung wartete
+// davor, statt in die Offline-Outbox zu gehen. Ohne Verbindung lehnt die Vorabfrage sofort ab;
+// `ensureClosedDayApproval` ist fail-open und lässt den Verkauf weiterlaufen.
+describe('BusinessDayService — Ruhetag-Vorabfrage offline (core#1185)', () => {
+  it.each(['disconnected', 'error', 'connected'])(
+    'lehnt bei Status %s sofort ab, ohne den Server zu fragen',
+    async status => {
+      const { service, client } = setup(status)
+
+      await expect(service.getClosedDayStatus()).rejects.toThrow('OFFLINE_CLOSED_DAY_STATUS')
+      expect(client['getClosedDayStatus']).not.toHaveBeenCalled()
+    },
+  )
 })

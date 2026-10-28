@@ -144,7 +144,10 @@ describe('Offene Bestellungen — Modifier je Menü-Komponente (core#1127)', () 
 // roh als „auto:7539ce3e-b8…“. Echte Kreise bleiben sichtbar.
 describe('Offene Bestellungen — Abrechnungskreis (core#1125)', () => {
   const template = read('./active-orders.component.html')
-  const chip = template.slice(template.indexOf('} @else if (order.settlementScope'), template.indexOf('@if (order.pager)'))
+  const chip = template.slice(
+    template.indexOf('} @else if (order.settlementScope'),
+    template.indexOf('@if (order.pager)'),
+  )
 
   it('zeigt den Kreis nur, wenn er nicht synthetisch ist', () => {
     expect(chip).toMatch(/@else if \(order\.settlementScope && !isSyntheticSettlementScope\(order\.settlementScope\)\)/)

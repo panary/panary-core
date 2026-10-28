@@ -31,7 +31,7 @@ function setupReplay(entries: OutboxEntry[], options: { patch?: ReturnType<typeo
   const create = vi.fn(() => Promise.resolve({}))
   const patch = options.patch ?? vi.fn(() => Promise.resolve({}))
   const approval = {
-    request: vi.fn(() => Promise.resolve(options.approve ?? false)),
+    request: vi.fn((_cashierId: string) => Promise.resolve(options.approve ?? false)),
     cashierName: (id: string) => (id === 'u-kassierer' ? 'Kim Kasse' : id),
   }
   const notifications = new NotificationService()
@@ -46,7 +46,7 @@ function setupReplay(entries: OutboxEntry[], options: { patch?: ReturnType<typeo
     claimDue: vi.fn().mockResolvedValueOnce(entries).mockResolvedValue([]),
     markAcked: vi.fn(() => Promise.resolve()),
     markRejected: vi.fn(() => Promise.resolve()),
-    markRetry: vi.fn(() => Promise.resolve()),
+    markRetry: vi.fn((_id: string, _nextAttemptAt: string, _error?: string) => Promise.resolve()),
   }
 
   TestBed.configureTestingModule({
@@ -158,7 +158,7 @@ describe('PosOutboxReplayService — Kasse fehlt beim Nachversand', () => {
       .mockRejectedValueOnce(cashSessionRequired())
       .mockRejectedValueOnce(cashSessionRequired())
       .mockResolvedValue({})
-    const { service, outbox, approval } = setupReplay([cashPatch('o-1'), cashPatch('o-2', 'u-zweite')])
+    const { service, outbox, approval } = setupReplay([cashPatch('o-1'), cashPatch('o-2', 'u-zweite')], { patch })
     approval.request.mockImplementation((id: string) => Promise.resolve(id === 'u-kassierer'))
 
     await service.replayAll()

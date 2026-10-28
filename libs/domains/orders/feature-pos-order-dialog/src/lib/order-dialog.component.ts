@@ -1215,27 +1215,25 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       backdropClass: 'pre-order-blur-backdrop',
     })
 
-    dialogRef
-      .afterClosed()
-      .subscribe(async (result: (PreOrderQuickResult & { date: Date }) | undefined) => {
-        if (!result) return
+    dialogRef.afterClosed().subscribe(async (result: (PreOrderQuickResult & { date: Date }) | undefined) => {
+      if (!result) return
 
-        const payload = buildQuickPreOrderPayload(result, this.lineItems)
+      const payload = buildQuickPreOrderPayload(result, this.lineItems)
 
-        try {
-          await this.preOrderService.create(payload)
-          // Erfolg: die GESAMTE Bestellung beenden (nicht nur den Vorbestell-Dialog).
-          this.closed.emit('preorder-created')
-        } catch (e) {
-          // Fehler (z. B. außerhalb der Öffnungszeiten) INLINE im Bestelldialog
-          // anzeigen — der BaseService-Toast oben rechts wird beim Fokus auf den
-          // zentrierten Dialog leicht übersehen. Dialog bleibt bewusst OFFEN, damit
-          // der Nutzer die Uhrzeit korrigieren kann (die lineItems bleiben erhalten).
-          const msg = (e as { message?: string })?.message || 'Vorbestellung konnte nicht erstellt werden.'
-          this.setInfoBoxText(msg, 'red')
-          console.error('Vorbestellung konnte nicht erstellt werden:', e)
-        }
-      })
+      try {
+        await this.preOrderService.create(payload)
+        // Erfolg: die GESAMTE Bestellung beenden (nicht nur den Vorbestell-Dialog).
+        this.closed.emit('preorder-created')
+      } catch (e) {
+        // Fehler (z. B. außerhalb der Öffnungszeiten) INLINE im Bestelldialog
+        // anzeigen — der BaseService-Toast oben rechts wird beim Fokus auf den
+        // zentrierten Dialog leicht übersehen. Dialog bleibt bewusst OFFEN, damit
+        // der Nutzer die Uhrzeit korrigieren kann (die lineItems bleiben erhalten).
+        const msg = (e as { message?: string })?.message || 'Vorbestellung konnte nicht erstellt werden.'
+        this.setInfoBoxText(msg, 'red')
+        console.error('Vorbestellung konnte nicht erstellt werden:', e)
+      }
+    })
   }
 
   setTableSubbuttons() {

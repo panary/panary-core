@@ -1,3 +1,5 @@
+mod kiosk;
+
 use serde::Serialize;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -240,8 +242,44 @@ pub fn run() {
             js_log,
             read_logs,
             open_log_dir,
-            mqtt_publish
+            mqtt_publish,
+            kiosk::kiosk_status,
+            kiosk::kiosk_report_paired,
+            kiosk::kiosk_set_enabled,
+            kiosk::kiosk_window_mode,
+            kiosk::kiosk_exit
         ])
-        .run(tauri::generate_context!())
-        .expect("Fehler beim Starten der Panary POS Anwendung");
+        .setup(|app| {
+            use tauri::Manager;
+            let state = kiosk::KioskState::load(app.handle());
+            let active = state.active();
+            app.manage(state);
+            log::info!(
+                "[kiosk] Start: {}",
+                if active { "Kiosk aktiv" } else { "Fenster" }
+            );
+            kiosk::create_main_window(app.handle(), active)?;
+            Ok(())
+        })
+        // Alt+F4, Schliessen-Schaltflaeche und Cmd+W kommen hier als CloseRequested an.
+        .on_window_event(|window, event| {
+            use tauri::Manager;
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let state = window.state::<kiosk::KioskState>();
+                if kiosk::should_prevent_close(state.active(), state.exit_released()) {
+                    api.prevent_close();
+                }
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("Fehler beim Starten der Panary POS Anwendung")
+        .run(|app, event| {
+            use tauri::Manager;
+            if let tauri::RunEvent::ExitRequested { code, api, .. } = event {
+                let state = app.state::<kiosk::KioskState>();
+                if kiosk::should_prevent_exit(state.active(), state.exit_released(), code) {
+                    api.prevent_exit();
+                }
+            }
+        });
 }

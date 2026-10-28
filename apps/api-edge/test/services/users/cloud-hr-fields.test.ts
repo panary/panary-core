@@ -44,7 +44,7 @@ describe('users — Vertrag und Jahresanspruch aus der Cloud', () => {
 
   it('uebernimmt einen Cloud-Record mit Vertrag und Anspruch vollstaendig, auch die Rolle daneben', async () => {
     const user = await createStaff()
-    const contract = { contractType: 'FULL_TIME', hoursPerWeek: 40 }
+    const contract = { contractType: 'FULLTIME', hoursPerWeek: 40 }
 
     await app
       .service('users')

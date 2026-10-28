@@ -32,7 +32,7 @@ describe('20261028120000_users_add_contract_vacation_days', () => {
   it('speichert Anspruch und Vertrag als JSON-Text', async () => {
     const db = await makeDb()
     await up(db)
-    const contract = JSON.stringify({ contractType: 'FULL_TIME', hoursPerWeek: 40 })
+    const contract = JSON.stringify({ contractType: 'FULLTIME', hoursPerWeek: 40 })
     await db('users').insert({ _id: 'u-neu', vacationDaysPerYear: 28.5, contract })
 
     expect(await db('users').where({ _id: 'u-neu' }).first()).toEqual({

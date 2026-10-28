@@ -1,0 +1,1 @@
+* **Update** (panary/panary-core#1191): [Zweistufiger POS-Login](../domains/pos-login-mitarbeiterwahl.md) — Mitarbeiterraster auf geteilten Geräten mittig (horizontal und vertikal) mit fester Kachelbreite statt Streckung über die ganze Breite; der Inhaltsbereich scrollt bei Überlauf, bisher wurde ein zu hohes Raster abgeschnitten.

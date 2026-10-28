@@ -176,7 +176,7 @@
     "mongodb": "^7.1.0",
     "mqtt": "^5.16.0",
     "socket.io-client": "^4.8.3",
-    "swagger-ui-dist": "^5.33.1",
+    "swagger-ui-dist": "^5.34.0",
     "uuid": "^14.0.2",
     "uuidv7": "^1.1.0",
     "winston": "^3.19.0",

@@ -94,6 +94,12 @@ export class LogService {
       origError(...args)
       this.#write('error', args.map(stringify).join(' '))
     }
+    // Nur `info`: Der Logout-Grund (PosSessionService) ist die einzige Spur, warum eine Sitzung endete.
+    const origInfo = console.info.bind(console)
+    console.info = (...args: unknown[]): void => {
+      origInfo(...args)
+      this.#write('info', args.map(stringify).join(' '))
+    }
     const origWarn = console.warn.bind(console)
     console.warn = (...args: unknown[]): void => {
       origWarn(...args)

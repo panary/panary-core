@@ -289,7 +289,7 @@ export class AuthService {
   }
 
   logout(redirect = true): Promise<boolean> {
-    console.warn('[AuthService] logout() called. Redirect:', redirect, new Error().stack)
+    console.info('[AuthService] logout() Redirect:', redirect)
     this.#authenticationItem.set(null)
     sessionStorage.clear()
     // Der POS fuehrt eine zweite Sitzungsebene: das Geraet haengt am

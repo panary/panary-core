@@ -187,8 +187,8 @@ export class KioskPinDialogComponent implements OnInit {
   async #perform(user: EligibleUser): Promise<void> {
     const action = this.action()
     this.step.set('working')
-    // Nur Bediener und Aktion, nie die PIN.
-    this.#log.info(`[kiosk] ${action} freigegeben von ${user.firstName} ${user.lastName} (${user.role}, ${user._id})`)
+    // Nur Aktion, Rolle und ID des Bedieners, nie PIN oder Klarname (PII, logging.md).
+    this.#log.info(`[kiosk] ${action} freigegeben von ${user._id} (${user.role})`)
     try {
       switch (action) {
         case 'exit':

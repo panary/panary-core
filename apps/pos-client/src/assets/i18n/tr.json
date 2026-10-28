@@ -300,6 +300,7 @@
     "OUTBOX_REJECTED": "Reddedildi",
     "OUTBOX_REJECTED_TITLE": "Reddedilen aktarımlar",
     "OUTBOX_REPLAY_REJECTED": "{{count}} aktarım reddedildi. Ayrıntılar: Ayarlar → Bağlantı.",
+    "OUTBOX_CASH_SESSION_REQUIRED": "{{name}} için kasayı açın, ardından nakit ödeme gönderilecek.",
     "OUTBOX_SYNC_NOW": "Şimdi eşitle",
     "OUTBOX_SYNC_NOW_DONE": "Eşitleme başlatıldı ({{count}} sıfırlandı).",
     "OUTBOX_RETRY": "Tekrar dene",

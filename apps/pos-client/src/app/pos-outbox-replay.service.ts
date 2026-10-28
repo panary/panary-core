@@ -1,9 +1,17 @@
 import { effect, inject, Injectable, OnDestroy, untracked } from '@angular/core'
+import { MatDialog } from '@angular/material/dialog'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
 import type { Params } from '@feathersjs/feathers'
 import { ConnectionService, withPosOperatorToken } from '@panary/shared/data-access'
 import type { OfflineReplayPort } from '@panary/shared-common'
+import {
+  promptCashSessionAuthorization,
+  type CashSessionPromptLocation,
+} from '@panary/businessdays/feature-pos-closing-dialog'
+import { LocationService } from '@panary/locations/data-access'
+import { isCashSessionRequired } from '@panary/orders/data-access'
+import { UserService } from '@panary/users/data-access'
 import {
   classifyOutboxError,
   OUTBOX_MAX_ATTEMPTS,
@@ -16,6 +24,38 @@ import {
 interface ReplayTarget {
   create(data: unknown, params?: Params): Promise<unknown>
   patch(id: string, data: unknown, params?: Params): Promise<unknown>
+}
+
+/**
+ * Kassen-Freigabe für den Nachversand: derselbe Manager-PIN-Dialog wie beim Kassieren online. Eigene Klasse, damit
+ * die Spec die Rückfrage ersetzen kann, ohne Dialoge zu öffnen.
+ */
+@Injectable({ providedIn: 'root' })
+export class PosOutboxCashSessionApproval {
+  readonly #matDialog = inject(MatDialog)
+  readonly #locations = inject(LocationService)
+  readonly #users = inject(UserService)
+
+  request(cashierId: string): Promise<boolean> {
+    return promptCashSessionAuthorization(
+      this.#matDialog,
+      this.#locations.activeLocation() as CashSessionPromptLocation | undefined,
+      this.#users.users(),
+      cashierId,
+    )
+  }
+
+  cashierName(cashierId: string): string {
+    const user = this.#users.users().find(u => u._id === cashierId)
+    const name = user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : ''
+    return name || cashierId
+  }
+}
+
+/** Kassierer der Bar-Transaktion eines Patches — für ihn fehlt die Kasse, wenn der Edge BD_6004 meldet. */
+function cashCashierOf(entry: OutboxEntry): string | null {
+  const payload = entry.payload as { payment?: { transactions?: Array<{ method?: string; performedBy?: string }> } }
+  return payload?.payment?.transactions?.find(t => t.method === 'cash')?.performedBy ?? null
 }
 
 /** Poll-Intervall für fällige Retries (am kürzesten Backoff = 30 s ausgerichtet). */
@@ -39,6 +79,7 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
   readonly #outbox = inject(OutboxStore)
   readonly #notifications = inject(NotificationService)
   readonly #translate = inject(TranslateService)
+  readonly #cashSession = inject(PosOutboxCashSessionApproval)
   #replaying = false
   #pollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -87,21 +128,24 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
 
     this.#replaying = true
     const rejectedBefore = this.#outbox.rejectedCount()
+    let declinedCashSession = 0
     try {
+      const awaitingCashSession = new Map<string, OutboxEntry[]>()
       const due = await this.#outbox.claimDue(new Date().toISOString())
       for (const entry of due) {
         // Verbindung mitten im Replay verloren? Abbrechen, statt in hängende
         // Socket-Buffer-Creates zu laufen — der nächste (Re)Connect setzt fort.
         if (this.#connection.connectionState().status !== 'authenticated') break
-        await this.#replayOne(entry)
+        await this.#replayOne(entry, awaitingCashSession)
       }
+      declinedCashSession = await this.#resolveCashSessions(awaitingCashSession)
     } finally {
       this.#replaying = false
     }
 
     // Terminal abgelehnte Übertragungen sind sonst still (nur in den Einstellungen
-    // sichtbar) → Operator aktiv informieren.
-    const newlyRejected = this.#outbox.rejectedCount() - rejectedBefore
+    // sichtbar) → Operator aktiv informieren. Fehlende Kassen hat `#resolveCashSessions` schon eigens gemeldet.
+    const newlyRejected = this.#outbox.rejectedCount() - rejectedBefore - declinedCashSession
     if (newlyRejected > 0) {
       this.#notifications.error(this.#translate.instant('SETTINGS.OUTBOX_REPLAY_REJECTED', { count: newlyRejected }), {
         sticky: true,
@@ -109,7 +153,31 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
     }
   }
 
-  async #replayOne(entry: OutboxEntry): Promise<void> {
+  /**
+   * Offline bar kassiert, aber für den Kassierer war keine Kasse eröffnet: Der Edge lehnt den Nachversand mit
+   * BD_6004 ab (panary/panary-core#1123). Wie online fragt der POS die Freigabe an — einmal je Kassierer, nach dem
+   * Durchlauf, damit kein Dialog mitten im Nachversand steht — und sendet danach erneut. Ohne Freigabe bleibt der
+   * Eintrag als abgelehnt liegen, mit einer Meldung, die sagt, was zu tun ist; „Erneut versuchen“ in den
+   * Einstellungen fragt dann wieder. Liefert die Zahl der so liegengebliebenen Einträge.
+   */
+  async #resolveCashSessions(awaiting: ReadonlyMap<string, OutboxEntry[]>): Promise<number> {
+    let declined = 0
+    for (const [cashierId, entries] of awaiting) {
+      if (this.#connection.connectionState().status === 'authenticated' && (await this.#cashSession.request(cashierId))) {
+        for (const entry of entries) await this.#replayOne(entry)
+        continue
+      }
+      const message = this.#translate.instant('SETTINGS.OUTBOX_CASH_SESSION_REQUIRED', {
+        name: this.#cashSession.cashierName(cashierId),
+      })
+      for (const entry of entries) await this.#outbox.markRejected(entry._id, message)
+      declined += entries.length
+      this.#notifications.warning(message, { sticky: true })
+    }
+    return declined
+  }
+
+  async #replayOne(entry: OutboxEntry, awaitingCashSession?: Map<string, OutboxEntry[]>): Promise<void> {
     const target = this.#targetFor(entry.service)
     if (!target) {
       await this.#outbox.markRejected(entry._id, `Unbekannter Service: ${entry.service}`)
@@ -128,6 +196,11 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
       }
       await this.#outbox.markAcked(entry._id)
     } catch (error) {
+      const cashierId = entry.op === 'patch' && isCashSessionRequired(error) ? cashCashierOf(entry) : null
+      if (awaitingCashSession && cashierId) {
+        awaitingCashSession.set(cashierId, [...(awaitingCashSession.get(cashierId) ?? []), entry])
+        return
+      }
       await this.#handleFailure(entry, error)
     }
   }

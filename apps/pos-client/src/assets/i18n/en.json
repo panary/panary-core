@@ -300,6 +300,7 @@
     "OUTBOX_REJECTED": "Rejected",
     "OUTBOX_REJECTED_TITLE": "Rejected transmissions",
     "OUTBOX_REPLAY_REJECTED": "{{count}} transmission(s) rejected. Details under Settings → Connection.",
+    "OUTBOX_CASH_SESSION_REQUIRED": "Open a cash drawer for {{name}}, then the cash payment will be sent.",
     "OUTBOX_SYNC_NOW": "Sync now",
     "OUTBOX_SYNC_NOW_DONE": "Sync started ({{count}} reset).",
     "OUTBOX_RETRY": "Retry",

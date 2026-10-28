@@ -42,6 +42,26 @@ export type ServiceName = keyof ConnectionService
 const PAIRING_CONNECTED = 'connected'
 const PAIRING_DISCONNECTED = 'disconnected'
 
+/**
+ * Methoden, die der Client am Service `businessdays` registriert. Eine nicht registrierte Custom-Method ist
+ * clientseitig nicht vorhanden: Am cloud-direct-POS scheiterte so „Geschäftstag eröffnen" mit
+ * „service.openDay is not a function" (panary/panary-core#1120). Exportiert, damit die Spec von
+ * `BusinessDayService` gegen genau diese Liste läuft.
+ */
+export const BUSINESSDAYS_CLIENT_METHODS = [
+  'find',
+  'get',
+  'create',
+  'update',
+  'patch',
+  'remove',
+  'openDay',
+  'closeDay',
+  'refreshClosingStatus',
+  'approveClosedDay',
+  'getClosedDayStatus',
+] as const
+
 @Injectable({
   providedIn: 'root',
 })
@@ -616,19 +636,7 @@ export class ConnectionService {
     // registriert waren hier nur `open`/`close`, die es dort nicht gibt — der Aufruf
     // aus dem POS lief damit ins Leere. Dazu die Ruhetag-Freigabe (panary/panary-core#1133).
     this.#app.use('businessdays', socketClient.service('businessdays'), {
-      methods: [
-        'find',
-        'get',
-        'create',
-        'update',
-        'patch',
-        'remove',
-        'openDay',
-        'closeDay',
-        'refreshClosingStatus',
-        'approveClosedDay',
-        'getClosedDayStatus',
-      ],
+      methods: [...BUSINESSDAYS_CLIENT_METHODS],
     })
     // cash-sessions inkl. Custom-Method openAuthorized (manager-autorisierte
     // Kassen-Eröffnung am POS) — ohne explizite Registrierung wäre die

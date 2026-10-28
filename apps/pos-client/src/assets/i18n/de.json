@@ -300,6 +300,7 @@
     "OUTBOX_REJECTED": "Abgelehnt",
     "OUTBOX_REJECTED_TITLE": "Abgelehnte Übertragungen",
     "OUTBOX_REPLAY_REJECTED": "{{count}} Übertragung(en) abgelehnt. Details unter Einstellungen → Verbindung.",
+    "OUTBOX_CASH_SESSION_REQUIRED": "Kasse für {{name}} eröffnen, dann wird die Barzahlung nachgesendet.",
     "OUTBOX_SYNC_NOW": "Jetzt synchronisieren",
     "OUTBOX_SYNC_NOW_DONE": "Synchronisierung gestartet ({{count}} zurückgesetzt).",
     "OUTBOX_RETRY": "Erneut versuchen",

@@ -94,7 +94,11 @@ import { PosHandednessService, User, UserService } from '@panary/users/data-acce
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
-import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
+import {
+  buildQuickPreOrderPayload,
+  PreOrderQuickDialogComponent,
+  type PreOrderQuickResult,
+} from './pre-order-quick-dialog.component'
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
 import { PromoCodeDialogComponent } from './promo-code-dialog.component'
 import { buildCodeAppliedDiscount, evaluatePromoCodeGate, redeemCodeForOrder } from './promo-code'
@@ -1211,40 +1215,25 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       backdropClass: 'pre-order-blur-backdrop',
     })
 
-    dialogRef
-      .afterClosed()
-      .subscribe(async (result: { date: Date; time: string; name: string; phone: string } | undefined) => {
-        if (!result) return
+    dialogRef.afterClosed().subscribe(async (result: (PreOrderQuickResult & { date: Date }) | undefined) => {
+      if (!result) return
 
-        // Datum + Uhrzeit zu ISO-String kombinieren
-        const date = new Date(result.date)
-        const [hours, minutes] = result.time.split(':').map(Number)
-        date.setHours(hours, minutes, 0, 0)
+      const payload = buildQuickPreOrderPayload(result, this.lineItems)
 
-        const payload = {
-          customerContact: {
-            name: result.name,
-            phone: result.phone || '',
-          },
-          scheduledFor: date.toISOString(),
-          lineItems: [...this.lineItems],
-          status: 'pending' as const,
-        }
-
-        try {
-          await this.preOrderService.create(payload)
-          // Erfolg: die GESAMTE Bestellung beenden (nicht nur den Vorbestell-Dialog).
-          this.closed.emit('preorder-created')
-        } catch (e) {
-          // Fehler (z. B. außerhalb der Öffnungszeiten) INLINE im Bestelldialog
-          // anzeigen — der BaseService-Toast oben rechts wird beim Fokus auf den
-          // zentrierten Dialog leicht übersehen. Dialog bleibt bewusst OFFEN, damit
-          // der Nutzer die Uhrzeit korrigieren kann (die lineItems bleiben erhalten).
-          const msg = (e as { message?: string })?.message || 'Vorbestellung konnte nicht erstellt werden.'
-          this.setInfoBoxText(msg, 'red')
-          console.error('Vorbestellung konnte nicht erstellt werden:', e)
-        }
-      })
+      try {
+        await this.preOrderService.create(payload)
+        // Erfolg: die GESAMTE Bestellung beenden (nicht nur den Vorbestell-Dialog).
+        this.closed.emit('preorder-created')
+      } catch (e) {
+        // Fehler (z. B. außerhalb der Öffnungszeiten) INLINE im Bestelldialog
+        // anzeigen — der BaseService-Toast oben rechts wird beim Fokus auf den
+        // zentrierten Dialog leicht übersehen. Dialog bleibt bewusst OFFEN, damit
+        // der Nutzer die Uhrzeit korrigieren kann (die lineItems bleiben erhalten).
+        const msg = (e as { message?: string })?.message || 'Vorbestellung konnte nicht erstellt werden.'
+        this.setInfoBoxText(msg, 'red')
+        console.error('Vorbestellung konnte nicht erstellt werden:', e)
+      }
+    })
   }
 
   setTableSubbuttons() {

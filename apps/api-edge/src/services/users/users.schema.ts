@@ -35,6 +35,10 @@ export const userExternalResolver = resolve<User, HookContext<UserService>>({
   // PIN-Hash nie senden, aber Hinweis ob ein PIN gesetzt ist
   posPin: async () => undefined,
   hasPosPin: async (value: any, user: any) => !!user.posPin,
+  // HR-Daten aus der Cloud: Der Edge speichert sie nur, damit der Pull-Apply den User nicht ablehnt
+  // (panary/panary-core#1180). Kein Edge-Client liest sie, also gehen sie auch an kein Geraet.
+  contract: async () => undefined,
+  vacationDaysPerYear: async () => undefined,
 })
 //#endregion
 

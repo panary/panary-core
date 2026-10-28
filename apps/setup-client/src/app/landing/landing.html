@@ -1,4 +1,6 @@
-<div class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-6 text-ink">
+<!-- `pt-24`: Logo und Sprachleiste liegen `absolute` oben (bis ca. 72 px). Ist der Inhalt höher als der Viewport,
+     beginnt er sonst unter ihnen (panary/panary-core#1150). -->
+<div class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pt-24 pb-6 text-ink">
   @if (cloudNeedsRePairing()) {
     <div
       role="alert"

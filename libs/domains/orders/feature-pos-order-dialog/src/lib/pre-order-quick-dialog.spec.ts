@@ -14,7 +14,7 @@ import {
 import { MatDialogRef } from '@angular/material/dialog'
 import { LocationService } from '@panary/locations/data-access'
 import { ConnectionService } from '@panary/shared/data-access'
-import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
+import { buildQuickPreOrderPayload, PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
 
 // core#1017: Der Vorbestelldialog läuft auf Signal Forms. „Weiter“ hängt an der Gültigkeit des
 // jeweiligen Schritts, „Abschließen“ am ganzen Formular, und `order-dialog.component.ts` liest das
@@ -115,5 +115,25 @@ describe('PreOrderQuickDialogComponent – Formular', () => {
       name: 'Anna',
       phone: '01511234',
     })
+  })
+})
+
+describe('buildQuickPreOrderPayload (core#1177)', () => {
+  const base = { date: new Date(2026, 10, 3), time: '09:05', name: 'Anna', phone: '01511234' }
+
+  it('übernimmt „Im Haus“ in den Payload', () => {
+    const payload = buildQuickPreOrderPayload({ ...base, dineLocation: 'dine-in' }, [{ _id: 'li-1' }])
+
+    expect(payload).toEqual({
+      customerContact: { name: 'Anna', phone: '01511234' },
+      scheduledFor: new Date(2026, 10, 3, 9, 5).toISOString(),
+      dineLocation: 'dine-in',
+      lineItems: [{ _id: 'li-1' }],
+      status: 'pending',
+    })
+  })
+
+  it('übernimmt „Abholung“ in den Payload', () => {
+    expect(buildQuickPreOrderPayload({ ...base, dineLocation: 'take-out' }, []).dineLocation).toBe('take-out')
   })
 })

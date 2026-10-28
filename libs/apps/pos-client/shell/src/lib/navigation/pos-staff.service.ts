@@ -214,7 +214,10 @@ export class PosStaffService {
 
   async #run(label: string, call: () => Promise<unknown>, successKey: string): Promise<boolean> {
     try {
-      await call()
+      // Der UserService faengt Serverfehler per `handleError` ab und loest mit `undefined` auf, auch bei der
+      // Mandantensperre (Banner statt Toast). Das ist ein Fehlschlag, kein Erfolg (panary/panary-core#1117,
+      // dasselbe Muster wie im Zeiterfassungs-Panel, core#810). Die Meldung dazu kam schon aus `handleError`.
+      if ((await call()) == null) return false
       // Die Standardmeldungen des working-times-Service sind am POS stumm (core#962): das ist die eine Rückmeldung.
       this.#notify(successKey, 'success')
       return true

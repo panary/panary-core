@@ -25,7 +25,7 @@ Karten mit Kontur (`pos-key`), Initialen-Kreis (Farbe je Person aus der ID, `mon
 (`auto-fit`, Höhe 5,25 rem). Überschrift und Raster stehen als Block (höchstens `max-w-5xl`) mittig im Inhaltsbereich,
 horizontal wie vertikal (`my-auto`), und die Kacheln bleiben bei wenigen Personen beieinander. Passt der Block nicht in
 die Höhe, beginnt er oben und der Inhaltsbereich scrollt (panary/panary-core#1191); der Inaktivitäts-Hinweis steht
-oberhalb und wandert nicht mit. Es gibt bewusst **keine Suche, keine Buchstabengruppen und
+oberhalb des Blocks im Scrollbereich, der Block zentriert sich im Restraum darunter. Es gibt bewusst **keine Suche, keine Buchstabengruppen und
 kein „Zuletzt hier"** — sie wurden mit panary/panary-core#835 eingeführt und nach dem Test auf dem MacBook
 (panary/panary-core#906) wieder entfernt. Der Login legt seither keine Personenangaben mehr im `localStorage` ab;
 ein Altwert unter `pnry_login_recent_staff` wird nicht mehr gelesen.

@@ -123,6 +123,21 @@ describe('PosStaffService (core#832)', () => {
     expect(notify).not.toHaveBeenCalled()
   })
 
+  it('löst der Aufruf nach handleError leer auf (Mandantensperre), kommt keine Erfolgsmeldung (core#1117)', async () => {
+    const { service, users, notify, session } = setup({ stampingId: 'wt-1' })
+    users.checkin.mockResolvedValue(undefined)
+    users.startBreak.mockResolvedValue(undefined)
+    users.endBreak.mockResolvedValue(undefined)
+    users.checkout.mockResolvedValue(undefined)
+    await service.clockIn()
+    await service.startBreak()
+    await service.endBreak()
+    await service.clockOut()
+    expect(notify.mock.calls).toEqual([])
+    // Gehen ohne Stempelung beendet die Sitzung nicht.
+    expect(session.endSession).not.toHaveBeenCalled()
+  })
+
   it('Rail-Taste ruft je Aktion den passenden Server-Aufruf (core#907)', async () => {
     const { service, users } = setup({ stampingId: 'wt-1' })
     await service.timeClock('start-break')

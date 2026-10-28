@@ -62,16 +62,16 @@ Dasselbe Pattern gilt für `libs/shared/[name]` ohne Eltern: `name: "shared-[nam
   }
   ```
 - `dependsOn: ["^build"]` im rollup-Build-Target sichert die Build-Reihenfolge.
-- **Sobald die Lib Specs hat oder bekommt** (besser: von Anfang an): `vitest.config.mts` bindet `panaryVitestPlugins()` aus `tools/vitest/panary-vitest.ts` per **relativem** Pfad **vor** `nxViteTsPaths()` im `plugins`-Array ein (`plugins: [...panaryVitestPlugins(), nxViteTsPaths(), …]`). Der Helfer biegt jeden `@panary/*`-Import für die Vitest-**Laufzeit** auf die TS-Quelle aus `tsconfig.base.json` um und bricht den Lauf hart ab, wenn trotzdem eine `.d.ts` geladen wird (Meldung: Datei, Importeur, Verweis hierher). `pnpm vitest-helper:gate` (CI) schlägt an, wenn eine Lib mit Override den Helfer nicht einhängt. Grund: `nxViteTsPaths()` liest den `paths`-Override aus `tsconfig.lib.json`; liegt das dist der Ziel-Lib, lädt Vitest die `.d.ts` statt Code (ohne dist fällt das Plugin auf `tsconfig.base.json` und damit auf die Quelle zurück — lokal fehlt das dist oft). Der gesuchte Export ist dann `undefined`: Wird er beim Laden benutzt, stirbt das Modul (#225 „Class extends value undefined", #334 „Cannot read properties of undefined"); wird er nur weitergereicht, bleibt es **still** (#393: `Type.Array(undefined)` nahm jeden Code an, nur die Ablehnungs-Tests wurden rot). Mechanismus: `docs/guides/lib-vitest-test-target.md` §1.
+- **Sobald die Lib Specs hat oder bekommt** (besser: von Anfang an): `vitest.config.mts` bindet `panaryVitestPlugins()` aus `tools/vitest/panary-vitest.ts` per **relativem** Pfad **vor** `nxViteTsPaths()` im `plugins`-Array ein (`plugins: [...panaryVitestPlugins(), nxViteTsPaths(), …]`). Der Helfer biegt jeden `@panary/*`-Import für die Vitest-**Laufzeit** auf die TS-Quelle aus `tsconfig.base.json` um und bricht den Lauf hart ab, wenn trotzdem eine `.d.ts` geladen wird (Meldung: Datei, Importeur, Verweis hierher). `pnpm vitest-helper:gate` (CI) schlägt an, wenn eine Lib mit Override den Helfer nicht einhängt. Grund: `nxViteTsPaths()` liest den `paths`-Override aus `tsconfig.lib.json`; liegt das dist der Ziel-Lib, lädt Vitest die `.d.ts` statt Code (ohne dist fällt das Plugin auf `tsconfig.base.json` und damit auf die Quelle zurück — lokal fehlt das dist oft). Der gesuchte Export ist dann `undefined`: Wird er beim Laden benutzt, stirbt das Modul („Class extends value undefined", „Cannot read properties of undefined"); wird er nur weitergereicht, bleibt es **still** (`Type.Array(undefined)` nahm jeden Code an, nur die Ablehnungs-Tests wurden rot). Mechanismus: `docs/guides/lib-vitest-test-target.md` §1.
   - ⚠️ **`vitest.config.mts`, nicht `vite.config.ts`.** Vitest sucht `vitest.config.*` zuerst; liegen beide in der Lib (Normalfall), wirkt ein Fix in `vite.config.ts` nicht — und nichts meldet es.
-  - **Vollständig** ist der Resolver von selbst: Er kennt jeden `@panary/*`-Schlüssel aus `tsconfig.base.json`, auch die, die Specs nur **transitiv** laden (der Override gilt für alle Module im Testlauf, #225: drei handgepflegte Einträge deckten nur die util-Specs; #398, #403). Keine gepflegte Liste mehr.
+  - **Vollständig** ist der Resolver von selbst: Er kennt jeden `@panary/*`-Schlüssel aus `tsconfig.base.json`, auch die, die Specs nur **transitiv** laden (der Override gilt für alle Module im Testlauf). Keine gepflegte Liste.
   - `resolve.alias` wirkt ebenso (Vites Alias-Plugin läuft vor allen `enforce: 'pre'`-Plugins), trifft aber auch **Unterpfade**: `@panary/shared/data-access` fängt `@panary/shared/data-access/server` ab (ENOTDIR). Der Resolver vergleicht exakt — deshalb ist er die Vorlage.
   - **Prüfen mit dist, in zwei Läufen und mit Ablehnungs-Tests** — eine Spec nur mit Positivfällen bleibt auch mit kaputtem Import grün:
     ```bash
     nx run-many -t typecheck --projects=<lib> --skip-nx-cache   # baut die dists (build → ^build)
     nx run-many -t test --projects=<lib> --skip-nx-cache
     ```
-    🚨 **Nicht als ein Lauf `-t typecheck,test`:** `test` hat kein `dependsOn`, nx startet es parallel zu den Builds — im frischen Worktree lief `products-domain:test` so ohne dist und war trotz entferntem Resolver grün (#398). Die CI (`nx affected -t lint,test,typecheck,build`) ordnet genauso wenig.
+    🚨 **Nicht als ein Lauf `-t typecheck,test`:** `test` hat kein `dependsOn`, nx startet es parallel zu den Builds, und der Test läuft im frischen Worktree ohne dist — dann bleibt er auch mit kaputtem Resolver grün. Die CI (`nx affected -t lint,test,typecheck,build`) ordnet genauso wenig.
 
 ---
 
@@ -134,7 +134,7 @@ ADRs nur in `docs/adr/` als `NNNN-<kebab>.md` mit `type: ADR`; jede Doku-Änderu
 Ordner-`index.md` + `docs/index.md` + ein neues Fragment in `docs/log.d/` im gleichen Commit.
 
 ⚠️ **Zwei Ausnahmen von der Index-Pflege** — beide, weil eine gepflegte Liste die eine Datei
-ist, die jeder PR am selben Ort anfasst: `docs/log.d/` hat gar keinen Index (#137), und
+ist, die jeder PR am selben Ort anfasst: `docs/log.d/` hat gar keinen Index, und
 `docs/adr/index.md` trägt **keine ADR-Liste** — die erzeugt `pnpm docs:adr:index`, die nächste
 freie Nummer `pnpm docs:adr:next` ([ADR 0025](docs/adr/0025-adr-index-generiert-statt-gepflegt.md)).
 

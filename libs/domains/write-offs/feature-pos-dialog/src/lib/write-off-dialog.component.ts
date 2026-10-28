@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms'
+import { form, FormField } from '@angular/forms/signals'
 import { MatDialogRef, MatDialogModule, MatDialog } from '@angular/material/dialog'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { WriteOff, WriteOffItemType, WriteOffReason, WasteType } from '@panary/write-offs/domain'
 import { WriteOffService } from '@panary/write-offs/data-access'
@@ -26,10 +25,8 @@ import { withTimeout, writeOffErrorMessage } from './write-off-error'
   imports: [
     IconComponent,
     CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
+    FormField,
     MatDialogModule,
-    MatAutocompleteModule,
     TranslateModule,
   ],
   templateUrl: './write-off-dialog.component.html',
@@ -61,15 +58,19 @@ export class PosWriteOffDialogComponent {
   comment = signal<string>('')
 
   // Search
-  searchControl = new FormControl('')
   searchTerm = signal('')
+  readonly searchField = form(this.searchTerm)
   // Doppeltipp-Schutz: Ein zweiter Tipp während des Speicherns legte eine zweite Abschreibung an,
   // und die Cloud buchte den Bestand doppelt.
   readonly saving = signal(false)
   // Eine ID je Dialog: Ein erneuter Versuch nach einem Fehler trifft denselben Datensatz, statt
   // eine zweite Abschreibung zu erzeugen.
   readonly #writeOffId = uuidv7()
-  selectedItem = signal<ProductSchema | Ingredient | Recipe | null>(null)
+  // Jede Eingabe im Suchfeld hebt die Auswahl auf; selectItem() setzt sie danach neu.
+  selectedItem = linkedSignal<string, ProductSchema | Ingredient | Recipe | null>({
+    source: this.searchTerm,
+    computation: () => null,
+  })
 
   // Data Signals
   products = computed(() => this.productService.products())
@@ -94,32 +95,11 @@ export class PosWriteOffDialogComponent {
     return []
   })
 
-  constructor() {
-    this.searchControl.valueChanges.subscribe(val => {
-      // If the value is not an object (meaning user is typing), reset selected item
-      if (typeof val === 'string') {
-        this.selectedItem.set(null)
-        this.searchTerm.set(val)
-      } else {
-        this.searchTerm.set('') // Or handle object selection if needed for filtering
-      }
-    })
-  }
-
   // Methods
   setType(type: WriteOffItemType) {
     this.selectedType.set(type)
-    this.searchControl.setValue('')
     this.searchTerm.set('')
     this.selectedItem.set(null)
-  }
-
-  displayFn(item: any): string {
-    return item && item.name ? item.name : ''
-  }
-
-  onOptionSelected(event: any) {
-    this.selectedItem.set(event.option.value)
   }
 
   selectItem(item: ProductSchema | Ingredient | Recipe) {

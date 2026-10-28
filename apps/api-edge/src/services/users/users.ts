@@ -48,7 +48,8 @@ const POS_OPERATOR_REQUIRED = 'POS_OPERATOR_REQUIRED'
 
 const POS_HANDEDNESS_VALUES: ReadonlySet<unknown> = new Set<unknown>(Object.values(PosHandedness))
 
-const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions']
+// `contract`: Vertrag aus der Cloud-Admin-UI, per Pull-Apply am Edge (panary/panary-core#1180).
+const USER_JSON_FIELDS = ['discountDetails', 'allowedLocationIds', 'permissions', 'contract']
 import { DatabaseType } from '@panary/shared-common'
 import { BadRequest, Conflict, Forbidden, NotAuthenticated, TooManyRequests } from '@feathersjs/errors'
 import bcrypt from 'bcryptjs'

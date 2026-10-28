@@ -143,7 +143,8 @@ function setup(options: SetupOptions = {}) {
                 upserted.push({ store, rows })
                 return Promise.resolve()
               },
-              readAll: () => Promise.resolve([]),
+              // Offline beantwortet `find` die Liste aus dem Cache.
+              readAll: () => Promise.resolve(options.orders ?? []),
               replaceAll: () => Promise.resolve(),
               get: () => Promise.resolve(undefined),
             }
@@ -221,15 +222,38 @@ describe('OrderService.createOrder — Abrechnungskreis', () => {
     expect('settlementScope' in createCalls[0].payload).toBe(false)
   })
 
-  it('setzt offline den Tisch als Abrechnungskreis — in Cache UND Outbox', async () => {
+  it('setzt offline den Tisch mit Besuch als Abrechnungskreis — in Cache UND Outbox', async () => {
     // Offline gibt es keinen Server, der stempeln koennte, und die Order wird
     // bis zum Replay lokal angezeigt.
     const { service, enqueued, upserted } = setup({ offline: true })
 
     await service.createOrder({ ...baseInput, table: '3' })
 
-    expect((upserted[0].rows[0] as { settlementScope: string }).settlementScope).toBe('3')
-    expect((enqueued[0]['payload'] as { settlementScope: string }).settlementScope).toBe('3')
+    expect((upserted[0].rows[0] as { settlementScope: string }).settlementScope).toBe('3#1')
+    expect((enqueued[0]['payload'] as { settlementScope: string }).settlementScope).toBe('3#1')
+  })
+
+  it('zaehlt offline den Besuch aus den bekannten Bestellungen des Tisches', async () => {
+    // Gleiche Ableitung wie am Edge, nur mit lokalem Wissen: offener Besuch → fortsetzen,
+    // geschlossener → naechster.
+    const open = setup({
+      offline: true,
+      orders: [{ _id: 'o-1', businessDayId: 'bd-1', table: '3', settlementScope: '3#1', status: 'active' }],
+    })
+    await (open.service as unknown as { loadDocuments: (o?: unknown) => Promise<void> }).loadDocuments({ silent: true })
+    await open.service.createOrder({ ...baseInput, table: '3' })
+
+    const closed = setup({
+      offline: true,
+      orders: [{ _id: 'o-1', businessDayId: 'bd-1', table: '3', settlementScope: '3#1', status: 'completed' }],
+    })
+    await (closed.service as unknown as { loadDocuments: (o?: unknown) => Promise<void> }).loadDocuments({
+      silent: true,
+    })
+    await closed.service.createOrder({ ...baseInput, table: '3' })
+
+    expect((open.enqueued[0]['payload'] as { settlementScope: string }).settlementScope).toBe('3#1')
+    expect((closed.enqueued[0]['payload'] as { settlementScope: string }).settlementScope).toBe('3#2')
   })
 
   it('setzt offline ohne Tisch einen erkennbar synthetischen Wert', async () => {

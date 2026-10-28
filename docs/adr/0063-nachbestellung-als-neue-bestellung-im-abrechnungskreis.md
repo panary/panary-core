@@ -5,7 +5,7 @@ description: 'ADR zur Nachbuchung nach der Bestellannahme: jede Nachbestellung w
 tags: [orders, receipts, fiskalisierung, tse, pos]
 status: stable
 decision: accepted
-implementation: 'nicht gebaut; Folge-Issues siehe Abschnitt „Umsetzung"'
+implementation: 'Nr. 2 und 4 gebaut (#1139); übrige Folge-Issues siehe Abschnitt „Umsetzung"'
 generated: { by: claude-code/opus-5.5, at: 2026-10-27T09:00:00Z }
 sources:
   - { id: gutachten-345, resource: 'https://github.com/panary/panary-core/issues/345', title: 'Rechtsgutachten Split und Nachbuchung (Kommentar an #345)' }
@@ -214,6 +214,12 @@ Bestellung, im Kopf mit „Nachbestellung“ und dem Tisch.
 am Schema. Ein `orderIds[]` am Beleg (Nr. 5) dagegen ist ein neues Feld auf einem
 synchronisierten Datensatz: Core-Release → Cloud-Pin → `api-cloud` → Edges, sonst
 TERMINAL-Ablehnung (ADR 0047).
+
+**Der Riegel bringt einen neuen Journal-Typ.** `settlement-scope-reassigned` (#1139) ist ein
+neuer Enum-Wert in `order-interactions`. Bis die Cloud den Pin hochzieht, lehnt sie genau diese
+Einträge TERMINAL ab. Neue Felder dafür gibt es bewusst nicht: Neue Spalten reisten als `null`
+mit jedem Journal-Eintrag zur Cloud. Details:
+[Abrechnungskreis mit Besuchszähler](../domains/abrechnungskreis-besuchszaehler.md).
 
 **Die Doppelquelle bleibt verboten.** Ob ein Kreis offen ist, wird immer aus den Bestellungen
 gelesen. Wer dafür ein Statusfeld am Tisch oder am Kreis einführt, baut die Stelle, an der zwei

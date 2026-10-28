@@ -154,7 +154,10 @@ export function createOrderSplitMethod(app: Application) {
         recordingDate: splitAt,
         payment: { state: PaymentState.PENDING, totalAmount: 0, tipAmount: 0, transactions: [] },
       } as any,
-      params,
+      // Der Riegel von `assignSettlementScope()` darf die Teilbestellung nicht in
+      // einen anderen Besuch umsetzen: Eine `unclaimed`-Quelle hat ihren Kreis
+      // geschlossen, und der Split ist eine Umbuchung INNERHALB dieses Kreises.
+      { ...params, inheritSettlementScope: true },
     )) as Order
 
     // --- Quelle: Gegenbuchung anhaengen ---

@@ -35,7 +35,7 @@ describe('orderInteractionSchema (Phase 4 — Wide Events)', () => {
     // als TERMINAL ein: Outbox `rejected`, kein Retry, kein Alarm. Wer hier
     // erweitert, muss den Cloud-Pin-Bump einplanen (Reihenfolge: Core-Release
     // -> Cloud-Pin -> api-cloud deployen -> DANN Edges).
-    it('OrderInteractionType enthaelt alle 11 Event-Typen', () => {
+    it('OrderInteractionType enthaelt alle 12 Event-Typen', () => {
       const values = Object.values(OrderInteractionType)
       expect(values).toEqual([
         'item-delete',
@@ -50,6 +50,8 @@ describe('orderInteractionSchema (Phase 4 — Wide Events)', () => {
         'order-split',
         'order-split-target',
         'item-moved',
+        // Riegel am Edge (#1139, ADR 0063 Nr. 2) — braucht den Cloud-Pin-Bump
+        'settlement-scope-reassigned',
       ])
     })
 

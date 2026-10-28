@@ -111,9 +111,7 @@ export function isSettlementScopeOpen(
  * zu Label `Bar#2`, Besuch 1. Ein Kreis eines alten Clients (nur das Label) und
  * ein synthetischer Kreis sind kein Besuch.
  */
-export function parseVisitSettlementScope(
-  scope: string | null | undefined,
-): { label: string; visit: number } | null {
+export function parseVisitSettlementScope(scope: string | null | undefined): { label: string; visit: number } | null {
   if (typeof scope !== 'string' || isSyntheticSettlementScope(scope)) return null
   const match = /^(.+)#(\d+)$/.exec(scope)
   if (!match) return null

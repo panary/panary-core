@@ -79,14 +79,14 @@
     @if (step() === 3) {
       <div class="flex flex-1 flex-col py-2 md:justify-center md:py-4">
         <h2 class="mb-4 text-3xl font-bold tracking-tight md:mb-6">{{ 'WIZARD.CONFIG.TITLE' | translate }}</h2>
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4 md:space-y-5">
+        <form [formRoot]="form" (submit)="submit()" class="space-y-4 md:space-y-5">
           <!-- Setup-Token (#323): steht vor allen anderen Feldern, damit fehlender
                Besitznachweis vor dem Ausfuellen auffaellt, nicht erst beim Absenden. -->
           <div class="space-y-1">
             <label for="setupToken" class="setup-field-label">{{ 'WIZARD.CONFIG.SETUP_TOKEN' | translate }}</label>
             <input
               id="setupToken"
-              formControlName="setupToken"
+              [formField]="form.setupToken"
               type="text"
               autocomplete="off"
               spellcheck="false"
@@ -102,7 +102,7 @@
               <label for="shopName" class="setup-field-label">{{ 'WIZARD.CONFIG.SHOP_NAME' | translate }}</label>
               <input
                 id="shopName"
-                formControlName="shopName"
+                [formField]="form.shopName"
                 type="text"
                 [placeholder]="'WIZARD.CONFIG.SHOP_NAME_PLACEHOLDER' | translate"
                 class="setup-input"
@@ -116,7 +116,7 @@
               }}</label>
               <input
                 id="locationName"
-                formControlName="locationName"
+                [formField]="form.locationName"
                 type="text"
                 [placeholder]="'WIZARD.CONFIG.LOCATION_NAME_PLACEHOLDER' | translate"
                 class="setup-input"
@@ -128,7 +128,7 @@
           <!-- Betriebstyp: volle Breite (PNRY-FEAT-THEME-002) -->
           <div class="space-y-1">
             <label for="businessType" class="setup-field-label">{{ 'WIZARD.CONFIG.BUSINESS_TYPE' | translate }}</label>
-            <select id="businessType" formControlName="businessType" class="setup-input">
+            <select id="businessType" [formField]="form.businessType" class="setup-input">
               <option value="" disabled>{{ 'WIZARD.CONFIG.BUSINESS_TYPE_PLACEHOLDER' | translate }}</option>
               @for (option of businessTypeOptions; track option.value) {
                 <option [value]="option.value">{{ option.labelKey | translate }}</option>
@@ -139,7 +139,7 @@
 
           <div class="space-y-1">
             <label for="adminEmail" class="setup-field-label">{{ 'WIZARD.CONFIG.ADMIN_EMAIL' | translate }}</label>
-            <input id="adminEmail" formControlName="adminEmail" type="email" class="setup-input" />
+            <input id="adminEmail" [formField]="form.adminEmail" type="email" class="setup-input" />
           </div>
 
           <!-- Passwörter: nebeneinander auf Desktop -->
@@ -148,7 +148,7 @@
               <label for="adminPassword" class="setup-field-label">{{
                 'WIZARD.CONFIG.ADMIN_PASSWORD' | translate
               }}</label>
-              <input id="adminPassword" formControlName="adminPassword" type="password" class="setup-input" />
+              <input id="adminPassword" [formField]="form.adminPassword" type="password" class="setup-input" />
             </div>
 
             <div class="space-y-1">
@@ -157,7 +157,7 @@
               }}</label>
               <input
                 id="adminPasswordConfirm"
-                formControlName="adminPasswordConfirm"
+                [formField]="form.adminPasswordConfirm"
                 type="password"
                 class="setup-input"
               />
@@ -182,7 +182,7 @@
               <lib-icon class="text-lg" name="arrow-left" />
               <span>{{ 'WIZARD.CONFIG.BACK' | translate }}</span>
             </button>
-            <button type="submit" [disabled]="form.invalid || loading()" class="setup-btn-primary">
+            <button type="submit" [disabled]="form().invalid() || loading()" class="setup-btn-primary">
               @if (!loading()) {
                 <span>{{ 'WIZARD.CONFIG.FINISH' | translate }}</span>
               }

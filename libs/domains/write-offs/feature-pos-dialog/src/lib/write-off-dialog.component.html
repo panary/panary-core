@@ -77,13 +77,13 @@
                 />
                 <input
                   type="text"
-                  [formControl]="searchControl"
+                  [formField]="searchField"
                   [placeholder]="'WRITE_OFF.ENTER_NAME' | translate"
                   class="w-full h-14 pl-12 pr-12 bg-surface-elevated border border-line rounded-xl text-lg font-medium focus:outline-none focus:border-indigo-500 dark:text-white transition-all"
                 />
-                @if (searchControl.value) {
+                @if (searchTerm()) {
                   <button
-                    (click)="searchControl.setValue('')"
+                    (click)="searchTerm.set('')"
                     class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-ink-faint hover:text-ink-muted"
                   >
                     <lib-icon name="x" class="text-[1.25rem]" />
@@ -146,7 +146,7 @@
                 >
                   <input
                     type="number"
-                    [ngModel]="quantity()"
+                    [value]="quantity()"
                     readonly
                     class="w-24 text-center text-3xl font-bold text-ink bg-transparent focus:outline-none cursor-pointer p-0"
                   />

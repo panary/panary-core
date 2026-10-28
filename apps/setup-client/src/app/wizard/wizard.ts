@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
+import { email, form, FormField, FormRoot, minLength, required, validate } from '@angular/forms/signals'
 import { SetupService, SetupPayload } from '../setup.service'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { IconComponent, PanaryLogoComponent } from '@panary/shared/ui-common'
@@ -10,13 +10,12 @@ import { ThemeService } from '../theme.service'
 @Component({
   selector: 'app-wizard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, IconComponent, PanaryLogoComponent],
+  imports: [CommonModule, FormField, FormRoot, TranslateModule, IconComponent, PanaryLogoComponent],
   templateUrl: './wizard.html',
   styleUrl: './wizard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Wizard {
-  private fb = inject(FormBuilder)
   private setupService = inject(SetupService)
   private translate = inject(TranslateService)
   readonly themeService = inject(ThemeService)
@@ -30,20 +29,32 @@ export class Wizard {
   mode = signal<'standalone' | 'cloud' | null>(null)
   currentLang = signal<string>(this.translate.currentLang || 'en')
 
-  form = this.fb.group(
-    {
-      // Besitznachweis (#323) — steht bewusst als erstes Feld: Wer es nicht hat,
-      // soll das vor dem Ausfuellen merken und nicht erst beim Absenden.
-      setupToken: ['', Validators.required],
-      shopName: ['', Validators.required],
-      locationName: ['', Validators.required],
-      businessType: ['', Validators.required],
-      adminEmail: ['', [Validators.required, Validators.email]],
-      adminPassword: ['', [Validators.required, Validators.minLength(8)]],
-      adminPasswordConfirm: ['', [Validators.required]],
-    },
-    { validators: this.passwordMatchValidator },
-  )
+  readonly setup = signal({
+    // Besitznachweis (#323) — steht bewusst als erstes Feld: Wer es nicht hat,
+    // soll das vor dem Ausfuellen merken und nicht erst beim Absenden.
+    setupToken: '',
+    shopName: '',
+    locationName: '',
+    businessType: '',
+    adminEmail: '',
+    adminPassword: '',
+    adminPasswordConfirm: '',
+  })
+
+  readonly form = form(this.setup, s => {
+    required(s.setupToken)
+    required(s.shopName)
+    required(s.locationName)
+    required(s.businessType)
+    required(s.adminEmail)
+    email(s.adminEmail)
+    required(s.adminPassword)
+    minLength(s.adminPassword, 8)
+    required(s.adminPasswordConfirm)
+    validate(s.adminPasswordConfirm, ({ value, valueOf }) =>
+      value() === valueOf(s.adminPassword) ? undefined : { kind: 'mismatch' },
+    )
+  })
 
   // Werte entsprechen LocationBusinessType aus @panary/locations/domain —
   // setup-client bleibt bewusst ohne Domain-Lib-Abhängigkeit (schlankes Bundle).
@@ -66,10 +77,6 @@ export class Wizard {
     { mode: 'cloud', icon: 'cloud', titleKey: 'WIZARD.MODE.CLOUD', descKey: 'WIZARD.MODE.CLOUD_DESC' },
   ]
 
-  passwordMatchValidator(g: any) {
-    return g.get('adminPassword')?.value === g.get('adminPasswordConfirm')?.value ? null : { mismatch: true }
-  }
-
   useLanguage(lang: string) {
     this.translate.use(lang)
     this.currentLang.set(lang)
@@ -89,11 +96,11 @@ export class Wizard {
   }
 
   submit() {
-    if (this.form.invalid || !this.mode()) return
+    if (this.form().invalid() || !this.mode()) return
 
     this.loading.set(true)
     this.submitError.set(null)
-    const formValue = this.form.getRawValue()
+    const formValue = this.setup()
 
     // setupToken gehoert bewusst NICHT in den Payload — der Edge schreibt ihn
     // 1:1 in seine Konfigurationsdatei. Er reist als Header (setup.service.ts).

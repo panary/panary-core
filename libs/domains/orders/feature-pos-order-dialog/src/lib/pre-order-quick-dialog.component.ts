@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, OnInit, signal } from '@angular/core'
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms'
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core'
+import { form, minLength, required } from '@angular/forms/signals'
 import { MatDialogRef } from '@angular/material/dialog'
 import { LocationService } from '@panary/locations/data-access'
 import { ConnectionService } from '@panary/shared/data-access'
@@ -10,6 +10,18 @@ import { TouchKeyboardComponent } from './touch-keyboard.component'
 import { PreOrderStepperComponent } from './pre-order-stepper.component'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent } from '@panary/shared/ui-common'
+
+/**
+ * Ergebnis des Dialogs. `order-dialog.component.ts` liest davon `date`, `time`, `name` und `phone` über einen
+ * eigenen Inline-Typ; `date` ist dort nie `null`, weil der Dialog nur mit gültigem Formular schließt.
+ */
+export interface PreOrderQuickResult {
+  date: Date | null
+  time: string
+  dineLocation: 'dine-in' | 'take-out'
+  name: string
+  phone: string
+}
 
 /**
  * Vorbestelldialog mit 3-Schritt-Stepper (horizontal, fixed height).
@@ -26,7 +38,6 @@ import { IconComponent } from '@panary/shared/ui-common'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     IconComponent,
-    ReactiveFormsModule,
     TouchCalendarComponent,
     ScrollWheelComponent,
     TouchKeyboardComponent,
@@ -117,9 +128,9 @@ import { IconComponent } from '@panary/shared/ui-common'
                 <!-- Im Haus -->
                 <button
                   type="button"
-                  (click)="dineFormGroup.patchValue({ dineLocation: 'dine-in' })"
+                  (click)="setDineLocation('dine-in')"
                   [class]="
-                    dineFormGroup.get('dineLocation')?.value === 'dine-in'
+                    preOrderForm.dineLocation().value() === 'dine-in'
                       ? 'h-28 rounded-xl border-2 border-ink bg-surface-bg dark:bg-surface-elevated/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
                       : 'h-28 rounded-xl border-2 border-line bg-surface-input hover:bg-surface-elevated dark:hover:bg-surface-elevated/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
                   "
@@ -135,9 +146,9 @@ import { IconComponent } from '@panary/shared/ui-common'
                 <!-- Außer Haus -->
                 <button
                   type="button"
-                  (click)="dineFormGroup.patchValue({ dineLocation: 'take-out' })"
+                  (click)="setDineLocation('take-out')"
                   [class]="
-                    dineFormGroup.get('dineLocation')?.value === 'take-out'
+                    preOrderForm.dineLocation().value() === 'take-out'
                       ? 'h-28 rounded-xl border-2 border-ink bg-surface-bg dark:bg-surface-elevated/50 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
                       : 'h-28 rounded-xl border-2 border-line bg-surface-input hover:bg-surface-elevated dark:hover:bg-surface-elevated/30 p-5 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-all text-left w-full'
                   "
@@ -173,8 +184,8 @@ import { IconComponent } from '@panary/shared/ui-common'
                       (click)="setActiveField('name')"
                     >
                       <lib-icon name="user" class="text-ink-faint mr-2 text-[1.125rem]" />
-                      <span [class.text-ink-faint]="!contactFormGroup.get('name')?.value">
-                        {{ contactFormGroup.get('name')?.value || ('PRE_ORDER_DIALOG.ENTER_NAME' | translate) }}
+                      <span [class.text-ink-faint]="!preOrderForm.name().value()">
+                        {{ preOrderForm.name().value() || ('PRE_ORDER_DIALOG.ENTER_NAME' | translate) }}
                       </span>
                       @if (activeField() === 'name') {
                         <div class="w-0.5 h-5 bg-ink animate-pulse ml-0.5"></div>
@@ -198,8 +209,8 @@ import { IconComponent } from '@panary/shared/ui-common'
                       (click)="setActiveField('phone')"
                     >
                       <lib-icon name="phone" class="text-ink-faint mr-2 text-[1.125rem]" />
-                      <span [class.text-ink-faint]="!contactFormGroup.get('phone')?.value">
-                        {{ contactFormGroup.get('phone')?.value || ('PRE_ORDER_DIALOG.ENTER_PHONE' | translate) }}
+                      <span [class.text-ink-faint]="!preOrderForm.phone().value()">
+                        {{ preOrderForm.phone().value() || ('PRE_ORDER_DIALOG.ENTER_PHONE' | translate) }}
                       </span>
                       @if (activeField() === 'phone') {
                         <div class="w-0.5 h-5 bg-ink animate-pulse ml-0.5"></div>
@@ -262,7 +273,7 @@ import { IconComponent } from '@panary/shared/ui-common'
           <button
             type="button"
             (click)="nextStep()"
-            [disabled]="currentStep() === 0 ? dateFormGroup.invalid : dineFormGroup.invalid"
+            [disabled]="!stepValid()"
             class="h-11 px-6 rounded-lg text-sm font-bold bg-ink text-surface-panel
                    disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ink/90
                    active:scale-95 transition-all"
@@ -273,7 +284,7 @@ import { IconComponent } from '@panary/shared/ui-common'
           <button
             type="button"
             (click)="submit()"
-            [disabled]="contactFormGroup.invalid"
+            [disabled]="preOrderForm().invalid()"
             class="h-11 px-6 rounded-lg text-sm font-bold bg-ink text-surface-panel
                    disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ink/90
                    active:scale-95 transition-all"
@@ -287,8 +298,6 @@ import { IconComponent } from '@panary/shared/ui-common'
 })
 export class PreOrderQuickDialogComponent implements OnInit {
   #dialogRef = inject(MatDialogRef<PreOrderQuickDialogComponent>)
-  #fb = inject(FormBuilder)
-  #cdr = inject(ChangeDetectorRef)
   #locationService = inject(LocationService)
   #connectionService = inject(ConnectionService)
 
@@ -334,18 +343,36 @@ export class PreOrderQuickDialogComponent implements OnInit {
 
   allMinutes = Array.from({ length: 12 }, (_, i) => i * 5)
 
-  dateFormGroup = this.#fb.group({
-    date: [new Date(), Validators.required],
-    time: ['', Validators.required],
+  // Ein Modell für alle drei Schritte; das Ergebnis des Dialogs ist genau dieser Wert.
+  readonly preOrder = signal<PreOrderQuickResult>({
+    date: new Date(),
+    time: '',
+    dineLocation: 'take-out',
+    name: '',
+    phone: '',
   })
 
-  dineFormGroup = this.#fb.group({
-    dineLocation: ['take-out', Validators.required],
+  readonly preOrderForm = form(this.preOrder, p => {
+    required(p.date)
+    required(p.time)
+    required(p.dineLocation)
+    required(p.name)
+    minLength(p.name, 2)
+    required(p.phone)
+    minLength(p.phone, 4)
   })
 
-  contactFormGroup = this.#fb.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    phone: ['', [Validators.required, Validators.minLength(4)]],
+  // „Weiter“ prüft nur die Felder des aktuellen Schritts, der letzte Schritt das ganze Formular.
+  readonly stepValid = computed(() => {
+    const f = this.preOrderForm
+    switch (this.currentStep()) {
+      case 0:
+        return f.date().valid() && f.time().valid()
+      case 1:
+        return f.dineLocation().valid()
+      default:
+        return f().valid()
+    }
   })
 
   activeField = signal<'name' | 'phone' | null>(null)
@@ -413,7 +440,7 @@ export class PreOrderQuickDialogComponent implements OnInit {
 
   onDateChange(date: Date) {
     this.selectedDate.set(date)
-    this.dateFormGroup.patchValue({ date })
+    this.preOrderForm.date().value.set(date)
   }
 
   onHourChange(h: number) {
@@ -432,8 +459,12 @@ export class PreOrderQuickDialogComponent implements OnInit {
     if (h != null && m != null) {
       const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
       this.selectedTime.set(time)
-      this.dateFormGroup.patchValue({ time })
+      this.preOrderForm.time().value.set(time)
     }
+  }
+
+  setDineLocation(dineLocation: PreOrderQuickResult['dineLocation']) {
+    this.preOrderForm.dineLocation().value.set(dineLocation)
   }
 
   // --- Tastatur-Handler ---
@@ -445,19 +476,13 @@ export class PreOrderQuickDialogComponent implements OnInit {
   onKeyPress(key: string) {
     const field = this.activeField()
     if (!field) return
-    const current = this.contactFormGroup.get(field)?.value || ''
-    this.contactFormGroup.patchValue({ [field]: current + key })
-    this.#cdr.markForCheck()
+    this.preOrderForm[field]().value.update(current => current + key)
   }
 
   onBackspace() {
     const field = this.activeField()
     if (!field) return
-    const current = this.contactFormGroup.get(field)?.value || ''
-    if (current.length > 0) {
-      this.contactFormGroup.patchValue({ [field]: current.slice(0, -1) })
-    }
-    this.#cdr.markForCheck()
+    this.preOrderForm[field]().value.update(current => current.slice(0, -1))
   }
 
   onEnter() {
@@ -475,12 +500,8 @@ export class PreOrderQuickDialogComponent implements OnInit {
   }
 
   submit() {
-    if (this.dateFormGroup.valid && this.dineFormGroup.valid && this.contactFormGroup.valid) {
-      this.#dialogRef.close({
-        ...this.dateFormGroup.value,
-        ...this.dineFormGroup.value,
-        ...this.contactFormGroup.value,
-      })
+    if (this.preOrderForm().valid()) {
+      this.#dialogRef.close({ ...this.preOrder() })
     }
   }
 }

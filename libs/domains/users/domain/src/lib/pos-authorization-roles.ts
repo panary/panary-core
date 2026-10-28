@@ -70,6 +70,19 @@ export const DEVICE_REVERIFY_AUTHORIZING_ROLES: ReadonlySet<string> = new Set<st
 ])
 
 /**
+ * Rollen, deren PIN am Kiosk-Terminal den Notausgang oeffnet: Terminal beenden,
+ * Fenstermodus, Kiosk-Modus des Geraets schalten (panary/panary-core#1188).
+ *
+ * Bewusst ohne `tenant:manager`, obwohl er entkoppeln darf: Das versehentliche
+ * Schliessen im Laden soll gerade nicht von der Schichtleitung aus gehen.
+ * Plattform-Rollen fehlen, weil Fernzugriff nicht am Geraet stattfindet.
+ */
+export const KIOSK_EXIT_ALLOWED_ROLES: ReadonlySet<string> = new Set<string>([
+  UserSystemRole.TENANT_OWNER,
+  UserSystemRole.TENANT_TECHNICIAN,
+])
+
+/**
  * Vereinigung aller Freigabe-Kreise: jeder Personenkreis, der an einem POS
  * per PIN etwas autorisieren koennen muss — unabhaengig davon, ob das Geraet
  * einem Mitarbeiter zugewiesen ist.
@@ -79,4 +92,5 @@ export const POS_AUTHORIZING_ROLES: ReadonlySet<string> = new Set<string>([
   ...ORDER_CANCEL_AUTHORIZING_ROLES,
   ...CASH_SESSION_AUTHORIZING_ROLES,
   ...DEVICE_REVERIFY_AUTHORIZING_ROLES,
+  ...KIOSK_EXIT_ALLOWED_ROLES,
 ])

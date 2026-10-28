@@ -22,13 +22,7 @@ import { withTimeout, writeOffErrorMessage } from './write-off-error'
   selector: 'lib-write-off-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [
-    IconComponent,
-    CommonModule,
-    FormField,
-    MatDialogModule,
-    TranslateModule,
-  ],
+  imports: [IconComponent, CommonModule, FormField, MatDialogModule, TranslateModule],
   templateUrl: './write-off-dialog.component.html',
   styleUrls: ['./write-off-dialog.component.scss'],
 })

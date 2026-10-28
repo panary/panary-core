@@ -11,7 +11,10 @@ import { PreOrderStepperComponent } from './pre-order-stepper.component'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent } from '@panary/shared/ui-common'
 
-/** Ergebnis des Dialogs, ausgewertet in `order-dialog.component.ts`. */
+/**
+ * Ergebnis des Dialogs. `order-dialog.component.ts` liest davon `date`, `time`, `name` und `phone` über einen
+ * eigenen Inline-Typ; `date` ist dort nie `null`, weil der Dialog nur mit gültigem Formular schließt.
+ */
 export interface PreOrderQuickResult {
   date: Date | null
   time: string

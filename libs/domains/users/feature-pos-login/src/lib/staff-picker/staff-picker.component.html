@@ -5,7 +5,7 @@
   </div>
 } @else {
   <div
-    class="grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] auto-rows-[5.25rem] gap-2.5"
+    class="grid grid-cols-[repeat(auto-fit,9.5rem)] justify-center auto-rows-[5.25rem] gap-2.5"
     data-testid="staff-grid"
   >
     @for (user of sorted(); track user._id) {

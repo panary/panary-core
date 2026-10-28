@@ -21,8 +21,11 @@ Verbindung und das Slide-in der Zeiterfassung bleiben wie bisher.
 ## Schritt 1 — Mitarbeiterwahl (geteilte Geräte)
 
 Überschrift „Wer kassiert?", darunter alle Personen als alphabetisches Kartenraster (Nachname, dann Vorname):
-Karten mit Kontur (`pos-key`), Initialen-Kreis (Farbe je Person aus der ID, `monogramStyle`, siehe [Design-Tokens](../architecture/design-tokens.md)) und Kurzname (`Anna A.`), Spalten nach Breite
-(`auto-fill`, mindestens 9,5 rem), Höhe 5,25 rem. Es gibt bewusst **keine Suche, keine Buchstabengruppen und
+Karten mit Kontur (`pos-key`), Initialen-Kreis (Farbe je Person aus der ID, `monogramStyle`, siehe [Design-Tokens](../architecture/design-tokens.md)) und Kurzname (`Anna A.`), feste Kachelbreite 9,5 rem
+(`auto-fit`, Höhe 5,25 rem). Überschrift und Raster stehen als Block (höchstens `max-w-5xl`) mittig im Inhaltsbereich,
+horizontal wie vertikal (`my-auto`), und die Kacheln bleiben bei wenigen Personen beieinander. Passt der Block nicht in
+die Höhe, beginnt er oben und der Inhaltsbereich scrollt (panary/panary-core#1191); der Inaktivitäts-Hinweis steht
+oberhalb und wandert nicht mit. Es gibt bewusst **keine Suche, keine Buchstabengruppen und
 kein „Zuletzt hier"** — sie wurden mit panary/panary-core#835 eingeführt und nach dem Test auf dem MacBook
 (panary/panary-core#906) wieder entfernt. Der Login legt seither keine Personenangaben mehr im `localStorage` ab;
 ein Altwert unter `pnry_login_recent_staff` wird nicht mehr gelesen.

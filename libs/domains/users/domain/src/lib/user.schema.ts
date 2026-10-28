@@ -256,7 +256,10 @@ export const userSchema = Type.Object(
     // wird die Anspruchsberechnung im Frontend ausgeblendet ("Kein Anspruch
     // konfiguriert"). Wert gilt für den aktuellen Vertrag; Carry-over aus dem
     // Vorjahr und vertragsspezifische Anpassungen sind in v1 nicht abgebildet.
-    vacationDaysPerYear: Type.Optional(Type.Number({ minimum: 0, maximum: 60 })),
+    // `Null`: Die Admin-UI leert den Anspruch per `null` — `undefined` fiele beim Senden weg, und der
+    // Adapter setzt nur mitgeschickte Schluessel (panary/panary-cloud#1504). Am Edge kommt die leere
+    // Spalte ebenfalls als `null`.
+    vacationDaysPerYear: Type.Optional(Type.Union([Type.Number({ minimum: 0, maximum: 60 }), Type.Null()])),
 
     // HR: Vertragsdaten — Single Source of Truth fuer Soll-/Ist-Vergleich
     // (Cloud-Admin-Personalzeitstatistik) und perspektivisch Stundenkonto im

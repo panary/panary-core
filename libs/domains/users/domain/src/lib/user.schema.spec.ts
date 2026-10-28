@@ -121,3 +121,21 @@ describe('posHandedness', () => {
     await expect(patchValidator({ posHandedness: null })).rejects.toThrow()
   })
 })
+
+// panary/panary-cloud#1504: Die Admin-UI leert den Jahresanspruch per `null`. Anders als bei
+// `posHandedness` kein Null-Clear-Deadlock: Die Cloud laesst `null` fuer dieses Feld extern durch
+// (`USER_EXTERNAL_CLEAR_FIELDS`), und der Edge bearbeitet es nie selbst.
+describe('vacationDaysPerYear', () => {
+  const patchValidator = getValidator(userPatchSchema, addFormats(new Ajv({}), formats))
+
+  it('akzeptiert null in Create und Patch', async () => {
+    await expect(validator({ ...initialEdgeAdmin, vacationDaysPerYear: null })).resolves.toBeTruthy()
+    await expect(patchValidator({ vacationDaysPerYear: null })).resolves.toBeTruthy()
+  })
+
+  it('prueft Zahlen weiter gegen 0–60', async () => {
+    await expect(patchValidator({ vacationDaysPerYear: 28 })).resolves.toBeTruthy()
+    await expect(patchValidator({ vacationDaysPerYear: 61 })).rejects.toThrow()
+    await expect(patchValidator({ vacationDaysPerYear: '28' })).rejects.toThrow()
+  })
+})

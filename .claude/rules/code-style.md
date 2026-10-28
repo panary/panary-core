@@ -160,12 +160,12 @@ Regeln:
   Blick als das Raster. Vollton trägt nur die **Primärtaste** (Mint mit Navy-Schrift). Keine
   Inline-Styles (`backgroundColor`/`fontColor`) auf Funktionstasten.
 - **Kachelmaß = Produktkachel:** Breite `var(--pnry-tile-min)` (an `.kasse` 9,5rem), Höhe
-  `var(--pnry-tile-h)` (5,25rem), beides als Token, nie fest im Template. Icon über Text, linksbündig **vor** dem Raster, außerhalb des Scroll-Containers (beim Scrollen
+  `var(--pnry-tile-h)` (5,25rem), beides als Token, nie fest im Template; so passen auf der Sunmi mehr Produkte ins Raster. Icon über Text, linksbündig **vor** dem Raster, außerhalb des Scroll-Containers (beim Scrollen
   immer sichtbar). Layout der Kasse: ADR 0059.
 - **Keine Nummern auf Funktionstasten** — Artikelnummern-Badges nur auf Produktkacheln.
 - **Pressed-Zustand** nur für echte Toggles: kräftigere Tönung + dunklerer Rahmen +
   `aria-pressed`. One-Shot-Tasten (ÜBERSPRINGEN etc.) bekommen nur momentanes
-  `active:`-Feedback.
+  `active:`-Feedback. Derzeit gibt es keinen Toggle (`docs/domains/pos-anpassen-panel.md`).
 - **Hover nur für Maus:** kein Tailwind-`hover:` auf Kacheln, Funktionstasten und Rail. Sie tragen
   `pnry-hover` (styles.scss, nur unter `(hover: hover) and (pointer: fine)`, Tönung als `background-image`),
   sonst klebt der Hover auf Touch. Flächen daneben per `background-color`, nicht per Kurzform

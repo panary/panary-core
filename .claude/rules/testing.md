@@ -32,7 +32,8 @@ describe('X', () => {
 **Warum das bricht:** Vitest bricht beim Timeout den **Test** ab, nicht die laufende
 Promise-Kette. Die kommt später zurück und ruft ihre Mocks weiter auf — die schreiben in
 `calls`, und `calls` zeigt inzwischen auf das Array des **nächsten** Tests. Der zählt einen
-Aufruf zu viel und scheitert mit einer Meldung, die mit ihm nichts zu tun hat. Wer sie liest,
+Aufruf zu viel und scheitert mit einer Meldung, die mit ihm nichts zu tun hat (typisch:
+`expected [...] to have a length of 1 but got 2` im Test nach einem Timeout). Wer sie liest,
 sucht den Fehler in der Produktionslogik; er sitzt in der Testisolation.
 
 ```ts
@@ -114,7 +115,8 @@ die zweite Form steht, sagt §10.2.
 in §10.3). Ein Test, der nach dem Umstellen noch grün ist, kann grün sein, weil er nichts mehr
 prüft — grün war er vorher ja auch. Also den
 Produktionscode gezielt brechen und nachsehen, ob der zugehörige Test rot wird; danach
-zurücksetzen und mit `git diff --exit-code` belegen, dass keine Spur bleibt.
+zurücksetzen und mit `git diff --exit-code` belegen, dass keine Spur bleibt. Mindestens eine
+Mutation je umgebauter Spec-Datei.
 
 ⚠️ **`--sequence.shuffle` beweist den Gewinn NICHT.** Reihenfolgeunabhängigkeit ist billig zu
 prüfen (`vitest run --sequence.shuffle`) und war auch vor dem Umbau gegeben, weil das alte
@@ -197,7 +199,7 @@ egal aus welchem Anlass. Die anlassgebundenen Pflichten bleiben stehen und sind 
 Regel: der Spec-Umbau (§10.1), das neue Gate und in panary-cloud die Abnahmeregel für Mongo-Fakes
 (cloud-ADR 0042, dort schärfer: Tenant-Filter weg → rot).
 
-Warum die Lücke real ist: In panary-cloud blieben zwei von fünf Mutationen grün, weil die
+Warum das auch für frische Feature-Tests gilt, nicht nur für Umbauten: In panary-cloud blieben zwei von fünf Mutationen grün, weil die
 Zusicherungen `recorded[0]` prüften und damit die falsche Funktion trafen (cloud-ADR 0042); eine
 Zeitzonen-Spec blieb mit dem Defekt **vollständig** grün, weil `process.env.TZ` zur Laufzeit nichts
 bewirkt. Beide Male sah die Suite wie ein Netz aus.

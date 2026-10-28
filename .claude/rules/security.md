@@ -179,7 +179,7 @@ ROLLEN_MATRIX_SCHREIBEN=1 pnpm nx test users-domain --skip-nx-cache
 ```
 
 🚫 **Hier keine Kurzfassung der Matrix pflegen:** Eine zweite Tabelle driftet, und Tests gegen sie
-erwarten falsche Statuscodes. Die Tabelle zeigt nur Rollen-Rechte. Grants am Konto
+erwarten falsche Statuscodes. Die Tabelle in `rollen-matrix.md` zeigt nur Rollen-Rechte. Grants am Konto
 kommen hinzu, und `multiTenancy()` schränkt danach weiter ein.
 
 ### AppAction-Mapping

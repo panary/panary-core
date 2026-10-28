@@ -66,6 +66,10 @@ Ein mitgeschickter Kreis gilt unverändert, wenn er
 - offen ist,
 - oder die Kreise nicht lesbar sind (Log `order.settlement_scope_lookup_failed`, fail-open).
 
+Eine Teilbestellung aus `orders.split` erbt den Kreis ihrer Quelle immer, auch einen geschlossenen
+(Server-Schalter `params.inheritSettlementScope`, ADR 0049): Der Split ist eine Umbuchung innerhalb
+des Kreises, kein neuer Besuch.
+
 ## Release-Reihenfolge
 
 Der Journal-Typ `settlement-scope-reassigned` ist ein neuer Enum-Wert auf einem

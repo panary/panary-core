@@ -371,13 +371,14 @@
                         <span class="bg-line-soft text-ink-muted dark:text-ink px-2 py-0.5 rounded text-xs font-bold">
                           T{{ order.table }}
                         </span>
-                      } @else if (order.settlementScope) {
+                      } @else if (order.settlementScope && !isSyntheticSettlementScope(order.settlementScope)) {
                         <!--
                         Abrechnungskreis (DSFinV-K `ABRECHNUNGSKREIS`) nur OHNE Tisch zeigen:
                         mit Tisch ist der Wert identisch mit dem Tischwert, und zwei Chips mit
-                        derselben Aussage sind auf einer Kassenkachel nur Rauschen. Ohne Tisch
-                        ist er die einzige sichtbare Vorgangsklammer — und der Nachweis, dass
-                        auch eine Thekenbestellung einen Wert traegt.
+                        derselben Aussage sind auf einer Kassenkachel nur Rauschen. Synthetische
+                        Kreise (`auto:` + ID) zeigt die Kachel nicht: Fuer den Kassierer ist eine
+                        UUID Rauschen, den Nachweis traegt die Admin-Bestelluebersicht
+                        (panary/panary-core#1125).
                       -->
                         <span
                           class="max-w-[9rem] truncate bg-line-soft text-ink-muted px-2 py-0.5 rounded text-xs font-mono"

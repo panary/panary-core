@@ -38,6 +38,7 @@ import {
 import {
   effectiveLineItems,
   groupModifiersByComponent,
+  isSyntheticSettlementScope,
   type AppliedDiscount,
   type ModifierLineItem,
 } from '@panary/orders/domain'
@@ -140,6 +141,7 @@ export class ActiveOrdersComponent {
 
   orders = this.sortedOrders
   protected readonly OrderStatus = OrderStatus
+  protected readonly isSyntheticSettlementScope = isSyntheticSettlementScope
 
   zoomLevel: WritableSignal<number> = signal(readStoredZoom())
   selectedOrderId: WritableSignal<string | null> = signal(null)

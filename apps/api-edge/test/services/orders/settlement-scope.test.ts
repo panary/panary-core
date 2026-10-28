@@ -225,9 +225,20 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
   it('legt eine Nachbestellung waehrend des offenen Besuchs in denselben Kreis', async () => {
     const table = uniqueTable()
     const first = await createOrder({ table })
-    const followUp = await createOrder({ table, settlementScope: first.settlementScope })
+    const followUp = await createOrder({
+      table,
+      settlementScope: first.settlementScope,
+      creationContext: { createdBy: userId },
+    })
 
     expect(followUp.settlementScope).toBe(`${table}#1`)
+    // Kein Umsetzen, also auch kein Journal-Eintrag.
+    const journal = (await app.service('order-interactions').find({
+      ...internal,
+      paginate: false,
+      query: { orderId: followUp._id },
+    } as never)) as unknown as unknown[]
+    expect(journal).toEqual([])
   })
 
   it('ordnet eine verspaetete Bestellung fuer einen geschlossenen Besuch dem naechsten zu und schreibt das Journal', async () => {

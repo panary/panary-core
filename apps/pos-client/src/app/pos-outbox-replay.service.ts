@@ -163,7 +163,18 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
   async #resolveCashSessions(awaiting: ReadonlyMap<string, OutboxEntry[]>): Promise<number> {
     let declined = 0
     for (const [cashierId, entries] of awaiting) {
-      if (this.#connection.connectionState().status === 'authenticated' && (await this.#cashSession.request(cashierId))) {
+      // Ohne Verbindung (vor oder nach dem Dialog) ist nichts abgelehnt: Die Einträge bleiben fällig, der nächste
+      // Reconnect fragt erneut. Nur eine verweigerte Freigabe lässt sie liegen.
+      if (!this.#isConnected()) {
+        await this.#requeue(entries)
+        continue
+      }
+      const approved = await this.#cashSession.request(cashierId)
+      if (!this.#isConnected()) {
+        await this.#requeue(entries)
+        continue
+      }
+      if (approved) {
         for (const entry of entries) await this.#replayOne(entry)
         continue
       }
@@ -175,6 +186,15 @@ export class PosOutboxReplayService implements OnDestroy, OfflineReplayPort {
       this.#notifications.warning(message, { sticky: true })
     }
     return declined
+  }
+
+  #isConnected(): boolean {
+    return this.#connection.connectionState().status === 'authenticated'
+  }
+
+  async #requeue(entries: readonly OutboxEntry[]): Promise<void> {
+    const now = new Date().toISOString()
+    for (const entry of entries) await this.#outbox.markRetry(entry._id, now, entry.lastError)
   }
 
   async #replayOne(entry: OutboxEntry, awaitingCashSession?: Map<string, OutboxEntry[]>): Promise<void> {

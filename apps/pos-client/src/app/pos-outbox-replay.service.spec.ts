@@ -26,10 +26,8 @@ const entry = (overrides: Partial<OutboxEntry>): OutboxEntry => ({
   ...overrides,
 })
 
-function setupReplay(
-  entries: OutboxEntry[],
-  options: { patch?: ReturnType<typeof vi.fn>; approve?: boolean } = {},
-) {
+function setupReplay(entries: OutboxEntry[], options: { patch?: ReturnType<typeof vi.fn>; approve?: boolean } = {}) {
+  const connectionState = signal<{ status: string }>({ status: 'authenticated' })
   const create = vi.fn(() => Promise.resolve({}))
   const patch = options.patch ?? vi.fn(() => Promise.resolve({}))
   const approval = {
@@ -57,7 +55,7 @@ function setupReplay(
       { provide: OutboxStore, useValue: outbox },
       {
         provide: ConnectionService,
-        useValue: { connectionState: signal({ status: 'authenticated' }), orderService: { create, patch } },
+        useValue: { connectionState, orderService: { create, patch } },
       },
       { provide: NotificationService, useValue: notifications },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
@@ -65,7 +63,16 @@ function setupReplay(
     ],
   })
 
-  return { service: TestBed.inject(PosOutboxReplayService), create, patch, outbox, approval, warning, error }
+  return {
+    service: TestBed.inject(PosOutboxReplayService),
+    create,
+    patch,
+    outbox,
+    approval,
+    warning,
+    error,
+    connectionState,
+  }
 }
 
 describe('PosOutboxReplayService — Bediener-Token', () => {
@@ -112,11 +119,11 @@ describe('PosOutboxReplayService — Kasse fehlt beim Nachversand', () => {
     TestBed.resetTestingModule()
   })
 
-  const cashPatch = (id: string) =>
+  const cashPatch = (id: string, cashierId = 'u-kassierer') =>
     entry({
       _id: id,
       op: 'patch',
-      payload: { status: 'completed', payment: { transactions: [{ method: 'cash', performedBy: 'u-kassierer' }] } },
+      payload: { status: 'completed', payment: { transactions: [{ method: 'cash', performedBy: cashierId }] } },
     })
   const cashSessionRequired = () => Object.assign(new Error('Keine Kasse'), { code: 400, data: { code: 'BD_6004' } })
 
@@ -143,6 +150,53 @@ describe('PosOutboxReplayService — Kasse fehlt beim Nachversand', () => {
     expect(outbox.markRejected.mock.calls).toEqual([['o-1', 'SETTINGS.OUTBOX_CASH_SESSION_REQUIRED']])
     expect(warning.mock.calls).toEqual([['SETTINGS.OUTBOX_CASH_SESSION_REQUIRED', { sticky: true }]])
     expect(error).not.toHaveBeenCalled()
+  })
+
+  it('fragt bei zwei Kassierern je einmal und sendet nur fuer den freigegebenen', async () => {
+    const patch = vi
+      .fn()
+      .mockRejectedValueOnce(cashSessionRequired())
+      .mockRejectedValueOnce(cashSessionRequired())
+      .mockResolvedValue({})
+    const { service, outbox, approval } = setupReplay([cashPatch('o-1'), cashPatch('o-2', 'u-zweite')])
+    approval.request.mockImplementation((id: string) => Promise.resolve(id === 'u-kassierer'))
+
+    await service.replayAll()
+
+    expect(approval.request.mock.calls).toEqual([['u-kassierer'], ['u-zweite']])
+    expect(outbox.markAcked.mock.calls).toEqual([['o-1']])
+    expect(outbox.markRejected.mock.calls).toEqual([['o-2', 'SETTINGS.OUTBOX_CASH_SESSION_REQUIRED']])
+  })
+
+  it('Verbindung weg vor der Rueckfrage: Eintrag bleibt faellig, keine Ablehnung, kein Dialog', async () => {
+    const patch = vi.fn()
+    const { service, outbox, approval, warning, connectionState } = setupReplay([cashPatch('o-1')], { patch })
+    patch.mockImplementation(() => {
+      connectionState.set({ status: 'disconnected' })
+      return Promise.reject(cashSessionRequired())
+    })
+
+    await service.replayAll()
+
+    expect(approval.request).not.toHaveBeenCalled()
+    expect(outbox.markRejected).not.toHaveBeenCalled()
+    expect(outbox.markRetry.mock.calls.map(call => call[0])).toEqual(['o-1'])
+    expect(warning).not.toHaveBeenCalled()
+  })
+
+  it('Verbindung weg waehrend des Dialogs: nicht senden, nicht ablehnen, Eintrag bleibt faellig', async () => {
+    const patch = vi.fn().mockRejectedValueOnce(cashSessionRequired()).mockResolvedValue({})
+    const { service, outbox, approval, connectionState } = setupReplay([cashPatch('o-1')], { patch })
+    approval.request.mockImplementation(() => {
+      connectionState.set({ status: 'disconnected' })
+      return Promise.resolve(true)
+    })
+
+    await service.replayAll()
+
+    expect(patch).toHaveBeenCalledTimes(1)
+    expect(outbox.markRejected).not.toHaveBeenCalled()
+    expect(outbox.markRetry.mock.calls.map(call => call[0])).toEqual(['o-1'])
   })
 
   it('andere 400er bleiben terminal abgelehnt, ohne Rueckfrage', async () => {

@@ -15,7 +15,7 @@ import {
 } from '@panary/shared/data-access'
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
-import { LogService } from '@panary/shared/data-access-updater'
+import { KioskService, LogService } from '@panary/shared/data-access-updater'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -25,6 +25,7 @@ import { NotificationService } from '@panary/shared/ui-notifications'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog/unpair-device-dialog.component'
+import { type KioskAction, KioskPinDialogComponent } from './kiosk-pin-dialog/kiosk-pin-dialog.component'
 import { IconComponent, type IconName, PageHeaderComponent } from '@panary/shared/ui-common'
 
 /**
@@ -82,6 +83,7 @@ function isSettingsSection(value: string | null): value is SettingsSection {
     MatTooltipModule,
     TranslateModule,
     UnpairDeviceDialogComponent,
+    KioskPinDialogComponent,
   ],
   templateUrl: './settings.component.html',
 })
@@ -133,6 +135,18 @@ export class SettingsComponent implements OnInit {
 
   // Unpair-Dialog (Verbindungs-Sektion → Danger-Zone)
   showUnpairDialog = signal(false)
+  protected readonly kiosk = inject(KioskService)
+  /** Offener Kiosk-PIN-Dialog; `null` = keiner. */
+  protected readonly kioskAction = signal<KioskAction | null>(null)
+  protected readonly kioskStatusKey = computed(() => {
+    const status = this.kiosk.status()
+    if (!status) return 'SETTINGS.KIOSK_DESC'
+    if (!status.releaseBuild) return 'SETTINGS.KIOSK_STATUS_DEBUG'
+    if (!status.enabled) return 'SETTINGS.KIOSK_STATUS_DISABLED'
+    if (!status.paired) return 'SETTINGS.KIOSK_STATUS_UNPAIRED'
+    if (status.windowMode) return 'SETTINGS.KIOSK_STATUS_WINDOW_MODE'
+    return 'SETTINGS.KIOSK_STATUS_ACTIVE'
+  })
 
   // Diagnose & Logs (nur POS/Tauri) — In-App-Ansicht + Export der nativen Logdatei
   showLogs = signal(false)
@@ -304,6 +318,8 @@ export class SettingsComponent implements OnInit {
   }
 
   async ngOnInit() {
+    // Zustand der Shell für die Kiosk-Karte; ausserhalb von Tauri ein No-Op.
+    void this.kiosk.refresh().catch(() => undefined)
     try {
       const info = await lastValueFrom(this.#http.get<EdgeServerInfo>('http://localhost:3030/health'))
       this.edgeInfo.set(info)

@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import { type CloudBannerActionKind, CloudStatusBannerService, LanguageService } from '@panary/shared/data-access'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
-import { LogService, UpdateService } from '@panary/shared/data-access-updater'
+import { KioskService, LogService, UpdateService } from '@panary/shared/data-access-updater'
+import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CloudStatusBannerComponent } from '@panary/shared/ui-cloud-status'
 import { NotificationOutletComponent } from '@panary/shared/ui-notifications'
 
@@ -51,6 +52,12 @@ export class AppComponent {
     // spiegeln (Feld-Diagnose ohne DevTools). Zuerst, damit auch der
     // Update-Check und frühe Fehler erfasst werden. No-Op außerhalb Tauri.
     inject(LogService).installGlobalCapture()
+
+    // Kiosk (core#1188): Die Kopplung liegt im localStorage, den die Shell nicht lesen
+    // kann. Pairing und Entkoppeln laden die App neu, also meldet dieser Aufruf jede Änderung.
+    inject(KioskService)
+      .reportPaired(inject(DeviceConfigService).hasConfig())
+      .catch((err: unknown) => console.warn('[kiosk] Kopplung nicht gemeldet:', err))
 
     // Update-Check beim App-Start — auch im Setup-Wizard (isTauri()-Guard im Service)
     inject(UpdateService).startPeriodicCheck()

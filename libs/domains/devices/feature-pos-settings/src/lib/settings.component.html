@@ -803,7 +803,7 @@
                             <span class="font-mono text-xs font-semibold text-ink"
                               >{{ entry.service }} · {{ entry.op }}</span
                             >
-                            <span class="text-xs text-ink-faint">{{ entry.occurredAt | date: 'short' }}</span>
+                            <span class="text-xs text-ink-faint">{{ entry.occurredAt | date: 'dd.MM.yyyy, HH:mm' }}</span>
                           </div>
                           @if (entry.lastError) {
                             <p class="text-xs text-red-600 dark:text-red-400 mt-1 break-all">{{ entry.lastError }}</p>
@@ -886,7 +886,7 @@
                       {{ 'SETTINGS.PAIRED_AT' | translate }}
                     </p>
                     <p class="font-semibold text-ink">
-                      {{ cfg.registeredAt ? (cfg.registeredAt | date: 'medium') : '-' }}
+                      {{ cfg.registeredAt ? (cfg.registeredAt | date: 'dd.MM.yyyy, HH:mm') : '-' }}
                     </p>
                   </div>
                 </div>

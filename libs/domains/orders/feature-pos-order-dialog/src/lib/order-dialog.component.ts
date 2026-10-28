@@ -94,7 +94,11 @@ import { PosHandednessService, User, UserService } from '@panary/users/data-acce
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
-import { PreOrderQuickDialogComponent } from './pre-order-quick-dialog.component'
+import {
+  buildQuickPreOrderPayload,
+  PreOrderQuickDialogComponent,
+  type PreOrderQuickResult,
+} from './pre-order-quick-dialog.component'
 import { DiscountPickerDialogComponent } from './discount-picker-dialog.component'
 import { PromoCodeDialogComponent } from './promo-code-dialog.component'
 import { buildCodeAppliedDiscount, evaluatePromoCodeGate, redeemCodeForOrder } from './promo-code'
@@ -1213,23 +1217,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     dialogRef
       .afterClosed()
-      .subscribe(async (result: { date: Date; time: string; name: string; phone: string } | undefined) => {
+      .subscribe(async (result: (PreOrderQuickResult & { date: Date }) | undefined) => {
         if (!result) return
 
-        // Datum + Uhrzeit zu ISO-String kombinieren
-        const date = new Date(result.date)
-        const [hours, minutes] = result.time.split(':').map(Number)
-        date.setHours(hours, minutes, 0, 0)
-
-        const payload = {
-          customerContact: {
-            name: result.name,
-            phone: result.phone || '',
-          },
-          scheduledFor: date.toISOString(),
-          lineItems: [...this.lineItems],
-          status: 'pending' as const,
-        }
+        const payload = buildQuickPreOrderPayload(result, this.lineItems)
 
         try {
           await this.preOrderService.create(payload)

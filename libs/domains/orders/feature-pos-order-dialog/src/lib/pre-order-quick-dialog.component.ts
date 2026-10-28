@@ -12,8 +12,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IconComponent } from '@panary/shared/ui-common'
 
 /**
- * Ergebnis des Dialogs. `order-dialog.component.ts` liest davon `date`, `time`, `name` und `phone` über einen
- * eigenen Inline-Typ; `date` ist dort nie `null`, weil der Dialog nur mit gültigem Formular schließt.
+ * Ergebnis des Dialogs. `date` ist beim Schließen nie `null`, weil der Dialog nur mit gültigem Formular schließt.
  */
 export interface PreOrderQuickResult {
   date: Date | null
@@ -21,6 +20,30 @@ export interface PreOrderQuickResult {
   dineLocation: 'dine-in' | 'take-out'
   name: string
   phone: string
+}
+
+/**
+ * Baut aus dem Dialog-Ergebnis den Payload für `pre-orders.create`. `dineLocation` gehört dazu: Der Edge übernimmt
+ * es beim Umwandeln in die Bestellung. Fehlte es, stand eine Vorbestellung „Im Haus“ als Abholung in der Liste
+ * (panary/panary-core#1177).
+ */
+export function buildQuickPreOrderPayload<TLineItem>(
+  result: PreOrderQuickResult & { date: Date },
+  lineItems: readonly TLineItem[],
+) {
+  const scheduledFor = new Date(result.date)
+  const [hours, minutes] = result.time.split(':').map(Number)
+  scheduledFor.setHours(hours, minutes, 0, 0)
+  return {
+    customerContact: {
+      name: result.name,
+      phone: result.phone || '',
+    },
+    scheduledFor: scheduledFor.toISOString(),
+    dineLocation: result.dineLocation,
+    lineItems: [...lineItems],
+    status: 'pending' as const,
+  }
 }
 
 /**

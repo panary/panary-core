@@ -4,7 +4,9 @@ import { KioskService, type KioskStatus } from './kiosk.service'
 const STATUS: KioskStatus = { active: true, enabled: true, paired: true, releaseBuild: true, windowMode: false }
 
 function stubTauri() {
-  const invoke = vi.fn((_cmd: string, _args?: Record<string, unknown>) => Promise.resolve(STATUS))
+  const invoke = vi.fn<(cmd: string, args?: Record<string, unknown>) => Promise<KioskStatus>>(() =>
+    Promise.resolve(STATUS),
+  )
   vi.stubGlobal('window', { __TAURI_INTERNALS__: {}, __TAURI__: { core: { invoke } } })
   return invoke
 }

@@ -220,43 +220,68 @@ Browser-APIs, die einen Secure Context verlangen — `navigator.clipboard` ist `
 
 ## 7. Formulare
 
-### Priorität (absteigend)
+**Signal Forms (`@angular/forms/signals`) sind Pflicht** für jedes neue und jedes geänderte Formular
+([ADR 0064](../../docs/adr/0064-signal-forms-als-formular-standard.md), panary/panary-core#1017).
 
-1. **Signal Forms** — zukunftsorientierter Standard (sobald stabil/verfügbar)
-2. **Typed Reactive Forms** — aktueller Standard für komplexe Formulare
-3. **Template-driven Forms** — nur für sehr einfache, einmalige Formulare ohne Business-Logik
-
-### Signal Forms (bevorzugt, zukunftsorientiert)
-
-Signal Forms sind die strategische Weiterentwicklung von Angular-Formularen und integrieren sich nativ in die Signal-Architektur. Sobald die API stabil ist, werden sie als primärer Standard eingesetzt.
-
-```typescript
-// Signal Forms (Angular experimental / zukünftiger Standard)
-import { FormField, FormGroup } from '@angular/forms' // API noch in Entwicklung
-
-form = new FormGroup({
-  name: new FormField(''),
-  email: new FormField(''),
-})
-
-// Formularwert ist ein Signal — reaktive Ableitung möglich
-fullName = computed(() => this.form.value().name)
-```
-
-**Vorteile gegenüber Reactive Forms:**
-
-- Formularwerte und -status sind Signals — kein `.valueChanges` Observable mehr nötig
-- Nahtlose Integration mit `computed()` und `effect()`
-- `OnPush`-kompatibel ohne manuelle `markForCheck()`-Aufrufe
-
-### Typed Reactive Forms (aktueller Standard)
+| Form                                           | Stand                                                                                                                                                                |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signal Forms                                   | Standard                                                                                                                                                             |
+| Reactive Forms (`FormGroup`, `FormBuilder`, …) | 🚫 im Code nicht mehr vorhanden, nicht neu einführen                                                                                                                 |
+| Template-driven (`FormsModule`, `ngModel`)     | Bestand bis zur Umstellung (panary/panary-core#1173 Admin-Client, panary/panary-core#1174 POS-Libs). Wer eine dieser Dateien ändert, stellt das berührte Formular um |
 
 ```typescript
-form = new FormGroup({
-  name: new FormControl<string>('', { nonNullable: true }),
-  email: new FormControl<string>('', { nonNullable: true }),
+import { email, form, FormField, FormRoot, minLength, required, validate } from '@angular/forms/signals'
+
+@Component({
+  imports: [FormField, FormRoot],
+  template: `
+    <form [formRoot]="form" (submit)="save()">
+      <input [formField]="form.email" type="email" />
+      <input [formField]="form.password" type="password" />
+      <input [formField]="form.passwordConfirm" type="password" />
+      <button type="submit" [disabled]="form().invalid()">Speichern</button>
+    </form>
+  `,
 })
+export class AccountFormComponent {
+  // Das Modell ist ein normales Signal — sein Wert ist der Formularwert.
+  readonly account = signal({ email: '', password: '', passwordConfirm: '' })
+
+  readonly form = form(this.account, a => {
+    required(a.email)
+    email(a.email)
+    required(a.password)
+    minLength(a.password, 8)
+    validate(a.passwordConfirm, ({ value, valueOf }) =>
+      value() === valueOf(a.password) ? undefined : { kind: 'mismatch' },
+    )
+  })
+
+  save() {
+    if (this.form().invalid()) return
+    const value = this.account()
+    // …
+  }
+}
 ```
+
+**Regeln:**
+
+- **Validierung steht im Schema**, nicht im Template und nicht im Submit-Handler. Felder lesen
+  `form.feld().value()`, `.valid()`, `.errors()`; das ganze Formular `form().invalid()`.
+- **Schreiben ohne Eingabefeld** (Touch-Tastatur, Scroll-Wheel, Kachel-Auswahl): `form.feld().value.set(…)`
+  oder direkt auf das Modell-Signal. Kein `markForCheck()` nötig.
+- **`<form>` bekommt `[formRoot]`.** Ohne `FormsModule` hängt keine `NgForm`-Direktive mehr am Element;
+  `FormRoot` setzt `novalidate` und ruft `preventDefault()` — ohne ihn lädt ein Submit die Seite neu.
+  Der eigene Handler hängt an `(submit)`, nicht an `(ngSubmit)`.
+- **Kein `[disabled]` an einem Element mit `[formField]`.** Deaktivierung gehört ins Schema (`disabled(p.feld, …)`).
+  Buttons sind keine Felder und dürfen `[disabled]` tragen.
+- **Reaktion auf Eingaben** über `computed()` oder `linkedSignal()` auf dem Modell, nicht über ein `effect()`
+  mit Signal-Writes (§2.1). Beispiel: eine Auswahl, die beim Tippen im Suchfeld verfällt, ist ein
+  `linkedSignal({ source: suchbegriff, computation: () => null })`.
+- **Specs in `environment: 'node'`** (ohne TestBed) brauchen für `form()` drei Provider, die sonst die
+  Plattform stellt: `APP_ID`, `ɵChangeDetectionScheduler` und `ɵEffectScheduler` (Stubs genügen, die
+  Validierung sind computed-Signale). Vorlage: `pre-order-quick-dialog.spec.ts`.
 
 ---
 

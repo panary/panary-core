@@ -92,6 +92,12 @@ export function assignSettlementScope() {
  */
 async function resolveScope(data: Record<string, unknown>, context: HookContext): Promise<string> {
   const provided = typeof data['settlementScope'] === 'string' ? (data['settlementScope'] as string).trim() : ''
+  // Ein Split erbt den Kreis seiner Quelle (`orders.split`, ADR 0049) — auch wenn
+  // der Besuch geschlossen ist. Der Schalter liegt in den Server-Params, ein
+  // Client kann ihn nicht setzen.
+  if (provided && (context.params as { inheritSettlementScope?: boolean })?.inheritSettlementScope === true) {
+    return provided.slice(0, SETTLEMENT_SCOPE_MAX_LENGTH)
+  }
   const providedVisit = parseVisitSettlementScope(provided)
   if (provided && !providedVisit) return provided.slice(0, SETTLEMENT_SCOPE_MAX_LENGTH)
 
@@ -232,7 +238,7 @@ async function recordReassignment(
   logger.warn({
     message: 'Bestellung kam mit dem Kreis eines geschlossenen Besuchs — dem naechsten Besuch zugeordnet',
     event: 'order.settlement_scope_reassigned',
-    settlementScopeRequested: from,
+    settlementScopeRequested: from.slice(0, SETTLEMENT_SCOPE_MAX_LENGTH),
     settlementScope: to,
     orderId: data['_id'],
     locationId: data['locationId'],

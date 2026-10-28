@@ -302,6 +302,8 @@ describe('orders.split — Schreibpfad', () => {
     expect(h.orderCreate).toHaveBeenCalledTimes(1)
     const created = h.orderCreate.mock.calls[0][0]
     expect(created.settlementScope).toBe('Tisch 7')
+    // Sonst setzte der Riegel eine Teilbestellung einer `unclaimed`-Quelle in den naechsten Besuch um.
+    expect(h.orderCreate.mock.calls[0][1]).toEqual(expect.objectContaining({ inheritSettlementScope: true }))
     expect(created.lineItems).toHaveLength(1)
     expect(created.lineItems[0].externalId).toBe('ext-l2')
     expect(created.lineItems[0]._id).not.toBe('l2')

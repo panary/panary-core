@@ -138,6 +138,15 @@ describe('assignSettlementScope', () => {
     expect(data['settlementScope']).toBe('4#2')
   })
 
+  it('laesst einem Split den Kreis seiner Quelle, auch wenn der Besuch geschlossen ist', async () => {
+    const { app, find } = fakeApp([{ settlementScope: '4#1', status: 'unclaimed' }])
+    const params: Record<string, unknown> = { inheritSettlementScope: true }
+    const data = await run(tableOrder({ settlementScope: '4#1' }), params, app)
+    expect(data['settlementScope']).toBe('4#1')
+    expect(find).not.toHaveBeenCalled()
+    expect(params['orderInteractions']).toBeUndefined()
+  })
+
   it('schreibt keinen Journal-Eintrag, wenn der Bediener nicht zum Mandanten gehoert', async () => {
     const { app } = fakeApp([{ settlementScope: '4#1', status: 'completed' }], '01920000-0000-7000-8000-cccccccc0003')
     const params: Record<string, unknown> = {}

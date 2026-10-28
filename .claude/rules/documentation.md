@@ -9,9 +9,8 @@ Projektdoku lebt im Wiki `/docs`: ein OKF-v0.2-Bundle (Open Knowledge Format —
 YAML-Frontmatter), gepflegt von Agenten, kuratiert vom Nutzer. Einstieg: `docs/index.md`.
 Historie: `docs/log.d/` (ein Fragment je Eintrag), zusammengesetzt via `pnpm docs:log`.
 
-> **Hinweis:** Der frühere `/documentation`-Ordner wurde am 2026-07-25 vollständig in
-> dieses Wiki migriert (Frontmatter `generated.by: claude-code/historic` markiert
-> Alt-Bestand). Es gibt keinen zweiten Doku-Ort mehr.
+> **Hinweis:** Frontmatter `generated.by: claude-code/historic` markiert migrierten
+> Alt-Bestand. Es gibt keinen zweiten Doku-Ort.
 
 ---
 
@@ -47,10 +46,10 @@ Konzeptseiten. Frontmatter in Index-Dateien nur im Root-`docs/index.md` (`okf_ve
 
 **Ausnahme `docs/log.d/`:** kein `index.md`, keine Frontmatter. Ein Index dort wäre die eine
 Datei, die wieder jeder PR anfassen müsste — also genau der Konflikt, gegen den die Fragmente
-angelegt wurden (#137). Die Übersicht erzeugt `pnpm docs:log`.
+angelegt wurden. Die Übersicht erzeugt `pnpm docs:log`.
 
 **Ausnahme `docs/adr/`:** `index.md` existiert, trägt aber aus demselben Grund **keine Liste** —
-die erzeugt `pnpm docs:adr:index` (§3, #161).
+die erzeugt `pnpm docs:adr:index` (§3).
 
 `docs/raw/` ist die **Rohquellen-Schicht** (Karpathy Layer 1): unveränderliche Originaldokumente
 (z. B. restaurierte Planungsunterlagen). **Nie editieren**, keine Frontmatter-Pflicht, kein
@@ -97,9 +96,8 @@ generated: { by: <actor>, at: <ISO-8601> }
   pnpm docs:adr:next    # höchste + 1, über origin/main UND alle Worktrees des Repos
   ```
 
-  Ein `ls docs/adr/` sieht nur den eigenen Baum. Am 2026-08-10 hatten dadurch in panary-cloud
-  drei parallele Sessions gleichzeitig `0046` belegt; zwei mussten umnummerieren, und
-  aufgefallen ist es erst über einen bereits in **diesem** Repo gemergten Kommentar.
+  Ein `ls docs/adr/` sieht nur den eigenen Baum, parallele Worktrees vergeben sonst dieselbe
+  Nummer.
 
 - **Keine Index-Pflege für ADRs.** Die annotierte Liste steht nicht in `docs/adr/index.md`,
   sondern kommt aus `pnpm docs:adr:index` ([ADR 0025](../../docs/adr/0025-adr-index-generiert-statt-gepflegt.md)).
@@ -125,7 +123,7 @@ generated: { by: <actor>, at: <ISO-8601> }
    und ohne Frontmatter. `<nr>` ist die **Issue-Nummer** (ohne Issue: die PR-Nummer) —
    sie ist der einzige Diskriminator, den eine Session ohne Blick auf die anderen bestimmen
    kann. Eine laufende Tagesnummer wäre abstimmungspflichtig und damit wieder
-   kollisionsanfällig; genau daran konfligierte vorher `docs/log.md` (#137).
+   kollisionsanfällig.
    ⚠️ Fragmente liegen **eine Ebene tiefer** — jeder relative Link braucht ein zusätzliches
    `../` (`[…](../adr/….md)`), sonst ist er in der Fragment-Ansicht tot.
    `docs/log.md` selbst wird **nicht** mehr angefasst.

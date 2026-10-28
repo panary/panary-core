@@ -178,10 +178,8 @@ sobald sie abweicht. Nach einer Matrix-Änderung neu erzeugen:
 ROLLEN_MATRIX_SCHREIBEN=1 pnpm nx test users-domain --skip-nx-cache
 ```
 
-🚫 **Hier keine Kurzfassung der Matrix mehr pflegen.** Die frühere Tabelle an dieser Stelle war
-gedriftet: `tenant:manager` auf `orders` stand dort als `CREATE+READ`, die Matrix gibt CRUD.
-`tenant:technician` fehlte ganz. Sichttests wurden gegen sie geschrieben und erwarteten ein 403,
-wo der Code korrekt 200 liefert (panary/panary-core#384). Die Tabelle zeigt nur Rollen-Rechte. Grants am Konto
+🚫 **Hier keine Kurzfassung der Matrix pflegen:** Eine zweite Tabelle driftet, und Tests gegen sie
+erwarten falsche Statuscodes. Die Tabelle zeigt nur Rollen-Rechte. Grants am Konto
 kommen hinzu, und `multiTenancy()` schränkt danach weiter ein.
 
 ### AppAction-Mapping

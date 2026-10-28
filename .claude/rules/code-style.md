@@ -99,7 +99,7 @@ Kurzübersicht:
 - **Verboten:** Keine `tailwind.config.js` oder `tailwind.config.ts` erstellen.
 - **Import:** `@import 'tailwindcss' source(none);` ganz oben in der globalen Styles-Datei, dazu `@source`-Zeilen mit
   Dateimuster (`libs/domains/*/*/src/**/*.{html,ts}`). Ohne `source(none)` walkt die automatische Suche `.nx/cache`
-  und `nx serve` hängt (core#1138); ein Glob, der auf ein Verzeichnis endet, findet still nichts. In SCSS als
+  und `nx serve` hängt; ein Glob, der auf ein Verzeichnis endet, findet still nichts. In SCSS als
   Plain-CSS-`@import` nach den `@use`-Regeln. `pnpm tailwind:gate` (CI) prüft beides:
   [Tailwind-Quellensuche](../../docs/infrastructure/tailwind-quellensuche.md).
 - **Niemals:** `@tailwind base`, `@tailwind components`, `@tailwind utilities`.
@@ -107,7 +107,7 @@ Kurzübersicht:
 - **Custom Utilities:** `@utility`-Block verwenden.
 - **🚫 Kein Punkt im Namen einer `[class.…]`-Bindung.** Angular trennt den Namen am Punkt:
   `[class.translate-y-[calc(100%-4.5rem)]]` bindet `translate-y-[calc(100%-4` — eine Klasse ohne
-  CSS, still wirkungslos (core#572). Arbitrary Values mit Punkt per `[class]="cond ? 'a' : 'b'"`.
+  CSS, still wirkungslos. Arbitrary Values mit Punkt per `[class]="cond ? 'a' : 'b'"`.
 
 ```css
 /* styles.css */
@@ -160,23 +160,21 @@ Regeln:
   Blick als das Raster. Vollton trägt nur die **Primärtaste** (Mint mit Navy-Schrift). Keine
   Inline-Styles (`backgroundColor`/`fontColor`) auf Funktionstasten.
 - **Kachelmaß = Produktkachel:** Breite `var(--pnry-tile-min)` (an `.kasse` 9,5rem), Höhe
-  `var(--pnry-tile-h)` (5,25rem), beides als Token, nie fest im Template. Bis core#1020
-  12,5 × 6,5rem — auf der Sunmi passten so nur 3×4 Produkte. Icon über Text, linksbündig **vor** dem Raster, außerhalb des Scroll-Containers (beim Scrollen
+  `var(--pnry-tile-h)` (5,25rem), beides als Token, nie fest im Template. Icon über Text, linksbündig **vor** dem Raster, außerhalb des Scroll-Containers (beim Scrollen
   immer sichtbar). Layout der Kasse: ADR 0059.
 - **Keine Nummern auf Funktionstasten** — Artikelnummern-Badges nur auf Produktkacheln.
 - **Pressed-Zustand** nur für echte Toggles: kräftigere Tönung + dunklerer Rahmen +
   `aria-pressed`. One-Shot-Tasten (ÜBERSPRINGEN etc.) bekommen nur momentanes
-  `active:`-Feedback. Der einzige Toggle war OHNE; er ist mit dem Anpassen-Panel entfallen
-  (panary/panary-core#639, `docs/domains/pos-anpassen-panel.md`).
+  `active:`-Feedback.
 - **Hover nur für Maus:** kein Tailwind-`hover:` auf Kacheln, Funktionstasten und Rail. Sie tragen
   `pnry-hover` (styles.scss, nur unter `(hover: hover) and (pointer: fine)`, Tönung als `background-image`),
   sonst klebt der Hover auf Touch. Flächen daneben per `background-color`, nicht per Kurzform
-  `background` (panary/panary-core#959).
+  `background`.
 
 ### 9.2 Kein Gedankenstrich in POS-Texten
 
 In sichtbaren Texten des POS-Clients steht kein Em-Dash („—“): i18n-Werte aller Sprachen, App-Name,
-Fenstertitel und fest verdrahtete Meldungen (Michael, 2026-10-26, panary/panary-core#1106). Ersetzt wird
+Fenstertitel und fest verdrahtete Meldungen. Ersetzt wird
 nach Satzbau, nicht blind:
 
 | Satzbau                                   | Ersatz                           | Beispiel                             |

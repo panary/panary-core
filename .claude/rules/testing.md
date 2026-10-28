@@ -9,7 +9,7 @@ paths:
 
 # Tests, Spec-Isolation und Rot-Nachweis – Panary Core (Code-Style §10)
 
-> Ausgelagert aus `code-style.md` (panary/panary-core#318, 2026-09-15). Abschnittsnummer unverändert, damit Verweise wie `§10.1` weiter gelten.
+> Ausgelagert aus `code-style.md`. Abschnittsnummer unverändert, denn Specs, Agenten und Nachbar-Repos zitieren Verweise wie `§10.1`.
 
 ## 10. Spec-Isolation: Aufzeichnungsobjekte gehören in den Test, nicht in den `describe`-Scope
 
@@ -55,12 +55,7 @@ geschrieben. Ein `beforeEach`, das `findMock = vi.fn()` neu zuweist, lässt eine
 Test 1 in das Handle von Test 2 schreiben, und dessen `mock.calls[0]` ist dann fremd. Wer
 `mock.calls`/`mock.results` auswertet, legt das Handle deshalb **im Test** an.
 
-**Herkunft: gemessen in panary-cloud, nicht hier.** Der Fall ist in
-panary/panary-cloud#241 aufgeschlagen (Timeout in `storefront-publish.spec.ts` T1 → Folgefehler
-`expected [...] to have a length of 1 but got 2` in T2), dort mit erzwungenem Timeout wortgleich
-reproduziert und als Regressionstest festgehalten. Die Mechanik ist reine Vitest-Semantik und
-gilt in core unverändert; die Regel steht hier, damit sie beim Schreiben neuer Specs gefunden
-wird — nicht, weil core einen eigenen Vorfall hätte.
+**Die Mechanik ist reine Vitest-Semantik** und gilt in core unverändert, auch ohne eigenen Vorfall hier.
 
 **Der Timeout ist nicht die Ursache.** Ihn hochzudrehen macht die Kaskade seltener, nicht
 falsch — Schritt 1 ist immer der Recorder. **Kein pauschales `testTimeout`** in einer
@@ -102,39 +97,24 @@ Rückfall ist eine Liste offener Ressourcen im `describe`-Scope, die `afterEach`
 genau die geteilte Bindung von oben, nur mit einem anderen Inhalt. `onTestFinished` registriert
 den Abbau am laufenden Test und läuft auch, wenn der Test wirft.
 
-**Bestand der `beforeEach`-Form (gemessen am 2026-08-14, 159 Spec-Dateien in `apps/` + `libs/`):
-0 Treffer** — der Suchbefehl unten liefert nichts mehr.
-
-🚨 **„0 Treffer" heisst nicht „isoliert".** Am 2026-09-13 lagen in `apps/api-edge/test/` **vier**
-reihenfolgeabhängige Suiten (#301), und der Befehl sah **keine einzige** davon. Zwei Gründe, beide
-strukturell:
+🚨 **Kein Treffer des Suchbefehls unten heisst nicht „isoliert".** Reihenfolgeabhängige Suiten
+unter `apps/api-edge/test/` sieht er nicht. Zwei Gründe, beide strukturell:
 
 - Er filtert auf `--include='*.spec.ts'`. Die Integrationstests heissen `*.test.ts` (die
   vitest-`include` deckt `{test,spec}` ab, der Suchbefehl nicht) — sie liegen komplett ausserhalb
   seines Blickfelds.
-- Er sucht **Zuweisungen in `beforeEach`**. Die vier Fälle bauen ihren Zustand in `beforeAll` als
+- Er sucht **Zuweisungen in `beforeEach`**. Solche Suiten bauen ihren Zustand in `beforeAll` als
   **Datenbankzeile** auf; im Testkörper steht keine Zuweisung, die er finden könnte. Geteilt ist
   dort nicht die Bindung und auch nicht der Name, sondern die Zeile selbst.
 
 Der Befehl bleibt nützlich für die Form, die er kennt. Als Entwarnung taugt er nicht — wogegen
-die zweite Form steht, sagt §10.2. Präzedenzfälle:
-
-| Spec                                                                                                               | Geteilt war                               | Umbau                                | PR   |
-| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------ | ---- |
-| `apps/api-edge/src/print-server/auth.middleware.spec.ts`                                                           | `findMock` (`vi.fn()`, also `mock.calls`) | `makeApp()` je Test                  | #199 |
-| `libs/shared/offline-cache/src/lib/{cache-bootstrap,idb-storage.adapter,offline-cache.store,outbox.store}.spec.ts` | Instanz **und** DB-Name                   | Factory je Test + `onTestFinished`   | #201 |
-| `libs/domains/tse/domain/src/lib/simulator.adapter.spec.ts`                                                        | `tse`-Instanz                             | `new` im Test                        | #201 |
-| `apps/api-edge/test/services/{orders/orders,users/users,users/admin-access-health,tenants/tenants}.test.ts`        | die **DB-Zeile** aus `beforeAll`          | Datensatz je Test + `onTestFinished` | #301 |
+die zweite Form steht, sagt §10.2.
 
 **Die Mutationsprobe gehört zu jedem solchen Umbau** (der allgemeine Fall, jeder neue Test, steht
 in §10.3). Ein Test, der nach dem Umstellen noch grün ist, kann grün sein, weil er nichts mehr
 prüft — grün war er vorher ja auch. Also den
 Produktionscode gezielt brechen und nachsehen, ob der zugehörige Test rot wird; danach
-zurücksetzen und mit `git diff --exit-code` belegen, dass keine Spur bleibt. Gefahren wurde je
-umgebauter Datei mindestens eine (#199: Lookup auf Klartext → Test 1 rot, Kandidaten-Filter
-aufgeweicht → Tests 2+3 rot; #201: `wiped` konstant, Index-Range ignoriert, `clear` in
-`replaceAll` entfernt, `nextAttemptAt` ignoriert, `signatureCounter` nicht erhöht — jede fing
-genau ihren Test).
+zurücksetzen und mit `git diff --exit-code` belegen, dass keine Spur bleibt.
 
 ⚠️ **`--sequence.shuffle` beweist den Gewinn NICHT.** Reihenfolgeunabhängigkeit ist billig zu
 prüfen (`vitest run --sequence.shuffle`) und war auch vor dem Umbau gegeben, weil das alte
@@ -145,7 +125,7 @@ nächste Test nicht kennt, kann ein Nachzügler nicht verfälschen.
 **Er mischt auch INNERHALB einer Datei.** Vitest dokumentiert `sequence.shuffle: true` als
 „Should files **and tests** run in random order" — beide Unterschalter (`shuffle.files`,
 `shuffle.tests`) gehen damit an. Wer ihn für einen reinen Datei-Schalter hält, sucht die Ursache
-eines roten Laufs in der falschen Ebene: Alle vier Fälle aus #301 liegen innerhalb je einer
+eines roten Laufs in der falschen Ebene: Reihenfolgeabhängige Tests liegen oft innerhalb einer
 Datei, und `fileParallelism: false` schützt gegen sie nicht (es serialisiert nur, es sortiert
 nicht).
 
@@ -171,15 +151,7 @@ noch der Name, sondern **die Zeile**.
 
 **Die Regel lautet hier: jeder Test legt seine Zeilen selbst an und räumt sie per
 `onTestFinished` ab.** Ein `beforeAll`, das den Datensatz erzeugt, den mehrere Tests nacheinander
-patchen, macht die Testreihenfolge zum Teil der Annahme. Gemessen am 2026-09-13 (#301) betraf das
-vier Suiten mit zusammen fünf roten Tests — alle aus demselben Muster:
-
-| Suite                               | geteilte Zeile  | was kippte                                                                           |
-| ----------------------------------- | --------------- | ------------------------------------------------------------------------------------ |
-| `orders/orders.test.ts`             | eine Order      | „Snapshot unverändert" erwartet 4000 Cents — der Rabatt-Test hatte 2000 hinterlassen |
-| `users/users.test.ts`               | ein POS-User    | der Erfolgsfall löscht `mustChangePosPin`, das der Fehlversuch-Test gesetzt erwartet |
-| `users/admin-access-health.test.ts` | ein Owner-Konto | Test 2 archiviert genau das Konto, dessen Aktivsein Test 1 zählt                     |
-| `tenants/tenants.test.ts`           | ein Tenant      | `get`/`patch` setzen den `create` des Nachbartests voraus                            |
+patchen, macht die Testreihenfolge zum Teil der Annahme.
 
 **Was im `beforeAll` bleiben darf: Aufbau, den kein Test verändert.** In `orders.test.ts` sind das
 Filiale und User — sie werden gelesen, nie gepatcht. Die Trennlinie ist nicht „vor dem Test
@@ -194,7 +166,7 @@ wie ein Produktionsbug. `uuidv7` ist zugleich das ID-Format des Produktivcodes.
 muss die Ausgangszahl **im** Test genommen werden. Eine im `beforeAll` gemessene Baseline gilt nur
 so lange, wie kein Test davor an der Zählung dreht — genau die Annahme, die der Shuffle bricht.
 
-**Das Gate.** Seit #301 läuft in der CI ein zusätzlicher Schritt
+**Das Gate.** In der CI läuft ein zusätzlicher Schritt
 (`.github/workflows/ci.yml`, „Reihenfolge-Gate"): derselbe api-edge-Lauf mit
 `--sequence.shuffle` und einem aus `github.sha` abgeleiteten Seed. Zwei Eigenschaften, ohne die
 er still blind wäre — beide in [ADR 0038](../../docs/adr/0038-shuffle-gate-mit-commit-seed.md)
@@ -228,9 +200,7 @@ Regel: der Spec-Umbau (§10.1), das neue Gate und in panary-cloud die Abnahmereg
 Warum die Lücke real ist: In panary-cloud blieben zwei von fünf Mutationen grün, weil die
 Zusicherungen `recorded[0]` prüften und damit die falsche Funktion trafen (cloud-ADR 0042); eine
 Zeitzonen-Spec blieb mit dem Defekt **vollständig** grün, weil `process.env.TZ` zur Laufzeit nichts
-bewirkt. Beide Male sah die Suite wie ein Netz aus. Für einen frischen Feature-Test forderte bis
-panary/panary-core#359 keine Regel den Nachweis — gemessen am 2026-09-20 entstanden in 50 Commits
-34 neue Spec-Dateien.
+bewirkt. Beide Male sah die Suite wie ein Netz aus.
 
 **Zwei zulässige Formen, die Wahl hat der Autor:**
 
@@ -273,19 +243,18 @@ Kontrolllauf nach dem Zurücksetzen:
 * **Update**: Test-First: 3 rot vor der Implementierung (`expected undefined to be 'PICKUP'`).
 ```
 
-Vorlagen aus dem Bestand: [#228](../../docs/log.d/2026-08-14-228-beleg-nachlass.md) (zwei
-Varianten, Negativfälle grün) und [#337](../../docs/log.d/2026-09-18-337-pull-apply-tenant-guard.md)
+Vorlagen aus dem Bestand: [Beleg-Nachlass](../../docs/log.d/2026-08-14-228-beleg-nachlass.md) (zwei
+Varianten, Negativfälle grün) und [Pull-Apply-Tenant-Guard](../../docs/log.d/2026-09-18-337-pull-apply-tenant-guard.md)
 (fünf Varianten mit je eigener Rot-Zahl). **Eine Variante mit 0 rot ist ein Befund, kein
 Streichkandidat:** Entweder trifft die Mutation nichts, oder der Test prüft nicht, was er vorgibt —
 genau der `recorded[0]`-Fall. Sie bleibt in der Liste stehen, bis geklärt ist, welches von beiden.
 
 **Ausführung — erst committen, dann brechen.** Die Probe läuft auf einem committeten Stand: Ein
 `git checkout -- <datei>` zum Zurücksetzen löscht sonst den eigenen, noch uncommitteten Fix, und die
-Folgeproben messen gegen den alten Code und sehen trotzdem vollständig aus (viermal passiert).
+Folgeproben messen gegen den alten Code und sehen trotzdem vollständig aus.
 Zurücksetzen per `git checkout -- <datei>`, danach `git diff --exit-code` als Beleg, dass keine Spur
 bleibt. Kein `git stash` dafür (Workbench-CLAUDE.md, Git-Disziplin).
 
 ⚠️ **Kein Gate kann das prüfen.** Ob ein Test je rot war, existiert nur im Moment des Laufs; kein
-`*:gate`-Skript und kein Mutation-Testing-Werkzeug (Stryker o. ä.) ist konfiguriert (gemessen am
-2026-09-20). Die Regel lebt vom Review und von der Spur im Log-Fragment, und sie gilt **ab
-panary/panary-core#359 nach vorn** — der Bestand wird nicht nachträglich belegt.
+`*:gate`-Skript und kein Mutation-Testing-Werkzeug (Stryker o. ä.) ist konfiguriert.
+Die Regel lebt vom Review und von der Spur im Log-Fragment — der Bestand wird nicht nachträglich belegt.

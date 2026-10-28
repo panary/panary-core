@@ -27,6 +27,10 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
   let locationId: string
   let userId: string
 
+  // Eigener Tisch je Test: Der Besuchszaehler zaehlt alle Bestellungen des
+  // Tisches am Geschaeftstag, und die SQLite teilen sich alle Suiten (§10.2).
+  const uniqueTable = () => `T-${uuidv7().slice(-8)}`
+
   const lineItem = () => ({
     _id: uuidv7(),
     externalId: uuidv7(),
@@ -125,14 +129,16 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
     if (userId) await app.service('users').remove(userId, internal)
   })
 
-  it('uebernimmt den Tisch als Abrechnungskreis', async () => {
-    const order = await createOrder({ table: '3' })
-    expect(order.settlementScope).toBe('3')
+  it('uebernimmt den Tisch mit Besuch als Abrechnungskreis', async () => {
+    const table = uniqueTable()
+    const order = await createOrder({ table })
+    expect(order.settlementScope).toBe(`${table}#1`)
   })
 
   it('gibt zwei Bestellungen desselben Tisches denselben Abrechnungskreis', async () => {
-    const first = await createOrder({ table: '3' })
-    const second = await createOrder({ table: '3' })
+    const table = uniqueTable()
+    const first = await createOrder({ table })
+    const second = await createOrder({ table })
 
     expect(second.settlementScope).toBe(first.settlementScope)
     // Die Vorgangsnummern unterscheiden sich — die Klammer ist der Tisch, nicht der Vorgang.
@@ -155,7 +161,7 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
   })
 
   it('findet ueber settlementScope — 200 mit beiden Bestellungen, nicht 400', async () => {
-    const table = `T-${uuidv7().slice(-8)}`
+    const table = uniqueTable()
     await createOrder({ table })
     await createOrder({ table })
 
@@ -163,30 +169,32 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
     // `BadRequest: validation failed` — das ist der eigentliche Gegenstand.
     const result = (await app.service('orders').find({
       ...posParams(),
-      query: { settlementScope: table },
+      query: { settlementScope: `${table}#1` },
     } as never)) as unknown as { total: number; data: Order[] }
 
     expect(result.total).toBe(2)
-    expect(result.data.every(o => o.settlementScope === table)).toBe(true)
+    expect(result.data.every(o => o.settlementScope === `${table}#1`)).toBe(true)
   })
 
   it('laesst den Abrechnungskreis beim Patch unveraendert — still, mit HTTP 200', async () => {
-    const order = await createOrder({ table: '9' })
+    const table = uniqueTable()
+    const order = await createOrder({ table })
 
     // Kein `rejects.toThrow()`: Der Resolver strippt das Feld, er lehnt nicht ab.
     const patched = (await app
       .service('orders')
       .patch(order._id, { settlementScope: 'gekapert' } as never, posParams() as never)) as Order
 
-    expect(patched.settlementScope).toBe('9')
+    expect(patched.settlementScope).toBe(`${table}#1`)
 
     // Der eigentliche Nachweis — nachlesen statt dem Patch-Ergebnis glauben.
     const reread = (await app.service('orders').get(order._id, internal)) as Order
-    expect(reread.settlementScope).toBe('9')
+    expect(reread.settlementScope).toBe(`${table}#1`)
   })
 
   it('haelt den Abrechnungskreis auch fest, wenn derselbe Patch den Tisch aendert', async () => {
-    const order = await createOrder({ table: '9' })
+    const table = uniqueTable()
+    const order = await createOrder({ table })
 
     await app.service('orders').patch(order._id, { table: '10', settlementScope: '10' } as never, posParams() as never)
 
@@ -194,6 +202,75 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
     expect(reread.table).toBe('10')
     // Eine Tischverlegung verschiebt den Abrechnungskreis NICHT — genau das
     // macht die Verlegung fuer einen Pruefer nachvollziehbar (DSFinV-K Tz. 3.1.2.2).
-    expect(reread.settlementScope).toBe('9')
+    expect(reread.settlementScope).toBe(`${table}#1`)
+  })
+
+  // --- Besuchszaehler und Riegel (ADR 0063 Nr. 2 und 4, #1139) ---
+
+  /** Schliesst eine Bestellung ab — der Riegel liest genau diesen Status. */
+  const complete = (orderId: string) =>
+    app.service('orders').patch(orderId, { status: 'completed' } as never, internal as never)
+
+  it('gibt zwei Gaestegruppen nacheinander am selben Tisch verschiedene Kreise', async () => {
+    const table = uniqueTable()
+    const first = await createOrder({ table })
+    await complete(first._id)
+
+    const second = await createOrder({ table })
+
+    expect(first.settlementScope).toBe(`${table}#1`)
+    expect(second.settlementScope).toBe(`${table}#2`)
+  })
+
+  it('legt eine Nachbestellung waehrend des offenen Besuchs in denselben Kreis', async () => {
+    const table = uniqueTable()
+    const first = await createOrder({ table })
+    const followUp = await createOrder({ table, settlementScope: first.settlementScope })
+
+    expect(followUp.settlementScope).toBe(`${table}#1`)
+  })
+
+  it('ordnet eine verspaetete Bestellung fuer einen geschlossenen Besuch dem naechsten zu und schreibt das Journal', async () => {
+    const table = uniqueTable()
+    const first = await createOrder({ table })
+    await complete(first._id)
+
+    const late = await createOrder({
+      table,
+      settlementScope: `${table}#1`,
+      creationContext: { createdBy: userId },
+    })
+
+    expect(late.settlementScope).toBe(`${table}#2`)
+
+    const journal = (await app.service('order-interactions').find({
+      ...internal,
+      paginate: false,
+      query: { orderId: late._id },
+    } as never)) as unknown as Array<{ _id: string; type: string; userId: string }>
+    onTestFinished(async () => {
+      for (const entry of journal) {
+        await app
+          .service('order-interactions')
+          .remove(entry._id, internal)
+          .catch(() => undefined)
+      }
+    })
+
+    expect(journal.map(entry => [entry.type, entry.userId])).toEqual([['settlement-scope-reassigned', userId]])
+  })
+
+  it('uebernimmt den Kreis eines alten Clients (ohne Besuch) unveraendert', async () => {
+    const table = uniqueTable()
+    const order = await createOrder({ table, settlementScope: table })
+    expect(order.settlementScope).toBe(table)
+  })
+
+  it('faellt synthetisch zurueck, wenn `<Label>#<n>` die 50 Zeichen sprengt', async () => {
+    const table = `${uniqueTable()}${'x'.repeat(49)}`.slice(0, 49)
+    const order = await createOrder({ table })
+
+    expect(order.table).toBe(table)
+    expect(isSyntheticSettlementScope(order.settlementScope)).toBe(true)
   })
 })

@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import {
   deriveSettlementScope,
+  isSettlementScopeOpen,
   isSyntheticSettlementScope,
+  parseVisitSettlementScope,
   SETTLEMENT_SCOPE_MAX_LENGTH,
   settlementScopeFromTable,
   SYNTHETIC_SETTLEMENT_SCOPE_PREFIX,
   syntheticSettlementScope,
+  visitSettlementScope,
 } from './settlement-scope'
 
 describe('settlementScopeFromTable', () => {
@@ -91,8 +94,22 @@ describe('syntheticSettlementScope', () => {
 })
 
 describe('deriveSettlementScope', () => {
-  it('nimmt den Tisch, wenn es einen gibt', () => {
-    expect(deriveSettlementScope({ table: '3', locationId: 'loc', dailySequenceNumber: 1 })).toBe('3')
+  it('nimmt den Tisch mit Besuch, wenn es einen gibt', () => {
+    expect(deriveSettlementScope({ table: '3', locationId: 'loc', dailySequenceNumber: 1 })).toBe('3#1')
+  })
+
+  it('setzt einen offenen Besuch des Tisches fort', () => {
+    const scope = deriveSettlementScope({
+      table: '3',
+      dailySequenceNumber: 2,
+      tableOrders: [{ settlementScope: '3#1', status: 'active' }],
+    })
+    expect(scope).toBe('3#1')
+  })
+
+  it('faellt synthetisch zurueck, wenn `<Label>#<n>` nicht in 50 Zeichen passt — nie gekuerzt', () => {
+    const scope = deriveSettlementScope({ table: 'x'.repeat(49), locationId: 'loc', dailySequenceNumber: 1 })
+    expect(isSyntheticSettlementScope(scope)).toBe(true)
   })
 
   it('gibt zwei Bestellungen desselben Tisches denselben Kreis — auch bei anderer Vorgangsnummer', () => {
@@ -116,5 +133,93 @@ describe('isSyntheticSettlementScope', () => {
   it('haelt Nicht-Werte aus', () => {
     expect(isSyntheticSettlementScope(null)).toBe(false)
     expect(isSyntheticSettlementScope(undefined)).toBe(false)
+  })
+})
+
+describe('visitSettlementScope', () => {
+  it('beginnt am unbesuchten Tisch mit Besuch 1', () => {
+    expect(visitSettlementScope('4')).toBe('4#1')
+    expect(visitSettlementScope('  4 ', [])).toBe('4#1')
+  })
+
+  it('haengt eine Nachbestellung an den offenen Besuch', () => {
+    expect(visitSettlementScope('4', [{ settlementScope: '4#1', status: 'production' }])).toBe('4#1')
+  })
+
+  it('eroeffnet nach einem geschlossenen Besuch den naechsten', () => {
+    const orders = [
+      { settlementScope: '4#1', status: 'completed' },
+      { settlementScope: '4#1', status: 'aborted' },
+    ]
+    expect(visitSettlementScope('4', orders)).toBe('4#2')
+  })
+
+  it('zaehlt `unclaimed` als geschlossen', () => {
+    expect(visitSettlementScope('4', [{ settlementScope: '4#1', status: 'unclaimed' }])).toBe('4#2')
+  })
+
+  it('nimmt bei mehreren offenen Besuchen den hoechsten', () => {
+    const orders = [
+      { settlementScope: '4#1', status: 'active' },
+      { settlementScope: '4#3', status: 'produced' },
+      { settlementScope: '4#2', status: 'completed' },
+    ]
+    expect(visitSettlementScope('4', orders)).toBe('4#3')
+  })
+
+  it('zaehlt den Kreis eines alten Clients (nur Label) als Besuch 0 und setzt ihn nicht fort', () => {
+    expect(visitSettlementScope('4', [{ settlementScope: '4', status: 'active' }])).toBe('4#1')
+  })
+
+  it('ignoriert Kreise anderer Tische und synthetische Kreise', () => {
+    const orders = [
+      { settlementScope: '14#5', status: 'active' },
+      { settlementScope: 'auto:x-y-1', status: 'active' },
+    ]
+    expect(visitSettlementScope('4', orders)).toBe('4#1')
+  })
+
+  it('verkraftet ein Label, das selbst `#<Zahl>` enthaelt', () => {
+    expect(visitSettlementScope('Bar#2', [{ settlementScope: 'Bar#2#1', status: 'completed' }])).toBe('Bar#2#2')
+  })
+
+  it('liefert genau bis 50 Zeichen einen Kreis, darueber null', () => {
+    expect(visitSettlementScope('x'.repeat(48))).toHaveLength(SETTLEMENT_SCOPE_MAX_LENGTH)
+    expect(visitSettlementScope('x'.repeat(49))).toBeNull()
+  })
+
+  it('meldet ohne Tisch null', () => {
+    expect(visitSettlementScope(null)).toBeNull()
+    expect(visitSettlementScope('   ')).toBeNull()
+  })
+})
+
+describe('parseVisitSettlementScope', () => {
+  it('zerlegt `<Label>#<n>`', () => {
+    expect(parseVisitSettlementScope('4#12')).toEqual({ label: '4', visit: 12 })
+  })
+
+  it('erkennt Kreise ohne Besuch nicht als Besuch', () => {
+    expect(parseVisitSettlementScope('4')).toBeNull()
+    expect(parseVisitSettlementScope('4#0')).toBeNull()
+    expect(parseVisitSettlementScope('#3')).toBeNull()
+    expect(parseVisitSettlementScope('auto:abc#3')).toBeNull()
+    expect(parseVisitSettlementScope(null)).toBeNull()
+  })
+})
+
+describe('isSettlementScopeOpen', () => {
+  it('ist offen, solange eine Bestellung des Kreises nicht terminal ist', () => {
+    const orders = [
+      { settlementScope: '4#1', status: 'completed' },
+      { settlementScope: '4#1', status: 'produced' },
+    ]
+    expect(isSettlementScopeOpen('4#1', orders)).toBe(true)
+  })
+
+  it('ist geschlossen, wenn alle Bestellungen terminal sind — oder es keine gibt', () => {
+    expect(isSettlementScopeOpen('4#1', [{ settlementScope: '4#1', status: 'completed' }])).toBe(false)
+    expect(isSettlementScopeOpen('4#1', [{ settlementScope: '4#2', status: 'active' }])).toBe(false)
+    expect(isSettlementScopeOpen('4#1', [])).toBe(false)
   })
 })

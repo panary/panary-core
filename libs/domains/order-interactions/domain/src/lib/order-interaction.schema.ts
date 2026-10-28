@@ -21,6 +21,12 @@ export const OrderInteractionType = {
   ORDER_SPLIT: 'order-split',
   ORDER_SPLIT_TARGET: 'order-split-target',
   ITEM_MOVED: 'item-moved',
+  // Der Edge hat eine Bestellung, die den Kreis eines schon geschlossenen
+  // Besuchs mitbrachte, dem naechsten Besuch zugeordnet (ADR 0063 Nr. 2).
+  // Bewusst ohne eigene Felder: Neue Spalten reisten als `null` mit JEDEM
+  // Journal-Eintrag zur Cloud, und deren geschlossenes Schema lehnte dann
+  // alle ab, bis sie den Pin hochzieht. So trifft das nur diesen Typ.
+  SETTLEMENT_SCOPE_REASSIGNED: 'settlement-scope-reassigned',
 } as const
 
 export const PaymentStatusAtEvent = {

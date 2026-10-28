@@ -452,6 +452,10 @@ export class OrderService extends BaseService<Order> {
       // Offline steht weder der Geschaeftstag noch die endgueltige Belegnummer
       // fest. Die Order-ID ist der Anker, der beides ueberdauert.
       orderId: order._id,
+      // Besuchszaehler aus dem lokalen Wissen (ADR 0063 Nr. 4). Hat eine andere
+      // Kasse den Besuch inzwischen kassiert, haelt diese Kasse ihn noch fuer
+      // offen; der Edge ordnet die Bestellung beim Replay dem naechsten Besuch zu.
+      tableOrders: this.#orders(),
     })
 
     await this.cacheStore?.upsertMany('orders', [order as unknown as CacheEntity])

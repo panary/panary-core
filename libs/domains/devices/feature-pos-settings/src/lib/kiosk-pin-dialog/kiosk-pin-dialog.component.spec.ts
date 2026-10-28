@@ -41,7 +41,7 @@ function setup(options: SetupOptions = {}) {
   const kiosk = {
     exit: vi.fn(() => Promise.resolve()),
     enterWindowMode: vi.fn(() => Promise.resolve()),
-    setEnabled: vi.fn((_enabled: boolean) => Promise.resolve()),
+    setEnabled: vi.fn<(enabled: boolean) => Promise<void>>(() => Promise.resolve()),
   }
   const logs: string[] = []
   const findQueries: unknown[] = []

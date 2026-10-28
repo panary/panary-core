@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { DEVICE_ACCESS_EXEMPT_ROLES } from '@panary/devices/domain'
 import {
   CASH_SESSION_AUTHORIZING_ROLES,
+  KIOSK_EXIT_ALLOWED_ROLES,
   ORDER_CANCEL_AUTHORIZING_ROLES,
   POS_AUTHORIZING_ROLES,
   RolePermissions,
@@ -33,6 +34,7 @@ describe('DEVICE_ACCESS_EXEMPT_ROLES ⊇ POS_AUTHORIZING_ROLES', () => {
     ['Entkoppeln', UNPAIR_ALLOWED_ROLES],
     ['Storno-Freigabe', ORDER_CANCEL_AUTHORIZING_ROLES],
     ['Kassenabschluss-Freigabe', CASH_SESSION_AUTHORIZING_ROLES],
+    ['Kiosk-Notausgang', KIOSK_EXIT_ALLOWED_ROLES],
   ])('Notfallpfad „%s" bleibt bedienbar', (_name, roles) => {
     for (const role of roles) {
       expect(DEVICE_ACCESS_EXEMPT_ROLES.has(role), role).toBe(true)
@@ -44,6 +46,7 @@ describe('DEVICE_ACCESS_EXEMPT_ROLES ⊇ POS_AUTHORIZING_ROLES', () => {
       ...UNPAIR_ALLOWED_ROLES,
       ...ORDER_CANCEL_AUTHORIZING_ROLES,
       ...CASH_SESSION_AUTHORIZING_ROLES,
+      ...KIOSK_EXIT_ALLOWED_ROLES,
     ])
     expect([...POS_AUTHORIZING_ROLES].sort()).toEqual([...union].sort())
   })

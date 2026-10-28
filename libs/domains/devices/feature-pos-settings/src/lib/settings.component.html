@@ -1045,6 +1045,50 @@
               </div>
             }
 
+            <!-- Kiosk-Modus (nur POS/Tauri, core#1188): jede Aktion erst nach Inhaber- oder Techniker-PIN -->
+            @if (isDesktop()) {
+              <div class="bg-surface-elevated rounded-2xl border border-line p-6">
+                <h3 class="font-bold text-ink flex items-center gap-2 mb-2">
+                  <lib-icon name="lock" class="text-[1.25rem] text-ink-faint" />
+                  {{ 'SETTINGS.KIOSK_TITLE' | translate }}
+                </h3>
+                <p class="text-sm text-ink-muted mb-4">{{ kioskStatusKey() | translate }}</p>
+
+                <div class="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    (click)="kioskAction.set('exit')"
+                    class="flex items-center gap-2 px-4 h-12 rounded-xl bg-surface-input border border-line text-sm font-medium text-ink hover:bg-line-soft transition-colors"
+                  >
+                    <lib-icon name="sign-out" class="text-[1.25rem]" />
+                    {{ 'SETTINGS.KIOSK_EXIT' | translate }}
+                  </button>
+                  @if (kiosk.status()?.active) {
+                    <button
+                      type="button"
+                      (click)="kioskAction.set('window-mode')"
+                      class="flex items-center gap-2 px-4 h-12 rounded-xl bg-surface-input border border-line text-sm font-medium text-ink hover:bg-line-soft transition-colors"
+                    >
+                      <lib-icon name="frame-corners" class="text-[1.25rem]" />
+                      {{ 'SETTINGS.KIOSK_WINDOW_MODE' | translate }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    (click)="kioskAction.set(kiosk.status()?.enabled === false ? 'enable' : 'disable')"
+                    [attr.aria-pressed]="kiosk.status()?.enabled !== false"
+                    class="flex items-center gap-2 px-4 h-12 rounded-xl bg-surface-input border border-line text-sm font-medium text-ink hover:bg-line-soft transition-colors"
+                  >
+                    <lib-icon [name]="kiosk.status()?.enabled === false ? 'lock' : 'prohibit'" class="text-[1.25rem]" />
+                    {{
+                      (kiosk.status()?.enabled === false ? 'SETTINGS.KIOSK_ENABLE' : 'SETTINGS.KIOSK_DISABLE')
+                        | translate
+                    }}
+                  </button>
+                </div>
+              </div>
+            }
+
             <!-- Diagnose & Logs (nur POS/Tauri) -->
             @if (isDesktop()) {
               <div class="bg-surface-elevated rounded-2xl border border-line p-6">
@@ -1140,4 +1184,9 @@
 <!-- Unpair-Dialog (PIN-Verifikation + Hard-Reset) -->
 @if (showUnpairDialog()) {
   <lib-unpair-device-dialog (closed)="showUnpairDialog.set(false)" />
+}
+
+<!-- Kiosk-Notausgang (PIN-Verifikation, danach Shell-Command) -->
+@if (kioskAction(); as action) {
+  <lib-kiosk-pin-dialog [action]="action" (closed)="kioskAction.set(null)" />
 }

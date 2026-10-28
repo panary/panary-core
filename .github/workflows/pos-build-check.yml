@@ -7,7 +7,7 @@ name: POS-Build-Pruefung
 # verschiedenem major.minor, #266).
 #
 # Zwei Stufen:
-# - Linux (jeder Treffer): fmt, `tauri build --debug --no-bundle`, clippy. Der
+# - Linux (jeder Treffer): fmt, `tauri build --debug --no-bundle`, clippy, test. Der
 #   Tauri-CLI-Lauf macht den Abgleich npm <-> Crate, den `cargo check` nicht kennt,
 #   und kompiliert und linkt die App.
 # - Windows (nur Cargo-/Config-/Workflow-Aenderung): NSIS-Bundle im Release-Profil.
@@ -149,6 +149,13 @@ jobs:
       - name: cargo clippy
         working-directory: apps/pos-client/src-tauri
         run: cargo clippy --locked --all-targets -- -D warnings
+
+      # Die reinen Entscheidungsfunktionen des Kiosk-Modus (panary/panary-core#1188).
+      # Der Kiosk-Zweig selbst ist nur im Release-Build sichtbar; die Tests decken
+      # ihn trotzdem ab, weil `cfg!(debug_assertions)` zur Laufzeit abgefragt wird.
+      - name: cargo test
+        working-directory: apps/pos-client/src-tauri
+        run: cargo test --locked
 
   build-windows:
     needs: changes

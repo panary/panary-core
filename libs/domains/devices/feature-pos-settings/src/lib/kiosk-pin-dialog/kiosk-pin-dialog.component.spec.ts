@@ -1,13 +1,7 @@
 // JIT-Compiler zuerst laden — siehe order-dialog.component.spec.ts (ADR 0011).
 import '@angular/compiler'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  DestroyRef,
-  Injector,
-  runInInjectionContext,
-  ɵChangeDetectionScheduler,
-  ɵEffectScheduler,
-} from '@angular/core'
+import { DestroyRef, Injector, runInInjectionContext, ɵChangeDetectionScheduler, ɵEffectScheduler } from '@angular/core'
 import { SIGNAL } from '@angular/core/primitives/signals'
 import { TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
@@ -93,7 +87,10 @@ async function enterPin(component: KioskPinDialogComponent, user: User): Promise
 }
 
 describe('KioskPinDialogComponent', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
 
   it('fragt beim Edge nur Inhaber und Techniker an', async () => {
     const { component, findQueries } = setup()
@@ -145,7 +142,9 @@ describe('KioskPinDialogComponent', () => {
     await enterPin(component, user)
 
     expect(kiosk.exit).toHaveBeenCalledTimes(1)
-    expect(logs).toEqual([`[kiosk] exit freigegeben von ${user.firstName} ${user.lastName} (${user.role}, ${user._id})`])
+    expect(logs).toEqual([
+      `[kiosk] exit freigegeben von ${user.firstName} ${user.lastName} (${user.role}, ${user._id})`,
+    ])
   })
 
   it('schreibt die PIN nie ins Log', async () => {
@@ -175,6 +174,42 @@ describe('KioskPinDialogComponent', () => {
     await enterPin(component, OWNER)
 
     expect(kiosk.setEnabled).toHaveBeenCalledWith(enabled)
+  })
+
+  it('löst die Aktion nicht aus, wenn der Dialog vor dem Auto-Submit schließt', async () => {
+    vi.useFakeTimers()
+    const { component, kiosk, closed } = setup({ verified: OWNER })
+
+    component.selectUser({ ...OWNER, initials: '' })
+    for (const d of '1234') component.addDigit(d)
+    component.cancel()
+    await vi.advanceTimersByTimeAsync(200)
+
+    expect(closed()).toBe(1)
+    expect(kiosk.exit).not.toHaveBeenCalled()
+  })
+
+  it('verwirft den Auto-Submit, wenn nach der vierten Ziffer gelöscht wird', async () => {
+    vi.useFakeTimers()
+    const { component, kiosk } = setup({ verified: OWNER })
+
+    component.selectUser({ ...OWNER, initials: '' })
+    for (const d of '1234') component.addDigit(d)
+    component.deleteDigit()
+    await vi.advanceTimersByTimeAsync(200)
+
+    expect(kiosk.exit).not.toHaveBeenCalled()
+  })
+
+  it('reicht die vollständige PIN per Auto-Submit ein', async () => {
+    vi.useFakeTimers()
+    const { component, kiosk } = setup({ verified: OWNER })
+
+    component.selectUser({ ...OWNER, initials: '' })
+    for (const d of '1234') component.addDigit(d)
+    await vi.advanceTimersByTimeAsync(200)
+
+    expect(kiosk.exit).toHaveBeenCalledTimes(1)
   })
 
   it('zeigt einen Fehler der Shell an, statt still zu schließen', async () => {

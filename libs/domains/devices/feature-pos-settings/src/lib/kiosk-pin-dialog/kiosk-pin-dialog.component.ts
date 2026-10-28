@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   HostListener,
   OnInit,
   computed,
@@ -59,6 +60,14 @@ export class KioskPinDialogComponent implements OnInit {
   readonly #log = inject(LogService)
   readonly #translate = inject(TranslateService)
 
+  /**
+   * Verzoegerter Auto-Submit. Er muss verfallen, sobald der Dialog schliesst oder die
+   * Eingabe sich aendert: Sonst loeste ein Escape innerhalb der 100 ms die Aktion
+   * (z. B. Beenden) trotzdem aus.
+   */
+  #submitTimer: ReturnType<typeof setTimeout> | null = null
+  #closed = false
+
   readonly pinLength = POS_PIN_LENGTH
   readonly pinSlots = Array.from({ length: POS_PIN_LENGTH }, (_, i) => i)
 
@@ -73,6 +82,13 @@ export class KioskPinDialogComponent implements OnInit {
   readonly hasEligibleUsers = computed(() => this.eligibleUsers().length > 0)
   readonly titleKey = computed(() => ACTION_KEYS[this.action()].title)
   readonly icon = computed(() => ACTION_KEYS[this.action()].icon)
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      this.#closed = true
+      this.#clearSubmit()
+    })
+  }
 
   ngOnInit(): void {
     void this.#loadEligibleUsers()
@@ -98,6 +114,7 @@ export class KioskPinDialogComponent implements OnInit {
   }
 
   selectUser(user: EligibleUser): void {
+    this.#clearSubmit()
     this.selectedUser.set(user)
     this.pinInput.set('')
     this.pinError.set(false)
@@ -106,6 +123,7 @@ export class KioskPinDialogComponent implements OnInit {
   }
 
   backToUserList(): void {
+    this.#clearSubmit()
     this.selectedUser.set(null)
     this.pinInput.set('')
     this.pinError.set(false)
@@ -117,18 +135,22 @@ export class KioskPinDialogComponent implements OnInit {
     this.pinInput.update(c => c + digit)
     this.pinError.set(false)
     if (this.pinInput().length === POS_PIN_LENGTH) {
-      setTimeout(() => void this.verifyPin(), 100)
+      this.#clearSubmit()
+      this.#submitTimer = setTimeout(() => void this.verifyPin(), 100)
     }
   }
 
   deleteDigit(): void {
+    this.#clearSubmit()
     this.pinInput.update(c => c.slice(0, -1))
     this.pinError.set(false)
   }
 
   async verifyPin(): Promise<void> {
+    this.#submitTimer = null
     const user = this.selectedUser()
-    if (!user || this.isVerifying()) return
+    if (!user || this.isVerifying() || this.#closed) return
+    if (this.step() !== 'enter-pin' || this.pinInput().length !== POS_PIN_LENGTH) return
 
     this.isVerifying.set(true)
     try {
@@ -152,6 +174,8 @@ export class KioskPinDialogComponent implements OnInit {
 
   cancel(): void {
     if (this.step() === 'working') return
+    this.#closed = true
+    this.#clearSubmit()
     this.closed.emit()
   }
 
@@ -183,6 +207,11 @@ export class KioskPinDialogComponent implements OnInit {
       this.errorMessage.set(err instanceof Error ? err.message : String(err))
       this.step.set('error')
     }
+  }
+
+  #clearSubmit(): void {
+    if (this.#submitTimer !== null) clearTimeout(this.#submitTimer)
+    this.#submitTimer = null
   }
 
   #reject(message: string | null): void {

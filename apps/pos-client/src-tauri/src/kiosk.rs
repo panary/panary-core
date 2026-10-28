@@ -115,10 +115,17 @@ impl KioskState {
         if *guard == before {
             return Ok(());
         }
-        match &self.path {
+        let written = match &self.path {
             Some(path) => write_settings(path, *guard),
             None => Err("App-Data-Verzeichnis nicht ermittelbar".to_string()),
+        };
+        // Scheitert das Schreiben, gilt der alte Stand weiter: Sonst liefe die
+        // Schliess-Sperre (liest den Speicher) vom Fenster (nicht umgestellt) und
+        // von der Datei (naechster Start) weg.
+        if written.is_err() {
+            *guard = before;
         }
+        written
     }
 }
 
@@ -352,6 +359,20 @@ mod tests {
         write_settings(&path, s(false, true)).unwrap();
         assert_eq!(read_settings(&path), s(false, true));
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn gescheitertes_schreiben_laesst_den_alten_stand_stehen() {
+        let state = KioskState {
+            release_build: true,
+            path: None,
+            settings: Mutex::new(s(true, true)),
+            window_mode: AtomicBool::new(false),
+            exit_released: AtomicBool::new(false),
+        };
+        assert!(state.update_settings(|s| s.enabled = false).is_err());
+        assert_eq!(state.settings(), s(true, true));
+        assert!(state.active());
     }
 
     #[test]

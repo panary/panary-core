@@ -1079,11 +1079,11 @@
                     [attr.aria-pressed]="kiosk.status()?.enabled !== false"
                     class="flex items-center gap-2 px-4 h-12 rounded-xl bg-surface-input border border-line text-sm font-medium text-ink hover:bg-line-soft transition-colors"
                   >
-                    <lib-icon
-                      [name]="kiosk.status()?.enabled === false ? 'lock' : 'prohibit'"
-                      class="text-[1.25rem]"
-                    />
-                    {{ (kiosk.status()?.enabled === false ? 'SETTINGS.KIOSK_ENABLE' : 'SETTINGS.KIOSK_DISABLE') | translate }}
+                    <lib-icon [name]="kiosk.status()?.enabled === false ? 'lock' : 'prohibit'" class="text-[1.25rem]" />
+                    {{
+                      (kiosk.status()?.enabled === false ? 'SETTINGS.KIOSK_ENABLE' : 'SETTINGS.KIOSK_DISABLE')
+                        | translate
+                    }}
                   </button>
                 </div>
               </div>

@@ -97,14 +97,14 @@
                   <div
                     class="w-3.5 h-3.5 rounded-full transition-colors"
                     [class.bg-action]="pinInput().length > i && !pinError()"
-                    [class.bg-red-500]="pinError()"
+                    [class.bg-danger]="pinError()"
                     [class.bg-line]="pinInput().length <= i && !pinError()"
                   ></div>
                 }
               </div>
 
               @if (errorMessage()) {
-                <p class="text-xs text-red-600 dark:text-red-400 text-center">{{ errorMessage() }}</p>
+                <p class="text-xs text-danger-ink text-center">{{ errorMessage() }}</p>
               }
 
               <div class="grid grid-cols-3 gap-2 w-full max-w-[16.25rem]">
@@ -164,7 +164,7 @@
 
         @case ('error') {
           <div class="flex flex-col items-center text-center gap-3 py-6">
-            <lib-icon name="warning-circle" class="text-[2.5rem] text-red-500" />
+            <lib-icon name="warning-circle" class="text-[2.5rem] text-danger" />
             <p class="text-sm font-semibold text-ink">{{ 'SETTINGS.KIOSK_ERROR' | translate }}</p>
             @if (errorMessage()) {
               <p class="text-xs text-ink-muted break-words max-w-full">{{ errorMessage() }}</p>

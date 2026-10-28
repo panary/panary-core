@@ -62,8 +62,15 @@ export class BusinessDayService extends BaseService<BusinessDay> {
    * Fehlt heute eine Ruhetag-Freigabe? Bewusst am rohen Service vorbei an
    * `handleError`: Der Aufrufer entscheidet bei einem Fehler selbst (fail-open,
    * das Gate der Edge erzwingt die Regel ohnehin).
+   *
+   * Ohne angemeldete Verbindung sofort ablehnen: Ein Socket-Aufruf hängt offline, bis die
+   * Verbindung zurückkommt. Davor wartete das Anlegen einer Bestellung, und die Offline-Outbox
+   * kam nie zum Zug (panary/panary-core#1185).
    */
   async getClosedDayStatus(): Promise<ClosedDayStatus> {
+    if (this.connectionService.connectionState().status !== 'authenticated') {
+      throw new Error('OFFLINE_CLOSED_DAY_STATUS')
+    }
     const service = this.connectionService.businessDayService as unknown as {
       getClosedDayStatus: (data: unknown) => Promise<ClosedDayStatus>
     }

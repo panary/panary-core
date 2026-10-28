@@ -142,9 +142,16 @@ describe('KioskPinDialogComponent', () => {
     await enterPin(component, user)
 
     expect(kiosk.exit).toHaveBeenCalledTimes(1)
-    expect(logs).toEqual([
-      `[kiosk] exit freigegeben von ${user.firstName} ${user.lastName} (${user.role}, ${user._id})`,
-    ])
+    expect(logs).toEqual([`[kiosk] exit freigegeben von ${user._id} (${user.role})`])
+  })
+
+  it('schreibt nie den Klarnamen ins Log', async () => {
+    const { component, logs } = setup({ verified: TECH })
+
+    await enterPin(component, TECH)
+
+    expect(logs.join('\n')).not.toContain(TECH.firstName)
+    expect(logs.join('\n')).not.toContain(TECH.lastName)
   })
 
   it('schreibt die PIN nie ins Log', async () => {

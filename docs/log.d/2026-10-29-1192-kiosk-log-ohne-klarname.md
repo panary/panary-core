@@ -1,0 +1,2 @@
+* **Update**: [POS-Kiosk-Modus](../domains/pos-kiosk-modus.md) — das native Log nennt bei Freigaben nur noch Bediener-ID und Rolle, nie den Klarnamen. Der Logout-Grund (`button`/`idle`/`clock-out`) steht als Info-Zeile im Log (`LogService` spiegelt jetzt auch `console.info`), der Stacktrace-Warneintrag aus `AuthService.logout()` ist entfallen.
+* **Update**: Mutationsprobe zu den neuen Specs: Klarname zurück ins Kiosk-Log → 3 rot, `console.info`-Spiegelung im `LogService` entfernt → 1 rot; Kontrolllauf 29/29 + 6/6 grün, `git diff --exit-code` sauber.

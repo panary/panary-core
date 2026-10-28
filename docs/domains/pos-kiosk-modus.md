@@ -93,8 +93,8 @@ Einstellungen → Info → Karte **Kiosk-Modus** (nur im Tauri-Client):
 Jede Aktion öffnet zuerst [`KioskPinDialogComponent`](../../libs/domains/devices/feature-pos-settings/src/lib/kiosk-pin-dialog/kiosk-pin-dialog.component.ts)
 (Muster: Entkoppeln-Dialog). Kandidaten kommen per `users.find` mit `role: { $in: KIOSK_EXIT_ALLOWED_ROLES }`,
 die Rolle des von `users.verifyPin` zurückgegebenen Users wird nochmals gegengeprüft. Erst danach ruft
-der Dialog den Command. Ins native Log (`[kiosk] <aktion> freigegeben von <Name> (<Rolle>, <id>)`)
-gehen Bediener und Aktion, nie die PIN.
+der Dialog den Command. Ins native Log (`[kiosk] <aktion> freigegeben von <id> (<Rolle>)`)
+gehen Aktion, Bediener-ID und Rolle, nie PIN und nie der Klarname (PII, `logging.md`).
 
 **Personenkreis** `KIOSK_EXIT_ALLOWED_ROLES` = `tenant:owner`, `tenant:technician`
 ([`pos-authorization-roles.ts`](../../libs/domains/users/domain/src/lib/pos-authorization-roles.ts)).

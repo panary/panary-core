@@ -6,6 +6,7 @@ import { uuidv7 } from 'uuidv7'
 import { onTestFinished } from 'vitest'
 
 import { app } from '../../../src/app'
+import { userExternalResolver } from '../../../src/services/users/users.schema'
 
 type StoredUser = {
   _id: string
@@ -63,5 +64,21 @@ describe('users — Vertrag und Jahresanspruch aus der Cloud', () => {
     await app.service('users').patch(user._id, { vacationDaysPerYear: null } as never, fromSync)
 
     assert.strictEqual((await stored(user._id)).vacationDaysPerYear, null)
+  })
+
+  it('gibt Vertrag und Anspruch nicht an Clients aus', async () => {
+    const external = (await userExternalResolver.resolve(
+      {
+        _id: 'u-1',
+        firstName: 'Vertrag',
+        vacationDaysPerYear: 28,
+        contract: { contractType: 'FULLTIME', hoursPerWeek: 40 },
+      } as never,
+      {} as never,
+    )) as Record<string, unknown>
+
+    assert.strictEqual('contract' in external && external['contract'] !== undefined, false)
+    assert.strictEqual('vacationDaysPerYear' in external && external['vacationDaysPerYear'] !== undefined, false)
+    assert.strictEqual(external['firstName'], 'Vertrag')
   })
 })

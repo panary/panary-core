@@ -206,6 +206,18 @@ describe('users.stampByEmployeeNumber / lookupByEmployeeNumber', () => {
     for (const u of [archived, manager, owner, technician, foreign, stranger]) expect(await stampOf(u._id)).toBeNull()
   })
 
+  it('weist Nicht-Geraete ab, ohne die Edge-weite Sperre zu beruehren', async () => {
+    const anna = await person()
+    const c = await device()
+    const staff = { _id: anna._id, role: 'tenant:staff', tenantId }
+    for (let i = 0; i < 60; i++) {
+      await expect(
+        svc().lookupByEmployeeNumber({ employeeNumber: anna.number }, { user: staff }),
+      ).rejects.toMatchObject(REJECTED)
+    }
+    await expect(lookup(anna.number, c)).resolves.toMatchObject({ firstName: 'Anna' })
+  })
+
   it('verlangt genau 6 Ziffern und zaehlt Formatfehler nicht', async () => {
     const c = await device()
     for (const bad of ['12345', '1234567', 'abcdef', '12 456', '']) {

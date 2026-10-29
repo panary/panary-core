@@ -271,5 +271,5 @@ im Log, **ohne** die Nummer.
 Weg und Gerät ergeben sich aus Methodenname und `actor.deviceId`. Das Event nutzt bestehende Aktionen und Felder, ein Cloud-Pin-Bump
 ist dafür nicht nötig.
 
-**Bewusst offen.** Der Altpfad (`users.find` + `checkin(userId)`) bleibt bis zur Umstellung des Panels und dem Feld-Rollout
+**Bewusst offen.** Nicht-Geräte-Aufrufer (z. B. Konten mit `users:UPDATE`) werden vor jedem Zähler abgewiesen, damit sie die Edge-weite Sperre nicht auslösen können. Der Gerätezähler wird nach einer erfolgreichen Buchung zurückgesetzt (Vorgabe aus #1197, damit ein Vertipper den Mitarbeiter nicht aussperrt); wer eine gültige eigene Nummer hat, kann sich damit pro Buchung vier weitere Fehlversuche verschaffen. Begrenzt ist das nur durch die Edge-weite Grobsperre (50 Fehlversuche / 5 min) – eine Verschärfung ist eine Entscheidung für Michael. Der Altpfad (`users.find` + `checkin(userId)`) bleibt bis zur Umstellung des Panels und dem Feld-Rollout
 unverändert; erst danach schließt er sich (Folge-Issues). Der Limiter-Zustand geht beim Edge-Neustart verloren.

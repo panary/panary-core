@@ -93,18 +93,26 @@ export const resolveStampTarget = async (
   params: StampByNumberParams | undefined,
 ): Promise<ResolvedStampTarget> => {
   const actor = params?.user
-  // Ohne Geraet (kein Akteur, Nicht-Geraete-Rolle) gibt es keinen Zaehler-Schluessel, der etwas begrenzt.
-  const deviceKey = isDeviceActor(actor) ? actor._id : 'unknown-caller'
 
   // Format ist keine Auskunft ueber vorhandene Nummern: kein Fehlversuch, keine Einheitsmeldung.
   if (typeof employeeNumber !== 'string' || !EMPLOYEE_NUMBER_PATTERN.test(employeeNumber)) {
     throw new BadRequest('employeeNumber muss aus genau 6 Ziffern bestehen')
   }
 
+  // Kein Geraet: abweisen, bevor ein Zaehler beruehrt wird. Sonst koennte jeder Aufrufer mit `users:UPDATE` die
+  // Edge-weite Sperre ausloesen und damit alle Kassen lahmlegen.
+  if (!isDeviceActor(actor)) {
+    logger.warn({
+      message: 'Stempeln per Personalnummer von Nicht-Geraet abgelehnt',
+      event: 'security.stamp_number_not_device',
+    })
+    throw new Forbidden(REJECTED_MESSAGE, { code: STAMP_NUMBER_REJECTED })
+  }
+  const deviceKey = actor._id
+
   const lockedFor = currentLockout(deviceKey)
   if (lockedFor !== null) throw lockedError(lockedFor)
 
-  if (!isDeviceActor(actor)) return reject(deviceKey, 'NOT_A_DEVICE')
   // Mandant ist Pflicht: Ohne ihn gaebe es keinen Scope fuer die Suche. Fail-closed.
   if (!actor.tenantId) return reject(deviceKey, 'NO_TENANT_CONTEXT')
 

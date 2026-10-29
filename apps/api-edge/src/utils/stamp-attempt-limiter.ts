@@ -48,7 +48,7 @@ interface FailureRecord {
 export interface StampAttemptLimiter {
   /** Restdauer der Sperre in Sekunden (aufgerundet) oder `null`. */
   lockoutSeconds: (key: string) => number | null
-  /** Zaehlt einen Fehlversuch; liefert den Zaehlerstand im Fenster (0 direkt nach dem Sperren). */
+  /** Zaehlt einen Fehlversuch; liefert den Zaehlerstand im Fenster (die Schwelle, wenn dieser Fehlversuch sperrt). */
   recordFailure: (key: string) => number
   /** Loescht Zaehler und Eskalationsstufe. */
   clear: (key: string) => void

@@ -1,6 +1,5 @@
 // Personalnummer nie an Geraete (panary/panary-core#1196): gegen die echte App und die migrierte Test-SQLite,
 // mit externem Provider, damit `resolveExternal` laeuft.
-import assert from 'assert'
 import { uuidv7 } from 'uuidv7'
 import { afterAll, beforeAll, describe, expect, it, onTestFinished } from 'vitest'
 
@@ -69,8 +68,6 @@ describe('users — employeeNumber an Geraete', () => {
     })
     return created
   }
-
-  const admin = { _id: uuidv7(), role: 'tenant:owner', tenantId } as never
 
   const asRows = (r: unknown): Row[] => (Array.isArray(r) ? r : ((r as { data: Row[] }).data ?? [])) as Row[]
 

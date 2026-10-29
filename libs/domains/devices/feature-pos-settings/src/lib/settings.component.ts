@@ -12,6 +12,7 @@ import {
   OFFLINE_OUTBOX,
   OFFLINE_REPLAY,
   ReturnAfterOrderService,
+  withPosOperatorToken,
 } from '@panary/shared/data-access'
 import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
@@ -239,8 +240,8 @@ export class SettingsComponent implements OnInit {
 
   /**
    * Laedt den eingeloggten Mitarbeiter frisch vom Edge. Die Personalnummer liegt
-   * bewusst nicht im localStorage (Time-Clock-Credential), der externe Resolver
-   * liefert sie aber an authentifizierte Clients aus.
+   * bewusst nicht im localStorage (Time-Clock-Credential). Der Edge liefert sie
+   * Geraeten nur mit dem Bediener-Token des eingeloggten Mitarbeiters aus (panary/panary-core#1202).
    */
   async #loadProfile(): Promise<void> {
     const userId = (this.currentUser() as { _id?: string } | null)?._id
@@ -249,7 +250,7 @@ export class SettingsComponent implements OnInit {
     this.profileLoading.set(true)
     this.profileError.set(false)
     try {
-      const user = (await this.connectionService.usersService.get(userId)) as PosProfileUser
+      const user = (await this.connectionService.usersService.get(userId, withPosOperatorToken())) as PosProfileUser
       this.profileUser.set(user)
     } catch {
       // Offline oder Edge nicht erreichbar — die Karte bleibt mit den

@@ -41,11 +41,15 @@ export const userExternalResolver = resolve<User, HookContext<UserService>>({
   contract: async () => undefined,
   vacationDaysPerYear: async () => undefined,
   // Die Personalnummer ist das alleinige Credential der Zeiterfassung. Ein Geraet (`device:<uuid>`) bekommt sie nie,
-  // auch nicht ohne `$select` (panary/panary-core#1196). Filtern nach ihr bleibt moeglich: der Resolver kuerzt nur das
-  // Ergebnis, nicht die Query. tenant:staff sieht ueber den userQueryResolver ohnehin nur den eigenen Datensatz.
-  employeeNumber: async (value: any, _user: any, context: HookContext) => {
+  // auch nicht ohne `$select` (panary/panary-core#1196). Einzige Ausnahme: die eigene Nummer des Menschen, den ein
+  // gueltiges Bediener-Token an der Kasse belegt (`params.posOperator`, ADR 0053) — die POS-Einstellungen zeigen sie
+  // an (panary/panary-core#1202). Ohne oder mit abgelehntem Token bleibt sie weg. Filtern nach ihr bleibt moeglich: der
+  // Resolver kuerzt nur das Ergebnis, nicht die Query. tenant:staff sieht ueber den userQueryResolver ohnehin nur den
+  // eigenen Datensatz.
+  employeeNumber: async (value: any, user: any, context: HookContext) => {
     const actor = context.params?.user as { role?: string } | undefined
-    return isDeviceSession(actor) || actor?.role?.startsWith('device:') ? undefined : value
+    if (!isDeviceSession(actor) && !actor?.role?.startsWith('device:')) return value
+    return context.params.posOperator?.userId === user?._id ? value : undefined
   },
 })
 //#endregion

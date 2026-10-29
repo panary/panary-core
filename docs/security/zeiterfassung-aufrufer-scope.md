@@ -273,3 +273,19 @@ ist dafür nicht nötig.
 
 **Bewusst offen.** Nicht-Geräte-Aufrufer (z. B. Konten mit `users:UPDATE`) werden vor jedem Zähler abgewiesen, damit sie die Edge-weite Sperre nicht auslösen können. Der Gerätezähler wird nach einer erfolgreichen Buchung zurückgesetzt (Vorgabe aus #1197, damit ein Vertipper den Mitarbeiter nicht aussperrt); wer eine gültige eigene Nummer hat, kann sich damit pro Buchung vier weitere Fehlversuche verschaffen. Begrenzt ist das nur durch die Edge-weite Grobsperre (50 Fehlversuche / 5 min) – eine Verschärfung ist eine Entscheidung für Michael. Der Altpfad (`users.find` + `checkin(userId)`) bleibt bis zur Umstellung des Panels und dem Feld-Rollout
 unverändert; erst danach schließt er sich (Folge-Issues). Der Limiter-Zustand geht beim Edge-Neustart verloren.
+
+## Nachtrag 2026-10-29 — Panel auf den Edge-Pfad umgestellt (panary/panary-core#1198)
+
+Das Personalnummer-Panel am POS-Login (`time-clock-panel.component.ts`) löst die Nummer nicht mehr selbst auf. Es ruft auf
+Edge und cloud-direkt denselben Vertrag: 6 Ziffern (String, führende Nullen bleiben) → `users.lookupByEmployeeNumber` →
+Bestätigungsschritt „Vorname N. – Einstempeln?" → `users.stampByEmployeeNumber`. Die Methoden stehen in der `methods:`-Liste des
+`users`-Clients (`connection.service.ts`); ohne Eintrag wären sie im Client unsichtbar.
+
+- **Fehler gehören dem Panel.** `UserService.lookupByEmployeeNumber`/`stampByEmployeeNumber` laufen bewusst nicht durch `handleError`:
+  kein Toast mit Rohmeldung, kein Sitzungs-Reset bei 401. Das Panel unterscheidet am stabilen Code in `error.data.code`:
+  `STAMP_LOCKED` (Eingabe gesperrt, Countdown aus `retryAfterSeconds`), `STAMP_NUMBER_REJECTED` (eine Meldung für unbekannt,
+  archiviert, unzulässig), `TENANT_SUSPENDED` (Sperrzustand setzen), 409 (Servermeldung), alles andere „fehlgeschlagen".
+- **Entfernt:** Clientseitige Auflösung per `users.find` + `parseInt`, der `actionConfirmed`-Output samt `TimeClockEvent` (trug die
+  Nummer im Klartext), der ungenutzte `users`-Input und der TODO-Handler `onTimeClockAction`.
+- **Release-Reihenfolge:** Edge `v*` (#1197) vor POS `pos-v*`; für cloud-direkt zusätzlich die Cloud-Methoden (panary/panary-cloud#1557).
+  Ein neues Panel gegen einen Edge ohne die Methoden meldet „fehlgeschlagen".

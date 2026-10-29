@@ -74,8 +74,11 @@ describe('users — employeeNumber an Geraete', () => {
   // Feathers legt das Ergebnis von `resolveExternal` in `context.dispatch` ab, das nur die Transporte (REST, Socket,
   // Channels) ausliefern. Ein direkter Service-Aufruf liefert `result` und zeigt die Wirkung deshalb nicht: Der
   // Resolver wird mit dem gespeicherten Datensatz und dem Aufrufer-Kontext aufgerufen.
-  const external = async (stored: Row, user: unknown): Promise<Row> =>
-    (await userExternalResolver.resolve(stored as never, { params: { provider: 'rest', user } } as never)) as Row
+  const external = async (stored: Row, user: unknown, posOperator?: { userId: string }): Promise<Row> =>
+    (await userExternalResolver.resolve(
+      stored as never,
+      { params: { provider: 'rest', user, posOperator } } as never,
+    )) as Row
 
   const storedRow = async (id: string): Promise<Row> =>
     (await app.service('users').get(id, { provider: undefined })) as Row
@@ -85,6 +88,18 @@ describe('users — employeeNumber an Geraete', () => {
     const row = await external(await storedRow(u._id), device)
     expect(row.employeeNumber).toBeUndefined()
     expect(row.firstName).toBe('Stempel')
+  })
+
+  it('liefert dem Geraet die eigene Nummer des per Bediener-Token belegten Menschen (#1202)', async () => {
+    const u = await createStaff()
+    const row = await external(await storedRow(u._id), device, { userId: u._id })
+    expect(row.employeeNumber).toBe(NUMBER)
+  })
+
+  it('liefert dem Geraet die Nummer eines anderen Menschen nicht, auch nicht mit Bediener-Token', async () => {
+    const u = await createStaff()
+    const row = await external(await storedRow(u._id), device, { userId: uuidv7() })
+    expect(row.employeeNumber).toBeUndefined()
   })
 
   it('erkennt das Geraet auch allein an der Rolle', async () => {

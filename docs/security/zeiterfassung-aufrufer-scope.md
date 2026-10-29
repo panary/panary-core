@@ -201,16 +201,21 @@ virtuellem Geräte-User (`device:<uuid>`). Wirkung:
 | Aufrufer | `employeeNumber` im Ergebnis |
 |---|---|
 | Gerät (`find`, `get`, ohne `$select`) | nicht enthalten |
+| Gerät mit gültigem Bediener-Token, nur der **eigene** Datensatz des belegten Menschen | enthalten (panary/panary-core#1202) |
 | Verwaltungsrolle (Admin-Ansicht) | enthalten |
 | `tenant:staff` | nur der eigene Datensatz, `userQueryResolver` erzwingt die eigene `_id` |
 | interner Aufruf (`provider: undefined`) | enthalten, der Resolver läuft dort nicht |
 
-- **Lesepfade im Client geprüft:** Der Login-Bildschirm (`$select` ohne die Nummer), die Geräte-Neuverifikation und
-  die POS-Einstellungsseite lesen sie nicht. Das Personalnummer-Panel schickt sie als Query-Filter und braucht sie
+- **Lesepfade im Client:** Der Login-Bildschirm (`$select` ohne die Nummer) und die Geräte-Neuverifikation lesen sie
+  nicht. Die POS-Einstellungsseite zeigt die eigene Nummer und lädt sie mit dem Bediener-Token (`withPosOperatorToken`);
+  der Resolver gibt sie nur frei, wenn `params.posOperator.userId` der Datensatz ist (ADR 0053). Die erste Fassung
+  von #1196 hatte diesen Leser übersehen, die Anzeige stand auf `–`. Das Personalnummer-Panel schickt sie als Query-Filter und braucht sie
   nicht im Ergebnis.
-- **Query-Filter bleibt möglich.** `find({ query: { employeeNumber } })` trifft weiter, nur das Ergebnis trägt die
-  Nummer nicht. Der Filter bleibt ein Treffer-ja/nein-Orakel. Das schließt erst der serverseitige Stempelpfad mit
-  Limiter (Folge-Issue).
+- **Query-Filter bleibt möglich, und er ist mehr als ein Treffer-ja/nein-Orakel.** `find({ query: { employeeNumber } })`
+  trifft weiter, nur das Ergebnis trägt die Nummer nicht. `querySyntax` erlaubt auf `employeeNumber` aber auch
+  `$gt`, `$lt`, `$in` und `$ne`. Ein Gerät kann die Nummer eines Kollegen damit per Bisektion in etwa 20 Abfragen
+  auslesen. Das ist vorbestehend und wird erst vom serverseitigen Stempelpfad mit Limiter geschlossen (Folge-Issue,
+  Kette #1196 → #1197). Bis dahin schützt der Resolver die Auslieferung, nicht das Auslesen.
 - **Zwei Wege am Resolver vorbei (Review-Befund):** `resolveExternal` übernimmt ein schon vorbelegtes Dispatch
   unverändert. Es entsteht, wenn ein innerer Aufruf ohne User (`provider: undefined`) das Ergebnis liefert.
   1. `checkin`, `checkout`, `startBreak` und `endBreak` patchen intern und gaben dieses Ergebnis zurück. Sie geben

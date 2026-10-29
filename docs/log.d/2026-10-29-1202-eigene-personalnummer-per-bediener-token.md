@@ -1,0 +1,2 @@
+* **Update**: [Aufrufer-Scope der POS-Zeiterfassung](../security/zeiterfassung-aufrufer-scope.md) — der `userExternalResolver` gibt Geräten die eigene `employeeNumber` frei, wenn ein gültiges Bediener-Token genau diesen Menschen belegt; die POS-Einstellungen laden das Profil mit dem Token und zeigen die Nummer wieder an (panary/panary-core#1202, Regression aus #1196).
+* **Update**: Mutationsprobe zu `employee-number-device.test.ts`: Token-Prüfung entfernt (immer Wert) → 3 rot, immer entfernen → 1 rot; Kontrolllauf 10/10 grün, `git diff --exit-code` sauber.

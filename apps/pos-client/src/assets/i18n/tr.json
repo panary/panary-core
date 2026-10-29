@@ -195,6 +195,7 @@
     "ENTER_EMPLOYEE_NUMBER": "Personel numarası girin",
     "INVALID_EMPLOYEE_NUMBER": "Geçersiz personel numarası",
     "INVALID_6_DIGIT": "Lütfen geçerli bir 6 haneli personel numarası girin.",
+    "STATE_CONFLICT": "Durum değişti. Lütfen tekrar deneyin.",
     "NUMBER_REJECTED": "Personel numarası geçersiz veya izin verilmiyor.",
     "LOCKED": "Çok fazla başarısız deneme. Lütfen {{seconds}} saniye sonra tekrar deneyin.",
     "CONFIRM_CLOCK_IN": "{{name}} – giriş yapılsın mı?",

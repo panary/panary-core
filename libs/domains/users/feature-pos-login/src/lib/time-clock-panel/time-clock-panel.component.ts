@@ -365,7 +365,7 @@ export class TimeClockPanelComponent {
 
   /**
    * Fehlerabbildung ohne Toast und ohne Sitzungs-Reset (der `UserService` reicht die Fehler unverändert durch).
-   * Gesperrt → Wartezeit; Einheitsmeldung für jede abgelehnte Nummer; Zustandskonflikt (409) mit der Servermeldung;
+   * Gesperrt → Wartezeit; Einheitsmeldung für jede abgelehnte Nummer; Zustandskonflikt (409) mit eigener Meldung;
    * alles andere als „fehlgeschlagen" — nie als Erfolg.
    */
   #showError(error: unknown): void {
@@ -393,8 +393,8 @@ export class TimeClockPanelComponent {
     this.employeeNumberInput.set('')
     if (data?.['code'] === STAMP_NUMBER_REJECTED) {
       this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.NUMBER_REJECTED'))
-    } else if (code === 409 && typeof message === 'string') {
-      this.errorMessage.set(message)
+    } else if (code === 409) {
+      this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.STATE_CONFLICT'))
     } else {
       console.error('Time clock action failed:', error)
       this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.ACTION_FAILED'))

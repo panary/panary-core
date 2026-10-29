@@ -446,6 +446,7 @@
             }
             <div class="grid grid-cols-2 gap-3">
               <button
+                type="button"
                 class="h-14 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium"
                 (click)="cancelConfirmation()"
                 [disabled]="isLoading()"
@@ -453,6 +454,7 @@
                 {{ 'COMMON.CANCEL' | translate }}
               </button>
               <button
+                type="button"
                 class="h-14 rounded-xl bg-[#00B8D4] hover:bg-[#00a0bb] text-white font-semibold disabled:opacity-50"
                 (click)="confirmAction()"
                 [disabled]="isLoading()"

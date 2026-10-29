@@ -195,6 +195,7 @@
     "ENTER_EMPLOYEE_NUMBER": "Personalnummer eingeben",
     "INVALID_EMPLOYEE_NUMBER": "Ungültige Personalnummer",
     "INVALID_6_DIGIT": "Bitte geben Sie eine gültige 6-stellige Personalnummer ein.",
+    "STATE_CONFLICT": "Der Zustand hat sich geändert. Bitte erneut versuchen.",
     "NUMBER_REJECTED": "Personalnummer ungültig oder nicht zulässig.",
     "LOCKED": "Zu viele Fehlversuche. Bitte in {{seconds}} Sekunden erneut versuchen.",
     "CONFIRM_CLOCK_IN": "{{name}} – Einstempeln?",

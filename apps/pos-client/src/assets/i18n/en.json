@@ -195,6 +195,7 @@
     "ENTER_EMPLOYEE_NUMBER": "Enter employee number",
     "INVALID_EMPLOYEE_NUMBER": "Invalid employee number",
     "INVALID_6_DIGIT": "Please enter a valid 6-digit employee number.",
+    "STATE_CONFLICT": "The state has changed. Please try again.",
     "NUMBER_REJECTED": "Employee number invalid or not allowed.",
     "LOCKED": "Too many failed attempts. Please try again in {{seconds}} seconds.",
     "CONFIRM_CLOCK_IN": "{{name}} – clock in?",

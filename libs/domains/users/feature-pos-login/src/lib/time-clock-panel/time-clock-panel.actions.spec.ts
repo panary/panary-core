@@ -166,13 +166,13 @@ describe('TimeClockPanel — Ablehnung und Sperre (core#1198)', () => {
     expect(component.lockSecondsLeft()).toBe(60)
   })
 
-  it('Zustandskonflikt (409) zeigt die Servermeldung', async () => {
+  it('Zustandskonflikt (409) zeigt die übersetzte Meldung, nicht den Servertext', async () => {
     const { component } = setup({
       stamp: async () => Promise.reject(feathersError(409, 'Benutzer ist nicht eingestempelt')),
     })
     await component.lookupEmployee()
     await component.confirmAction()
-    expect(component.errorMessage()).toBe('Benutzer ist nicht eingestempelt')
+    expect(component.errorMessage()).toBe('TIME_CLOCK.STATE_CONFLICT')
     expect(component.successMessage()).toBeNull()
   })
 

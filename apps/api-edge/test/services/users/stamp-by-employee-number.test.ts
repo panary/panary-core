@@ -206,6 +206,15 @@ describe('users.stampByEmployeeNumber / lookupByEmployeeNumber', () => {
     for (const u of [archived, manager, owner, technician, foreign, stranger]) expect(await stampOf(u._id)).toBeNull()
   })
 
+  it('loest die Nummer im eigenen Mandanten auf, auch wenn ein fremder Mandant dieselbe Nummer fuehrt', async () => {
+    const number = nextNumber()
+    const mine = await person({}, number)
+    await person({ tenantId: uuidv7(), firstName: 'Fremd' }, number)
+    const c = await device()
+    await expect(lookup(number, c)).resolves.toEqual({ firstName: 'Anna', lastNameInitial: 'B' })
+    await expect(stamp(number, 'checkin', c)).resolves.toMatchObject({ _id: mine._id })
+  })
+
   it('verlangt genau 6 Ziffern und zaehlt Formatfehler nicht', async () => {
     const c = await device()
     for (const bad of ['12345', '1234567', 'abcdef', '12 456', '']) {

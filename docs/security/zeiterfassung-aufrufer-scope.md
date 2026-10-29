@@ -211,9 +211,11 @@ virtuellem Geräte-User (`device:<uuid>`). Wirkung:
   der Resolver gibt sie nur frei, wenn `params.posOperator.userId` der Datensatz ist (ADR 0053). Die erste Fassung
   von #1196 hatte diesen Leser übersehen, die Anzeige stand auf `–`. Das Personalnummer-Panel schickt sie als Query-Filter und braucht sie
   nicht im Ergebnis.
-- **Query-Filter bleibt möglich.** `find({ query: { employeeNumber } })` trifft weiter, nur das Ergebnis trägt die
-  Nummer nicht. Der Filter bleibt ein Treffer-ja/nein-Orakel. Das schließt erst der serverseitige Stempelpfad mit
-  Limiter (Folge-Issue).
+- **Query-Filter bleibt möglich, und er ist mehr als ein Treffer-ja/nein-Orakel.** `find({ query: { employeeNumber } })`
+  trifft weiter, nur das Ergebnis trägt die Nummer nicht. `querySyntax` erlaubt auf `employeeNumber` aber auch
+  `$gt`, `$lt`, `$in` und `$ne`. Ein Gerät kann die Nummer eines Kollegen damit per Bisektion in etwa 20 Abfragen
+  auslesen. Das ist vorbestehend und wird erst vom serverseitigen Stempelpfad mit Limiter geschlossen (Folge-Issue,
+  Kette #1196 → #1197). Bis dahin schützt der Resolver die Auslieferung, nicht das Auslesen.
 - **Zwei Wege am Resolver vorbei (Review-Befund):** `resolveExternal` übernimmt ein schon vorbelegtes Dispatch
   unverändert. Es entsteht, wenn ein innerer Aufruf ohne User (`provider: undefined`) das Ergebnis liefert.
   1. `checkin`, `checkout`, `startBreak` und `endBreak` patchen intern und gaben dieses Ergebnis zurück. Sie geben

@@ -49,7 +49,8 @@ export const userExternalResolver = resolve<User, HookContext<UserService>>({
   employeeNumber: async (value: any, user: any, context: HookContext) => {
     const actor = context.params?.user as { role?: string } | undefined
     if (!isDeviceSession(actor) && !actor?.role?.startsWith('device:')) return value
-    return context.params.posOperator?.userId === user?._id ? value : undefined
+    const operatorId = context.params.posOperator?.userId
+    return operatorId && operatorId === user?._id ? value : undefined
   },
 })
 //#endregion

@@ -336,3 +336,15 @@ describe('authorize() — Edge-Custom-Method-Tabelle (Rolle × Methode)', () => 
     })
   })
 })
+
+describe('authorize() — Stempeln per Personalnummer (#1197)', () => {
+  it.each(['lookupByEmployeeNumber', 'stampByEmployeeNumber'])(
+    'DEVICE_POS/TABLET dürfen users.%s über CAN_CLOCK_IN, KIOSK/KDS nicht',
+    async method => {
+      await expectAllowed({ path: 'users', method, user: devicePos })
+      await expectAllowed({ path: 'users', method, user: deviceTablet })
+      await expectForbidden({ path: 'users', method, user: deviceKiosk })
+      await expectForbidden({ path: 'users', method, user: deviceKds })
+    },
+  )
+})

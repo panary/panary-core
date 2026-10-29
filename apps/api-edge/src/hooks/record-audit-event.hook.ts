@@ -177,6 +177,15 @@ function resolveAction(
     return AuditAction.PRICE_CHANGE
   }
 
+  // users.stampByEmployeeNumber: Aktion aus `data.action` (Stempeln per Personalnummer, #1197)
+  if (context.path === 'users' && context.method === 'stampByEmployeeNumber') {
+    const stampAction = (context.data as { action?: string } | undefined)?.action
+    if (stampAction === 'checkout') return AuditAction.CLOCK_OUT
+    if (stampAction === 'startBreak') return AuditAction.BREAK_START
+    if (stampAction === 'endBreak') return AuditAction.BREAK_END
+    return defaultAction
+  }
+
   // users: PERMISSION_CHANGE wenn `role` oder `permissions` im Diff
   if (context.path === 'users' && diff) {
     if ('role' in diff || 'permissions' in diff) {

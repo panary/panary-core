@@ -83,6 +83,9 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
   checkout: AppAction.UPDATE,
   startBreak: AppAction.UPDATE,
   endBreak: AppAction.UPDATE,
+  // Stempeln per Personalnummer (#1197): wie die vier Methoden; Geraete ueber CAN_CLOCK_IN.
+  lookupByEmployeeNumber: AppAction.UPDATE,
+  stampByEmployeeNumber: AppAction.UPDATE,
   // cash-sessions: autorisierte Eröffnung (Manager-PIN) legt eine Session an.
   openAuthorized: AppAction.CREATE,
   // cloud-connection: preflight ist reine Diagnose (READ); startBootstrap und
@@ -100,7 +103,14 @@ const METHOD_TO_ACTION: Record<string, AppAction> = {
 // Geräte-JWT und haben bewusst KEIN users:UPDATE (das würde beliebige
 // User-Patches erlauben). Für genau diese vier Methoden genügt alternativ die
 // fachliche CAN_CLOCK_IN-Ability (Matrix-String oder user.permissions).
-const TIME_CLOCK_METHODS: ReadonlySet<string> = new Set(['checkin', 'checkout', 'startBreak', 'endBreak'])
+const TIME_CLOCK_METHODS: ReadonlySet<string> = new Set([
+  'checkin',
+  'checkout',
+  'startBreak',
+  'endBreak',
+  'lookupByEmployeeNumber',
+  'stampByEmployeeNumber',
+])
 
 // users-PIN-Selbstwechsel: DEVICE_POS/DEVICE_TABLET rufen `changePin` ueber das
 // Geraete-JWT auf und haben bewusst KEIN users:UPDATE. Eigenes Set statt

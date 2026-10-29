@@ -369,11 +369,7 @@ export class TimeClockPanelComponent {
    * alles andere als „fehlgeschlagen" — nie als Erfolg.
    */
   #showError(error: unknown): void {
-    const { code, data, message } = (error ?? {}) as {
-      code?: unknown
-      data?: Record<string, unknown>
-      message?: unknown
-    }
+    const { code, data } = (error ?? {}) as { code?: unknown; data?: Record<string, unknown> }
     this.pinError.set(true)
     this.confirmation.set(null)
 

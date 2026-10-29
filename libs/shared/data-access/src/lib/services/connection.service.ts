@@ -18,6 +18,8 @@ type ServiceTypes = {
     startBreak: (data: { id: Id }) => Promise<{ workingTimeId: string }>
     endBreak: (data: { id: Id }) => Promise<{ workingTimeId: string }>
     mustChangePassword: (data: { newPassword: string }, params?: Params) => Promise<any>
+    lookupByEmployeeNumber: (data: { employeeNumber: string }, params?: Params) => Promise<any>
+    stampByEmployeeNumber: (data: { employeeNumber: string; action: string }, params?: Params) => Promise<any>
   }
   businessdays: SocketService & {
     open: (data: { locationId: string }) => Promise<{ businessDayId: Id; date: string }>
@@ -623,6 +625,9 @@ export class ConnectionService {
         'changePin',
         // Bedienhand am Terminal (#833) — ohne Registrierung ist die Custom-Method clientseitig unsichtbar.
         'setPosHandedness',
+        // Stempeln per Personalnummer am Login-Bildschirm (#1198) — Edge (#1197) und Cloud (cloud#1557).
+        'lookupByEmployeeNumber',
+        'stampByEmployeeNumber',
       ],
     })
     this.#app.use('locations', socketClient.service('locations'), {

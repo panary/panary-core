@@ -16,7 +16,7 @@ import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-conf
 // Direct import to avoid circular dependency with Admin's ConnectionService
 import { ConnectionService, OFFLINE_OUTBOX, storePosOperatorToken } from '@panary/shared/data-access'
 import { monogramStyle, POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
-import { TimeClockEvent, TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
+import { TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { PinPadComponent } from './pin-pad/pin-pad.component'
 import { StaffPickerComponent, type StaffPickerPerson } from './staff-picker/staff-picker.component'
 import { DeviceReverifyComponent } from './device-reverify/device-reverify.component'
@@ -825,27 +825,6 @@ export class LoginComponent implements OnInit {
     const idx = codes.indexOf(this.languageService.currentLanguage())
     const next = codes[(idx + 1) % codes.length]
     this.languageService.setLanguage(next)
-  }
-
-  //#endregion
-
-  //#region Time Clock
-  /**
-   * Handle time clock actions (Kommen, Gehen, Pause, Pause Ende)
-   */
-  async onTimeClockAction(event: TimeClockEvent): Promise<void> {
-    console.log('Time clock action:', event)
-
-    // TODO: Send action to backend worktimes service
-    // Example:
-    // const worktimesService = this.connectionService.worktimesService;
-    // await worktimesService.create({
-    //   employeeNumber: event.employeeNumber,
-    //   action: event.action,
-    //   timestamp: event.timestamp,
-    //   deviceId: this.configService.getConfig()?.deviceId,
-    //   locationId: this.configService.getConfig()?.locationId,
-    // });
   }
 
   //#endregion

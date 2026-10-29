@@ -6,6 +6,26 @@ import { BaseService, ConnectionService, createEnsureLoaded } from '@panary/shar
 import { AuthService } from '@panary/auth/data-access'
 import { Location } from '@panary/locations/data-access'
 
+/** Buchungsart von `stampByEmployeeNumber` — entspricht den vier Stempel-Methoden des Servers. */
+export type StampAction = 'checkin' | 'checkout' | 'startBreak' | 'endBreak'
+
+/** Bestätigung vor dem Stempeln per Personalnummer: nur Vorname und Initial des Nachnamens. */
+export interface EmployeeNumberLookup {
+  firstName: string
+  lastNameInitial: string
+}
+
+export interface StampByEmployeeNumberResult {
+  _id: string
+  firstName: string
+  action: StampAction
+  state: 'OUT' | 'IN' | 'BREAK'
+}
+
+/** Stabile Codes im `data` der Fehler von `lookupByEmployeeNumber`/`stampByEmployeeNumber`. */
+export const STAMP_NUMBER_REJECTED = 'STAMP_NUMBER_REJECTED'
+export const STAMP_LOCKED = 'STAMP_LOCKED'
+
 @Injectable({
   providedIn: 'root',
 })
@@ -153,6 +173,20 @@ export class UserService extends BaseService<User> {
     return this.service
       .endBreak(userId, params)
       .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
+  }
+
+  /**
+   * Bestätigung vor dem Stempeln per Personalnummer (#1198). Bewusst OHNE `handleError`: Die Fehler (Einheitsmeldung,
+   * Sperre mit `retryAfterSeconds`) gehören dem Panel — ein Toast mit Rohmeldung oder der Sitzungs-Reset bei 401
+   * ließe sie nie ankommen. Die Nummer bleibt ein String.
+   */
+  async lookupByEmployeeNumber(employeeNumber: string): Promise<EmployeeNumberLookup> {
+    return this.service.lookupByEmployeeNumber({ employeeNumber })
+  }
+
+  /** Bucht per Personalnummer (#1198). Fehler wie bei `lookupByEmployeeNumber` unverändert weitergereicht. */
+  async stampByEmployeeNumber(employeeNumber: string, action: StampAction): Promise<StampByEmployeeNumberResult> {
+    return this.service.stampByEmployeeNumber({ employeeNumber, action })
   }
 
   async mustChangePassword(data: { newPassword: string }, params: Params = {}): Promise<User> {

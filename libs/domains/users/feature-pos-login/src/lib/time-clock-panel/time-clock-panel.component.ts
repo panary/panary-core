@@ -1,11 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   HostListener,
   inject,
   input,
-  output,
   signal,
   ViewChild,
   WritableSignal,
@@ -13,17 +13,25 @@ import {
 import { CommonModule } from '@angular/common'
 import { TranslateService } from '@ngx-translate/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { TenantSuspensionService } from '@panary/shared/data-access'
+import { readTenantSuspension, TenantSuspensionService } from '@panary/shared/data-access'
 import { IconComponent } from '@panary/shared/ui-common'
-import { User, UserService } from '@panary/users/data-access'
+import { STAMP_LOCKED, STAMP_NUMBER_REJECTED, StampAction, UserService } from '@panary/users/data-access'
 
 export type TimeClockAction = 'clock-in' | 'clock-out' | 'break-start' | 'break-end'
 export type TimeClockMode = 'embedded' | 'mobile'
 
-export interface TimeClockEvent {
-  action: TimeClockAction
-  employeeNumber: string
-  timestamp: Date
+/** Buchungsart des Servers je Panel-Aktion. */
+const STAMP_ACTION_OF: Record<TimeClockAction, StampAction> = {
+  'clock-in': 'checkin',
+  'clock-out': 'checkout',
+  'break-start': 'startBreak',
+  'break-end': 'endBreak',
+}
+
+/** Zeigt die Bestätigung vor der Buchung: nur das, was der Server als Vorschau herausgibt. */
+export interface TimeClockConfirmation {
+  /** „Max M." — Vorname und Initial des Nachnamens. */
+  displayName: string
 }
 
 @Component({
@@ -38,6 +46,7 @@ export class TimeClockPanelComponent {
   readonly #userService = inject(UserService)
   readonly #translateService = inject(TranslateService)
   readonly #tenantSuspension = inject(TenantSuspensionService)
+  readonly #destroyRef = inject(DestroyRef)
   //#endregion
 
   //#region ViewChild
@@ -48,14 +57,6 @@ export class TimeClockPanelComponent {
   /** Mode: 'embedded' for desktop (inside dark panel), 'mobile' for slide-in */
   readonly mode = input<TimeClockMode>('mobile')
 
-  /** Users list for lookup (optional, falls back to UserService if empty or not provided, but preferred) */
-  readonly users = input<Partial<User>[]>([])
-
-  //#endregion
-
-  //#region Outputs
-  /** Emitted when a time clock action is confirmed */
-  readonly actionConfirmed = output<TimeClockEvent>()
   //#endregion
 
   //#region State
@@ -68,8 +69,14 @@ export class TimeClockPanelComponent {
   /** Show PIN input dialog */
   readonly showPinDialog: WritableSignal<boolean> = signal(false)
 
-  /** PIN input value */
-  readonly pinInput: WritableSignal<string> = signal('')
+  /** Eingegebene Personalnummer — bleibt ein String, führende Nullen zählen. */
+  readonly employeeNumberInput: WritableSignal<string> = signal('')
+
+  /** Bestätigungsschritt: Name aus der Vorschau des Servers, solange noch nichts gebucht ist. */
+  readonly confirmation: WritableSignal<TimeClockConfirmation | null> = signal(null)
+
+  /** Verbleibende Sekunden der Sperre nach zu vielen Fehlversuchen (0 = nicht gesperrt). */
+  readonly lockSecondsLeft: WritableSignal<number> = signal(0)
 
   /** PIN error state */
   readonly pinError: WritableSignal<boolean> = signal(false)
@@ -140,7 +147,8 @@ export class TimeClockPanelComponent {
   private resetState(): void {
     this.selectedAction.set(null)
     this.showPinDialog.set(false)
-    this.pinInput.set('')
+    this.employeeNumberInput.set('')
+    this.confirmation.set(null)
     this.pinError.set(false)
     this.errorMessage.set(null)
     this.successMessage.set(null)
@@ -193,34 +201,54 @@ export class TimeClockPanelComponent {
   selectAction(action: TimeClockAction): void {
     this.selectedAction.set(action)
     this.showPinDialog.set(true)
-    this.pinInput.set('')
+    this.employeeNumberInput.set('')
+    this.confirmation.set(null)
     this.pinError.set(false)
+    this.errorMessage.set(null)
+    if (this.isLocked()) this.#showLocked()
   }
 
   cancelAction(): void {
     this.selectedAction.set(null)
     this.showPinDialog.set(false)
-    this.pinInput.set('')
+    this.employeeNumberInput.set('')
+    this.confirmation.set(null)
     this.pinError.set(false)
+  }
+
+  /** „Abbrechen" im Bestätigungsschritt: nichts wird gebucht, die Eingabe beginnt von vorn. */
+  cancelConfirmation(): void {
+    this.confirmation.set(null)
+    this.employeeNumberInput.set('')
+    this.pinError.set(false)
+    this.errorMessage.set(null)
   }
 
   //#endregion
 
   //#region PIN Input
+  /** Serverseitige Sperre nach zu vielen Fehlversuchen läuft noch. */
+  isLocked(): boolean {
+    return this.lockSecondsLeft() > 0
+  }
+
   addDigit(digit: string): void {
-    if (this.pinInput().length < 6) {
-      this.pinInput.update(current => current + digit)
+    if (this.isLocked() || this.isLoading() || this.confirmation()) return
+    if (this.employeeNumberInput().length < 6) {
+      this.employeeNumberInput.update(current => current + digit)
       this.pinError.set(false)
     }
   }
 
   deleteDigit(): void {
-    this.pinInput.update(current => current.slice(0, -1))
+    if (this.isLocked() || this.isLoading() || this.confirmation()) return
+    this.employeeNumberInput.update(current => current.slice(0, -1))
     this.pinError.set(false)
   }
 
   clearPin(): void {
-    this.pinInput.set('')
+    if (this.isLocked() || this.isLoading() || this.confirmation()) return
+    this.employeeNumberInput.set('')
     this.pinError.set(false)
   }
 
@@ -229,7 +257,8 @@ export class TimeClockPanelComponent {
     if (!this.showPinDialog()) return
 
     if (event.key === 'Escape') {
-      this.cancelAction()
+      if (this.confirmation()) this.cancelConfirmation()
+      else this.cancelAction()
       return
     }
 
@@ -239,9 +268,10 @@ export class TimeClockPanelComponent {
       return
     }
 
-    if (event.key === 'Enter' && this.pinInput().length >= 4) {
+    if (event.key === 'Enter') {
       event.preventDefault()
-      this.confirmAction()
+      if (this.confirmation()) void this.confirmAction()
+      else if (this.employeeNumberInput().length === 6) void this.lookupEmployee()
       return
     }
 
@@ -254,13 +284,16 @@ export class TimeClockPanelComponent {
   //#endregion
 
   //#region Confirm Action
-  async confirmAction(): Promise<void> {
+  /** Schritt 1: Nummer zur Vorschau an den Server — bucht nichts, zeigt Name und Initial zur Bestätigung. */
+  async lookupEmployee(): Promise<void> {
     const action = this.selectedAction()
-    const employeePin = this.pinInput()
+    const employeeNumber = this.employeeNumberInput()
 
-    if (!action || employeePin.length !== 6) {
-      this.pinError.set(true)
-      this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.INVALID_6_DIGIT'))
+    if (!action || employeeNumber.length !== 6 || this.isLocked() || this.isLoading()) {
+      if (!this.isLocked()) {
+        this.pinError.set(true)
+        this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.INVALID_6_DIGIT'))
+      }
       return
     }
 
@@ -276,33 +309,46 @@ export class TimeClockPanelComponent {
     this.errorMessage.set(null)
 
     try {
-      // Find user by posPin (API lookup)
-      const user = await this.#findUserByPin(employeePin)
+      const lookup = await this.#userService.lookupByEmployeeNumber(employeeNumber)
+      if (!lookup?.firstName) throw new Error('empty lookup')
+      const initial = lookup.lastNameInitial ? ` ${lookup.lastNameInitial}.` : ''
+      this.confirmation.set({ displayName: `${lookup.firstName}${initial}` })
+    } catch (error: unknown) {
+      this.#showError(error)
+    } finally {
+      this.isLoading.set(false)
+    }
+  }
 
-      if (!user) {
-        this.pinError.set(true)
-        this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.NO_EMPLOYEE_FOUND'))
-        return
-      }
+  /** Schritt 2: Der Mitarbeiter hat den Namen bestätigt — jetzt wird gebucht. */
+  async confirmAction(): Promise<void> {
+    const action = this.selectedAction()
+    const employeeNumber = this.employeeNumberInput()
+    const confirmation = this.confirmation()
 
-      // Execute the time clock action
-      await this.#executeTimeClockAction(action, user)
+    if (!action || !confirmation || employeeNumber.length !== 6 || this.isLoading()) return
 
-      const event: TimeClockEvent = {
-        action,
-        employeeNumber: employeePin,
-        timestamp: new Date(),
-      }
+    if (this.#tenantSuspension.suspended()) {
+      this.pinError.set(true)
+      this.errorMessage.set(this.#translateService.instant('CLOUD_STATUS.TENANT_SUSPENDED'))
+      return
+    }
 
-      this.actionConfirmed.emit(event)
+    this.isLoading.set(true)
+    this.pinError.set(false)
+    this.errorMessage.set(null)
 
-      // Show success message
+    try {
+      const result = await this.#userService.stampByEmployeeNumber(employeeNumber, STAMP_ACTION_OF[action])
+
+      // Ein Aufruf ohne Antwort ist ein Fehlschlag, kein Erfolg (panary/panary-core#810).
+      if (!result) throw new Error('empty stamp result')
+
       const actionLabel = this.actions.find(a => a.action === action)?.label || action
-      const userName = `${user.firstName} ${user.lastName}`
       this.successMessage.set(
         this.#translateService.instant('TIME_CLOCK.ACTION_SUCCESS', {
           action: this.#translateService.instant(actionLabel),
-          user: userName,
+          user: confirmation.displayName,
         }),
       )
 
@@ -311,98 +357,101 @@ export class TimeClockPanelComponent {
         this.resetState()
       }, 2500)
     } catch (error: unknown) {
-      console.error('Time clock action failed:', error)
-      this.pinError.set(true)
-
-      // Extract error message from backend response
-      if (error && typeof error === 'object' && 'message' in error) {
-        this.errorMessage.set((error as { message: string }).message)
-      } else {
-        this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.ACTION_FAILED'))
-      }
+      this.#showError(error)
     } finally {
       this.isLoading.set(false)
     }
   }
 
   /**
-   * Find user by Employee Number
+   * Fehlerabbildung ohne Toast und ohne Sitzungs-Reset (der `UserService` reicht die Fehler unverändert durch).
+   * Gesperrt → Wartezeit; Einheitsmeldung für jede abgelehnte Nummer; Zustandskonflikt (409) mit der Servermeldung;
+   * alles andere als „fehlgeschlagen" — nie als Erfolg.
    */
-  /**
-   * Find user by Employee Number (via Backend)
-   * Bypass local cache/inputs to ensure we find any valid user, not just POS users.
-   */
-  async #findUserByPin(pin: string): Promise<User | undefined> {
-    try {
-      const pinAsNumber = parseInt(pin, 10)
-
-      // Syntax confirmed: query uses Number type directly
-      const query = {
-        query: {
-          employeeNumber: pinAsNumber,
-          $limit: 1,
-        },
-      }
-
-      const result = await this.#userService.find(query)
-
-      const users = (Array.isArray(result) ? result : result.data) as User[]
-
-      if (users.length > 0) {
-        return users[0]
-      }
-
-      return undefined
-    } catch (error) {
-      console.error(`[TimeClock] Error searching user via API:`, error)
-      return undefined
+  #showError(error: unknown): void {
+    const { code, data, message } = (error ?? {}) as {
+      code?: unknown
+      data?: Record<string, unknown>
+      message?: unknown
     }
-  }
+    this.pinError.set(true)
+    this.confirmation.set(null)
 
-  /**
-   * Execute the time clock action based on action type
-   */
-  async #executeTimeClockAction(action: TimeClockAction, user: User): Promise<void> {
-    const userId = user._id
-    console.log(`[TimeClock] Executing action "${action}" for user: ${userId}`)
-    let result: any
-
-    switch (action) {
-      case 'clock-in':
-        result = await this.#userService.checkin(userId)
-        break
-      case 'clock-out':
-        result = await this.#userService.checkout(userId)
-        break
-      case 'break-start':
-        result = await this.#userService.startBreak(userId)
-        break
-      case 'break-end':
-        result = await this.#userService.endBreak(userId)
-        break
-    }
-    console.log(`[TimeClock] Action "${action}" result:`, result)
-
-    // Check if result is actually an error object (FeathersError)
-    if (result && (result.code >= 400 || result.type === 'FeathersError' || result.name === 'NotAuthenticated')) {
-      throw result
+    const suspension = code === 403 ? readTenantSuspension(error) : null
+    if (suspension) {
+      this.#tenantSuspension.markSuspended(suspension.tenantStatus)
+      this.errorMessage.set(this.#translateService.instant('CLOUD_STATUS.TENANT_SUSPENDED'))
+      return
     }
 
-    // Der UserService faengt Serverfehler per handleError ab und loest dann mit undefined
-    // auf — das ist ein Fehlschlag, kein Erfolg (panary/panary-core#810). Hat derselbe
-    // Fehler die Mandantensperre gesetzt, den Sperr-Hinweis zeigen.
-    if (!result) {
-      throw new Error(
-        this.#translateService.instant(
-          this.#tenantSuspension.suspended() ? 'CLOUD_STATUS.TENANT_SUSPENDED' : 'TIME_CLOCK.ACTION_FAILED',
-        ),
-      )
+    if (data?.['code'] === STAMP_LOCKED) {
+      const seconds = Number(data['retryAfterSeconds'])
+      this.#startLockout(Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 60)
+      return
+    }
+
+    this.employeeNumberInput.set('')
+    if (data?.['code'] === STAMP_NUMBER_REJECTED) {
+      this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.NUMBER_REJECTED'))
+    } else if (code === 409 && typeof message === 'string') {
+      this.errorMessage.set(message)
+    } else {
+      console.error('Time clock action failed:', error)
+      this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.ACTION_FAILED'))
     }
   }
 
   //#endregion
 
+  //#region Lockout
+  #lockTimer: ReturnType<typeof setInterval> | null = null
+
+  constructor() {
+    this.#destroyRef.onDestroy(() => this.#stopLockTimer())
+  }
+
+  #startLockout(seconds: number): void {
+    this.employeeNumberInput.set('')
+    this.lockSecondsLeft.set(seconds)
+    this.#showLocked()
+    if (this.#lockTimer) clearInterval(this.#lockTimer)
+    this.#lockTimer = setInterval(() => {
+      const left = this.lockSecondsLeft() - 1
+      this.lockSecondsLeft.set(Math.max(left, 0))
+      if (left <= 0) {
+        this.#stopLockTimer()
+        this.pinError.set(false)
+        this.errorMessage.set(null)
+      } else {
+        this.#showLocked()
+      }
+    }, 1000)
+  }
+
+  #stopLockTimer(): void {
+    if (this.#lockTimer) clearInterval(this.#lockTimer)
+    this.#lockTimer = null
+  }
+
+  #showLocked(): void {
+    this.pinError.set(true)
+    this.errorMessage.set(this.#translateService.instant('TIME_CLOCK.LOCKED', { seconds: this.lockSecondsLeft() }))
+  }
+
+  //#endregion
+
   //#region Helpers
+  /** Frage des Bestätigungsschritts je Aktion: „Max M. – Einstempeln?" */
+  confirmQuestionKey(): string {
+    const keys: Record<TimeClockAction, string> = {
+      'clock-in': 'TIME_CLOCK.CONFIRM_CLOCK_IN',
+      'clock-out': 'TIME_CLOCK.CONFIRM_CLOCK_OUT',
+      'break-start': 'TIME_CLOCK.CONFIRM_BREAK_START',
+      'break-end': 'TIME_CLOCK.CONFIRM_BREAK_END',
+    }
+    return keys[this.selectedAction() ?? 'clock-in']
+  }
+
   getActionConfig(action: TimeClockAction) {
     return this.actions.find(a => a.action === action)
   }

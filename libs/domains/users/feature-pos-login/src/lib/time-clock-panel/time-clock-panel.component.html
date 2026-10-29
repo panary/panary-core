@@ -53,7 +53,7 @@
       }
 
       <!-- PIN Input Dialog (Embedded) -->
-      @if (showPinDialog() && !successMessage()) {
+      @if (showPinDialog() && !confirmation() && !successMessage()) {
         <div class="animate-[fadeIn_0.2s_ease-out]">
           <!-- Action Header -->
           <div class="flex items-center gap-3 mb-4">
@@ -81,12 +81,12 @@
                 <div
                   class="w-7 h-7 rounded-lg flex items-center justify-center text-base font-mono transition-all"
                   [ngClass]="
-                    pinInput().length > i
+                    employeeNumberInput().length > i
                       ? 'bg-action text-on-action'
                       : 'bg-surface-input border border-line text-transparent'
                   "
                 >
-                  {{ pinInput()[i] || '•' }}
+                  {{ employeeNumberInput()[i] || '•' }}
                 </div>
               }
             </div>
@@ -104,7 +104,7 @@
               <button
                 class="h-10 rounded-lg bg-surface-input border border-line hover:bg-surface-panel active:bg-surface-bg text-ink text-lg font-medium transition-all"
                 (click)="addDigit(digit)"
-                [disabled]="isLoading()"
+                [disabled]="isLoading() || isLocked()"
               >
                 {{ digit }}
               </button>
@@ -112,21 +112,21 @@
             <button
               class="h-10 rounded-lg bg-surface-input border border-line hover:bg-surface-panel active:bg-surface-bg text-ink-muted text-xs transition-all"
               (click)="clearPin()"
-              [disabled]="isLoading()"
+              [disabled]="isLoading() || isLocked()"
             >
               Löschen
             </button>
             <button
               class="h-10 rounded-lg bg-surface-input border border-line hover:bg-surface-panel active:bg-surface-bg text-ink text-lg font-medium transition-all"
               (click)="addDigit('0')"
-              [disabled]="isLoading()"
+              [disabled]="isLoading() || isLocked()"
             >
               0
             </button>
             <button
               class="h-10 rounded-lg bg-action text-on-action hover:brightness-95 font-medium transition-all flex items-center justify-center disabled:opacity-50"
-              (click)="confirmAction()"
-              [disabled]="isLoading() || pinInput().length < 4"
+              (click)="lookupEmployee()"
+              [disabled]="isLoading() || isLocked() || employeeNumberInput().length < 6"
               [attr.aria-label]="'COMMON.CONFIRM' | translate"
             >
               @if (isLoading()) {
@@ -136,6 +136,36 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               }
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Bestätigung vor der Buchung (#1198): Name und Initial aus der Vorschau des Servers -->
+      @if (confirmation(); as confirm) {
+        <div class="animate-[fadeIn_0.2s_ease-out] grid gap-3 text-center" data-testid="time-clock-confirmation">
+          <p class="text-ink font-semibold">
+            {{ confirmQuestionKey() | translate: { name: confirm.displayName } }}
+          </p>
+          @if (pinError()) {
+            <p class="text-danger-ink text-xs">{{ errorMessage() }}</p>
+          }
+          <div class="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              class="h-12 rounded-control border border-line bg-surface-elevated text-sm font-semibold text-ink"
+              (click)="cancelConfirmation()"
+              [disabled]="isLoading()"
+            >
+              {{ 'COMMON.CANCEL' | translate }}
+            </button>
+            <button
+              type="button"
+              class="h-12 rounded-control bg-action text-sm font-semibold text-on-action disabled:opacity-50"
+              (click)="confirmAction()"
+              [disabled]="isLoading()"
+            >
+              {{ 'COMMON.CONFIRM' | translate }}
             </button>
           </div>
         </div>
@@ -314,7 +344,7 @@
         }
 
         <!-- PIN Input (Mobile) -->
-        @if (showPinDialog() && !successMessage()) {
+        @if (showPinDialog() && !confirmation() && !successMessage()) {
           <div class="animate-[fadeIn_0.2s_ease-out]">
             <!-- Action Header -->
             <div class="flex items-center gap-3 mb-6">
@@ -342,12 +372,12 @@
                   <div
                     class="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-mono transition-all"
                     [ngClass]="{
-                      'bg-[#00B8D4] text-white': pinInput().length > i,
-                      'bg-white/20': pinInput().length <= i,
-                      'scale-110': pinInput().length === i + 1,
+                      'bg-[#00B8D4] text-white': employeeNumberInput().length > i,
+                      'bg-white/20': employeeNumberInput().length <= i,
+                      'scale-110': employeeNumberInput().length === i + 1,
                     }"
                   >
-                    {{ pinInput()[i] || '' }}
+                    {{ employeeNumberInput()[i] || '' }}
                   </div>
                 }
               </div>
@@ -365,7 +395,7 @@
                 <button
                   class="h-14 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-2xl font-medium transition-all active:scale-95"
                   (click)="addDigit(digit)"
-                  [disabled]="isLoading()"
+                  [disabled]="isLoading() || isLocked()"
                 >
                   {{ digit }}
                 </button>
@@ -373,7 +403,7 @@
               <button
                 class="h-14 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 flex items-center justify-center transition-all active:scale-95"
                 (click)="clearPin()"
-                [disabled]="isLoading()"
+                [disabled]="isLoading() || isLocked()"
                 [attr.aria-label]="'TIME_CLOCK.CLEAR_PIN' | translate"
               >
                 <svg class="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,14 +413,14 @@
               <button
                 class="h-14 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-2xl font-medium transition-all active:scale-95"
                 (click)="addDigit('0')"
-                [disabled]="isLoading()"
+                [disabled]="isLoading() || isLocked()"
               >
                 0
               </button>
               <button
                 class="h-14 rounded-xl bg-[#00B8D4] hover:bg-[#00a0bb] active:bg-[#0090a8] text-white font-semibold transition-all active:scale-95 flex items-center justify-center disabled:opacity-50"
-                (click)="confirmAction()"
-                [disabled]="isLoading() || pinInput().length < 4"
+                (click)="lookupEmployee()"
+                [disabled]="isLoading() || isLocked() || employeeNumberInput().length < 6"
                 [attr.aria-label]="'COMMON.CONFIRM' | translate"
               >
                 @if (isLoading()) {
@@ -400,6 +430,34 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                   </svg>
                 }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Bestätigung vor der Buchung (#1198) -->
+        @if (confirmation(); as confirm) {
+          <div class="animate-[fadeIn_0.2s_ease-out] grid gap-5 text-center" data-testid="time-clock-confirmation">
+            <p class="text-white font-semibold text-xl">
+              {{ confirmQuestionKey() | translate: { name: confirm.displayName } }}
+            </p>
+            @if (pinError()) {
+              <p class="text-red-400 text-sm">{{ errorMessage() }}</p>
+            }
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                class="h-14 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium"
+                (click)="cancelConfirmation()"
+                [disabled]="isLoading()"
+              >
+                {{ 'COMMON.CANCEL' | translate }}
+              </button>
+              <button
+                class="h-14 rounded-xl bg-[#00B8D4] hover:bg-[#00a0bb] text-white font-semibold disabled:opacity-50"
+                (click)="confirmAction()"
+                [disabled]="isLoading()"
+              >
+                {{ 'COMMON.CONFIRM' | translate }}
               </button>
             </div>
           </div>

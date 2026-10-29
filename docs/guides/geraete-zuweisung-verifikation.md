@@ -99,7 +99,9 @@ Gerät auf „Geteilt" stellen → Verhalten exakt wie in Schritt 1, Stempel-Pan
 ## Was diese Liste bewusst nicht prüft
 
 - **Zeiterfassung ohne Identitätsnachweis.** `users.checkin` prüft die Personalnummer
-  serverseitig nicht. Das ausgeblendete Panel ist UI-Kosmetik, kein Schutz.
+  serverseitig nicht. Das ausgeblendete Panel ist UI-Kosmetik, kein Schutz. Das Panel selbst stempelt
+  seit panary/panary-core#1198 über `lookupByEmployeeNumber`/`stampByEmployeeNumber` (Bestätigung mit
+  Name + Initial, Sperre mit Wartezeit); der Altpfad `users.checkin(userId)` bleibt bis panary/panary-core#1199 offen.
 - **Aktionen nach dem Login.** `verifyPin` stellt kein Token aus; `order.userId` ist
   client-behauptet. Die Zuweisung schützt den Login, nicht die Aktionen.
 - **Offboarding.** Wird ein Mitarbeiter *nachträglich* archiviert, bleibt die Zuweisung stehen

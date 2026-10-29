@@ -1,0 +1,1 @@
+* **Update**: [Aufrufer-Scope der POS-Zeiterfassung](../security/zeiterfassung-aufrufer-scope.md) — Personalnummer-Panel nutzt `lookupByEmployeeNumber`/`stampByEmployeeNumber` mit Bestätigungsschritt (Vorname + Initial), Sperrzustand mit Countdown und Einheitsmeldung; Auflösung per `users.find`, `actionConfirmed` und `TimeClockEvent` entfernt (panary/panary-core#1198).

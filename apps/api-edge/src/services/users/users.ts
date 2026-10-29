@@ -30,6 +30,13 @@ import { isLoginBlockedByStatus } from '../../utils/user-login-status'
 import { assertTimeClockAccess, type TimeClockActor } from './time-clock-scope'
 import { releaseDeviceReverification } from '../../utils/device-reverification'
 import { issuePosOperatorToken } from '../../utils/pos-operator-token'
+import {
+  clearDeviceStampFailures,
+  isStampAction,
+  resolveStampTarget,
+  stampStateOf,
+  type StampByNumberParams,
+} from './stamp-by-employee-number'
 
 /** Params-Ausschnitt der Stempel-Methoden — siehe assertTimeClockScope unten. */
 type TimeClockParams = UserParams & { user?: TimeClockActor; deviceAccessScope?: string[] | null }
@@ -73,6 +80,8 @@ export const usersMethods = [
   'verifyPin',
   'changePin',
   'setPosHandedness',
+  'lookupByEmployeeNumber',
+  'stampByEmployeeNumber',
 ] as const
 
 export type { UserService } from './users.class'
@@ -447,6 +456,38 @@ export const users = (app: Application) => {
     void triggerImmediateCycle(app, SyncRunTrigger.MANUAL).catch(() => undefined)
 
     return { _id: updated._id, posHandedness: updated.posHandedness }
+  }
+
+  // Custom method: lookupByEmployeeNumber — Bestaetigung am Login-Bildschirm (panary/panary-core#1197).
+  // Liefert nur Vorname und Initial; gebucht wird nichts. Kein Token: `stampByEmployeeNumber` loest neu auf.
+  // Gezaehlt werden nur Fehlversuche, ein Treffer setzt keinen Zaehler zurueck (sonst hebelte eine bekannte
+  // gueltige Nummer die Sperre aus).
+  service.lookupByEmployeeNumber = async (data: { employeeNumber?: unknown }, params?: StampByNumberParams) => {
+    const { user } = await resolveStampTarget(app, data?.employeeNumber, params)
+    return { firstName: user.firstName, lastNameInitial: (user.lastName ?? '').trim().charAt(0).toUpperCase() }
+  }
+
+  // Custom method: stampByEmployeeNumber — bucht ueber die vier bestehenden Stempel-Methoden. Die Nummer ist der
+  // einzige Beleg; ein mitgeschicktes Bediener-Token wird nicht ausgewertet (die Params fuer die Buchung entstehen
+  // neu). Zustandsmeldungen („bereits eingestempelt") kommen erst nach erfolgreicher Aufloesung.
+  // Das Ergebnis traegt die `_id` des Mitarbeiters, sonst faellt die Buchung aus dem Audit (record-audit-event).
+  service.stampByEmployeeNumber = async (
+    data: { employeeNumber?: unknown; action?: unknown },
+    params?: StampByNumberParams,
+  ) => {
+    if (!isStampAction(data?.action)) {
+      throw new BadRequest('action muss checkin, checkout, startBreak oder endBreak sein')
+    }
+    const action = data.action
+    const { user, actor, deviceKey } = await resolveStampTarget(app, data.employeeNumber, params)
+
+    const booked = (await service[action](
+      { userId: user._id },
+      { provider: undefined, user: actor, deviceAccessScope: params?.deviceAccessScope ?? null },
+    )) as User
+    // Nur die erfolgreiche Buchung setzt den Geraete-Zaehler zurueck.
+    clearDeviceStampFailures(deviceKey)
+    return { _id: user._id, firstName: user.firstName, action, state: stampStateOf(booked) }
   }
 
   // 4. Register the service - as any, since the Factory returns KnexService OR MongoDBService

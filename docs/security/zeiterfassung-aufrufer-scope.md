@@ -227,3 +227,49 @@ virtuellem Geräte-User (`device:<uuid>`). Wirkung:
 - **Testhinweis:** `resolveExternal` schreibt nach `context.dispatch`, das nur die Transporte ausliefern. Ein
   direkter Service-Aufruf liefert `result` und zeigt die Wirkung nicht. Der Test ruft den Resolver deshalb mit
   Aufrufer-Kontext auf (`test/services/users/employee-number-device.test.ts`).
+
+---
+
+## Nachtrag 2026-10-29 — Stempeln per Personalnummer (panary/panary-core#1197)
+
+Am Login-Bildschirm stempelt man nur mit der 6-stelligen Personalnummer, ohne PIN (Küche ohne POS-Zugang). Der Weg bleibt,
+läuft aber über zwei eigene Methoden am `users`-Service, die die Nummer **serverseitig** prüfen
+([`stamp-by-employee-number.ts`](../../apps/api-edge/src/services/users/stamp-by-employee-number.ts)):
+
+| Methode | Zweck | Antwort |
+|---|---|---|
+| `lookupByEmployeeNumber({ employeeNumber })` | Bestätigung vor dem Buchen, bucht nichts | `{ firstName, lastNameInitial }` |
+| `stampByEmployeeNumber({ employeeNumber, action })` | `checkin`/`checkout`/`startBreak`/`endBreak` | `{ _id, firstName, action, state }` |
+
+Die Bestätigung ist **kein Token**: Beide Aufrufe lösen die Nummer neu auf.
+
+**Prüfkette.** Aufrufer muss ein Gerät mit Mandant sein; Auflösung im eigenen Mandanten über die Adapter-API (genau ein
+Treffer); Rolle nur `tenant:staff` (Allowlist: Inhaber, Filialleiter, Techniker und `platform:*` stempeln mit PIN/Token;
+individuelle `permissions` ändern daran nichts); danach `checkTimeClockRequest` (Mandant, Geräte-Zuweisung, Kontostatus).
+Ein mitgeschicktes Bediener-Token wird nicht ausgewertet. Zustandsmeldungen („bereits eingestempelt") kommen erst nach
+erfolgreicher Auflösung und zählen nicht als Fehlversuch.
+
+**Eine Ablehnung für alles.** Unbekannte Nummer, nicht eindeutig, archiviert, nicht zugewiesen, falsche Rolle, fremder
+Mandant: immer `403` „Personalnummer ungueltig oder nicht zulaessig." mit `data.code = STAMP_NUMBER_REJECTED`. Eine
+Unterscheidung wäre ein Orakel. Falsch geformte Eingaben (nicht 6 Ziffern) sind `400` und zählen nicht.
+
+**Limiter** ([`stamp-attempt-limiter.ts`](../../apps/api-edge/src/utils/stamp-attempt-limiter.ts), prozesslokal, eigene
+Instanzen statt der PIN-Sperre):
+
+| Schlüssel | Schwelle | Sperre |
+|---|---|---|
+| Gerät (`device:<uuid>`) | 5 Fehlversuche / 5 min | 60 s, bei jedem weiteren Erreichen verdoppelt bis 15 min |
+| Edge gesamt | 50 Fehlversuche / 5 min | 60 s, keine Eskalation |
+
+Gezählt werden nur Fehlversuche. Zurückgesetzt wird der Gerätezähler nur durch eine erfolgreiche
+`stampByEmployeeNumber`-Buchung, nie durch `lookupByEmployeeNumber` (sonst hebelte eine bekannte gültige Nummer die Sperre aus).
+Gesperrt: `429`, `data.code = STAMP_LOCKED`, `data.retryAfterSeconds`. Der PIN-Zähler eines Kollegen bleibt unberührt.
+Fehlversuche und Sperren stehen als `security.stamp_number_rejected` / `security.stamp_number_locked` mit Geräte-ID und Zähler
+im Log, **ohne** die Nummer.
+
+**Audit.** `stampByEmployeeNumber` steht in `AUDIT_RESOURCE_MAP` (Aktion aus `data.action`: CLOCK_IN/CLOCK_OUT/BREAK_START/BREAK_END);
+Weg und Gerät ergeben sich aus Methodenname und `actor.deviceId`. Das Event nutzt bestehende Aktionen und Felder, ein Cloud-Pin-Bump
+ist dafür nicht nötig.
+
+**Bewusst offen.** Nicht-Geräte-Aufrufer (z. B. Konten mit `users:UPDATE`) werden vor jedem Zähler abgewiesen, damit sie die Edge-weite Sperre nicht auslösen können. Der Gerätezähler wird nach einer erfolgreichen Buchung zurückgesetzt (Vorgabe aus #1197, damit ein Vertipper den Mitarbeiter nicht aussperrt); wer eine gültige eigene Nummer hat, kann sich damit pro Buchung vier weitere Fehlversuche verschaffen. Begrenzt ist das nur durch die Edge-weite Grobsperre (50 Fehlversuche / 5 min) – eine Verschärfung ist eine Entscheidung für Michael. Der Altpfad (`users.find` + `checkin(userId)`) bleibt bis zur Umstellung des Panels und dem Feld-Rollout
+unverändert; erst danach schließt er sich (Folge-Issues). Der Limiter-Zustand geht beim Edge-Neustart verloren.

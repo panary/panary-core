@@ -29,6 +29,7 @@ export type AuditResourceMethod =
   | 'checkout'
   | 'startBreak'
   | 'endBreak'
+  | 'stampByEmployeeNumber'
   | 'changePin'
   | 'setPosHandedness'
   | 'reloadUsers'
@@ -67,6 +68,8 @@ export const AUDIT_RESOURCE_MAP: Readonly<Record<string, Partial<Record<AuditRes
       checkout: r(AuditAction.CLOCK_OUT, AuditCategory.TIME, AuditSeverity.INFO),
       startBreak: r(AuditAction.BREAK_START, AuditCategory.TIME, AuditSeverity.INFO),
       endBreak: r(AuditAction.BREAK_END, AuditCategory.TIME, AuditSeverity.INFO),
+      // Stempeln nur mit der Personalnummer (#1197). dynamicAction: CLOCK_IN/CLOCK_OUT/BREAK_* aus `data.action`.
+      stampByEmployeeNumber: r(AuditAction.CLOCK_IN, AuditCategory.TIME, AuditSeverity.INFO, true),
       // POS-PIN-Selbstwechsel am Terminal. Actor ist das Geraet
       // (`device:<deviceId>`, siehe allowApiKey-Hook), der betroffene Mitarbeiter
       // steht in `target.entityId`.

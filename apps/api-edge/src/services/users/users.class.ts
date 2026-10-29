@@ -23,4 +23,14 @@ export interface UserService extends ServiceInterface<User, UserData, UserParams
   ): Promise<Omit<User, 'password' | 'posPin'>>
   /** Bedienhand des per Bediener-Token belegten Mitarbeiters (#833) — keine userId im Body. */
   setPosHandedness(data: unknown, params?: UserParams): Promise<Pick<User, '_id' | 'posHandedness'>>
+  /** Bestaetigung vor dem Stempeln per Personalnummer (#1197) — bucht nichts. */
+  lookupByEmployeeNumber(
+    data: { employeeNumber: string },
+    params?: UserParams,
+  ): Promise<{ firstName: string; lastNameInitial: string }>
+  /** Stempeln nur mit der Personalnummer (#1197); eine Einheitsmeldung fuer jede Ablehnung. */
+  stampByEmployeeNumber(
+    data: { employeeNumber: string; action: 'checkin' | 'checkout' | 'startBreak' | 'endBreak' },
+    params?: UserParams,
+  ): Promise<{ _id: string; firstName: string; action: string; state: 'OUT' | 'IN' | 'BREAK' }>
 }

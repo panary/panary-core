@@ -4,6 +4,7 @@ import type { AuthenticationResult } from '@feathersjs/authentication'
 import '@feathersjs/transport-commons'
 import type { Application, HookContext } from './declarations'
 import { logger } from '@panary/shared-backend'
+import { isDeviceConnection, stripEmployeeNumber } from './utils/strip-employee-number'
 import { stampApiKeyLastUsed } from './utils/apikey-last-used'
 import { authenticateDeviceApiKey } from './utils/device-apikey-auth'
 import {
@@ -253,6 +254,13 @@ export const channels = (app: Application) => {
     }
 
     // Events nur an Connections desselben Tenants senden
-    return app.channel('authenticated').filter(connection => (connection as any).tenantId === tenantId)
+    const sameTenant = app.channel('authenticated').filter(connection => (connection as any).tenantId === tenantId)
+    if (context.path !== 'users') return sameTenant
+
+    // Die Nutzlast ist das Dispatch des ausloesenden Aufrufs. Bei internen Aufrufen (Stempeln, Sync-Apply) traegt sie
+    // die Personalnummer, die Geraete nie bekommen (panary/panary-core#1196): Geraete erhalten eine bereinigte Kopie.
+    const devices = sameTenant.filter(isDeviceConnection)
+    const others = sameTenant.filter(connection => !isDeviceConnection(connection))
+    return [devices.send(stripEmployeeNumber(context.dispatch ?? context.result)), others]
   })
 }

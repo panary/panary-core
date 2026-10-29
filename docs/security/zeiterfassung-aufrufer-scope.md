@@ -211,8 +211,14 @@ virtuellem Geräte-User (`device:<uuid>`). Wirkung:
 - **Query-Filter bleibt möglich.** `find({ query: { employeeNumber } })` trifft weiter, nur das Ergebnis trägt die
   Nummer nicht. Der Filter bleibt ein Treffer-ja/nein-Orakel. Das schließt erst der serverseitige Stempelpfad mit
   Limiter (Folge-Issue).
-- **Kanäle:** Der `users`-Service veröffentlicht keine Events (`events: []`), also geht die Nummer auch nicht über
-  Channels. Der Sync läuft Cloud → Edge, nicht an Geräte.
+- **Zwei Wege am Resolver vorbei (Review-Befund):** `resolveExternal` übernimmt ein schon vorbelegtes Dispatch
+  unverändert. Es entsteht, wenn ein innerer Aufruf ohne User (`provider: undefined`) das Ergebnis liefert.
+  1. `checkin`, `checkout`, `startBreak` und `endBreak` patchen intern und gaben dieses Ergebnis zurück. Sie geben
+     jetzt eine Kopie ohne Dispatch zurück (`withoutDispatch`), damit der Resolver mit dem Geräte-Kontext läuft.
+  2. Die Service-Events `created/updated/patched/removed` des `users`-Service gehen über den App-Publisher an alle
+     Verbindungen des Mandanten, mit dem Dispatch des auslösenden Aufrufs (Stempeln, Sync-Apply). `events: []`
+     listet nur eigene Events und schaltet die Standard-Events nicht ab. Der Publisher sendet an Geräte-Verbindungen
+     (`deviceRole`) eine Kopie ohne `employeeNumber`, alle anderen Verbindungen bekommen das Dispatch wie bisher.
 - **Testhinweis:** `resolveExternal` schreibt nach `context.dispatch`, das nur die Transporte ausliefern. Ein
   direkter Service-Aufruf liefert `result` und zeigt die Wirkung nicht. Der Test ruft den Resolver deshalb mit
   Aufrufer-Kontext auf (`test/services/users/employee-number-device.test.ts`).

@@ -7,6 +7,8 @@ import { afterAll, beforeAll, describe, expect, it, onTestFinished } from 'vites
 import { UserSystemRole } from '@panary/users/domain'
 
 import { app } from '../../../src/app'
+import { getDispatch } from '@feathersjs/schema'
+import { isDeviceConnection, stripEmployeeNumber, withoutDispatch } from '../../../src/utils/strip-employee-number'
 import { userExternalResolver } from '../../../src/services/users/users.schema'
 
 type Row = { _id: string; employeeNumber?: string; firstName?: string }
@@ -116,5 +118,32 @@ describe('users — employeeNumber an Geraete', () => {
         .find({ provider: 'rest', authenticated: true, user: device, query: { employeeNumber: NUMBER } } as never),
     )
     expect(rows.map(r => r._id)).toContain(u._id)
+  })
+
+  // Befund aus dem Review: checkin/checkout/startBreak/endBreak geben das Ergebnis eines internen Patch zurueck. Dessen
+  // Dispatch (ohne User, mit Nummer) wuerde der aeussere resolveExternal unveraendert uebernehmen.
+  it('Stempel-Antwort traegt kein vorbelegtes Dispatch mit der Nummer', async () => {
+    const u = await createStaff()
+    const patched = await app.service('users').patch(u._id, { startBreakAt: null } as never, { provider: undefined })
+    expect((getDispatch(patched) as Row | null)?.employeeNumber).toBe(NUMBER)
+    expect(getDispatch(withoutDispatch(patched))).toBeNull()
+  })
+
+  it('Event-Nutzlast fuer Geraete: ohne Nummer, einzeln und als Liste, Rest bleibt', () => {
+    expect(stripEmployeeNumber({ _id: 'a', employeeNumber: NUMBER, firstName: 'X' })).toEqual({
+      _id: 'a',
+      firstName: 'X',
+    })
+    expect(stripEmployeeNumber([{ _id: 'a', employeeNumber: NUMBER }, { _id: 'b' }])).toEqual([
+      { _id: 'a' },
+      { _id: 'b' },
+    ])
+    expect(stripEmployeeNumber(undefined)).toBeUndefined()
+  })
+
+  it('erkennt Geraete-Verbindungen an der deviceRole', () => {
+    expect(isDeviceConnection({ deviceRole: UserSystemRole.DEVICE_POS })).toBe(true)
+    expect(isDeviceConnection({ tenantId: 'x' })).toBe(false)
+    expect(isDeviceConnection(undefined)).toBe(false)
   })
 })

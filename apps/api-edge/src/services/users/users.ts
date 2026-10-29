@@ -21,6 +21,7 @@ import { authorize, checkCallerOwnsRecord, type OwnershipActor } from '@panary/s
 import { multiTenancy } from '@panary/shared-backend'
 import { getJsonFieldHooks } from '@panary/shared-backend'
 import { createServiceAdapter } from '@panary/shared/data-access/server'
+import { withoutDispatch } from '../../utils/strip-employee-number'
 import { restrictUserSelfPatch } from '../../hooks/restrict-user-self-patch.hook'
 import { restrictPermissionGrants } from '../../hooks/restrict-permission-grants.hook'
 import { restrictDeviceAccessMode } from '../../hooks/restrict-device-access-mode.hook'
@@ -155,7 +156,9 @@ export const users = (app: Application) => {
       } as any,
       { provider: undefined },
     )
-    return app.service('users').patch(userId, { stampingId: workingTime._id }, { provider: undefined })
+    return withoutDispatch(
+      await app.service('users').patch(userId, { stampingId: workingTime._id }, { provider: undefined }),
+    )
   }
 
   // Custom method: checkout — closes the working-time entry and clears the stamp
@@ -168,7 +171,9 @@ export const users = (app: Application) => {
     await app
       .service('working-times')
       .patch(user.stampingId, { checkoutDate: now, originCheckoutDate: now }, { provider: undefined })
-    return app.service('users').patch(userId, { stampingId: null, startBreakAt: null }, { provider: undefined })
+    return withoutDispatch(
+      await app.service('users').patch(userId, { stampingId: null, startBreakAt: null }, { provider: undefined }),
+    )
   }
 
   // Custom method: startBreak — records break start time on the user
@@ -178,7 +183,9 @@ export const users = (app: Application) => {
     assertTimeClockScope(user, params)
     if (!user.stampingId) throw new Conflict('Benutzer ist nicht eingestempelt')
     if (user.startBreakAt) throw new Conflict('Benutzer ist bereits in der Pause')
-    return app.service('users').patch(userId, { startBreakAt: new Date().toISOString() }, { provider: undefined })
+    return withoutDispatch(
+      await app.service('users').patch(userId, { startBreakAt: new Date().toISOString() }, { provider: undefined }),
+    )
   }
 
   // Custom method: endBreak — appends break to working-time and clears break start
@@ -194,7 +201,7 @@ export const users = (app: Application) => {
       { from: user.startBreakAt, to: new Date().toISOString() },
     ]
     await app.service('working-times').patch(user.stampingId, { breaks: updatedBreaks }, { provider: undefined })
-    return app.service('users').patch(userId, { startBreakAt: null }, { provider: undefined })
+    return withoutDispatch(await app.service('users').patch(userId, { startBreakAt: null }, { provider: undefined }))
   }
 
   // Custom method: verifyPin — serverseitige POS-PIN-Verifizierung

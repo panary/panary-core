@@ -115,6 +115,7 @@ Fall Pflicht-Fallback.
 - **Das Stempel-Panel auszublenden ist bewusst UI-Kosmetik.** `users.checkin` prüft die
   Personalnummer serverseitig nicht. Auf zugewiesenen Geräten schließt das `users.find`-Scoping
   den bequemen Weg mit; der Endpunkt bleibt offen (eigenes Ticket).
+  *Nachtrag 2026-10-29:* Der Edge bietet seit panary/panary-core#1197 `lookupByEmployeeNumber`/`stampByEmployeeNumber`, die die Nummer serverseitig prüfen ([Aufrufer-Scope](../security/zeiterfassung-aufrufer-scope.md)); der Altpfad schließt erst nach der Panel-Umstellung.
 
 ## Verweise
 

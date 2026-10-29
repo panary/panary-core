@@ -201,12 +201,15 @@ virtuellem Geräte-User (`device:<uuid>`). Wirkung:
 | Aufrufer | `employeeNumber` im Ergebnis |
 |---|---|
 | Gerät (`find`, `get`, ohne `$select`) | nicht enthalten |
+| Gerät mit gültigem Bediener-Token, nur der **eigene** Datensatz des belegten Menschen | enthalten (panary/panary-core#1202) |
 | Verwaltungsrolle (Admin-Ansicht) | enthalten |
 | `tenant:staff` | nur der eigene Datensatz, `userQueryResolver` erzwingt die eigene `_id` |
 | interner Aufruf (`provider: undefined`) | enthalten, der Resolver läuft dort nicht |
 
-- **Lesepfade im Client geprüft:** Der Login-Bildschirm (`$select` ohne die Nummer), die Geräte-Neuverifikation und
-  die POS-Einstellungsseite lesen sie nicht. Das Personalnummer-Panel schickt sie als Query-Filter und braucht sie
+- **Lesepfade im Client:** Der Login-Bildschirm (`$select` ohne die Nummer) und die Geräte-Neuverifikation lesen sie
+  nicht. Die POS-Einstellungsseite zeigt die eigene Nummer und lädt sie mit dem Bediener-Token (`withPosOperatorToken`);
+  der Resolver gibt sie nur frei, wenn `params.posOperator.userId` der Datensatz ist (ADR 0053). Die erste Fassung
+  von #1196 hatte diesen Leser übersehen, die Anzeige stand auf `–`. Das Personalnummer-Panel schickt sie als Query-Filter und braucht sie
   nicht im Ergebnis.
 - **Query-Filter bleibt möglich.** `find({ query: { employeeNumber } })` trifft weiter, nur das Ergebnis trägt die
   Nummer nicht. Der Filter bleibt ein Treffer-ja/nein-Orakel. Das schließt erst der serverseitige Stempelpfad mit

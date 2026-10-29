@@ -187,3 +187,32 @@ er nur prüfte, ob das Gerät stempeln darf, nicht wer an der Kasse steht.
 Getestet in `time-clock-scope.spec.ts` (Entscheidung), `time-clock-wiring.spec.ts` (alle vier
 Methoden, kein Schreiben bei Ablehnung) und `test/services/users/time-clock-operator.test.ts`
 (echte Hook-Kette mit echtem Token: fremde ID, manipuliertes Token, Token eines anderen Geräts).
+
+## Personalnummer wird nicht mehr an Geräte ausgeliefert (panary/panary-core#1196)
+
+Die 6-stellige Personalnummer ist am Login-Bildschirm das alleinige Credential der Zeiterfassung. Der
+`userExternalResolver` entfernte bisher nur `password`, `posPin`, `contract` und `vacationDaysPerYear`. Ein
+Geräte-Credential, das `users.find({})` ohne `$select` aufrief, bekam die Nummern aller Mitarbeiter im Scope. Der POS
+schützte sich nur clientseitig per `$select`.
+
+Seit #1196 entfernt der Resolver `employeeNumber` für Aufrufer mit Geräte-Rolle (`device:*`) oder
+virtuellem Geräte-User (`device:<uuid>`). Wirkung:
+
+| Aufrufer | `employeeNumber` im Ergebnis |
+|---|---|
+| Gerät (`find`, `get`, ohne `$select`) | nicht enthalten |
+| Verwaltungsrolle (Admin-Ansicht) | enthalten |
+| `tenant:staff` | nur der eigene Datensatz, `userQueryResolver` erzwingt die eigene `_id` |
+| interner Aufruf (`provider: undefined`) | enthalten, der Resolver läuft dort nicht |
+
+- **Lesepfade im Client geprüft:** Der Login-Bildschirm (`$select` ohne die Nummer), die Geräte-Neuverifikation und
+  die POS-Einstellungsseite lesen sie nicht. Das Personalnummer-Panel schickt sie als Query-Filter und braucht sie
+  nicht im Ergebnis.
+- **Query-Filter bleibt möglich.** `find({ query: { employeeNumber } })` trifft weiter, nur das Ergebnis trägt die
+  Nummer nicht. Der Filter bleibt ein Treffer-ja/nein-Orakel. Das schließt erst der serverseitige Stempelpfad mit
+  Limiter (Folge-Issue).
+- **Kanäle:** Der `users`-Service veröffentlicht keine Events (`events: []`), also geht die Nummer auch nicht über
+  Channels. Der Sync läuft Cloud → Edge, nicht an Geräte.
+- **Testhinweis:** `resolveExternal` schreibt nach `context.dispatch`, das nur die Transporte ausliefern. Ein
+  direkter Service-Aufruf liefert `result` und zeigt die Wirkung nicht. Der Test ruft den Resolver deshalb mit
+  Aufrufer-Kontext auf (`test/services/users/employee-number-device.test.ts`).

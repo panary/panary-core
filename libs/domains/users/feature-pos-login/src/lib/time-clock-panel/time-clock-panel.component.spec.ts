@@ -70,3 +70,18 @@ describe('TimeClockPanel — mobiles Einklappen (core#572)', () => {
     expect(truncated).toEqual([])
   })
 })
+
+describe('TimeClockPanel — Löschtaste (core#1209)', () => {
+  const I18N_DIR = join(__dirname, '../../../../../../../apps/pos-client/src/assets/i18n')
+
+  it('beschriftet die Löschtaste über COMMON.CLEAR statt mit festem Text', () => {
+    const html = readFileSync(PANEL_TEMPLATE, 'utf8')
+    const clearButton = html.match(/\(click\)="clearPin\(\)"[\s\S]*?<\/button>/)?.[0]
+    expect(clearButton).toContain(`'COMMON.CLEAR' | translate`)
+  })
+
+  it.each(['de', 'en', 'tr'])('%s.json kennt COMMON.CLEAR', lang => {
+    const json = JSON.parse(readFileSync(join(I18N_DIR, `${lang}.json`), 'utf8'))
+    expect(typeof json.COMMON?.CLEAR).toBe('string')
+  })
+})

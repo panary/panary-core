@@ -1,6 +1,6 @@
 {
   "name": "@panary/design-tokens",
-  "version": "26.10.46",
+  "version": "26.10.47",
   "license": "BSL-1.1",
   "description": "Design-Tokens (Warm hell/dunkel, Touch-Skala) als CSS fuer POS, Core-Admin und Cloud-Admin",
   "exports": {

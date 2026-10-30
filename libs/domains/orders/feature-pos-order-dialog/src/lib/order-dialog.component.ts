@@ -156,7 +156,7 @@ import {
   toggleCombinationSelection,
 } from './board-selection'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-// TODO: CorporateCustomerService fehlt noch in @panary/corporate-customers/data-access — nach Migration einbinden
+import { CorporateCustomerService } from '@panary/corporate-customers/data-access'
 // TODO: AppButtonDirective fehlt noch in panary-core — nach Migration einbinden
 // TODO: ConfirmActionDialog fehlt noch in panary-core — nach Migration in @panary/shared/ui-dialogs einbinden
 // TODO: isLightColor fehlt noch in panary-core — nach Migration in @panary/shared/util-theme einbinden
@@ -230,8 +230,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly productService: ProductService = inject(ProductService)
   protected readonly orderService: OrderService = inject(OrderService)
   readonly #checkout = inject(OrderCheckoutService)
-  // TODO: CorporateCustomerService nach Migration aktivieren
-  // protected readonly corporateCustomerService: CorporateCustomerService = inject(CorporateCustomerService)
+  protected readonly corporateCustomerService: CorporateCustomerService = inject(CorporateCustomerService)
   protected readonly locationService: LocationService = inject(LocationService)
   protected readonly authService: AuthService = inject(AuthService)
   protected readonly translateService: TranslateService = inject(TranslateService)
@@ -452,6 +451,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   characters: Array<string> = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
   corporateCustomers: Array<CorporateCustomer> = []
   totalCorporateCustomers = 0
+  #customerRequest = 0
   /**
    * Pauschalpreise für Beilage und Getränk eines Menüs. Aus dem Standort abgeleitet statt im Konstruktor
    * kopiert: Ein Neuladen auf `/kasse` baut die Komponente, bevor der Standort geladen ist (core#878).
@@ -861,6 +861,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._productButtons = []
     this._functionBlockLabel = ''
     this.corporateCustomers = []
+    this.#customerRequest++
     this.activeProductGroupId.set(null)
     this.#closingStep = null
   }
@@ -3699,17 +3700,21 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   setCustomerSubButtons(): void {
     this.clearButtons()
-    // TODO: CorporateCustomerService nach Migration aktivieren
-    // this.corporateCustomerService.find({ query: { $sort: { name1: 1 } } }).then(response => {
-    //   if (Array.isArray(response)) {
-    //     this.corporateCustomers = response
-    //     this.totalCorporateCustomers = response.length
-    //   } else {
-    //     this.corporateCustomers = response.data
-    //     this.totalCorporateCustomers = response.total
-    //   }
-    // })
-    console.warn('CorporateCustomerService: noch nicht migriert – TODO')
+    // Eine späte Antwort darf die Liste nicht in eine Ansicht schreiben, die inzwischen gewechselt hat
+    // (`clearButtons` zählt `#customerRequest` hoch).
+    const request = ++this.#customerRequest
+    this.corporateCustomerService.find({ query: { $sort: { name1: 1 }, $limit: 200 } }).then(
+      response => {
+        if (request !== this.#customerRequest) return
+        const customers = Array.isArray(response) ? response : response.data
+        this.corporateCustomers = customers
+        this.totalCorporateCustomers = Array.isArray(response) ? response.length : response.total
+        this.#cdr.markForCheck()
+      },
+      () => {
+        // `BaseService.find` hat den Fehler schon gemeldet.
+      },
+    )
   }
 
   setCustomer(customer: CorporateCustomer) {

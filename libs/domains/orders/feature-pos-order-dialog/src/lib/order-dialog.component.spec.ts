@@ -286,7 +286,11 @@ function setup(options: SetupOptions = {}) {
         useValue: {
           find: async (params: Record<string, unknown>) => {
             corporateFindCalls.push(params)
-            if (options.corporatePages) return options.corporatePages[corporateFindCalls.length - 1]
+            if (options.corporatePages) {
+              const page = options.corporatePages[corporateFindCalls.length - 1]
+              if (!page) throw new Error('Seite nicht verfügbar')
+              return page
+            }
             if (options.corporateCustomers instanceof Error) throw options.corporateCustomers
             return options.corporateCustomers ?? []
           },
@@ -3056,7 +3060,7 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
       component.setCustomerSubButtons()
       await vi.waitFor(() => expect(component.corporateCustomers).toEqual([acme, beta]))
 
-      expect(corporateFindCalls).toEqual([{ query: { $sort: { name1: 1 }, $limit: 200, $skip: 0 } }])
+      expect(corporateFindCalls).toEqual([{ query: { $sort: { name1: 1, _id: 1 }, $limit: 200, $skip: 0 } }])
       expect(component.totalCorporateCustomers).toBe(2)
     })
 
@@ -3078,6 +3082,19 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
 
       expect(corporateFindCalls.map(c => (c as { query: { $skip: number } }).query.$skip)).toEqual([0, 200])
       expect(component.corporateCustomers[0].name1).toBe('acme')
+    })
+
+    it('behält die bisher geladenen Firmenkunden, wenn eine Folgeseite scheitert', async () => {
+      const first = Array.from({ length: 200 }, (_, i) => ({
+        _id: `c-${i}`,
+        name1: `Kunde ${String(i).padStart(3, '0')}`,
+      }))
+      const { component, corporateFindCalls } = setup({ corporatePages: [{ data: first, total: 450 }] })
+
+      component.setCustomerSubButtons()
+      await vi.waitFor(() => expect(component.corporateCustomers).toHaveLength(200))
+
+      expect(corporateFindCalls).toHaveLength(2)
     })
 
     it('filtert nach Buchstaben, setzt per Reset zurück und blättert', async () => {

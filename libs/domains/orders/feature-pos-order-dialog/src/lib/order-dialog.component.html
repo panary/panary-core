@@ -568,7 +568,8 @@
                 @for (character of characters; track character) {
                   <button
                     type="button"
-                    class="pnry-hover w-8 h-8 rounded-full text-ink text-xs font-bold shrink-0"
+                    class="pnry-hover w-8 h-8 rounded-full text-xs font-bold shrink-0"
+                    [class.text-ink]="customerCharacter !== character"
                     [class.bg-line-soft]="customerCharacter !== character"
                     [class.bg-action]="customerCharacter === character"
                     [class.text-on-action]="customerCharacter === character"
@@ -595,6 +596,10 @@
                   >
                     {{ customer.name1 }}
                   </button>
+                } @empty {
+                  <span class="col-span-full py-3 text-center text-xs text-ink-muted"
+                    >Keine Firmenkunden mit diesem Buchstaben</span
+                  >
                 }
               </div>
               <div class="flex items-center justify-center gap-2 mt-2">

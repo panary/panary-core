@@ -452,7 +452,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   time: WritableSignal<Date> = signal(new Date())
   multiplier = 1
   multiplierFirstStep = true
-  characters: Array<string> = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
+  characters: Array<string> = [...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)), '#']
   corporateCustomers: Array<CorporateCustomer> = []
   totalCorporateCustomers = 0
   /** Gewählter Anfangsbuchstabe des Zeichenfilters, `null` = alle (core#1224). */
@@ -3736,7 +3736,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // (`clearButtons` zählt `#customerRequest` hoch).
     const request = ++this.#customerRequest
     this.resetCharacterFilter()
-    this.#loadAllCorporateCustomers().then(
+    this.#loadAllCorporateCustomers(() => request !== this.#customerRequest).then(
       ({ customers, total }) => {
         if (request !== this.#customerRequest) return
         this.corporateCustomers = customers
@@ -3750,13 +3750,20 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Holt alle Firmenkunden seitenweise (der Server deckelt `$limit`), danach nach Name sortiert (`de`, ohne Groß/Klein). */
-  async #loadAllCorporateCustomers(): Promise<{ customers: Array<CorporateCustomer>; total: number }> {
+  async #loadAllCorporateCustomers(
+    isStale: () => boolean,
+  ): Promise<{ customers: Array<CorporateCustomer>; total: number }> {
     const customers: Array<CorporateCustomer> = []
     let total = 0
     do {
-      const response = await this.corporateCustomerService.find({
-        query: { $sort: { name1: 1 }, $limit: CUSTOMER_FETCH_LIMIT, $skip: customers.length },
-      })
+      // Ein Fehler nach der ersten Seite behält die bisher geholten Kunden (Teilliste statt leerem Panel).
+      const response = await this.corporateCustomerService
+        .find({ query: { $sort: { name1: 1, _id: 1 }, $limit: CUSTOMER_FETCH_LIMIT, $skip: customers.length } })
+        .catch(error => {
+          throw error
+          return null
+        })
+      if (response === null || isStale()) break
       const page = Array.isArray(response) ? response : response.data
       total = Array.isArray(response) ? response.length : response.total
       customers.push(...page)

@@ -68,7 +68,8 @@ Fehlercodes: `BD_6010` Ruhetag ohne Freigabe, `BD_6011` PIN falsch, `BD_6012` Ro
   Cloud-Gate `BD_6010` ohne PIN-Dialog (panary/panary-cloud#1507). Vor der ersten `/health`-Antwort meldet
   `tier()` `standalone`: In diesem Fenster greift nur der Timeout. Folge eines Timeouts an einem Ruhetag ohne
   Freigabe: Das Gate lehnt das `create` mit `BD_6010` ab, der Nutzer sieht einen Fehler-Toast statt des
-  PIN-Dialogs und sendet erneut.
+  PIN-Dialogs und sendet erneut. Ohne den Timeout blieben „Bestellen" und das Schließen gesperrt, weil `placing`
+  (und damit `sheetOpen`) offen blieb (panary/panary-core#1216).
 - **Bar-Kassieren:** `OrderCheckoutService.payCash` fragt bei `BD_6010` einmal nach
   (`requestClosedDayApproval`), danach ggf. die Kasse (`BD_6004`).
 - **Tag eröffnen:** `OpeningDialogComponent` zeigt bei `BD_6010` den Dialog; die Freigabe eröffnet

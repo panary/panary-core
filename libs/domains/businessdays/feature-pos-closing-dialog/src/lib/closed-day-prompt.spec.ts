@@ -1,9 +1,10 @@
 import { of } from 'rxjs'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MatDialog } from '@angular/material/dialog'
 
 // Wie in cash-session-prompt.spec: Geprüft wird, was der Helfer dem Dialog übergibt und wie er die Antwort
-// deutet, nicht der Dialog selbst. Der Mock hält die Aufrufe je Test (testing.md §10).
+// deutet, nicht der Dialog selbst. `opened`/`answer` stehen im Modul-Scope (der Mock ist gehoistet) und werden
+// vor jedem Test zurückgesetzt, damit ein Nachzügler keinen späteren Test erreicht (testing.md §10).
 const opened: Array<Record<string, unknown>> = []
 let answer: unknown = null
 vi.mock('./closed-day-approval-dialog.component', () => ({
@@ -18,6 +19,11 @@ import {
   ensureClosedDayApproval,
   promptClosedDayApprovalFromError,
 } from './closed-day-prompt'
+
+beforeEach(() => {
+  opened.length = 0
+  answer = null
+})
 
 const dialog = {} as MatDialog
 const status = (over: Record<string, unknown> = {}) => ({

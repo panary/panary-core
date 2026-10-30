@@ -8,6 +8,7 @@ generated: { by: claude-code/opus-5.5, at: 2026-10-27T01:20:00Z }
 sources:
   - { id: adr-0062, resource: ../adr/0062-ruhetag-regel-je-standort.md, title: 'ADR 0062' }
   - { id: issue-1133, resource: 'https://github.com/panary/panary-core/issues/1133', title: 'core#1133' }
+  - { id: issue-1214, resource: 'https://github.com/panary/panary-core/issues/1214', title: 'core#1214' }
 ---
 
 # Ruhetag-Regel — Verkauf an geschlossenen Tagen nur mit Freigabe

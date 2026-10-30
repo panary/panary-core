@@ -25,6 +25,8 @@ import { getDeviceAccessScope } from '../../hooks/device-access-mode.util'
 import { isDeviceSession } from '../../utils/pos-operator-attribution'
 
 //#region 1. Main User Resolver (Output)
+const RECORD_METHODS: ReadonlySet<string> = new Set(['find', 'get', 'create', 'update', 'patch', 'remove'])
+
 export const userResolver = resolve<User, HookContext<UserService>>({
   // Passwort-Feld NICHT hier entfernen — das macht der externalResolver.
   // Der userResolver läuft auch bei internen Aufrufen (z.B. LocalStrategy),
@@ -35,7 +37,12 @@ export const userExternalResolver = resolve<User, HookContext<UserService>>({
   password: async () => undefined,
   // PIN-Hash nie senden, aber Hinweis ob ein PIN gesetzt ist
   posPin: async () => undefined,
-  hasPosPin: async (value: any, user: any) => !!user.posPin,
+  // Nur fuer Benutzer-Datensaetze der Standardmethoden. Die Ergebnisse der Custom Methods (`lookupByEmployeeNumber`,
+  // `stampByEmployeeNumber`, `changePin` ...) sind keine Datensaetze; der Resolver liefe sonst auch dort und haengte
+  // ein `hasPosPin: false` an, das nicht stimmt und jedem Geraet mit gueltiger Nummer den PIN-Stand verriete
+  // (panary/panary-core#1206).
+  hasPosPin: async (value: any, user: any, context: HookContext) =>
+    RECORD_METHODS.has(context.method) ? !!user.posPin : undefined,
   // HR-Daten aus der Cloud: Der Edge speichert sie nur, damit der Pull-Apply den User nicht ablehnt
   // (panary/panary-core#1180). Kein Edge-Client liest sie, also gehen sie auch an kein Geraet.
   contract: async () => undefined,

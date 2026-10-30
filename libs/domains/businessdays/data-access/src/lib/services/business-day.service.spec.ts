@@ -18,7 +18,7 @@ import {
 
 import { BusinessDayService } from './business-day.service'
 
-function setup(status = 'authenticated') {
+function setup(status = 'authenticated', tier = 'standalone') {
   const client = Object.fromEntries(
     BUSINESSDAYS_CLIENT_METHODS.map(name => [name, vi.fn(async () => ({ _id: 'bd-1', isOpen: true }))]),
   )
@@ -26,7 +26,7 @@ function setup(status = 'authenticated') {
     providers: [
       {
         provide: ConnectionService,
-        useValue: { businessDayService: client, connectionState: () => ({ status }) },
+        useValue: { businessDayService: client, connectionState: () => ({ status }), tier: () => tier },
       },
       { provide: ServiceHelper, useValue: { handleError: vi.fn() } },
       { provide: NotificationService, useValue: new NotificationService() },
@@ -74,4 +74,22 @@ describe('BusinessDayService — Ruhetag-Vorabfrage offline (core#1185)', () => 
       expect(client['getClosedDayStatus']).not.toHaveBeenCalled()
     },
   )
+})
+
+// panary/panary-core#1214: Die Cloud kennt `getClosedDayStatus` nicht und beantwortet das Event nie. Im Tier
+// `cloud-direct` lehnt die Vorabfrage deshalb sofort ab, statt den Aufruf offen zu lassen.
+describe('BusinessDayService — Ruhetag-Vorabfrage im Tier cloud-direct (core#1214)', () => {
+  it('lehnt im Tier cloud-direct sofort ab, ohne den Server zu fragen', async () => {
+    const { service, client } = setup('authenticated', 'cloud-direct')
+
+    await expect(service.getClosedDayStatus()).rejects.toThrow('CLOSED_DAY_STATUS_UNAVAILABLE_CLOUD_DIRECT')
+    expect(client['getClosedDayStatus']).not.toHaveBeenCalled()
+  })
+
+  it.each(['standalone', 'edge-with-cloud', 'unknown'])('fragt im Tier %s weiter den Server', async tier => {
+    const { service, client } = setup('authenticated', tier)
+
+    await service.getClosedDayStatus()
+    expect(client['getClosedDayStatus']).toHaveBeenCalledTimes(1)
+  })
 })

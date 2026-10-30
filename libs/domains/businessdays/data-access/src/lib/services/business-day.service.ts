@@ -66,10 +66,18 @@ export class BusinessDayService extends BaseService<BusinessDay> {
    * Ohne angemeldete Verbindung sofort ablehnen: Ein Socket-Aufruf hängt offline, bis die
    * Verbindung zurückkommt. Davor wartete das Anlegen einer Bestellung, und die Offline-Outbox
    * kam nie zum Zug (panary/panary-core#1185).
+   *
+   * Im Tier `cloud-direct` sofort ablehnen: Die Cloud kennt die Methode nicht und beantwortet das Event nie,
+   * der Aufruf bliebe offen (panary/panary-core#1214). Dort erzwingt das Order-Gate der Cloud die Regel.
+   * `tier()` ist vor der ersten `/health`-Antwort `standalone`, nicht `unknown`: In diesem Fenster greift der
+   * Guard nicht, und `ensureClosedDayApproval` fängt es mit seinem Timeout ab.
    */
   async getClosedDayStatus(): Promise<ClosedDayStatus> {
     if (this.connectionService.connectionState().status !== 'authenticated') {
       throw new Error('OFFLINE_CLOSED_DAY_STATUS')
+    }
+    if (this.connectionService.tier() === 'cloud-direct') {
+      throw new Error('CLOSED_DAY_STATUS_UNAVAILABLE_CLOUD_DIRECT')
     }
     const service = this.connectionService.businessDayService as unknown as {
       getClosedDayStatus: (data: unknown) => Promise<ClosedDayStatus>

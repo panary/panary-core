@@ -8,6 +8,7 @@ generated: { by: claude-code/opus-5.5, at: 2026-10-27T01:20:00Z }
 sources:
   - { id: adr-0062, resource: ../adr/0062-ruhetag-regel-je-standort.md, title: 'ADR 0062' }
   - { id: issue-1133, resource: 'https://github.com/panary/panary-core/issues/1133', title: 'core#1133' }
+  - { id: issue-1214, resource: 'https://github.com/panary/panary-core/issues/1214', title: 'core#1214' }
 ---
 
 # Ruhetag-Regel — Verkauf an geschlossenen Tagen nur mit Freigabe
@@ -59,7 +60,15 @@ Fehlercodes: `BD_6010` Ruhetag ohne Freigabe, `BD_6011` PIN falsch, `BD_6012` Ro
 ## POS
 
 - **Kasse:** `ensureClosedDayApproval` vor `#placeOrder` — der Warenkorb bleibt bei Abbruch stehen.
-  Scheitert die Vorabfrage (Edge offline, ältere Edge), geht es weiter; erzwungen wird an der Edge.
+  Scheitert die Vorabfrage (Edge offline) **oder antwortet sie nicht binnen `CLOSED_DAY_STATUS_TIMEOUT_MS`
+  (3 s)**, geht es weiter; erzwungen wird am Order-Gate des Servers. Nicht antworten tun Server, die
+  `getClosedDayStatus` nicht kennen: eine ältere Edge und die Cloud. Ein Socket-Event ohne Handler bekommt nie
+  einen Callback, und der Client wartet ohne Timeout (panary/panary-core#1214). Im Tier `cloud-direct` fragt
+  `BusinessDayService.getClosedDayStatus` deshalb gar nicht erst (sofortige Ablehnung, kein Warten); dort gilt das
+  Cloud-Gate `BD_6010` ohne PIN-Dialog (panary/panary-cloud#1507). Vor der ersten `/health`-Antwort meldet
+  `tier()` `standalone`: In diesem Fenster greift nur der Timeout. Folge eines Timeouts an einem Ruhetag ohne
+  Freigabe: Das Gate lehnt das `create` mit `BD_6010` ab, der Nutzer sieht einen Fehler-Toast statt des
+  PIN-Dialogs und sendet erneut.
 - **Bar-Kassieren:** `OrderCheckoutService.payCash` fragt bei `BD_6010` einmal nach
   (`requestClosedDayApproval`), danach ggf. die Kasse (`BD_6004`).
 - **Tag eröffnen:** `OpeningDialogComponent` zeigt bei `BD_6010` den Dialog; die Freigabe eröffnet

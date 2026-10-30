@@ -3760,7 +3760,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       const response = await this.corporateCustomerService
         .find({ query: { $sort: { name1: 1, _id: 1 }, $limit: CUSTOMER_FETCH_LIMIT, $skip: customers.length } })
         .catch(error => {
-          throw error
+          if (customers.length === 0) throw error
           return null
         })
       if (response === null || isStale()) break

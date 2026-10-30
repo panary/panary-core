@@ -3029,7 +3029,7 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
 
   // core#1216: Eine Vorabfrage ohne Antwort hielt `placing` offen. `sheetOpen` sperrte damit „Bestellen" und das
   // Schließen, obwohl nichts gesendet wurde.
-  it('gibt „Bestellen" und Schließen frei, auch wenn die Ruhetag-Vorabfrage nie antwortet', async () => {
+  it('gibt `placing` frei und geht in die Bezahlansicht, auch wenn die Ruhetag-Vorabfrage nie antwortet', async () => {
     vi.useFakeTimers()
     onTestFinished(() => {
       vi.useRealTimers()
@@ -3042,9 +3042,10 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
     expect(component.sheetOpen()).toBe(true)
 
     await vi.advanceTimersByTimeAsync(CLOSED_DAY_STATUS_TIMEOUT_MS)
-    await placed
 
+    // Vor `await placed`: Ohne Timeout löst `placed` nie auf, und die Zusicherung soll statt des Test-Timeouts scheitern.
     expect(component.placing()).toBe(false)
+    await placed
     // Weiter in die Bezahlansicht; dass das Blatt jetzt offen ist, liegt an ihr, nicht an `placing`.
     expect(component.payment()).not.toBeNull()
     expect(createdOrders).toHaveLength(1)

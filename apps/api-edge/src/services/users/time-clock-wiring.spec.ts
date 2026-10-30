@@ -171,9 +171,8 @@ describe('Verdrahtung: jede Stempel-Methode prueft den Aufrufer-Scope', () => {
   })
 
   it('der legitime Terminal-Pfad bleibt offen (Geraet stempelt einen Mitarbeiter ein)', async () => {
-    // Gegenprobe: Der Scope-Check darf den Pfad nicht mitnehmen, ueber den die
-    // Zeiterfassung tatsaechlich laeuft — POS-Login-Screen und POS-Dashboard
-    // rufen beide unter dem Geraete-JWT auf.
+    // Gegenprobe: Der interne Aufruf (`provider` fehlt) bleibt offen. So bucht
+    // `stampByEmployeeNumber` den per Nummer aufgeloesten Mitarbeiter (#1199).
     const { service, patch, create } = setup({ ...foreignTarget, stampingId: null, startBreakAt: null })
 
     await call(service, 'checkin', { userId: 'u-victim' }, { user: deviceActor, deviceAccessScope: ['u-victim'] })

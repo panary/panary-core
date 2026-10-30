@@ -229,6 +229,13 @@
                   }}</span>
                 }
 
+                @let groups = modifierGroups(lineItem);
+                @for (extra of groups.main; track extra._id) {
+                  <ng-container
+                    [ngTemplateOutlet]="comboModifier"
+                    [ngTemplateOutletContext]="{ line: lineItem, extra: extra, indent: false }"
+                  />
+                }
                 @if (lineItem.isMenu) {
                   <div
                     class="flex flex-col gap-0.5 text-xs text-ink-muted ml-[2.5rem] mt-0.5"
@@ -243,6 +250,10 @@
                         <span>+ {{ sideSurcharge | eur }}</span>
                       }
                     </div>
+                    <ng-container
+                      [ngTemplateOutlet]="comboModifiers"
+                      [ngTemplateOutletContext]="{ line: lineItem, modifiers: groups.sideDish }"
+                    />
                     <div class="flex justify-between">
                       <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
                       @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
@@ -250,36 +261,10 @@
                         <span>+ {{ drinkSurcharge | eur }}</span>
                       }
                     </div>
-                  </div>
-                }
-
-                @for (extra of lineItem.modifiers; track extra._id) {
-                  <div
-                    class="flex justify-between text-xs text-ink-muted ml-[2.5rem]"
-                    [ngClass]="isMenuComplete(lineItem) ? '' : 'text-red-500'"
-                  >
-                    @if (isRemovedIngredient(extra)) {
-                      <span>
-                        <span class="italic font-semibold text-red-600 dark:text-red-400">ohne</span>
-                        <span class="line-through">{{ removedIngredientName(extra) }}</span>
-                      </span>
-                    } @else {
-                      <span>
-                        @let comboExtraAmount = modifierDisplayAmount(lineItem, extra) | abs;
-                        @if (comboExtraAmount > 1) {
-                          {{ comboExtraAmount }}x
-                        }
-                        @if (extra.amount < 0) {
-                          <span class="italic text-ink-faint">ohne</span>
-                        }
-                        {{ extra.name }}
-                      </span>
-                    }
-                    @if (isRemovedIngredient(extra) && extra.price !== 0) {
-                      <span>{{ modifierAmount(lineItem, extra) | eur }}</span>
-                    } @else if (extra.amount > 0 && extra.price > 0) {
-                      <span>+ {{ modifierAmount(lineItem, extra) | eur }}</span>
-                    }
+                    <ng-container
+                      [ngTemplateOutlet]="comboModifiers"
+                      [ngTemplateOutletContext]="{ line: lineItem, modifiers: groups.drink }"
+                    />
                   </div>
                 }
               </div>
@@ -363,6 +348,20 @@
                   </div>
                 }
 
+                @let groups = modifierGroups(lineItem);
+                @if (groups.main.length > 0) {
+                  <div
+                    class="flex flex-col gap-0.5"
+                    [ngClass]="lineItem.isMenu ? 'mt-1' : 'mt-1.5 pt-1.5 border-t border-dashed border-line'"
+                  >
+                    @for (extra of groups.main; track extra._id) {
+                      <ng-container
+                        [ngTemplateOutlet]="cartModifier"
+                        [ngTemplateOutletContext]="{ line: lineItem, extra: extra, indent: false }"
+                      />
+                    }
+                  </div>
+                }
                 @if (lineItem.isMenu) {
                   <div
                     class="mt-1 flex flex-col gap-0.5 text-xs text-ink-muted"
@@ -377,6 +376,10 @@
                         <span>+{{ sideSurcharge | eur }}</span>
                       }
                     </div>
+                    <ng-container
+                      [ngTemplateOutlet]="cartModifiers"
+                      [ngTemplateOutletContext]="{ line: lineItem, modifiers: groups.sideDish }"
+                    />
                     <div class="flex justify-between">
                       <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
                       @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
@@ -384,44 +387,10 @@
                         <span>+{{ drinkSurcharge | eur }}</span>
                       }
                     </div>
-                  </div>
-                }
-
-                @if (lineItem.modifiers.length > 0) {
-                  <div class="mt-1.5 pt-1.5 border-t border-dashed border-line flex flex-col gap-0.5">
-                    @for (extra of lineItem.modifiers; track extra._id) {
-                      <div class="flex justify-between items-center text-xs text-ink-muted">
-                        <span class="flex items-center gap-1">
-                          @if (isRemovedIngredient(extra)) {
-                            <span
-                              class="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
-                              >ohne</span
-                            >
-                            <span class="line-through text-ink-faint">{{ removedIngredientName(extra) }}</span>
-                          } @else if (extra.amount < 0) {
-                            <span
-                              class="bg-shell text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
-                              >ohne</span
-                            >
-                          } @else if (modifierDisplayAmount(lineItem, extra) > 1) {
-                            <span class="text-ink-faint">{{ modifierDisplayAmount(lineItem, extra) }}x</span>
-                          }
-                          @if (!isRemovedIngredient(extra)) {
-                            <span [class.line-through]="extra.amount < 0" [class.text-ink-faint]="extra.amount < 0">{{
-                              extra.name
-                            }}</span>
-                          }
-                          @if (extra.icon) {
-                            <span>{{ extra.icon }}</span>
-                          }
-                        </span>
-                        @if (isRemovedIngredient(extra) && extra.price !== 0) {
-                          <span class="text-ink-muted font-medium">{{ modifierAmount(lineItem, extra) | eur }}</span>
-                        } @else if (extra.amount > 0 && extra.price > 0) {
-                          <span class="text-ink-muted font-medium">+{{ modifierAmount(lineItem, extra) | eur }}</span>
-                        }
-                      </div>
-                    }
+                    <ng-container
+                      [ngTemplateOutlet]="cartModifiers"
+                      [ngTemplateOutletContext]="{ line: lineItem, modifiers: groups.drink }"
+                    />
                   </div>
                 }
               </div>
@@ -985,6 +954,90 @@
       </div>
     }
   </div>
+
+  <!-- Eine Extra-Zeile der Einzelposition. `indent`: Extra einer Beilage oder eines Getränks, eine Stufe weiter
+       eingerückt als die Komponente (core#1218, wie in „Offen"). -->
+  <ng-template #cartModifier let-line="line" let-extra="extra" let-indent="indent">
+    <div class="flex justify-between items-center text-xs text-ink-muted" [class.pl-3]="indent">
+      <span class="flex items-center gap-1">
+        @if (isRemovedIngredient(extra)) {
+          <span
+            class="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
+            >ohne</span
+          >
+          <span class="line-through text-ink-faint">{{ removedIngredientName(extra) }}</span>
+        } @else if (extra.amount < 0) {
+          <span class="bg-shell text-white text-[0.5625rem] font-bold px-1.5 py-0.5 rounded uppercase leading-none"
+            >ohne</span
+          >
+        } @else if (modifierDisplayAmount(line, extra) > 1) {
+          <span class="text-ink-faint">{{ modifierDisplayAmount(line, extra) }}x</span>
+        }
+        @if (!isRemovedIngredient(extra)) {
+          <span [class.line-through]="extra.amount < 0" [class.text-ink-faint]="extra.amount < 0">{{
+            extra.name
+          }}</span>
+        }
+        @if (extra.icon) {
+          <span>{{ extra.icon }}</span>
+        }
+      </span>
+      @if (isRemovedIngredient(extra) && extra.price !== 0) {
+        <span class="text-ink-muted font-medium">{{ modifierAmount(line, extra) | eur }}</span>
+      } @else if (extra.amount > 0 && extra.price > 0) {
+        <span class="text-ink-muted font-medium">+{{ modifierAmount(line, extra) | eur }}</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #cartModifiers let-line="line" let-modifiers="modifiers">
+    @for (extra of modifiers; track extra._id) {
+      <ng-container
+        [ngTemplateOutlet]="cartModifier"
+        [ngTemplateOutletContext]="{ line: line, extra: extra, indent: true }"
+      />
+    }
+  </ng-template>
+
+  <!-- Dasselbe für eine Position innerhalb einer Kombination. -->
+  <ng-template #comboModifier let-line="line" let-extra="extra" let-indent="indent">
+    <div
+      class="flex justify-between text-xs text-ink-muted"
+      [ngClass]="(isMenuComplete(line) ? '' : 'text-red-500') + (indent ? ' pl-3' : ' ml-[2.5rem]')"
+    >
+      @if (isRemovedIngredient(extra)) {
+        <span>
+          <span class="italic font-semibold text-red-600 dark:text-red-400">ohne</span>
+          <span class="line-through">{{ removedIngredientName(extra) }}</span>
+        </span>
+      } @else {
+        <span>
+          @let comboExtraAmount = modifierDisplayAmount(line, extra) | abs;
+          @if (comboExtraAmount > 1) {
+            {{ comboExtraAmount }}x
+          }
+          @if (extra.amount < 0) {
+            <span class="italic text-ink-faint">ohne</span>
+          }
+          {{ extra.name }}
+        </span>
+      }
+      @if (isRemovedIngredient(extra) && extra.price !== 0) {
+        <span>{{ modifierAmount(line, extra) | eur }}</span>
+      } @else if (extra.amount > 0 && extra.price > 0) {
+        <span>+ {{ modifierAmount(line, extra) | eur }}</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #comboModifiers let-line="line" let-modifiers="modifiers">
+    @for (extra of modifiers; track extra._id) {
+      <ng-container
+        [ngTemplateOutlet]="comboModifier"
+        [ngTemplateOutletContext]="{ line: line, extra: extra, indent: true }"
+      />
+    }
+  </ng-template>
 
   <!-- Steuerleiste der markierten Zeile, Position oder Kombination (core#829, ADR 0034 P1–P4): eine eigene
        Fläche unter der Zeile, je Taste 3,5rem. Minus bei Menge 1 aus (P3), Menge und Löschen mit Rückgängig (P4). -->

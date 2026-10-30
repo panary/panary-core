@@ -862,3 +862,18 @@ describe('Kasse — Maus-Hover nur mit feinem Zeiger (core#959)', () => {
     expect(styles.match(/\.pnry-hover:hover/g)).toHaveLength(1)
   })
 })
+
+// core#1218: Die Extras eines Menüs stehen im Warenkorb bei der Komponente, zu der sie gehören (wie in „Offen"),
+// in Einzel- UND Kombinationszeile. Eine Schleife über alle `lineItem.modifiers` brächte den losen Block zurück.
+describe('OrderDialog-Template — Extras je Menü-Komponente (core#1218)', () => {
+  it('läuft nirgends über alle Modifier einer Zeile, sondern über die Gruppen', () => {
+    expect(template.match(/of lineItem\.modifiers/g)).toBeNull()
+    expect(template.match(/@let groups = modifierGroups\(lineItem\)/g)).toHaveLength(2)
+    expect(template.match(/@for \(extra of groups\.main; track extra\._id\)/g)).toHaveLength(2)
+  })
+
+  it('hängt die Extras von Beilage und Getränk in Einzel- und Kombinationszeile unter die Komponente', () => {
+    expect(template.match(/modifiers: groups\.sideDish/g)).toHaveLength(2)
+    expect(template.match(/modifiers: groups\.drink/g)).toHaveLength(2)
+  })
+})

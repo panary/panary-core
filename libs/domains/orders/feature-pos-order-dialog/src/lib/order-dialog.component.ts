@@ -72,6 +72,7 @@ import {
   AppliedDiscount,
   Discount,
   computeOrderTax,
+  groupModifiersByComponent,
   isSplittableLine,
   lineConfigKey,
   mergeIdenticalLines,
@@ -1902,6 +1903,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   modifierDisplayAmount(line: OrderLineItem, extra: OrderLineItem['modifiers'][number]): number {
     return modifiersCountPerUnit(line) ? extra.amount * line.amount : extra.amount
+  }
+
+  /**
+   * Extras einer Zeile, nach der Stelle gruppiert, unter der sie stehen: Hauptartikel, Beilage, Getränk
+   * (core#1218, dieselbe Zuordnung wie „Offen"). Nur Anzeige: Preis und Steuer rechnen über alle Modifier.
+   * Extras einer reinen `components[]`-Komponente bleiben am Hauptartikel, der Warenkorb gibt sie nicht aus.
+   */
+  modifierGroups(line: OrderLineItem) {
+    return groupModifiersByComponent(line, { components: false })
   }
 
   /** Aufpreis-Ausweis einer Menü-Komponente — beim Festpreis-Menü 0 wie auf dem Bon (core#781). */

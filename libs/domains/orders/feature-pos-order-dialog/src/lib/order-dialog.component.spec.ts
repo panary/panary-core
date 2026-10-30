@@ -4101,3 +4101,75 @@ describe('OrderDialogComponent — Ruhetag-Freigabe vor dem Anlegen (#1133)', ()
     expect(openedDialogs).toHaveLength(0)
   })
 })
+
+// core#1218: Der Warenkorb ordnet die Extras eines Menüs wie „Offen" der Beilage, dem Getränk und dem Hauptartikel
+// zu. Reine Anzeige: die Summen rechnen weiter über alle Modifier der Zeile.
+describe('OrderDialog — Extras je Menü-Komponente im Warenkorb (core#1218)', () => {
+  const SIDE = '019ecd00-0000-7000-8000-000000000001'
+  const DRINK = '019ecd00-0000-7000-8000-000000000003'
+  const extra = (name: string, price: number, componentExternalId?: string) => ({
+    _id: `mod-${name}`,
+    name,
+    price,
+    amount: 1,
+    ...(componentExternalId ? { componentExternalId } : {}),
+  })
+  const menuLine = () =>
+    ({
+      _id: 'line-1',
+      name: 'Hamburger 100gr',
+      price: 11.9,
+      amount: 1,
+      isMenu: true,
+      menuSideDish: { name: 'Pommes', externalId: SIDE },
+      menuDrink: { name: 'Cola', externalId: DRINK },
+      modifiers: [extra('Mayonaise', 0.7, SIDE), extra('Bacon', 1.9), extra('Eis', 0, DRINK)],
+    }) as never
+
+  it('ordnet die Soße der Beilage zu, das Extra dem Burger und das Getränk-Extra dem Getränk', () => {
+    const { component } = setup()
+
+    const groups = component.modifierGroups(menuLine())
+
+    expect(groups.sideDish.map((m: { name: string }) => m.name)).toEqual(['Mayonaise'])
+    expect(groups.drink.map((m: { name: string }) => m.name)).toEqual(['Eis'])
+    expect(groups.main.map((m: { name: string }) => m.name)).toEqual(['Bacon'])
+  })
+
+  it('lässt Positionspreis und Steuerbasis unberührt: die Zuordnung ändert die Summe nicht', () => {
+    const { component } = setup()
+    const line = menuLine()
+    const before = component.calculateArticlePrice(line)
+
+    component.modifierGroups(line)
+
+    expect(component.calculateArticlePrice(line)).toBe(before)
+    expect(before).toBeCloseTo(11.9 + 0.7 + 1.9, 2)
+    expect((line as { modifiers: unknown[] }).modifiers).toHaveLength(3)
+  })
+
+  it('zeigt Extras einer reinen components[]-Komponente am Hauptartikel, statt sie zu verlieren', () => {
+    const { component } = setup()
+    const OTHER = '0190a000-0000-7000-8000-0000000000aa'
+    const line = {
+      ...(menuLine() as object),
+      components: [{ role: 'extra', externalId: OTHER, name: 'Dip' }],
+      modifiers: [extra('Chili', 0.5, OTHER)],
+    } as never
+
+    const groups = component.modifierGroups(line)
+
+    expect(groups.main.map((m: { name: string }) => m.name)).toEqual(['Chili'])
+  })
+
+  it('belässt Extras ohne Zuordnung bei einer Einzelposition am Hauptartikel', () => {
+    const { component } = setup()
+    const line = { ...(menuLine() as object), isMenu: false, menuSideDish: undefined, menuDrink: undefined } as never
+
+    const groups = component.modifierGroups(line)
+
+    expect(groups.main).toHaveLength(3)
+    expect(groups.sideDish).toEqual([])
+    expect(groups.drink).toEqual([])
+  })
+})

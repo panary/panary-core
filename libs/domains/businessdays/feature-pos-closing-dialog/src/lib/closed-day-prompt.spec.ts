@@ -1,5 +1,5 @@
 import { of } from 'rxjs'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MatDialog } from '@angular/material/dialog'
 
 // Wie in cash-session-prompt.spec: Geprüft wird, was der Helfer dem Dialog übergibt und wie er die Antwort
@@ -13,7 +13,11 @@ vi.mock('./closed-day-approval-dialog.component', () => ({
   },
 }))
 
-import { ensureClosedDayApproval, promptClosedDayApprovalFromError } from './closed-day-prompt'
+import {
+  CLOSED_DAY_STATUS_TIMEOUT_MS,
+  ensureClosedDayApproval,
+  promptClosedDayApprovalFromError,
+} from './closed-day-prompt'
 
 const dialog = {} as MatDialog
 const status = (over: Record<string, unknown> = {}) => ({
@@ -48,6 +52,91 @@ describe('ensureClosedDayApproval', () => {
     const failing = { getClosedDayStatus: vi.fn().mockRejectedValue(new Error('offline')) }
     await expect(ensureClosedDayApproval(dialog, failing)).resolves.toBe(true)
     expect(opened).toEqual([])
+  })
+})
+
+// panary/panary-core#1214: Ein Server ohne `getClosedDayStatus` (Cloud, ältere Edge) antwortet nie. Ohne Timeout
+// blieb das Anlegen der Bestellung stumm hängen.
+describe('ensureClosedDayApproval — Vorabfrage ohne Antwort (core#1214)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  const never = () => ({ getClosedDayStatus: vi.fn(() => new Promise<never>(() => undefined)) })
+
+  it('lässt nach dem Timeout durch, statt ewig zu warten', async () => {
+    vi.useFakeTimers()
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    opened.length = 0
+
+    const result = ensureClosedDayApproval(dialog, never())
+    await vi.advanceTimersByTimeAsync(CLOSED_DAY_STATUS_TIMEOUT_MS)
+
+    await expect(result).resolves.toBe(true)
+    expect(opened).toEqual([])
+  })
+
+  it('wartet vor Ablauf des Timeouts noch', async () => {
+    vi.useFakeTimers()
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    let settled = false
+    const result = ensureClosedDayApproval(dialog, never()).then(value => {
+      settled = true
+      return value
+    })
+
+    await vi.advanceTimersByTimeAsync(CLOSED_DAY_STATUS_TIMEOUT_MS - 1)
+    expect(settled).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(result).resolves.toBe(true)
+  })
+
+  it('verwirft eine Antwort, die erst nach dem Timeout eintrifft, und öffnet keinen Dialog', async () => {
+    vi.useFakeTimers()
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    opened.length = 0
+    answer = { approved: true }
+    let late: (value: unknown) => void = () => undefined
+    const slow = {
+      getClosedDayStatus: vi.fn(
+        () =>
+          new Promise(resolve => {
+            late = resolve
+          }),
+      ),
+    }
+
+    const result = ensureClosedDayApproval(dialog, slow as never)
+    await vi.advanceTimersByTimeAsync(CLOSED_DAY_STATUS_TIMEOUT_MS)
+    await expect(result).resolves.toBe(true)
+
+    late({ approvalRequired: true, state: 'closed', date: '2026-10-26', policy: 'block' })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(opened).toEqual([])
+  })
+
+  it('verändert eine rechtzeitige Antwort nicht: Dialog und Deutung wie bisher', async () => {
+    vi.useFakeTimers()
+    opened.length = 0
+    answer = { approved: true }
+
+    const result = ensureClosedDayApproval(dialog, status(), 'orders-only')
+    await vi.advanceTimersByTimeAsync(0)
+
+    await expect(result).resolves.toBe(true)
+    expect(opened).toEqual([{ date: '2026-10-26', policy: 'block', operationMode: 'orders-only' }])
+  })
+
+  it('räumt den Timer auf, wenn die Antwort rechtzeitig kommt', async () => {
+    vi.useFakeTimers()
+    opened.length = 0
+    answer = null
+
+    await ensureClosedDayApproval(dialog, status({ approvalRequired: false }))
+
+    expect(vi.getTimerCount()).toBe(0)
   })
 })
 

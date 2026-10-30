@@ -20,6 +20,7 @@ import { of } from 'rxjs'
 
 import { OrderCheckoutService, OrderInteractionService, OrderService } from '@panary/orders/data-access'
 import { BusinessDayService } from '@panary/businessdays/data-access'
+import { CLOSED_DAY_STATUS_TIMEOUT_MS } from '@panary/businessdays/feature-pos-closing-dialog'
 import type { AppliedDiscount } from '@panary/orders/domain'
 import { ProductGroupService } from '@panary/product-groups/data-access'
 import { ProductService } from '@panary/products/data-access'
@@ -84,6 +85,8 @@ interface SetupOptions {
   createOrderFailures?: number
   /** `createOrder` bleibt offen, bis der Test `releaseCreate()` ruft — spielt den Server-Roundtrip nach. */
   holdCreate?: boolean
+  /** Die Ruhetag-Vorabfrage antwortet nie (Server ohne `getClosedDayStatus`, core#1216). */
+  closedDayNeverAnswers?: boolean
   /** Antwort der Ruhetag-Vorabfrage (#1133) — Standard: keine Freigabe nötig. Ein `Error` spielt Edge offline nach. */
   closedDayStatus?: Record<string, unknown> | Error
 }
@@ -276,6 +279,7 @@ function setup(options: SetupOptions = {}) {
         provide: BusinessDayService,
         useValue: {
           getClosedDayStatus: async () => {
+            if (options.closedDayNeverAnswers) return new Promise<never>(() => undefined)
             if (options.closedDayStatus instanceof Error) throw options.closedDayStatus
             return (
               options.closedDayStatus ?? {
@@ -3021,6 +3025,30 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
 
     expect(createdOrders).toHaveLength(1)
     expect(component.placing()).toBe(false)
+  })
+
+  // core#1216: Eine Vorabfrage ohne Antwort hielt `placing` offen. `sheetOpen` sperrte damit „Bestellen" und das
+  // Schließen, obwohl nichts gesendet wurde.
+  it('gibt `placing` frei und geht in die Bezahlansicht, auch wenn die Ruhetag-Vorabfrage nie antwortet', async () => {
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    const { component, createdOrders } = setup({ ...cashier, closedDayNeverAnswers: true })
+    component.increaseLineItem(product('p-1'))
+
+    const placed = component.placeOrder()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(component.sheetOpen()).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(CLOSED_DAY_STATUS_TIMEOUT_MS)
+
+    // Vor `await placed`: Ohne Timeout löst `placed` nie auf, und die Zusicherung soll statt des Test-Timeouts scheitern.
+    expect(component.placing()).toBe(false)
+    await placed
+    // Weiter in die Bezahlansicht; dass das Blatt jetzt offen ist, liegt an ihr, nicht an `placing`.
+    expect(component.payment()).not.toBeNull()
+    expect(createdOrders).toHaveLength(1)
   })
 
   it('löst einen Rabattcode nach gescheitertem Anlegen nicht ein zweites Mal ein', async () => {

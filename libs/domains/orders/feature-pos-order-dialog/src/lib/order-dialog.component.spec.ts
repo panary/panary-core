@@ -90,6 +90,8 @@ interface SetupOptions {
   closedDayNeverAnswers?: boolean
   /** Antwort von `CorporateCustomerService.find` (core#1217) — ein `Error` spielt einen Ladefehler nach. */
   corporateCustomers?: Array<Record<string, unknown>> | { data: Array<Record<string, unknown>>; total: number } | Error
+  /** Antworten der Reihe nach (mehrseitiges Laden); ersetzt `corporateCustomers`. */
+  corporatePages?: Array<{ data: Array<Record<string, unknown>>; total: number }>
   /** Antwort der Ruhetag-Vorabfrage (#1133) — Standard: keine Freigabe nötig. Ein `Error` spielt Edge offline nach. */
   closedDayStatus?: Record<string, unknown> | Error
 }
@@ -284,6 +286,7 @@ function setup(options: SetupOptions = {}) {
         useValue: {
           find: async (params: Record<string, unknown>) => {
             corporateFindCalls.push(params)
+            if (options.corporatePages) return options.corporatePages[corporateFindCalls.length - 1]
             if (options.corporateCustomers instanceof Error) throw options.corporateCustomers
             return options.corporateCustomers ?? []
           },
@@ -3053,8 +3056,51 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
       component.setCustomerSubButtons()
       await vi.waitFor(() => expect(component.corporateCustomers).toEqual([acme, beta]))
 
-      expect(corporateFindCalls).toEqual([{ query: { $sort: { name1: 1 }, $limit: 200 } }])
+      expect(corporateFindCalls).toEqual([{ query: { $sort: { name1: 1 }, $limit: 200, $skip: 0 } }])
       expect(component.totalCorporateCustomers).toBe(2)
+    })
+
+    it('holt weitere Seiten nach, bis alle Firmenkunden da sind, und sortiert ohne Groß-/Kleinschreibung', async () => {
+      const first = Array.from({ length: 200 }, (_, i) => ({
+        _id: `c-${i}`,
+        name1: `Kunde ${String(i).padStart(3, '0')}`,
+      }))
+      const last = { _id: 'c-x', name1: 'acme' }
+      const { component, corporateFindCalls } = setup({
+        corporatePages: [
+          { data: first, total: 201 },
+          { data: [last], total: 201 },
+        ],
+      })
+
+      component.setCustomerSubButtons()
+      await vi.waitFor(() => expect(component.corporateCustomers).toHaveLength(201))
+
+      expect(corporateFindCalls.map(c => (c as { query: { $skip: number } }).query.$skip)).toEqual([0, 200])
+      expect(component.corporateCustomers[0].name1).toBe('acme')
+    })
+
+    it('filtert nach Buchstaben, setzt per Reset zurück und blättert', async () => {
+      const many = Array.from({ length: 30 }, (_, i) => ({
+        _id: `a-${i}`,
+        name1: `Alpha ${String(i).padStart(2, '0')}`,
+      }))
+      const { component } = setup({ corporateCustomers: { data: [...many, beta], total: 31 } })
+      component.setCustomerSubButtons()
+      await vi.waitFor(() => expect(component.corporateCustomers).toHaveLength(31))
+
+      component.applyCharacterFilter('B')
+      expect(component.pagedCorporateCustomers).toEqual([beta])
+      component.applyCharacterFilter('A')
+      expect(component.customerPageCount).toBe(2)
+      component.changeCustomerPage(1)
+      expect(component.pagedCorporateCustomers).toHaveLength(6)
+      component.changeCustomerPage(1)
+      expect(component.customerPage).toBe(1)
+      component.resetCharacterFilter()
+      expect(component.customerCharacter).toBeNull()
+      expect(component.customerPage).toBe(0)
+      expect(component.pagedCorporateCustomers).toHaveLength(24)
     })
 
     it('kommt auch mit einer Antwort ohne Paginierung zurecht', async () => {

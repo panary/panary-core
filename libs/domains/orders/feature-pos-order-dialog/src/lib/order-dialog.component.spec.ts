@@ -3066,7 +3066,7 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
       expect(component.totalCorporateCustomers).toBe(1)
     })
 
-    it('lässt die Liste leer, wenn das Laden scheitert, und wirft nicht', async () => {
+    it('lässt die Liste leer, wenn das Laden scheitert', async () => {
       const { component, corporateFindCalls } = setup({ corporateCustomers: new Error('offline') })
 
       component.setCustomerSubButtons()

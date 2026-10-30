@@ -145,6 +145,24 @@ describe('Bediener-Token am Geraet (panary/panary-core#903)', () => {
     })
   })
 
+  it('extern ohne Token: Abbruch mit OPERATOR_REQUIRED (#1199), intern bleibt es offen', () => {
+    expect(checkTimeClockRequest(device, victim, { requireOperator: true })).toMatchObject({
+      reason: 'OPERATOR_REQUIRED',
+    })
+    expect(
+      checkTimeClockRequest(device, victim, { requireOperator: true, posOperator: { userId: victim._id } }),
+    ).toBeNull()
+    expect(checkTimeClockRequest(device, victim, {})).toBeNull()
+    // Nur Geraete-Sitzungen tragen ein Token
+    expect(checkTimeClockRequest(owner, victim, { requireOperator: true })).toBeNull()
+    try {
+      assertTimeClockAccess(device, victim, { requireOperator: true })
+      expect.unreachable()
+    } catch (error) {
+      expect(error).toMatchObject({ code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    }
+  })
+
   it('fremder Mandant bleibt die erste Ablehnung, auch mit passendem Token', () => {
     expect(
       checkTimeClockRequest(device, target({ tenantId: 't-2' }), { posOperator: { userId: victim._id } }),

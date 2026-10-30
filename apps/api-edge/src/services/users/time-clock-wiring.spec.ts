@@ -152,6 +152,16 @@ describe('Verdrahtung: jede Stempel-Methode prueft den Aufrufer-Scope', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
+  it.each(TIME_CLOCK_METHODS)('%s: externer Geraete-Aufruf ohne Token → 401 ohne Schreiben (#1199)', async method => {
+    const { service, patch, create } = setup(foreignTarget)
+
+    await expect(
+      call(service, method, { userId: 'u-victim' }, { provider: 'rest', user: deviceActor }),
+    ).rejects.toMatchObject({ code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    expect(patch).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
+  })
+
   it('mit passendem Bediener-Token stempelt das Geraet den Token-Menschen (#903)', async () => {
     const { service, patch } = setup({ ...foreignTarget, stampingId: null, startBreakAt: null })
 
@@ -161,9 +171,8 @@ describe('Verdrahtung: jede Stempel-Methode prueft den Aufrufer-Scope', () => {
   })
 
   it('der legitime Terminal-Pfad bleibt offen (Geraet stempelt einen Mitarbeiter ein)', async () => {
-    // Gegenprobe: Der Scope-Check darf den Pfad nicht mitnehmen, ueber den die
-    // Zeiterfassung tatsaechlich laeuft — POS-Login-Screen und POS-Dashboard
-    // rufen beide unter dem Geraete-JWT auf.
+    // Gegenprobe: Der interne Aufruf (`provider` fehlt) bleibt offen. So bucht
+    // `stampByEmployeeNumber` den per Nummer aufgeloesten Mitarbeiter (#1199).
     const { service, patch, create } = setup({ ...foreignTarget, stampingId: null, startBreakAt: null })
 
     await call(service, 'checkin', { userId: 'u-victim' }, { user: deviceActor, deviceAccessScope: ['u-victim'] })

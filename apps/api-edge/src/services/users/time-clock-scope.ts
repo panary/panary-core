@@ -54,8 +54,17 @@ export interface TimeClockTarget {
 
 export interface TimeClockViolation {
   reason:
-    'FOREIGN_TENANT' | 'OPERATOR_REJECTED' | 'NOT_OPERATOR' | 'FOREIGN_RECORD' | 'NOT_ASSIGNED' | 'INACTIVE_ACCOUNT'
-  /** Client-stabile Meldung — der Adapter wirft sie unveraendert (Forbidden, bei `OPERATOR_REJECTED` NotAuthenticated). */
+    | 'FOREIGN_TENANT'
+    | 'OPERATOR_REJECTED'
+    | 'OPERATOR_REQUIRED'
+    | 'NOT_OPERATOR'
+    | 'FOREIGN_RECORD'
+    | 'NOT_ASSIGNED'
+    | 'INACTIVE_ACCOUNT'
+  /**
+   * Client-stabile Meldung — der Adapter wirft sie unveraendert (Forbidden, bei `OPERATOR_REJECTED` und
+   * `OPERATOR_REQUIRED` NotAuthenticated).
+   */
   message: string
 }
 
@@ -75,6 +84,11 @@ export interface TimeClockScopeOptions {
   posOperator?: { userId: string } | null
   /** Ein Token kam mit, wurde aber abgelehnt (`params.posOperatorRejected`). */
   posOperatorRejected?: boolean
+  /**
+   * Externer Aufruf: Eine Geraete-Sitzung braucht dann ein gueltiges Bediener-Token (panary/panary-core#1199).
+   * Interne Aufrufe (`stampByEmployeeNumber` hat die Nummer schon geprueft) setzen es nicht.
+   */
+  requireOperator?: boolean
 }
 
 /** Kennung der Token-Ablehnung — dieselbe wie bei `users.setPosHandedness` (#833). */
@@ -139,6 +153,12 @@ export const checkTimeClockRequest = (
     if (options.posOperatorRejected) {
       return { reason: 'OPERATOR_REJECTED', message: 'Bediener-Token ist ungueltig — bitte neu anmelden.' }
     }
+    // Altpfad geschlossen (#1199): Ohne Token belegt nichts, wer am Terminal steht. Wer ohne Bediener stempeln
+    // will, geht ueber `stampByEmployeeNumber` (Nummer + Limiter). Gleiche Kennung wie ein abgelehntes Token:
+    // der POS faellt so auf die PIN-Abfrage zurueck.
+    if (options.requireOperator && !options.posOperator) {
+      return { reason: 'OPERATOR_REQUIRED', message: 'Bediener-Token fehlt — bitte per PIN anmelden.' }
+    }
     if (options.posOperator && options.posOperator.userId !== target._id) {
       return {
         reason: 'NOT_OPERATOR',
@@ -147,17 +167,20 @@ export const checkTimeClockRequest = (
     }
   }
 
-  // 2. Fremder Datensatz. Geraete-Rollen duerfen fuer jeden Mitarbeiter
-  // stempeln — ein Terminal bedient die ganze Schicht, und genau dafuer gibt es
-  // am Edge den CAN_CLOCK_IN-Fallback in authorize.hook.ts. Privilegierte
+  // 2. Fremder Datensatz. Geraete-Rollen duerfen den Datensatz erreichen, den
+  // Zweig 1b freigibt: den Token-Menschen, oder intern (`stampByEmployeeNumber`)
+  // den per Nummer aufgeloesten Mitarbeiter. Der CAN_CLOCK_IN-Fallback in
+  // authorize.hook.ts autorisiert nur das Geraet. Privilegierte
   // Rollen (Inhaber, Techniker, Plattform) ebenfalls. Alle uebrigen nur sich
   // selbst: `users:UPDATE` haben TENANT_STAFF/TENANT_MANAGER ausschliesslich
   // fuer den Self-Service, den sonst `restrictUserSelfPatch` erzwingt.
   //
-  // TENANT_MANAGER ist bewusst NICHT in PRIVILEGED_ROLES (Entscheidung zu #189
-  // bestaetigt): Der Filialleiter stempelt Mitarbeiter ueber das Terminal, und
-  // das laeuft unter dem Geraete-JWT. Stempel-*Korrekturen* laufen fachlich
-  // ueber `working-times`, nicht ueber diese Methoden — konsistent zu changePin.
+  // TENANT_MANAGER ist bewusst NICHT in PRIVILEGED_ROLES (#189). Die damalige
+  // Zusage „der Filialleiter stempelt Mitarbeiter ueber das Terminal unter dem
+  // Geraete-JWT" ist mit #1199 widerrufen: Am Terminal stempelt er jetzt per
+  // Personalnummer des Mitarbeiters oder als sich selbst mit Token.
+  // Stempel-*Korrekturen* laufen fachlich ueber `working-times`, nicht ueber
+  // diese Methoden — konsistent zu changePin.
   const role = actor.role
   if (role && !isDeviceRole(role) && !PRIVILEGED_ROLES.has(role) && actor._id !== target._id) {
     return {
@@ -204,7 +227,7 @@ export const assertTimeClockAccess = (
 ): void => {
   const violation = checkTimeClockRequest(actor, target, options)
   if (!violation) return
-  if (violation.reason === 'OPERATOR_REJECTED') {
+  if (violation.reason === 'OPERATOR_REJECTED' || violation.reason === 'OPERATOR_REQUIRED') {
     throw new NotAuthenticated(violation.message, { reason: POS_OPERATOR_REQUIRED })
   }
   throw new Forbidden(violation.message)

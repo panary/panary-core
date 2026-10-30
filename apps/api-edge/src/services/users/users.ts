@@ -25,6 +25,7 @@ import { withoutDispatch } from '../../utils/strip-employee-number'
 import { restrictUserSelfPatch } from '../../hooks/restrict-user-self-patch.hook'
 import { restrictPermissionGrants } from '../../hooks/restrict-permission-grants.hook'
 import { restrictDeviceAccessMode } from '../../hooks/restrict-device-access-mode.hook'
+import { rejectDeviceEmployeeNumberQuery } from '../../hooks/reject-device-employee-number-query.hook'
 import { readDeviceAccessScope, resolveDeviceAccessScope } from '../../hooks/device-access-mode.util'
 import { isLoginBlockedByStatus } from '../../utils/user-login-status'
 import { assertTimeClockAccess, type TimeClockActor } from './time-clock-scope'
@@ -132,6 +133,8 @@ export const users = (app: Application) => {
       deviceAccessScope: readDeviceAccessScope(params),
       posOperator: params?.posOperator,
       posOperatorRejected: params?.posOperatorRejected,
+      // Nur externe Aufrufe: `stampByEmployeeNumber` ruft intern (`provider: undefined`) mit dem geprueften Mitarbeiter.
+      requireOperator: Boolean(params?.provider),
     })
 
   // Custom method: checkin — creates a working-time entry and stamps the user
@@ -516,6 +519,7 @@ export const users = (app: Application) => {
       // heraus verpackt Feathers ihn zu einem 400 „Error resolving data".
       all: [
         resolveDeviceAccessScope,
+        rejectDeviceEmployeeNumberQuery,
         schemaHooks.validateQuery(userQueryValidator),
         schemaHooks.resolveQuery(userQueryResolver),
       ],

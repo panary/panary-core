@@ -52,7 +52,7 @@ Am laufenden Edge (Dev-Datenbank, echte HTTP-/Socket-Aufrufe), Stand vor dem Fix
 | Geräte-JWT, Gerät `assigned` an jemand anderen → `checkin` auf einen **nicht** zugewiesenen Mitarbeiter | **erfolgreich**, `stampingId` geschrieben | **403** „Benutzer ist fuer dieses Geraet nicht freigegeben." |
 | Geräte-JWT → `checkin` auf ein `ARCHIVED`-Konto (Exempt-Rolle, also im Scope) | — | **403** „Benutzerkonto ist nicht aktiv." |
 | `tenant:staff` → `checkin` auf **sich selbst** | 200 | **200** (unverändert) |
-| Theken-Terminal (`shared`) → `checkin` auf einen Mitarbeiter | 200 | **200** (unverändert) |
+| Theken-Terminal (`shared`) → `checkin` auf einen Mitarbeiter | 200 | **200** (unverändert; seit #1199 nur noch mit Bediener-Token, siehe Nachtrag 2026-10-30) |
 
 Ein Detail, das man dem Code nicht ansieht und das den Befund einordnet: Derselbe
 `tenant:staff`-Aufrufer bekommt auf `GET /users/<kollege>` ein **404** — der Lesepfad ist
@@ -178,7 +178,7 @@ er nur prüfte, ob das Gerät stempeln darf, nicht wer an der Kasse steht.
   kaputtes Token mehr Rechte als ein gültiges.
 - **Reihenfolge:** nach der Mandantengrenze, vor der Zustandsprüfung. Die Antwort verrät nichts
   über den Stempelstand eines Kollegen.
-- **Ohne Token** bleibt es beim Stand von #189. Darüber läuft das Personalnummer-Panel am
+- **Ohne Token** blieb es zunächst beim Stand von #189 (seit #1199 geschlossen, Nachtrag 2026-10-30). Darüber lief das Personalnummer-Panel am
   Login-Bildschirm, das ohne PIN stempelt. Wie dieser Weg abgesichert wird (PIN-Pflicht oder
   serverseitige Prüfung der Personalnummer), entscheidet
   [#915](https://github.com/panary/panary-core/issues/915). Wirksam wird die Bindung erst, wenn der Client das
@@ -289,3 +289,32 @@ Bestätigungsschritt „Vorname N. – Einstempeln?" → `users.stampByEmployeeN
   Nummer im Klartext), der ungenutzte `users`-Input und der TODO-Handler `onTimeClockAction`.
 - **Release-Reihenfolge:** Edge `v*` (#1197) vor POS `pos-v*`; für cloud-direkt zusätzlich die Cloud-Methoden (panary/panary-cloud#1557).
   Ein neues Panel gegen einen Edge ohne die Methoden meldet „fehlgeschlagen".
+
+## Nachtrag 2026-10-30 — Altpfad über die `userId` geschlossen (panary/panary-core#1199)
+
+Voraussetzung (von Michael am 2026-10-30 bestätigt): Edge `v26.10.45` und POS `pos-v26.10.46` laufen auf allen Geräten. Das ist die
+Mindestversion; Reihenfolge war `v*` (Edge, #1197) → `pos-v*` (Panel, #1198) → dieser Schritt. Ein Gerät mit älterem POS stempelt
+danach nicht mehr, bis es aktualisiert ist.
+
+**Widerruf der Entscheidung aus #189.** „Der Filialleiter stempelt Mitarbeiter über das Terminal, das läuft unter dem Geräte-JWT"
+gilt nicht mehr. Am Terminal stempelt jeder per Personalnummer des Mitarbeiters (`stampByEmployeeNumber`, nur `tenant:staff`)
+oder als angemeldeter Bediener mit Token, Leitungskonten ohne eigene Nummer-Stempelung nur als sich selbst.
+
+| Aufruf | Ergebnis |
+| --- | --- |
+| Geräte-JWT, `checkin\|checkout\|startBreak\|endBreak(userId)` **ohne** Bediener-Token (extern) | `401`, `data.reason: POS_OPERATOR_REQUIRED` (`OPERATOR_REQUIRED`), nichts wird geschrieben |
+| dasselbe mit gültigem Token des Ziel-Menschen | erlaubt |
+| `stampByEmployeeNumber` (ruft die Methoden intern, `provider: undefined`) | unverändert erlaubt, Nummer + Limiter sind der Beleg |
+| Geräte-JWT, `users.find` mit `employeeNumber` im Filter (auch in `$or`/`$and`/Operatoren oder in `$sort`) | `403`, `data.code: EMPLOYEE_NUMBER_QUERY_REJECTED` |
+| interne Suche nach `employeeNumber` (`resolveStampTarget`) | unverändert |
+
+- **Gleiche Kennung wie ein abgelehntes Token.** Der POS behandelt `POS_OPERATOR_REQUIRED` schon seit #923: Abmelden, Hinweis
+  „PIN erforderlich", Wiederanmeldung per PIN. Ein abgelaufenes Token (`withPosOperatorToken()` lässt es weg) führt dadurch zur
+  PIN-Abfrage statt zu einem stillen Fehlschlag; eine Änderung am POS war nicht nötig, nur ein Test dafür.
+- **`requireOperator` hängt am `provider`.** `assertTimeClockScope` setzt es für externe Aufrufe. Interne Aufrufe haben keinen Token
+  und brauchen ihn nicht.
+- **`TIME_CLOCK_METHODS` im `authorize`-Hook bleibt unverändert:** Die `CAN_CLOCK_IN`-Ability autorisiert nur das Gerät. Wer gemeint
+  ist, entscheidet die Prüfung in den Methoden.
+- Getestet in `time-clock-scope.spec.ts`, `time-clock-wiring.spec.ts`, `reject-device-employee-number-query.hook.spec.ts`,
+  `test/services/users/time-clock-operator.test.ts` und `employee-number-device.test.ts`.
+- **Nicht betroffen:** cloud-direkt gekoppelte POS (Cloud-Altpfad schließt panary/panary-cloud#1558).

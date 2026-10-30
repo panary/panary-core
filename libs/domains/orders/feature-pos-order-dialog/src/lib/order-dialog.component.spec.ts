@@ -20,6 +20,7 @@ import { of } from 'rxjs'
 
 import { OrderCheckoutService, OrderInteractionService, OrderService } from '@panary/orders/data-access'
 import { BusinessDayService } from '@panary/businessdays/data-access'
+import { CorporateCustomerService } from '@panary/corporate-customers/data-access'
 import { CLOSED_DAY_STATUS_TIMEOUT_MS } from '@panary/businessdays/feature-pos-closing-dialog'
 import type { AppliedDiscount } from '@panary/orders/domain'
 import { ProductGroupService } from '@panary/product-groups/data-access'
@@ -87,6 +88,8 @@ interface SetupOptions {
   holdCreate?: boolean
   /** Die Ruhetag-Vorabfrage antwortet nie (Server ohne `getClosedDayStatus`, core#1216). */
   closedDayNeverAnswers?: boolean
+  /** Antwort von `CorporateCustomerService.find` (core#1217) — ein `Error` spielt einen Ladefehler nach. */
+  corporateCustomers?: Array<Record<string, unknown>> | { data: Array<Record<string, unknown>>; total: number } | Error
   /** Antwort der Ruhetag-Vorabfrage (#1133) — Standard: keine Freigabe nötig. Ein `Error` spielt Edge offline nach. */
   closedDayStatus?: Record<string, unknown> | Error
 }
@@ -129,6 +132,7 @@ function setup(options: SetupOptions = {}) {
   /** Offene `createOrder`-Aufrufe (`holdCreate`) — je Test eigene Liste (testing.md §10). */
   const heldCreates: Array<() => void> = []
   const redeemCalls: Array<Record<string, unknown>> = []
+  const corporateFindCalls: Array<Record<string, unknown>> = []
   const openedDialogs: Array<{ data?: unknown; disableClose?: boolean }> = []
   /** Was der `closed`-Output gemeldet hat — die Route entscheidet daraus, wie es weitergeht (core#828). */
   const closeCalls: unknown[] = []
@@ -276,6 +280,16 @@ function setup(options: SetupOptions = {}) {
       },
       { provide: PreOrderService, useValue: {} },
       {
+        provide: CorporateCustomerService,
+        useValue: {
+          find: async (params: Record<string, unknown>) => {
+            corporateFindCalls.push(params)
+            if (options.corporateCustomers instanceof Error) throw options.corporateCustomers
+            return options.corporateCustomers ?? []
+          },
+        },
+      },
+      {
         provide: BusinessDayService,
         useValue: {
           getClosedDayStatus: async () => {
@@ -338,6 +352,7 @@ function setup(options: SetupOptions = {}) {
     payCashCalls,
     releaseCreate: () => heldCreates.splice(0).forEach(release => release()),
     redeemCalls,
+    corporateFindCalls,
     openedDialogs,
     closeCalls,
     kasseDraft,
@@ -3025,6 +3040,63 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
 
     expect(createdOrders).toHaveLength(1)
     expect(component.placing()).toBe(false)
+  })
+
+  // core#1217: `setCustomerSubButtons` rief den Firmenkunden-Loader nicht mehr auf (auskommentiert).
+  describe('Kunden-Button: Firmenkunden laden (core#1217)', () => {
+    const acme = { _id: 'c-1', name1: 'Acme GmbH' }
+    const beta = { _id: 'c-2', name1: 'Beta GmbH' }
+
+    it('lädt die Firmenkunden sortiert nach Name und zeigt sie an', async () => {
+      const { component, corporateFindCalls } = setup({ corporateCustomers: { data: [acme, beta], total: 2 } })
+
+      component.setCustomerSubButtons()
+      await vi.waitFor(() => expect(component.corporateCustomers).toEqual([acme, beta]))
+
+      expect(corporateFindCalls).toEqual([{ query: { $sort: { name1: 1 }, $limit: 200 } }])
+      expect(component.totalCorporateCustomers).toBe(2)
+    })
+
+    it('kommt auch mit einer Antwort ohne Paginierung zurecht', async () => {
+      const { component } = setup({ corporateCustomers: [acme] })
+
+      component.setCustomerSubButtons()
+      await vi.waitFor(() => expect(component.corporateCustomers).toEqual([acme]))
+
+      expect(component.totalCorporateCustomers).toBe(1)
+    })
+
+    it('lässt die Liste leer, wenn das Laden scheitert', async () => {
+      const { component, corporateFindCalls } = setup({ corporateCustomers: new Error('offline') })
+
+      component.setCustomerSubButtons()
+      await vi.waitFor(() => expect(corporateFindCalls).toHaveLength(1))
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      expect(component.corporateCustomers).toEqual([])
+    })
+
+    it('verwirft eine späte Antwort, wenn die Ansicht inzwischen gewechselt hat', async () => {
+      const { component, corporateFindCalls } = setup({ corporateCustomers: [acme] })
+
+      component.setCustomerSubButtons()
+      component.clearButtons()
+      await vi.waitFor(() => expect(corporateFindCalls).toHaveLength(1))
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      expect(component.corporateCustomers).toEqual([])
+    })
+
+    it('übernimmt die Wahl eines Firmenkunden als Kunden der Bestellung', async () => {
+      const { component } = setup({ corporateCustomers: [acme] })
+      component.setCustomerSubButtons()
+      await vi.waitFor(() => expect(component.corporateCustomers).toEqual([acme]))
+
+      component.setCustomer(acme)
+
+      expect(component.customer).toEqual(acme)
+      expect(component.corporateCustomers).toEqual([])
+    })
   })
 
   // core#1216: Eine Vorabfrage ohne Antwort hielt `placing` offen. `sheetOpen` sperrte damit „Bestellen" und das

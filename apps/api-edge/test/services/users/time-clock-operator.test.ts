@@ -125,6 +125,17 @@ describe('users.checkin am Terminal — Bediener-Token bestimmt die Person', () 
     expect(await stampOf(anna._id)).toEqual(expect.any(String))
   })
 
+  it('lehnt das Stempeln ohne Bediener-Token mit 401 ab, auch fuer die eigene ID (#1199)', async () => {
+    const anna = await createStaff('Anna')
+    const connection = await deviceConnection()
+
+    await expect(checkin(anna._id, connection)).rejects.toMatchObject({
+      code: 401,
+      data: { reason: 'POS_OPERATOR_REQUIRED' },
+    })
+    expect(await stampOf(anna._id)).toBeNull()
+  })
+
   it('lehnt eine fremde ID im Body mit 403 ab und stempelt niemanden', async () => {
     const anna = await createStaff('Anna')
     const ben = await createStaff('Ben')

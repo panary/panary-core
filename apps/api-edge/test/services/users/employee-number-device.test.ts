@@ -122,12 +122,24 @@ describe('users — employeeNumber an Geraete', () => {
     expect(row.employeeNumber).toBe(NUMBER)
   })
 
-  it('Panel-Query nach employeeNumber trifft am Geraet weiter', async () => {
+  it('Suche nach employeeNumber ist am Geraet abgewiesen (#1199), auch verschachtelt und als Sortierung', async () => {
+    await createStaff()
+    const find = (query: Record<string, unknown>) =>
+      app.service('users').find({ provider: 'rest', authenticated: true, user: device, query } as never)
+    for (const query of [
+      { employeeNumber: NUMBER },
+      { employeeNumber: { $in: [NUMBER] } },
+      { $or: [{ employeeNumber: NUMBER }] },
+      { $sort: { employeeNumber: 1 } },
+    ]) {
+      await expect(find(query)).rejects.toMatchObject({ code: 403, data: { code: 'EMPLOYEE_NUMBER_QUERY_REJECTED' } })
+    }
+  })
+
+  it('interne Suche nach employeeNumber (stampByEmployeeNumber) bleibt offen', async () => {
     const u = await createStaff()
     const rows = asRows(
-      await app
-        .service('users')
-        .find({ provider: 'rest', authenticated: true, user: device, query: { employeeNumber: NUMBER } } as never),
+      await app.service('users').find({ provider: undefined, query: { employeeNumber: NUMBER, tenantId } } as never),
     )
     expect(rows.map(r => r._id)).toContain(u._id)
   })

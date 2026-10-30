@@ -174,6 +174,20 @@ describe('PosStaffService (core#832)', () => {
     expect(session.endSession.mock.calls).toEqual([['button']])
   })
 
+  it('abgelaufenes Token: kein Token im Aufruf, die Ablehnung des Edge führt zur PIN-Abfrage (core#1199)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    storePosOperatorToken({ operatorToken: 't-alt', operatorTokenExpiresAt: '2000-01-01T00:00:00.000Z' })
+    onTestFinished(() => clearPosOperatorToken())
+    const rejection = Object.assign(new Error('fehlt'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    const { service, users, session, notify } = setup()
+    users.checkin.mockRejectedValue(rejection)
+    await service.clockIn()
+    // Ein abgelaufenes Token wird nicht mitgeschickt; der Edge weist ohne Token ab (kein stiller Fehlschlag).
+    expect(users.checkin.mock.calls).toEqual([['u-olga', {}]])
+    expect(session.endSession.mock.calls).toEqual([['button']])
+    expect(notify.mock.calls.map(call => call[1])).toEqual(['POS_NAV.OPERATOR_PIN_REQUIRED'])
+  })
+
   it('Hinweis erst nach dem Abmelden — sonst stünde die Abmelde-Meldung über ihm (core#937)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const rejection = Object.assign(new Error('abgelehnt'), { code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })

@@ -152,6 +152,16 @@ describe('Verdrahtung: jede Stempel-Methode prueft den Aufrufer-Scope', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
+  it.each(TIME_CLOCK_METHODS)('%s: externer Geraete-Aufruf ohne Token → 401 ohne Schreiben (#1199)', async method => {
+    const { service, patch, create } = setup(foreignTarget)
+
+    await expect(
+      call(service, method, { userId: 'u-victim' }, { provider: 'rest', user: deviceActor }),
+    ).rejects.toMatchObject({ code: 401, data: { reason: 'POS_OPERATOR_REQUIRED' } })
+    expect(patch).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
+  })
+
   it('mit passendem Bediener-Token stempelt das Geraet den Token-Menschen (#903)', async () => {
     const { service, patch } = setup({ ...foreignTarget, stampingId: null, startBreakAt: null })
 

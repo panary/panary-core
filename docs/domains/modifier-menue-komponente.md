@@ -75,7 +75,11 @@ Zeile überhaupt zugeordnete Modifier trägt.
   Getränk → deren Modifier. Ohne Zuordnung bleibt die Bestandsreihenfolge: Komponenten, dann alle Modifier.
 - `components[]` druckt weder Karte noch Bon; beide rufen den Helfer mit `{ components: false }`.
 
-Nicht umgestellt (zeigen weiter flach): Warenkorb des Bestelldialogs, Split-Dialog, Historie.
+- **Warenkorb des Bestelldialogs** (`order-dialog.component.html`, core#1218): `modifierGroups` ruft den Helfer mit
+  `{ components: false }`. Hauptartikel-Extras stehen direkt unter dem Artikel, Beilage- und Getränk-Extras eine Stufe
+  eingerückt (`pl-3`) unter ihrer Komponente, auch in der Kombination. Positionspreis und Summen bleiben unberührt.
+
+Nicht umgestellt (zeigen weiter flach): Split-Dialog, Historie.
 
 ## Sync und Cloud
 

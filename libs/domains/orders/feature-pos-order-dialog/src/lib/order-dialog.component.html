@@ -1002,9 +1002,8 @@
   <!-- Dasselbe für eine Position innerhalb einer Kombination. -->
   <ng-template #comboModifier let-line="line" let-extra="extra" let-indent="indent">
     <div
-      class="flex justify-between text-xs text-ink-muted ml-[2.5rem]"
-      [class.pl-3]="indent"
-      [ngClass]="isMenuComplete(line) ? '' : 'text-red-500'"
+      class="flex justify-between text-xs text-ink-muted"
+      [ngClass]="(isMenuComplete(line) ? '' : 'text-red-500') + (indent ? ' pl-3' : ' ml-[2.5rem]')"
     >
       @if (isRemovedIngredient(extra)) {
         <span>

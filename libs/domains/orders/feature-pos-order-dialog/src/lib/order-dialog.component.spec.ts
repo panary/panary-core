@@ -4145,6 +4145,21 @@ describe('OrderDialog — Extras je Menü-Komponente im Warenkorb (core#1218)', 
 
     expect(component.calculateArticlePrice(line)).toBe(before)
     expect(before).toBeCloseTo(11.9 + 0.7 + 1.9, 2)
+    expect((line as { modifiers: unknown[] }).modifiers).toHaveLength(3)
+  })
+
+  it('zeigt Extras einer reinen components[]-Komponente am Hauptartikel, statt sie zu verlieren', () => {
+    const { component } = setup()
+    const OTHER = '0190a000-0000-7000-8000-0000000000aa'
+    const line = {
+      ...(menuLine() as object),
+      components: [{ role: 'extra', externalId: OTHER, name: 'Dip' }],
+      modifiers: [extra('Chili', 0.5, OTHER)],
+    } as never
+
+    const groups = component.modifierGroups(line)
+
+    expect(groups.main.map((m: { name: string }) => m.name)).toEqual(['Chili'])
   })
 
   it('belässt Extras ohne Zuordnung bei einer Einzelposition am Hauptartikel', () => {

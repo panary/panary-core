@@ -178,20 +178,8 @@
             </div>
 
             <div class="space-y-3 font-mono text-sm">
-              @for (item of getUnbundledLineItems(selectedOrder()!); track item) {
-                <div class="flex justify-between items-start">
-                  <div class="flex gap-2">
-                    <span class="font-bold">{{ item.amount }}x</span>
-                    <span>{{ item.name }}</span>
-                  </div>
-                  <span>{{ item.price * item.amount | eur }}</span>
-                </div>
-                @for (extra of item.modifiers; track extra) {
-                  <div class="flex justify-between items-start pl-6 text-ink-muted text-xs">
-                    <span>{{ extra.amount }}x {{ extra.name }}</span>
-                    <span>{{ modifierPrice(item, extra) | eur }}</span>
-                  </div>
-                }
+              @for (line of getUnbundledLineItems(selectedOrder()!); track line.item) {
+                <ng-container [ngTemplateOutlet]="historyLine" [ngTemplateOutletContext]="{ $implicit: line }" />
               }
 
               @for (combo of getCombinations(selectedOrder()!); track combo; let i = $index) {
@@ -199,13 +187,9 @@
                   <div class="font-bold text-xs text-ink-faint uppercase mb-1">
                     {{ 'ACTIVE_ORDERS.COMBINATIONS' | translate }} {{ i + 1 }}
                   </div>
-                  @for (item of combo; track item) {
-                    <div class="flex justify-between items-start pl-2 border-l-2 border-line">
-                      <div class="flex gap-2">
-                        <span class="font-bold">{{ item.amount }}x</span>
-                        <span>{{ item.name }}</span>
-                      </div>
-                      <span>{{ item.price * item.amount | eur }}</span>
+                  @for (line of combo; track line.item) {
+                    <div class="pl-2 border-l-2 border-line">
+                      <ng-container [ngTemplateOutlet]="historyLine" [ngTemplateOutletContext]="{ $implicit: line }" />
                     </div>
                   }
                 </div>
@@ -233,3 +217,63 @@
     }
   </lib-pos-split>
 </div>
+
+<!-- Eine Position des Bons mit Extras und, bei einem Menü, Beilage und Getränk samt deren Extras (core#1235,
+     dieselbe Zuordnung wie „Offen“). Ohne Menü-Aufpreis: die gespeicherte Zeile trägt keinen. -->
+<ng-template #historyLine let-line>
+  <div class="flex flex-col gap-1" data-testid="history-line">
+    <div class="flex justify-between items-start">
+      <div class="flex gap-2">
+        <span class="font-bold">{{ line.item.amount }}x</span>
+        <span>{{ line.item.name }}</span>
+      </div>
+      <span>{{ line.item.price * line.item.amount | eur }}</span>
+    </div>
+    <ng-container
+      [ngTemplateOutlet]="historyExtras"
+      [ngTemplateOutletContext]="{ $implicit: line.modifiers, indent: 'pl-6' }"
+    />
+    @if (line.item.isMenu) {
+      @if (line.item.menuSideDish) {
+        <div class="pl-6 text-sm text-ink" data-testid="menu-part">{{ line.item.menuSideDish.name }}</div>
+        <ng-container
+          [ngTemplateOutlet]="historyExtras"
+          [ngTemplateOutletContext]="{ $implicit: line.sideDishModifiers, indent: 'pl-10' }"
+        />
+      }
+      @if (line.item.menuDrink) {
+        <div class="pl-6 text-sm text-ink" data-testid="menu-part">{{ line.item.menuDrink.name }}</div>
+        <ng-container
+          [ngTemplateOutlet]="historyExtras"
+          [ngTemplateOutletContext]="{ $implicit: line.drinkModifiers, indent: 'pl-10' }"
+        />
+      }
+    }
+  </div>
+</ng-template>
+
+<!-- Extras einer Stelle: „+ Name“ mit Menge als „+ 2x Name“, abgewählte Zutaten und Minus-Marker als „ohne“. -->
+<ng-template #historyExtras let-modifiers let-indent="indent">
+  @for (extra of modifiers; track extra.id) {
+    <div class="flex justify-between items-start text-ink-muted text-xs" [ngClass]="indent" data-testid="history-extra">
+      <span class="flex items-center gap-1">
+        @if (extra.kind === 'extra') {
+          <span data-testid="history-extra-plus">+</span>
+          @if (extra.amount > 1) {
+            <span>{{ extra.amount }}x</span>
+          }
+          <span>{{ extra.name }}</span>
+        } @else {
+          <span class="italic font-semibold text-red-600 dark:text-red-400">ohne</span>
+          <span class="line-through">{{ extra.name }}</span>
+        }
+        @if (extra.icon) {
+          <span>{{ extra.icon }}</span>
+        }
+      </span>
+      @if (extra.price !== null) {
+        <span>{{ extra.kind === 'extra' ? '+' : '' }}{{ extra.price | eur }}</span>
+      }
+    </div>
+  }
+</ng-template>

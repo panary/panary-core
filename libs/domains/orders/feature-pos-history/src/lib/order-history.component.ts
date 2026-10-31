@@ -4,17 +4,16 @@ import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import {
-  calculateModifierPrice,
   calculateOrderTotal,
   getCombinations,
   getUnbundledLineItems,
   Order,
-  OrderLineItem,
   OrderService,
   OrderStatus,
   PrintDialogComponent,
   CancelOrderDialogComponent,
 } from '@panary/orders/data-access'
+import { buildHistoryLineVm, type HistoryLineVm } from './history-line'
 import { ExtendedParams } from '@panary/shared-common'
 import { EurPipe, IconComponent, PageHeaderComponent, PosSplitComponent } from '@panary/shared/ui-common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -219,16 +218,11 @@ export class OrderHistoryComponent {
     return calculateOrderTotal(order)
   }
 
-  getCombinations(order: Order): OrderLineItem[][] {
-    return getCombinations(order)
+  getCombinations(order: Order): HistoryLineVm[][] {
+    return getCombinations(order).map(combo => combo.map(buildHistoryLineVm))
   }
 
-  getUnbundledLineItems(order: Order): OrderLineItem[] {
-    return getUnbundledLineItems(order)
-  }
-
-  /** Modifier-Betrag wie Engine und Bon (#698) — bei `modifierScope: 'unit'` für alle Stück. */
-  modifierPrice(line: OrderLineItem, extra: OrderLineItem['modifiers'][number]): number {
-    return calculateModifierPrice(line, extra)
+  getUnbundledLineItems(order: Order): HistoryLineVm[] {
+    return getUnbundledLineItems(order).map(buildHistoryLineVm)
   }
 }

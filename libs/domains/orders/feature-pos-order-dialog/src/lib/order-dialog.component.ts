@@ -208,6 +208,12 @@ function dropComponentModifiers(
 export const ORDER_PLACED_MESSAGE = 'Bestellung abgeschickt'
 
 const CUSTOMER_FETCH_LIMIT = 200
+const CUSTOMER_NOTICE = {
+  loading: 'Firmenkunden werden geladen …',
+  offline: 'Offline: Die Firmenkunden sind gerade nicht verfügbar. Verbindung prüfen.',
+  failed: 'Die Firmenkunden konnten nicht geladen werden.',
+  none: 'Es sind noch keine Firmenkunden angelegt.',
+} as const
 
 @Component({
   selector: 'app-order-dialog',
@@ -457,6 +463,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   totalCorporateCustomers = 0
   /** Gewählter Anfangsbuchstabe des Zeichenfilters, `null` = alle (core#1224). */
   customerCharacter: string | null = null
+  /** Statt der Liste: Laden, offline, Fehler oder noch keine Firmenkunden (core#1224). `null` = Liste ist da. */
+  customerNotice: string | null = null
   customerPage = 0
   readonly customerPageSize = 24
   #customerRequest = 0
@@ -869,6 +877,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this._productButtons = []
     this._functionBlockLabel = ''
     this.corporateCustomers = []
+    this.customerNotice = null
     this.#customerRequest++
     this.activeProductGroupId.set(null)
     this.#closingStep = null
@@ -3736,17 +3745,32 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // (`clearButtons` zählt `#customerRequest` hoch).
     const request = ++this.#customerRequest
     this.resetCharacterFilter()
+    this.customerNotice = CUSTOMER_NOTICE.loading
     this.#loadAllCorporateCustomers(() => request !== this.#customerRequest).then(
       ({ customers, total }) => {
         if (request !== this.#customerRequest) return
         this.corporateCustomers = customers
         this.totalCorporateCustomers = total
+        this.customerNotice = customers.length > 0 ? null : this.#emptyCustomerNotice()
         this.#cdr.markForCheck()
       },
       () => {
-        // `BaseService.find` hat den Fehler schon gemeldet.
+        // `BaseService.find` hat den Fehler schon gemeldet; das Panel bleibt nicht stumm.
+        if (request !== this.#customerRequest) return
+        this.customerNotice = this.#isOffline() ? CUSTOMER_NOTICE.offline : CUSTOMER_NOTICE.failed
+        this.#cdr.markForCheck()
       },
     )
+  }
+
+  /** Wie `BaseService`: nur `authenticated`/`connected` gelten als online, ohne Cache liefert der Offline-Read eine leere Liste. */
+  #isOffline(): boolean {
+    const status = this.#connectionService.connectionState().status
+    return status !== 'authenticated' && status !== 'connected'
+  }
+
+  #emptyCustomerNotice(): string {
+    return this.#isOffline() ? CUSTOMER_NOTICE.offline : CUSTOMER_NOTICE.none
   }
 
   /** Holt alle Firmenkunden seitenweise (der Server deckelt `$limit`), danach nach Name sortiert (`de`, ohne Groß/Klein). */

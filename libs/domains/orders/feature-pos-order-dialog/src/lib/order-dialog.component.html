@@ -562,9 +562,16 @@
           }
 
           <!-- Firmenkunden-Auswahl -->
-          @if (corporateCustomers.length > 0) {
+          @if (customerNotice) {
+            <div
+              class="pt-2 border-t border-line bg-surface-input rounded-t-2xl p-4 shadow-lg mx-2 text-center text-sm text-ink-muted"
+              role="status"
+            >
+              {{ customerNotice }}
+            </div>
+          } @else if (corporateCustomers.length > 0) {
             <div class="pt-2 border-t border-line bg-surface-input rounded-t-2xl p-4 shadow-lg mx-2">
-              <div class="flex gap-2 overflow-x-auto pb-2 noscroll">
+              <div class="flex flex-wrap gap-2 pb-2">
                 @for (character of characters; track character) {
                   <button
                     type="button"

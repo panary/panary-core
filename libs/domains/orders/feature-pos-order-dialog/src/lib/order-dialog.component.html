@@ -575,7 +575,7 @@
                 @for (character of characters; track character) {
                   <button
                     type="button"
-                    class="pnry-hover w-8 h-8 rounded-full text-xs font-bold shrink-0"
+                    class="pnry-hover w-8 h-8 rounded-full text-xs font-bold"
                     [class.text-ink]="customerCharacter !== character"
                     [class.bg-line-soft]="customerCharacter !== character"
                     [class.bg-action]="customerCharacter === character"
@@ -588,7 +588,7 @@
                 }
                 <button
                   type="button"
-                  class="pnry-hover px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold shrink-0"
+                  class="pnry-hover px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold"
                   (click)="resetCharacterFilter()"
                 >
                   Reset

@@ -3153,6 +3153,24 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
       await vi.waitFor(() => expect(component.customerNotice).toBe('Die Firmenkunden konnten nicht geladen werden.'))
     })
 
+    it('sagt offline auch bei einem Ladefehler Offline statt „nicht geladen“', async () => {
+      const { component } = setup({ corporateCustomers: new Error('boom'), connectionStatus: 'disconnected' })
+
+      component.setCustomerSubButtons()
+
+      await vi.waitFor(() => expect(component.customerNotice).toMatch(/^Offline:/))
+    })
+
+    it('lässt einen späten Ladefehler keinen Hinweis in eine inzwischen gewechselte Ansicht schreiben', async () => {
+      const { component } = setup({ corporateCustomers: new Error('boom') })
+
+      component.setCustomerSubButtons()
+      component.clearButtons()
+      await new Promise(resolve => setTimeout(resolve, 20))
+
+      expect(component.customerNotice).toBeNull()
+    })
+
     it('sagt online ohne Firmenkunden, dass noch keine angelegt sind', async () => {
       const { component } = setup({ corporateCustomers: [] })
 

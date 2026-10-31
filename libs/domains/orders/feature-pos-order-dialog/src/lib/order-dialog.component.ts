@@ -3763,9 +3763,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     )
   }
 
-  /** Wie `BaseService`: nur `authenticated`/`connected` gelten als online, ohne Cache liefert der Offline-Read eine leere Liste. */
+  /** Gleiche Regel wie `BaseService.#isOffline` (privat, deshalb gespiegelt): ohne Cache liefert der Offline-Read eine leere Liste. */
   #isOffline(): boolean {
     const status = this.#connectionService.connectionState().status
+    if (!status) return false
     return status !== 'authenticated' && status !== 'connected'
   }
 

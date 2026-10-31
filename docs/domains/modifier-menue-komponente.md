@@ -78,6 +78,9 @@ Zeile überhaupt zugeordnete Modifier trägt.
 - **Warenkorb des Bestelldialogs** (`order-dialog.component.html`, core#1218): `modifierGroups` ruft den Helfer mit
   `{ components: false }`. Hauptartikel-Extras stehen direkt unter dem Artikel, Beilage- und Getränk-Extras eine Stufe
   eingerückt (`pl-3`) unter ihrer Komponente, auch in der Kombination. Positionspreis und Summen bleiben unberührt.
+  Seit [core#1234](https://github.com/panary/panary-core/issues/1234) tragen alle positiven Extras ein „+“ vor dem
+  Namen („+ 2x Mayonaise“), „ohne“-Zeilen bleiben unverändert. Beim Einzelartikel stehen auch die
+  Hauptartikel-Extras eingerückt (`pl-3`, wie in „Offen“); beim Menü bleibt die Anordnung wie oben.
 
 Nicht umgestellt (zeigen weiter flach): Split-Dialog, Historie.
 

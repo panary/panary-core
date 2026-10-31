@@ -1,3 +1,4 @@
+import '@angular/compiler'
 import { describe, expect, it } from 'vitest'
 import type { ModifierLineItem, OrderLineItem } from '@panary/orders/domain'
 import { buildHistoryLineVm } from './history-line'
@@ -60,9 +61,33 @@ describe('buildHistoryLineVm (core#1235)', () => {
   it('zeigt die Menge eines Extras (+ 2x Name) und bei Je-Stück-Modifiern für alle Stück', () => {
     expect(buildHistoryLineVm(line({ modifiers: [mod({ amount: 2 })] })).modifiers[0].amount).toBe(2)
     const perUnit = buildHistoryLineVm(
-      line({ amount: 3, modifiers: [mod({ amount: 1, price: 0.7, modifierScope: 'unit' } as Partial<ModifierLineItem>)] }),
+      line({ amount: 3, modifierScope: 'unit', modifiers: [mod({ amount: 1, price: 0.7 })] } as Partial<OrderLineItem>),
     )
     expect(perUnit.modifiers[0].amount).toBe(3)
     expect(perUnit.modifiers[0].price).toBeCloseTo(2.1)
+  })
+  it('lässt Extras einer reinen components[]-Komponente am Hauptartikel statt sie zu verlieren', () => {
+    const X = '01a19000-0000-7000-8000-000000000003'
+    const vm = buildHistoryLineVm(
+      line({
+        components: [{ externalId: X, role: 'side', name: 'Salat' }],
+        modifiers: [mod({ name: 'Dressing', componentExternalId: X })],
+      } as Partial<OrderLineItem>),
+    )
+    expect(vm.modifiers.map(m => m.name)).toEqual(['Dressing'])
+  })
+
+  it('zeigt den Betrag einer abgewählten Zutat mit Abzug, den eines Minus-Markers nicht', () => {
+    const vm = buildHistoryLineVm(
+      line({
+        modifiers: [
+          mod({ _id: 'a', name: 'Ohne Zwiebeln', price: -0.5 }),
+          mod({ _id: 'b', name: 'Käse', amount: -1, price: 0.3 }),
+        ],
+      }),
+    )
+    expect(vm.modifiers[0].price).toBe(-0.5)
+    expect(vm.modifiers[1].price).toBeNull()
+    expect(vm.modifiers[1].amount).toBe(1)
   })
 })

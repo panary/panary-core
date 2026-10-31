@@ -8,7 +8,6 @@ import {
   getCombinations,
   getUnbundledLineItems,
   Order,
-  OrderLineItem,
   OrderService,
   OrderStatus,
   PrintDialogComponent,

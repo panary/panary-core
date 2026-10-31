@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: Modifier je Menü-Komponente (componentExternalId)
-description: 'Wie ein Modifier, der im Bestelldialog zu einer Menü-Komponente gewählt wurde (Mayonnaise zur Pommes), diese Zuordnung als componentExternalId trägt, wie groupModifiersByComponent sie für Bon-Karte und Druck auflöst und warum Preis, Steuer, Verbrauch und Bestandsbestellungen unverändert bleiben.'
+description: 'Wie ein Modifier, der im Bestelldialog zu einer Menü-Komponente gewählt wurde (Mayonnaise zur Pommes), diese Zuordnung als componentExternalId trägt, wie groupModifiersByComponent sie für Bon-Karte, Warenkorb, Historie und Druck auflöst und warum Preis, Steuer, Verbrauch und Bestandsbestellungen unverändert bleiben.'
 tags: [orders, pos, printing, sync]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-26T21:50:00Z }
@@ -82,7 +82,16 @@ Zeile überhaupt zugeordnete Modifier trägt.
   Namen („+ 2x Mayonaise“), „ohne“-Zeilen bleiben unverändert. Beim Einzelartikel stehen auch die
   Hauptartikel-Extras eingerückt (`pl-3`, wie in „Offen“); beim Menü bleibt die Anordnung wie oben.
 
-Nicht umgestellt (zeigen weiter flach): Split-Dialog, Historie.
+- **Historie** (`order-history.component.html`, `history-line.ts`,
+  [core#1235](https://github.com/panary/panary-core/issues/1235)): `buildHistoryLineVm` ruft den Helfer mit
+  `{ components: false }`. Eine Vorlage für freie Positionen und Kombinationen zeigt den Hauptartikel mit „+ Name“,
+  darunter Beilage und Getränk mit ihren Extras (eingerückt). „ohne“-Zeilen und −1-Marker bleiben ohne „+“, die Menge
+  steht als „+ 2x Name“. Gespeicherte Preise, nichts wird neu gerechnet. Der Menü-Aufpreis der Komponenten entfällt:
+  Die gespeicherte Zeile trägt keinen, und aus der aktuellen Standort-Konfiguration würde er für alte Bestellungen
+  falsch. Die Historie liest weiter das rohe `order.lineItems` (nicht `effectiveLineItems` wie „Offen“), bei
+  gesplitteten Bestellungen weichen beide bewusst voneinander ab.
+
+Nicht umgestellt (zeigen weiter flach): Split-Dialog.
 
 ## Sync und Cloud
 

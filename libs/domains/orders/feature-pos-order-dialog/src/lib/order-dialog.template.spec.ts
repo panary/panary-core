@@ -877,3 +877,29 @@ describe('OrderDialog-Template — Extras je Menü-Komponente (core#1218)', () =
     expect(template.match(/modifiers: groups\.drink/g)).toHaveLength(2)
   })
 })
+
+// core#1234: Positive Extras tragen im Warenkorb ein „+" vor dem Namen; nur beim Einzelartikel stehen die
+// Hauptartikel-Extras eingerückt (beim Menü liegt die Einrückung bei Beilage und Getränk, core#1218).
+describe('OrderDialog-Template — „+" und Einrückung der Extras (core#1234)', () => {
+  const block = (name: string) => {
+    const start = template.indexOf(`<ng-template #${name} `)
+    return template.slice(start, template.indexOf('</ng-template>', start))
+  }
+
+  it('setzt das „+" nur vor positive Extras, nicht vor „ohne"-Zeilen', () => {
+    for (const [name, testid] of [
+      ['cartModifier', 'cart-modifier-plus'],
+      ['comboModifier', 'combo-modifier-plus'],
+    ]) {
+      const body = block(name)
+      const plus = body.indexOf(`data-testid="${testid}"`)
+      expect(plus).toBeGreaterThan(0)
+      expect(body.slice(Math.max(0, plus - 120), plus)).toMatch(/extra\.amount > 0/)
+    }
+    expect(block('cartModifier')).toContain('!isRemovedIngredient(extra) && extra.amount > 0')
+  })
+
+  it('rückt die Hauptartikel-Extras der Einzelposition nur beim Einzelartikel ein', () => {
+    expect(template).toContain('{ line: lineItem, extra: extra, indent: !lineItem.isMenu }')
+  })
+})

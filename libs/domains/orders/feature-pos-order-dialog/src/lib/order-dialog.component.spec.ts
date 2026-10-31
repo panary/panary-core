@@ -67,6 +67,8 @@ interface SetupOptions {
   redeemResult?: Record<string, unknown>
   /** Produkte, aus denen `findProductById`/`findProductByExternalId` aufloesen (#273). */
   catalog?: ProductSchema[]
+  /** `ConnectionService.connectionState().status` — Standard: online (`authenticated`). */
+  connectionStatus?: string
   /** `ConnectionService.tier()` — Standard: Kasse am Edge (cloud#1429). */
   tier?: 'cloud-direct' | 'standalone' | 'edge-with-cloud' | 'unknown'
   /** `posHandedness` des angemeldeten Mitarbeiters — fehlt es, gilt links (core#829). */
@@ -316,7 +318,11 @@ function setup(options: SetupOptions = {}) {
       { provide: DeviceConfigService, useValue: {} },
       {
         provide: ConnectionService,
-        useValue: { systemMode: () => 'connected', tier: () => options.tier ?? 'edge-with-cloud' },
+        useValue: {
+          systemMode: () => 'connected',
+          tier: () => options.tier ?? 'edge-with-cloud',
+          connectionState: () => ({ status: options.connectionStatus ?? 'authenticated' }),
+        },
       },
       { provide: TenantSuspensionService, useValue: { suspended } },
       {
@@ -3118,6 +3124,59 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
       expect(component.customerCharacter).toBeNull()
       expect(component.customerPage).toBe(0)
       expect(component.pagedCorporateCustomers).toHaveLength(24)
+    })
+
+    // core#1224: Statt eines stummen oder fehlenden Panels sagt die Kasse, warum keine Liste da ist.
+    it('zeigt beim Laden einen Hinweis und nach dem Laden die Liste ohne Hinweis', async () => {
+      const { component } = setup({ corporateCustomers: { data: [acme], total: 1 } })
+
+      component.setCustomerSubButtons()
+      expect(component.customerNotice).toBe('Firmenkunden werden geladen …')
+
+      await vi.waitFor(() => expect(component.corporateCustomers).toEqual([acme]))
+      expect(component.customerNotice).toBeNull()
+    })
+
+    it('sagt offline, dass die Firmenkunden nicht verfügbar sind, wenn auch der Cache leer ist', async () => {
+      const { component } = setup({ corporateCustomers: [], connectionStatus: 'disconnected' })
+
+      component.setCustomerSubButtons()
+
+      await vi.waitFor(() => expect(component.customerNotice).toMatch(/^Offline:/))
+    })
+
+    it('meldet ein Ladefehler online im Panel statt still zu bleiben', async () => {
+      const { component } = setup({ corporateCustomers: new Error('boom') })
+
+      component.setCustomerSubButtons()
+
+      await vi.waitFor(() => expect(component.customerNotice).toBe('Die Firmenkunden konnten nicht geladen werden.'))
+    })
+
+    it('sagt offline auch bei einem Ladefehler Offline statt „nicht geladen“', async () => {
+      const { component } = setup({ corporateCustomers: new Error('boom'), connectionStatus: 'disconnected' })
+
+      component.setCustomerSubButtons()
+
+      await vi.waitFor(() => expect(component.customerNotice).toMatch(/^Offline:/))
+    })
+
+    it('lässt einen späten Ladefehler keinen Hinweis in eine inzwischen gewechselte Ansicht schreiben', async () => {
+      const { component } = setup({ corporateCustomers: new Error('boom') })
+
+      component.setCustomerSubButtons()
+      component.clearButtons()
+      await new Promise(resolve => setTimeout(resolve, 20))
+
+      expect(component.customerNotice).toBeNull()
+    })
+
+    it('sagt online ohne Firmenkunden, dass noch keine angelegt sind', async () => {
+      const { component } = setup({ corporateCustomers: [] })
+
+      component.setCustomerSubButtons()
+
+      await vi.waitFor(() => expect(component.customerNotice).toBe('Es sind noch keine Firmenkunden angelegt.'))
     })
 
     it('kommt auch mit einer Antwort ohne Paginierung zurecht', async () => {

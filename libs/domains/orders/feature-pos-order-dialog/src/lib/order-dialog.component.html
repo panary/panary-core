@@ -562,13 +562,20 @@
           }
 
           <!-- Firmenkunden-Auswahl -->
-          @if (corporateCustomers.length > 0) {
+          @if (customerNotice) {
+            <div
+              class="pt-2 border-t border-line bg-surface-input rounded-t-2xl p-4 shadow-lg mx-2 text-center text-sm text-ink-muted"
+              role="status"
+            >
+              {{ customerNotice }}
+            </div>
+          } @else if (corporateCustomers.length > 0) {
             <div class="pt-2 border-t border-line bg-surface-input rounded-t-2xl p-4 shadow-lg mx-2">
-              <div class="flex gap-2 overflow-x-auto pb-2 noscroll">
+              <div class="flex flex-wrap gap-2 pb-2">
                 @for (character of characters; track character) {
                   <button
                     type="button"
-                    class="pnry-hover w-8 h-8 rounded-full text-xs font-bold shrink-0"
+                    class="pnry-hover w-8 h-8 rounded-full text-xs font-bold"
                     [class.text-ink]="customerCharacter !== character"
                     [class.bg-line-soft]="customerCharacter !== character"
                     [class.bg-action]="customerCharacter === character"
@@ -581,7 +588,7 @@
                 }
                 <button
                   type="button"
-                  class="pnry-hover px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold shrink-0"
+                  class="pnry-hover px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold"
                   (click)="resetCharacterFilter()"
                 >
                   Reset

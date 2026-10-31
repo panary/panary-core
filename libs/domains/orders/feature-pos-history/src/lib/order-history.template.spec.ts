@@ -55,3 +55,32 @@ describe('Historie: ID mit Abstand (core#1054)', () => {
     expect(source).toContain('<span class="font-bold uppercase mr-1">ID</span>')
   })
 })
+
+// core#1235: Die Historie zeigt Menü-Bestandteile und Extras je Komponente — eine Vorlage für freie Positionen
+// und Kombinationen, kein Durchlauf mehr über alle Modifier der Zeile.
+describe('Historie-Template — Menü und Extras je Komponente (core#1235)', () => {
+  it('läuft nirgends über `item.modifiers`, sondern nutzt die Zeilenvorlage in Einzel- und Kombinationszeile', () => {
+    expect(source.match(/of item\.modifiers/g)).toBeNull()
+    expect(source.match(/\[ngTemplateOutlet\]="historyLine"/g)).toHaveLength(2)
+  })
+
+  it('hängt Beilage und Getränk samt deren Extras unter die Position', () => {
+    expect(source).toContain('line.sideDishModifiers')
+    expect(source).toContain('line.drinkModifiers')
+    expect(source).toContain('line.item.menuSideDish.name')
+    expect(source).toContain('line.item.menuDrink.name')
+  })
+
+  it('setzt das „+“ nur vor echte Extras, „ohne“-Zeilen bekommen keines', () => {
+    const extras = source.slice(source.indexOf('<ng-template #historyExtras'))
+    const plus = extras.indexOf('data-testid="history-extra-plus"')
+    expect(extras.slice(extras.indexOf('@for'), plus)).toContain("extra.kind === 'extra'")
+    expect(extras.indexOf('@else')).toBeGreaterThan(plus)
+  })
+
+  it('zeigt keinen Menü-Aufpreis (die gespeicherte Zeile trägt keinen)', () => {
+    expect(source).not.toContain('menuComponentSurcharge')
+    expect(source).not.toContain('menuSideDish.price')
+    expect(source).not.toContain('menuDrink.price')
+  })
+})

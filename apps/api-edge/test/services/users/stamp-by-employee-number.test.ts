@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFinished, 
 import { logger } from '@panary/shared-backend'
 
 import { app } from '../../../src/app'
+import { userExternalResolver } from '../../../src/services/users/users.schema'
 import { resetStampLimiters } from '../../../src/utils/stamp-attempt-limiter'
 import { resetPinAttemptLimiter } from '@panary/shared-backend'
 
@@ -216,6 +217,18 @@ describe('users.stampByEmployeeNumber / lookupByEmployeeNumber', () => {
       ).rejects.toMatchObject(REJECTED)
     }
     await expect(lookup(anna.number, c)).resolves.toMatchObject({ firstName: 'Anna' })
+  })
+
+  // Der Transport sendet `context.dispatch` (resolveExternal), ein direkter Service-Aufruf liefert nur `result`.
+  // Darum wird der Resolver selbst geprueft, nicht der Rueckgabewert von `svc()`.
+  it('haengt hasPosPin nur an Datensaetze der Standardmethoden, nicht an Custom-Method-Ergebnisse (#1206)', async () => {
+    const resolve = (method: string, user: Record<string, unknown>) =>
+      userExternalResolver.resolve(user as never, { method, params: {} } as never) as Promise<Record<string, unknown>>
+    for (const method of ['lookupByEmployeeNumber', 'stampByEmployeeNumber', 'changePin']) {
+      expect(await resolve(method, { firstName: 'Anna', posPin: 'x' })).not.toHaveProperty('hasPosPin')
+    }
+    expect(await resolve('get', { posPin: 'x' })).toMatchObject({ hasPosPin: true })
+    expect(await resolve('find', {})).toMatchObject({ hasPosPin: false })
   })
 
   it('verlangt genau 6 Ziffern und zaehlt Formatfehler nicht', async () => {

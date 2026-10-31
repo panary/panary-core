@@ -123,6 +123,7 @@ import {
 import { BundleFlow } from './bundle-flow'
 import { KasseDraftRegistry } from './kasse-draft-registry'
 import { splitGroupBar } from './group-bar'
+import { filterByInitial, pageCount, pageSlice } from './customer-filter'
 import {
   type CartPing,
   cartPingClass,
@@ -205,6 +206,8 @@ function dropComponentModifiers(
  * „Bestellungen aktualisiert“ und „Bestellung abgeschickt · Neue Bestellung“ zugleich über dem Druckdialog.
  */
 export const ORDER_PLACED_MESSAGE = 'Bestellung abgeschickt'
+
+const CUSTOMER_FETCH_LIMIT = 200
 
 @Component({
   selector: 'app-order-dialog',
@@ -449,9 +452,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   time: WritableSignal<Date> = signal(new Date())
   multiplier = 1
   multiplierFirstStep = true
-  characters: Array<string> = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
+  characters: Array<string> = [...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)), '#']
   corporateCustomers: Array<CorporateCustomer> = []
   totalCorporateCustomers = 0
+  /** Gewählter Anfangsbuchstabe des Zeichenfilters, `null` = alle (core#1224). */
+  customerCharacter: string | null = null
+  customerPage = 0
+  readonly customerPageSize = 24
   #customerRequest = 0
   /**
    * Pauschalpreise für Beilage und Getränk eines Menüs. Aus dem Standort abgeleitet statt im Konstruktor
@@ -3697,15 +3704,30 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   resetCharacterFilter() {
-    this.setCustomerSubButtons()
+    this.customerCharacter = null
+    this.customerPage = 0
   }
 
-  applyCharacterFilter(_character: string): void {
-    // TODO: Zeichenfilter für Firmenkunden implementieren
+  applyCharacterFilter(character: string): void {
+    this.customerCharacter = this.customerCharacter === character ? null : character
+    this.customerPage = 0
   }
 
-  handleCustomerPageEvent(_event: { pageIndex: number; pageSize: number }): void {
-    // TODO: Paginierung für Firmenkunden implementieren
+  /** Firmenkunden nach Zeichenfilter, Umlaute und Kleinbuchstaben zählen zu ihrem Grundbuchstaben (A–Z). */
+  get filteredCorporateCustomers(): Array<CorporateCustomer> {
+    return filterByInitial(this.corporateCustomers, this.customerCharacter)
+  }
+
+  get customerPageCount(): number {
+    return pageCount(this.filteredCorporateCustomers.length, this.customerPageSize)
+  }
+
+  get pagedCorporateCustomers(): Array<CorporateCustomer> {
+    return pageSlice(this.filteredCorporateCustomers, this.customerPage, this.customerPageSize)
+  }
+
+  changeCustomerPage(delta: number): void {
+    this.customerPage = Math.min(this.customerPageCount - 1, Math.max(0, this.customerPage + delta))
   }
 
   setCustomerSubButtons(): void {
@@ -3713,18 +3735,42 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Eine späte Antwort darf die Liste nicht in eine Ansicht schreiben, die inzwischen gewechselt hat
     // (`clearButtons` zählt `#customerRequest` hoch).
     const request = ++this.#customerRequest
-    this.corporateCustomerService.find({ query: { $sort: { name1: 1 }, $limit: 200 } }).then(
-      response => {
+    this.resetCharacterFilter()
+    this.#loadAllCorporateCustomers(() => request !== this.#customerRequest).then(
+      ({ customers, total }) => {
         if (request !== this.#customerRequest) return
-        const customers = Array.isArray(response) ? response : response.data
         this.corporateCustomers = customers
-        this.totalCorporateCustomers = Array.isArray(response) ? response.length : response.total
+        this.totalCorporateCustomers = total
         this.#cdr.markForCheck()
       },
       () => {
         // `BaseService.find` hat den Fehler schon gemeldet.
       },
     )
+  }
+
+  /** Holt alle Firmenkunden seitenweise (der Server deckelt `$limit`), danach nach Name sortiert (`de`, ohne Groß/Klein). */
+  async #loadAllCorporateCustomers(
+    isStale: () => boolean,
+  ): Promise<{ customers: Array<CorporateCustomer>; total: number }> {
+    const customers: Array<CorporateCustomer> = []
+    let total = 0
+    do {
+      // Ein Fehler nach der ersten Seite behält die bisher geholten Kunden (Teilliste statt leerem Panel).
+      const response = await this.corporateCustomerService
+        .find({ query: { $sort: { name1: 1, _id: 1 }, $limit: CUSTOMER_FETCH_LIMIT, $skip: customers.length } })
+        .catch(error => {
+          if (customers.length === 0) throw error
+          return null
+        })
+      if (response === null || isStale()) break
+      const page = Array.isArray(response) ? response : response.data
+      total = Array.isArray(response) ? response.length : response.total
+      customers.push(...page)
+      if (page.length === 0 || Array.isArray(response)) break
+    } while (customers.length < total)
+    customers.sort((a, b) => a.name1.localeCompare(b.name1, 'de', { sensitivity: 'base' }))
+    return { customers, total }
   }
 
   setCustomer(customer: CorporateCustomer) {

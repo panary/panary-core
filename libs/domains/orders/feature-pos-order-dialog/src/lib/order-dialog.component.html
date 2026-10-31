@@ -567,37 +567,58 @@
               <div class="flex gap-2 overflow-x-auto pb-2 noscroll">
                 @for (character of characters; track character) {
                   <button
-                    class="w-8 h-8 rounded-full bg-line-soft hover:bg-line text-ink text-xs font-bold shrink-0"
+                    type="button"
+                    class="pnry-hover w-8 h-8 rounded-full text-xs font-bold shrink-0"
+                    [class.text-ink]="customerCharacter !== character"
+                    [class.bg-line-soft]="customerCharacter !== character"
+                    [class.bg-action]="customerCharacter === character"
+                    [class.text-on-action]="customerCharacter === character"
+                    [attr.aria-pressed]="customerCharacter === character"
                     (click)="applyCharacterFilter(character)"
                   >
                     {{ character }}
                   </button>
                 }
                 <button
-                  class="px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold shrink-0 hover:bg-red-100 dark:hover:bg-red-900/50"
+                  type="button"
+                  class="pnry-hover px-3 h-8 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs font-bold shrink-0"
+                  (click)="resetCharacterFilter()"
                 >
                   Reset
                 </button>
               </div>
               <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 mt-2 max-h-48 overflow-y-auto">
-                @for (customer of corporateCustomers; track customer) {
+                @for (customer of pagedCorporateCustomers; track customer._id) {
                   <button
-                    class="h-12 px-4 bg-surface-elevated border border-line text-ink rounded-lg text-sm font-medium text-left truncate hover:bg-surface-bg dark:hover:bg-line hover:shadow-sm"
+                    type="button"
+                    class="pnry-hover h-12 px-4 bg-surface-elevated border border-line text-ink rounded-lg text-sm font-medium text-left truncate"
                     (click)="setCustomer(customer)"
                   >
                     {{ customer.name1 }}
                   </button>
+                } @empty {
+                  <span class="col-span-full py-3 text-center text-xs text-ink-muted"
+                    >Keine Firmenkunden mit diesem Buchstaben</span
+                  >
                 }
               </div>
               <div class="flex items-center justify-center gap-2 mt-2">
                 <button
-                  class="w-8 h-8 rounded-lg bg-line-soft hover:bg-line text-ink-muted dark:text-ink flex items-center justify-center text-sm font-bold transition-colors"
+                  type="button"
+                  class="pnry-hover w-8 h-8 rounded-lg bg-line-soft text-ink-muted dark:text-ink flex items-center justify-center text-sm font-bold transition-colors disabled:opacity-40"
+                  [disabled]="customerPage === 0"
+                  aria-label="Vorherige Seite"
+                  (click)="changeCustomerPage(-1)"
                 >
                   ←
                 </button>
-                <span class="text-xs text-ink-muted">Seite 1 / 1</span>
+                <span class="text-xs text-ink-muted">Seite {{ customerPage + 1 }} / {{ customerPageCount }}</span>
                 <button
-                  class="w-8 h-8 rounded-lg bg-line-soft hover:bg-line text-ink-muted dark:text-ink flex items-center justify-center text-sm font-bold transition-colors"
+                  type="button"
+                  class="pnry-hover w-8 h-8 rounded-lg bg-line-soft text-ink-muted dark:text-ink flex items-center justify-center text-sm font-bold transition-colors disabled:opacity-40"
+                  [disabled]="customerPage >= customerPageCount - 1"
+                  aria-label="Nächste Seite"
+                  (click)="changeCustomerPage(1)"
                 >
                   →
                 </button>

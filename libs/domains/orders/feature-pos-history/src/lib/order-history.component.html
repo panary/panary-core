@@ -224,12 +224,10 @@
   <div class="flex flex-col gap-1" data-testid="history-line">
     <div class="flex justify-between items-start">
       <div class="flex gap-2">
-        <!-- Menge erst ab 2 (core#1257), wie auf dem Bon -->
-        <span class="font-bold">
-          @if (line.item.amount > 1) {
-            {{ line.item.amount }}x
-          }
-        </span>
+        <!-- Menge erst ab 2 (core#1257), wie auf dem Bon. Ohne Raster keine leere Zelle: sie schöbe den Namen um den Gap -->
+        @if (line.item.amount > 1) {
+          <span class="font-bold">{{ line.item.amount }}x</span>
+        }
         <span>{{ line.item.name }}</span>
       </div>
       <span>{{ line.item.price * line.item.amount | eur }}</span>

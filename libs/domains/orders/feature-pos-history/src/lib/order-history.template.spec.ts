@@ -92,9 +92,9 @@ describe('Historie: Menge erst ab 2 (core#1257)', () => {
     source.indexOf('line.item.price * line.item.amount'),
   )
 
-  it('blendet die Menge 1 aus und behält die Mengenzelle', () => {
+  it('blendet die Menge 1 samt Zelle aus, damit der Name nicht um den Gap einrückt', () => {
     expect(zeile.replace(/\s+/g, ' ')).toMatch(
-      /<span class="font-bold"> @if \(line\.item\.amount > 1\) \{ \{\{ line\.item\.amount \}\}x \} <\/span> <span>\{\{ line\.item\.name \}\}<\/span>/,
+      /@if \(line\.item\.amount > 1\) \{ <span class="font-bold">\{\{ line\.item\.amount \}\}x<\/span> \} <span>\{\{ line\.item\.name \}\}<\/span>/,
     )
   })
 })

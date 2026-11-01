@@ -311,8 +311,12 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
       expect(invertAn(bytes)).toBe(-1)
     })
 
-    it('invertiert STORNIERT weiterhin', () => {
-      const bytes = renderOrderReceipt(kopfOrder({ cancellation: { reason: 'Test' } }), locationMitKopf)
+    it.each([
+      ['STORNIERT', { cancellation: { reason: 'Test' } }],
+      ['Personalessen', { staffPaymentInfo: { userName: 'Mia' } }],
+      ['Firmenkunde', { customerPaymentInfo: { customerName: 'Acme' } }],
+    ] as const)('invertiert %s weiterhin', (_, extra) => {
+      const bytes = renderOrderReceipt(kopfOrder(extra), locationMitKopf)
 
       expect(invertAn(bytes)).toBeGreaterThan(-1)
     })
@@ -427,11 +431,14 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
       expect(Math.abs(mitte - (48 * 12) / 2)).toBeLessThanOrEqual(9)
     })
 
-    it('setzt ohne Kassennamen Datum links und Bestellzeit rechts', () => {
-      expect(metaZeilen('80mm').map(z => z.text.replace(/ +/g, ' '))).toEqual([
-        'Datum: 20.9.2026 Bestellzeit: 12:00 Uhr',
-      ])
-    })
+    it.each(['80mm', '58mm'] as const)(
+      'setzt ohne Kassennamen auf %s Datum links und Bestellzeit rechts',
+      paperWidth => {
+        expect(metaZeilen(paperWidth).map(z => z.text.replace(/ +/g, ' '))).toEqual([
+          'Datum: 20.9.2026 Bestellzeit: 12:00 Uhr',
+        ])
+      },
+    )
 
     it.each([
       ['58mm', 'Kasse'],

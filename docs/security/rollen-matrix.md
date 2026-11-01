@@ -132,6 +132,7 @@ Grenzen der Tabelle:
 | `businessdays` | – | – | – | M | M | M | R | M | – | – | – |
 | `business-day-reports` | – | – | – | M | M | M | – | – | – | – | – |
 | `business-day-report-events` | – | – | – | R | R | R | – | – | – | – | – |
+| `stock-period-closings` | – | – | – | R | R | R | – | – | – | – | – |
 | `business-day-overdue-notice` | – | – | – | R | R | R | – | – | – | – | – |
 | `cash-sessions` | – | – | – | M | M | M | CRU | CRU | – | – | – |
 | `meal-settlements` | – | – | – | CR | CR | CR | – | – | – | – | – |

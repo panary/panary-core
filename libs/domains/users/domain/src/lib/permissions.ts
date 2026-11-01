@@ -177,6 +177,10 @@ export const AppResource = {
    *  READ für TENANT_OWNER/MANAGER (für Live-Progress-Subscription).
    *  CREATE nur intern (Pipeline-Steps), kein externer Write. */
   BUSINESS_DAY_REPORT_EVENTS: 'business-day-report-events',
+  /** Cloud-only: Perioden-Abschluss des Bestands (Woche/Monat je Filiale, ADR 0093 in panary-cloud).
+   *  Unveränderlich: nur `find`/`get`, kein externer Write — den Abschluss schreibt der Server.
+   *  READ für TENANT_OWNER/TECHNICIAN/MANAGER, TENANT_STAFF hat keinen Zugriff. */
+  STOCK_PERIOD_CLOSINGS: 'stock-period-closings',
   /** Cloud-only: Entprellungs-Marker der Überlängen-Eskalation (ADR 0046 in
    *  panary-cloud) — je offenem Geschäftstag ein Dokument mit Erst-/Letzt-
    *  Meldezeitpunkt und Eskalationsstufe.

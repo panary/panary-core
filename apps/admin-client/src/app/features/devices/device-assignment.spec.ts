@@ -242,6 +242,9 @@ describe('Geraeteliste — Zuweisung', () => {
   })
 })
 
+/** Ein `change`-Event eines <select> (node-Umgebung ohne DOM). */
+const changeEvent = (value: string) => ({ target: { value } }) as unknown as Event
+
 describe('Geraeteliste — Standard-Bestellart (core#1166)', () => {
   beforeEach(() => TestBed.resetTestingModule())
 
@@ -267,10 +270,10 @@ describe('Geraeteliste — Standard-Bestellart (core#1166)', () => {
     const { component, patch } = setup([sharedDevice('a')])
     await component['ngOnInit']()
 
-    await component['setOrderChannel'](component['devices']()[0], 'telephone')
+    await component['setOrderChannel'](component['devices']()[0], changeEvent('telephone'))
     expect(patch).toHaveBeenLastCalledWith('devices', 'a', { defaultOrderChannel: 'telephone' })
 
-    await component['setOrderChannel'](component['devices']()[0], '')
+    await component['setOrderChannel'](component['devices']()[0], changeEvent(''))
     expect(patch).toHaveBeenLastCalledWith('devices', 'a', { defaultOrderChannel: null })
   })
 
@@ -278,7 +281,7 @@ describe('Geraeteliste — Standard-Bestellart (core#1166)', () => {
     const { component, patch } = setup([sharedDevice('a')], { role: 'tenant:technician' })
     await component['ngOnInit']()
 
-    await component['setOrderChannel'](component['devices']()[0], 'pos')
+    await component['setOrderChannel'](component['devices']()[0], changeEvent('pos'))
     expect(patch).not.toHaveBeenCalled()
   })
 
@@ -287,8 +290,11 @@ describe('Geraeteliste — Standard-Bestellart (core#1166)', () => {
     await component['ngOnInit']()
     patch.mockRejectedValueOnce(new Error('403'))
 
-    await component['setOrderChannel'](component['devices']()[0], 'pos')
+    const event = changeEvent('pos')
+    await component['setOrderChannel'](component['devices']()[0], event)
     expect(component['actionError']()).toBeTruthy()
+    // Der DOM-Wert wird auf den gespeicherten zurueckgesetzt, sonst zeigt das <select> die verworfene Auswahl.
+    expect((event.target as unknown as { value: string }).value).toBe('')
   })
 
   it('unlesbarer gespeicherter Wert zeigt „keine"', () => {

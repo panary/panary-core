@@ -19,7 +19,7 @@ interface CachedOrderChannel {
  * Admin (Edge-Hook `validateDeviceOrderChannel`); das Terminal hat dafür bewusst keinen Weg.
  *
  * Vorbild ist `DeviceAssignmentService`, nicht `UiScaleService`: Der **Server gewinnt** immer
- * (`refresh()` bei jedem Verbindungsaufbau), und der Cache gilt nur für die `deviceId`, unter der er
+ * (`refresh()` im Ladepfad des Login-Screens, den jeder Verbindungsaufbau durchläuft), und der Cache gilt nur für die `deviceId`, unter der er
  * geschrieben wurde. Ein Cache eines früheren Pairings wird verworfen.
  */
 @Injectable({ providedIn: 'root' })

@@ -159,7 +159,7 @@ interface Device {
                           class="text-xs rounded-lg border border-line-strong bg-surface-panel px-2 py-1"
                           [attr.aria-label]="'DEVICES.ORDER_CHANNEL' | translate"
                           [value]="orderChannelValue(device)"
-                          (change)="setOrderChannel(device, $any($event.target).value)"
+                          (change)="setOrderChannel(device, $event)"
                         >
                           <option value="">{{ 'DEVICES.ORDER_CHANNEL_NONE' | translate }}</option>
                           <option value="pos">{{ 'DEVICES.ORDER_CHANNEL_POS' | translate }}</option>
@@ -544,17 +544,20 @@ export class DeviceListComponent implements OnInit {
     }
   }
 
-  protected async setOrderChannel(device: Device, value: string) {
+  protected async setOrderChannel(device: Device, event: Event) {
     if (!this.canEditOrderChannel()) return
+    const select = event.target as HTMLSelectElement
     this.actionError.set(null)
     try {
       // Leere Auswahl = null: Zuruecksetzen auf „kein Standard".
-      await this.api.patch<Device>('devices', device._id, { defaultOrderChannel: value || null })
+      await this.api.patch<Device>('devices', device._id, { defaultOrderChannel: select.value || null })
     } catch (e: unknown) {
       this.actionError.set(formatApiError(e))
     }
-    // Auch im Fehlerfall neu laden: das <select> soll den gespeicherten Wert zeigen.
     await this.refreshAll()
+    // Die Property-Bindung `[value]` schreibt nur bei geaendertem Ausdruckswert. Nach einem Fehlschlag bleibt
+    // der Wert gleich, das <select> zeigt sonst weiter die verworfene Auswahl.
+    select.value = this.orderChannelValue(this.devices().find(entry => entry._id === device._id) ?? device)
   }
   //#endregion
 

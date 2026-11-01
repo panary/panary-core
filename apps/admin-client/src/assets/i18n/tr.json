@@ -276,7 +276,11 @@
     "ASSIGNMENT_LIMIT": "{{max}} çalışandan fazlası mümkün değil.",
     "ASSIGNMENT_EMPTY_WARNING": "En az bir çalışan seçilmelidir — aksi halde kimse giriş yapamaz.",
     "ASSIGNMENT_LAST_SHARED_WARNING": "Bu, şubenin son paylaşımlı terminalidir. Atandıktan sonra çalışanların personel numarasıyla giriş-çıkış yapabileceği bir istasyon kalmaz.",
-    "ASSIGNMENT_APPLY_TO_CODE": "Bu atamayla yeni kod oluştur"
+    "ASSIGNMENT_APPLY_TO_CODE": "Bu atamayla yeni kod oluştur",
+    "ORDER_CHANNEL": "Varsayılan sipariş türü",
+    "ORDER_CHANNEL_NONE": "Yok (konuma göre)",
+    "ORDER_CHANNEL_POS": "Kasa",
+    "ORDER_CHANNEL_TELEPHONE": "Telefon"
   },
   "USERS": {
     "TITLE": "Kullanıcılar",

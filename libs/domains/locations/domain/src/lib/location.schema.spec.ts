@@ -208,6 +208,33 @@ describe('settings.businessDaySettings', () => {
   })
 })
 
+// Währung auf dem Bestellbon abschaltbar (#1258). Optional und ohne Default —
+// eine Location ohne das Feld validiert weiter, und der Validator ergänzt nichts,
+// was der Renderer als Opt-out lesen könnte.
+describe('settings.receiptSettings.showCurrency', () => {
+  const withReceiptSettings = (receiptSettings: unknown) => ({
+    ...syncedCloudLocation,
+    settings: { ...generateDefaultLocationSettings, receiptSettings },
+  })
+
+  it('akzeptiert true und false', async () => {
+    await expect(validator(withReceiptSettings({ showCurrency: true }))).resolves.toBeTruthy()
+    await expect(validator(withReceiptSettings({ showCurrency: false }))).resolves.toBeTruthy()
+  })
+
+  it('akzeptiert receiptSettings ohne das Feld und setzt keinen Default', async () => {
+    const validated = (await validator(withReceiptSettings({ localPrintOnly: false }))) as {
+      settings: { receiptSettings: Record<string, unknown> }
+    }
+    expect(validated.settings.receiptSettings).not.toHaveProperty('showCurrency')
+  })
+
+  it('lehnt Nicht-Boolean-Werte ab', async () => {
+    await expect(validator(withReceiptSettings({ showCurrency: 'false' }))).rejects.toThrow()
+    await expect(validator(withReceiptSettings({ showCurrency: 0 }))).rejects.toThrow()
+  })
+})
+
 // Regression panary/panary-cloud#785: Die Filialliste filtert nach `status`. Das
 // Query-Schema ist strikt (additionalProperties: false) — fehlte `status` im Pick,
 // scheiterte jeder Filter außer „Alle“ mit „validation failed“. AJV-Konfiguration

@@ -938,3 +938,86 @@ describe('order-receipt.renderer — Modifier je Menü-Komponente (#1127)', () =
     expect(mit).toBe(gesamt(order([mod('Bacon', 1.5), mod('Mayo', 0.5)])))
   })
 })
+
+describe('order-receipt.renderer — Währung abschaltbar (#1258)', () => {
+  // Eine Order, die jede Betragsstelle des Bons belegt: Kombination (Positionen +
+  // Kombisumme), Menü mit Beilagen-Aufpreis, Modifier mit Preis, Nachlass, Gesamt.
+  const order = {
+    dailySequenceNumber: 12,
+    dineLocation: 'take-out',
+    recordingDate: '2026-11-01T10:00:00.000Z',
+    lineItems: [
+      {
+        _id: 'k-1',
+        name: 'Burger',
+        topic: 'Burger',
+        amount: 1,
+        price: 8,
+        taxInside: 19,
+        taxOutside: 7,
+        bundleNumber: 1,
+      },
+      {
+        _id: 'k-2',
+        name: 'Cola',
+        topic: 'Getraenke',
+        amount: 1,
+        price: 2.5,
+        taxInside: 19,
+        taxOutside: 19,
+        bundleNumber: 1,
+      },
+      {
+        ...buildMenuOrder(1).lineItems[0],
+        modifiers: [{ _id: 'm-1', name: 'Kaese', price: 1, amount: 1, taxInside: 19, taxOutside: 7, topic: 'Extras' }],
+      },
+    ],
+    appliedDiscounts: [makeApplied({ name: 'Stammgast', valuePercent: 10 })],
+  }
+  const mitWaehrung = (showCurrency?: boolean) => ({
+    settings: {
+      ...location.settings,
+      receiptSettings: showCurrency === undefined ? {} : { showCurrency },
+    },
+  })
+  const betraege = (text: string) => text.match(/-?\d+,\d{2}(?: EUR)?/g) ?? []
+
+  it.each(['full', 'kitchen'] as const)('druckt ohne gesetztes Feld an jeder Betragsstelle „EUR" (%s)', variant => {
+    for (const filiale of [location, mitWaehrung()]) {
+      const alle = betraege(renderToText(order, filiale, { variant }))
+      // Positionen Burger/Cola, Kombisumme, Menü, Beilagen-Aufpreis, Modifier, Nachlass, Gesamt
+      expect(alle.length).toBeGreaterThanOrEqual(8)
+      expect(alle.filter(b => !b.endsWith(' EUR'))).toEqual([])
+    }
+  })
+
+  it.each(['full', 'kitchen'] as const)('druckt bei showCurrency: false nirgends „EUR" (%s)', variant => {
+    const text = renderToText(order, mitWaehrung(false), { variant })
+    expect(text).not.toContain('EUR')
+    // Dieselben Beträge in derselben Reihenfolge, nur ohne Währung.
+    const vorher = betraege(renderToText(order, location, { variant })).map(b => b.replace(' EUR', ''))
+    expect(betraege(text)).toEqual(vorher)
+    expect(betraege(text)).toEqual(expect.arrayContaining(['10,50', '0,50', '1,00']))
+    expect(text).toContain('Nachlass: Stammgast')
+  })
+
+  it('verhält sich bei showCurrency: true byte-identisch zum fehlenden Feld', () => {
+    expect(Array.from(renderOrderReceipt(order, mitWaehrung(true)))).toEqual(
+      Array.from(renderOrderReceipt(order, location)),
+    )
+  })
+
+  it.each([undefined, false])('passt die Trennlinie über der Kombisumme an die Betragsbreite an (%s)', show => {
+    const bytes = renderOrderReceipt(order, mitWaehrung(show))
+    // Bis zum Schnittbefehl dekodieren — dessen Laenge kennt die Tabelle bewusst nicht.
+    const cut = bytes.findIndex((byte, i) => byte === 0x1d && bytes[i + 1] === 0x56)
+    const zeilen = decodeEscPosLines(bytes.subarray(0, cut === -1 ? bytes.length : cut), 500)
+    const linie = zeilen.findIndex(z => /^-+$/.test(z.text.trim()))
+    expect(linie, 'Trennlinie über der Kombisumme fehlt').toBeGreaterThan(-1)
+    const summe = zeilen[linie + 1]
+    expect(summe.text.trim()).toBe(show === false ? '10,50' : '10,50 EUR')
+    expect(zeilen[linie].text.trim().length).toBe(summe.text.trim().length)
+    // Rechtsbündig: Linie und Betrag enden an derselben Stelle.
+    expect(zeilen[linie].leadDots + zeilen[linie].contentDots).toBe(summe.leadDots + summe.contentDots)
+  })
+})

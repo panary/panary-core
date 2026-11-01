@@ -440,6 +440,8 @@
     "COMPANY_ERROR": "Firma atama hatası",
     "PAGER": "Çağrı cihazı",
     "SETTLEMENT_SCOPE": "Hesap grubu",
+    "CIRCLE_TITLE": "Masa {{table}} · {{count}} sipariş",
+    "CIRCLE_SINCE": "{{minutes}} dk",
     "DISCOUNT_LABEL": "İndirim",
     "SPLIT": "Böl"
   },

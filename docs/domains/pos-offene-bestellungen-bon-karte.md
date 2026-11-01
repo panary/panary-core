@@ -52,3 +52,39 @@ schnitt auf kurzen Karten oben ab; der Schließen-Knopf war nicht erreichbar.
 Gemessen in der Sandbox (Chromium, 1280 × 520, Zoom 120 %): Karte auf `cardMaxHeight()` (280,7px), Overlay
 `scrollHeight` 348 bei `clientHeight` 279, erster Knopf innerhalb der Karte, Nachbarkarten unverändert. Bei 70 % und
 85 % wächst die kurze Karte auf die Overlay-Höhe, ohne innen zu scrollen.
+
+## Eine Karte je Abrechnungskreis
+
+Seit [core#1141](https://github.com/panary/panary-core/issues/1141), Folge von [ADR 0063](../adr/0063-nachbestellung-als-neue-bestellung-im-abrechnungskreis.md)
+Nr. 6: Der Bediener denkt „Tisch 4“, nicht „Vorgang 3 von 5“. Hat ein Tisch durch Nachbestellungen mehrere offene
+Bestellungen, zeigt „Offen“ **eine Kreis-Karte** statt mehrerer Bons.
+
+| Fall | Darstellung |
+|---|---|
+| Zwei oder mehr offene Bestellungen mit gleichem, echtem `settlementScope` und Tisch | Kreis-Karte „Tisch 4 · 2 Bestellungen“ mit Uhrzeit und Minuten seit der ersten Bestellung und der Summe |
+| Bestellung ohne Tisch oder mit synthetischem Kreis (`auto:…`) | einzelne Bon-Karte wie bisher |
+| Kreis mit genau einer offenen Bestellung | einzelne Bon-Karte wie bisher |
+| Zwei Besuche desselben Tisches (`4#1`, `4#2`) | zwei Kreis-Karten |
+
+Ein Tipp auf die Kreis-Karte klappt sie auf: Die Einzelbestellungen folgen dahinter als gewohnte Bon-Karten, mit allen
+Aktionen (Abschließen, Split, Rabatt …). Die Kreis-Karte selbst hat keine Aktionen, denn jede Aktion gehört zu einer
+einzelnen Bestellung.
+
+### Regeln
+
+- **Gruppierung:** reine Funktion `groupOpenOrdersBySettlementScope` in `libs/domains/orders/domain`
+  (`open-order-groups.ts`). Die Liste liefert `ordersActive()`, schon nach `recordingDate` absteigend. Die Kreis-Karte steht
+  an der Stelle ihrer neuesten Bestellung, andere Karten behalten ihre Reihenfolge.
+- **Summe:** nie aus Positionen gerechnet. Jede Bestellung liefert ihren Betrag über dieselbe Engine wie die Einzelkarte
+  (`calculateTaxSummary` auf `effectiveLineItems`), die Kreis-Summe addiert diese Beträge in Cent (`sumCents`). Aufgeklappt
+  stimmen Kreis-Summe und Summe der Einzelkarten damit immer überein, auch nach einem Split.
+- **Personalessen:** Ist eine Bestellung des Kreises ein Personalessen, bleibt die Summe der Kreis-Karte aus, wie bei der
+  Einzelkarte (die Rabattsätze sind pro Mitarbeiter verschieden).
+- **Live:** Die Kreis-Karte ist ein `computed()` auf `ordersActive()`. Neue, geänderte oder abgeschlossene Bestellungen
+  aus den bestehenden `orders`-Events (auch von einer zweiten Kasse) aktualisieren sie ohne Neuladen. Die Minuten tickt
+  ein Zeitgeber alle 30 s weiter.
+- **Aufgeklappt-Zustand** (`expandedCircles`) liegt nur in der Komponente. Schließt die letzte Bestellung bis auf eine, wird der
+  Kreis wieder zur Einzelkarte; wächst er erneut, ist er wieder aufgeklappt, solange die Seite offen bleibt.
+- Ohne Besuchszähler (alter Client, Kreis nur das Tisch-Label) gruppiert die Karte alle Gäste eines Tisches am Tag.
+
+Tests: `open-order-groups.spec.ts` (Gruppierung), `active-orders.template.spec.ts` (Einbindung, Summe aus Cent-Beträgen).

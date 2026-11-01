@@ -440,6 +440,8 @@
     "COMPANY_ERROR": "Fehler beim Zuordnen der Firma",
     "PAGER": "Pager",
     "SETTLEMENT_SCOPE": "Abrechnungskreis",
+    "CIRCLE_TITLE": "Tisch {{table}} · {{count}} Bestellungen",
+    "CIRCLE_SINCE": "seit {{minutes}} Min.",
     "DISCOUNT_LABEL": "Rabatt",
     "SPLIT": "Aufteilen"
   },

@@ -584,7 +584,46 @@ an der **Bon-Variante** (§13):
 | Variante | Kopfbereich |
 |---|---|
 | `full` | Filialname (fett, Font A), Straße, PLZ/Ort, `Tel. …` (Font B), alle zentriert |
-| `kitchen` | kein Kopf — der Bon beginnt mit der Bestellnummer |
+| `kitchen` | „Panary-Bestellsystem" (Font B, zentriert) — seit [#1257](https://github.com/panary/panary-core/issues/1257), davor kein Kopf |
+
+**Font-Sequenz der Systemzeile** (`appendKitchenHeader`): Beide Wechsel brauchen
+eine eigene Zeile (§10). Der Wechsel auf Font B sitzt in der führenden Leerzeile,
+die ohnehin `initialize()` abschließt; der Rückwechsel auf Font A in einer
+Leerzeile vor „Bestellnummer". Ohne die zweite rechnete der Composer die
+Polsterung von „Bestellnummer" in Font-A-Spalten und druckte sie in
+9-Dot-Zellen, die Zeile säße links der Mitte. Beide Zeilen misst der Spec in Dots.
+
+### Badge, Metablock, Gesamt, Menge (#1257)
+
+| Element | Seit #1257 | Vorher |
+|---|---|---|
+| `INNEN`/`AUSSEN` | doppelt groß, fett, **schwarz auf weiß** | invertiert (weiß auf schwarz) |
+| Kasse / Datum / Bestellzeit | **eine** Zeile in Font B, links/Mitte/rechts | drei Zeilen |
+| „Gesamt" + Betrag | Positionsgröße: Font A, einfach, fett | doppelt hoch, wenn passend doppelt breit (#758) |
+| Mengenangabe `Nx` | erst ab Menge 2 (`amountPrefix`, `@panary/orders/domain`) | immer, auch `1x` |
+
+Invertiert bleiben bewusst die Sonderfälle Personalessen, Firmenkunde und
+`STORNIERT` — sie sollen auffallen.
+
+**Metablock-Regel** (`appendMetaLine`): Font B wird **vor** `table()` gesetzt, weil
+`font()` in Tabellenzellen wirft. Die Spaltenzahl ist die des Font-B-Composers,
+`cols / 42 · 56`: 64 auf 80 mm, abgerundet 42 auf 58 mm. Linke und rechte Spalte
+sind gleich breit (`w = max(len links, len rechts)`), sonst säße die Mitte nicht
+in der Papiermitte. Passt `2·w + len Mitte + 2` nicht, fallen die Angaben auf je
+eine Zeile zurück. Ohne Kassennamen gibt es zwei Spalten (Datum links,
+Bestellzeit rechts).
+
+| Papier | `Kasse: Kasse` / `Datum: 1.11.2026` / `Bestellzeit: 18:44 Uhr` | Ergebnis |
+|---|---|---|
+| 80 mm | 2·22 + 16 + 2 = 62 ≤ 64 | eine Zeile |
+| 58 mm | 2·22 = 44 > 42 | drei Zeilen (Regelfall auf 58 mm) |
+
+Ein langer Kassenname erzwingt den Rückfall auch auf 80 mm.
+
+**Mengenangabe bei Modifiern:** Gilt der Modifier je Stück (`je`, #698), bleibt
+`je 1x` stehen, „je Käse 2,00" läse sich wie ein Stückpreis. `OHNE`-Zeilen tragen
+keine Menge mehr. Dieselbe Regel gilt im POS unter „Offene Bestellungen", im
+Verlauf und im Aufteilen-Dialog; der Bestelldialog hatte sie seit #795.
 
 Zwischen [#342](https://github.com/panary/panary-core/issues/342) und #347 gab es
 den Kopf auf **keinem** Ausdruck. Das war eine Zwischenlösung mit rechtlicher
@@ -757,16 +796,16 @@ innerhalb der Drucker-Schleife aus §12.
 
 | `printer.role` | Variante | Filialkopf | TSE-Block | Positionen, Nachlässe, Gesamt |
 |---|---|---|---|---|
-| `kitchen` | `kitchen` | — | — | ✅ |
+| `kitchen` | `kitchen` | — („Panary-Bestellsystem", §11) | — | ✅ |
 | `receipt` | `full` | ✅ | ✅ (bei `order.tse`) | ✅ |
 | `both` | `full` | ✅ | ✅ (bei `order.tse`) | ✅ |
 | **fehlend** | `full` | ✅ | ✅ (bei `order.tse`) | ✅ |
 
 **Der Küchenbon behält Preise und Summen.** Das ist eine Entscheidung, keine
 Auslassung: Die Küche soll sehen, was der Gast zahlt. Unterschied sind
-ausschließlich die beiden Blöcke oben — bei einer Filiale ohne Stammdaten und
-einer Order ohne TSE sind beide Varianten **byte-identisch**, und genau das
-prüft ein Test.
+ausschließlich die beiden Blöcke oben — bei einer Order ohne TSE sind beide
+Varianten **ab „Bestellnummer" byte-identisch**, und genau das prüft ein Test.
+Davor steht seit #1257 der jeweilige Kopf (Filiale bzw. Systemzeile, §11).
 
 ### Der Bestands-Default entscheidet über den Schaden
 

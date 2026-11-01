@@ -164,6 +164,15 @@ Rollen-Gate übersprungen. Ein Array-Body trifft damit auf dasselbe Rollen-Gate 
 die Hooks in api-edge rufen die Domain-Funktionen auf und erben das (`validate-device-write-gates.hook.spec.ts`).
 Berechtigte Rollen kommen durch, das Feld wird dabei nicht gesetzt.
 
+**Array-Body wird an der Edge zentral abgewiesen (panary/panary-core#1256, #1260).** Berechtigte Rollen
+passierten das Gate, der Body erreichte den Knex-Adapter unverändert: Gemessen an der echten Edge gab
+`PATCH /devices/:id` mit `[{"defaultOrderChannel":"pos"}]` HTTP 500 (`SqliteError: no such column: 0`),
+`[]` „Empty .update() call"; das Gerät blieb unverändert. Der App-Hook `rejectArrayBody`
+(`apps/api-edge/src/hooks/reject-array-body.hook.ts`, in `app.ts` als `before` für `create`/`update`/`patch`)
+antwortet jetzt mit 400, bevor ein Service-Hook läuft. `patch`/`update` weisen jedes Array ab, `create` nur
+dort, wo `allowsMulti('create')` false ist. `checkDeviceAssignmentWrite` (`INVALID_BODY`), die Zuweisungs-
+Validierung und der Personalessen-Hook prüfen den Typ zusätzlich selbst (Defense-in-Depth).
+
 **Nicht self-patchbar, nicht im Redeem.** Das Feld steht nicht in `SELF_PATCHABLE_DEVICE_FIELDS` (das POS
 selbst hat keinen Schreibweg; am Socket sieht der Server nur das Gerät, nicht die Person) und nicht in
 `deviceDataSchema` (der Pairing-Redeem setzt es nicht). Beides hält `device-order-channel-invariants.spec.ts`

@@ -151,7 +151,14 @@ export const intersectAllowedIds = (value: unknown, allowedIds: readonly string[
 export const DEVICE_ASSIGNMENT_FIELDS = ['deviceAccessMode', 'assignedUserIds'] as const
 
 export interface DeviceAssignmentViolation {
-  reason: 'FORBIDDEN_ROLE' | 'INVALID_MODE' | 'INVALID_IDS' | 'DUPLICATE_IDS' | 'TOO_MANY_IDS' | 'EMPTY_ASSIGNMENT'
+  reason:
+    | 'FORBIDDEN_ROLE'
+    | 'INVALID_BODY'
+    | 'INVALID_MODE'
+    | 'INVALID_IDS'
+    | 'DUPLICATE_IDS'
+    | 'TOO_MANY_IDS'
+    | 'EMPTY_ASSIGNMENT'
   /** Client-stabile Meldung — Adapter werfen sie unveraendert als BadRequest/Forbidden. */
   message: string
 }
@@ -196,6 +203,11 @@ export const checkDeviceAssignmentWrite = (
       reason: 'FORBIDDEN_ROLE',
       message: 'Die Geraete-Zuweisung kann nur von einer berechtigten Rolle geaendert werden.',
     }
+  }
+
+  // Defense-in-depth zu `rejectArrayBody` (Edge): `'feld' in []` ist false und liesse die Pruefungen unten aus.
+  if (Array.isArray(data)) {
+    return { reason: 'INVALID_BODY', message: 'Der Body muss ein Objekt sein.' }
   }
 
   const body = data as Record<string, unknown>

@@ -40,7 +40,7 @@ export const validateDeviceAssignment = async (context: HookContext): Promise<Ho
   }
 
   const data = context.data as Record<string, unknown>
-  if (!('assignedUserIds' in data)) return context
+  if (!data || typeof data !== 'object' || Array.isArray(data) || !('assignedUserIds' in data)) return context
 
   const ids = resolveAssignedUserIds({ assignedUserIds: data['assignedUserIds'] })
   if (ids.length === 0) return context

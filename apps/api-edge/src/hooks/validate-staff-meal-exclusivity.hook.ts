@@ -48,6 +48,8 @@ export const validateStaffMealExclusivity = async (context: HookContext): Promis
     return context
   }
 
+  // Defense-in-depth zu `rejectArrayBody`: `'feld' in []` ist false und liesse den Patch durch.
+  if (Array.isArray(context.data)) throw new BadRequest('Ein Array als Body ist bei patch nicht erlaubt.')
   const data = (context.data ?? {}) as StaffMealExclusivityInput
   const touchesStaff = 'staffPaymentInfo' in data
   const touchesDiscounts = 'appliedDiscounts' in data

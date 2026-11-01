@@ -130,8 +130,12 @@ describe('checkDeviceAssignmentWrite', () => {
   it('Array-Body → Rollen-Gate greift (Nicht-Berechtigte FORBIDDEN_ROLE, Berechtigte/intern erlaubt)', () => {
     expect(checkDeviceAssignmentWrite({ role: 'device:pos-client' }, [])?.reason).toBe('FORBIDDEN_ROLE')
     expect(checkDeviceAssignmentWrite(undefined, [{ deviceAccessMode: 'shared' }])?.reason).toBe('FORBIDDEN_ROLE')
-    expect(checkDeviceAssignmentWrite(admin, [])).toBeNull()
-    expect(checkDeviceAssignmentWrite({ internal: true }, [])).toBeNull()
+  })
+
+  it('Array-Body → fuer berechtigte Rollen und intern INVALID_BODY statt stillem Durchlass (#1256)', () => {
+    expect(checkDeviceAssignmentWrite(admin, [])?.reason).toBe('INVALID_BODY')
+    expect(checkDeviceAssignmentWrite(admin, [{ assignedUserIds: ['u1'] }])?.reason).toBe('INVALID_BODY')
+    expect(checkDeviceAssignmentWrite({ internal: true }, [1])?.reason).toBe('INVALID_BODY')
   })
 
   it('Body ohne Zuweisungs-Felder → immer erlaubt (auch fuer POS-Geraet)', () => {

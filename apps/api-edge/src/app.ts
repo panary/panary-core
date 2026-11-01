@@ -21,6 +21,7 @@ import { ensureTenantIsolation } from '@panary/shared-backend'
 import { requireDeviceReverification } from './hooks/require-device-reverification.hook'
 import { resolvePosOperator } from './hooks/resolve-pos-operator.hook'
 import { recordSyncOutbox } from './hooks/sync-outbox-recorder.hook'
+import { rejectArrayBody } from './hooks/reject-array-body.hook'
 import { captureAuditBefore } from './hooks/capture-audit-before.hook'
 import { recordAuditEvent } from './hooks/record-audit-event.hook'
 import { allowApiKey } from '@panary/shared-backend'
@@ -378,6 +379,12 @@ app.hooks({
     requireDeviceReverification(),
     resolvePosOperator(),
     secureByDefault({ publicServices: ['authentication'] }),
+    // Array-Body abweisen (#1256), bevor ein `'feld' in data`-Gate ihn uebersehen kann; nach Auth,
+    // vor allen Service-Hooks. Custom Methods laufen daran vorbei.
+    async (context: HookContext, next: NextFunction) => {
+      rejectArrayBody(context)
+      await next()
+    },
     async (context: HookContext, next: NextFunction) => {
       await captureAuditBefore(context)
       await next()

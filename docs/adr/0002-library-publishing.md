@@ -49,14 +49,15 @@ Source.
 
 ## Was wird publiziert (publishable-Menge)
 
-Publiziert wird jedes Nx-Projekt mit `tag: publishable`. Seit Option A
-(Registry-Autarkie für panary-cloud, 2026-06-12) **39 Projekte**: 35
-Domain-Parents (alle `libs/domains/*` mit Parent-`package.json`) +
-`@panary/shared` + `@panary/shared-common` + `@panary/shared-backend` +
-`@panary/util-error-handling`.
+Publiziert wird jedes Nx-Projekt mit `tag: publishable`, also die
+Domain-Parents (alle `libs/domains/*` mit Parent-`package.json`) und die
+geteilten Pakete unter `libs/shared` (`@panary/shared`, `@panary/shared-common`,
+`@panary/shared-backend`, `@panary/util-error-handling`, `@panary/design-tokens`).
+Am 2026-11-02 (`v26.11.5`) waren es **41**: 36 Domain-Parents + 5 Shared-Pakete.
 
-> Die Zahl stand hier bis 2026-09-11 als „38", während die Aufzählung daneben
-> schon immer 35 + 4 ergab. Sie ist nicht abzuschreiben, sondern zu messen:
+> Die Zahl ist eine Momentaufnahme. Bis 2026-09-11 stand hier „38" neben einer
+> Aufzählung mit 35 + 4, danach bis 2026-11-02 „39", während die Menge längst auf
+> 41 gewachsen war. Sie wird gemessen, nicht abgeschrieben:
 >
 > ```bash
 > pnpm nx show projects --projects="tag:publishable" --json | node -p "JSON.parse(require('fs').readFileSync(0)).length"
@@ -152,24 +153,31 @@ pnpm release          # Edge + POS + Libs: bumpt, committet, taggt, pusht
 `pnpm release` (→ `tools/scripts/release-tag.sh` → `tools/scripts/bump-version.mjs`)
 hebt in **einem** Schritt alles auf dieselbe Nummer: Root-`package.json`,
 `apps/api-edge/package.json`, `tauri.conf.json`, die `LICENSE` (BSL Change Date)
-und die **39 publishable Lib-Manifeste**.
+und **alle publishable Lib-Manifeste** (Liste aus
+`tools/scripts/publishable-manifests.mjs --list`).
 
-Der Release-Commit umfasst damit **43 Dateien** — oder **42**, wenn am selben Tag
-schon einmal released wurde: Das BSL Change Date ist `heute + 4 Jahre`, bleibt
-innerhalb eines Tages also gleich, und eine unveränderte Datei landet nicht im
-Commit. Beides ist richtig; **41 oder weniger ist ein Befund**, denn dann fehlen
-Lib-Manifeste. Zu zählen sind nicht die Dateien, sondern die Bestandteile:
+Der Release-Commit umfasst damit die Lib-Manifeste plus drei bis vier weitere
+Dateien: die LICENSE fehlt, wenn am selben Tag schon einmal released wurde. Das
+BSL Change Date ist `heute + 4 Jahre`, bleibt innerhalb eines Tages also gleich,
+und eine unveränderte Datei landet nicht im Commit. Zu zählen sind nicht die
+Dateien, sondern die Bestandteile, und die Soll-Zahl der Manifeste kommt aus
+derselben Liste, die `release-tag.sh` zum Stagen benutzt:
 
 ```bash
-git show --name-only HEAD --format='' | grep -c '^libs/'   # muss 39 sein
-git show --name-only HEAD --format='' | grep -v '^libs/'   # root, api-edge, tauri, ggf. LICENSE
+node tools/scripts/publishable-manifests.mjs --list | wc -l   # Soll
+git show --name-only HEAD --format='' | grep -c '^libs/'      # Ist, muss dem Soll gleichen
+git show --name-only HEAD --format='' | grep -v '^libs/'      # root, api-edge, tauri, ggf. LICENSE
 ```
+
+Weicht „Ist" vom „Soll" ab, fehlen Lib-Manifeste im Release — ein Befund.
 
 > Die Zahl stand hier zunächst als striktes „43, eine kleinere Zahl ist ein
 > Befund". Das Release `v26.9.2` vom 2026-09-11 hatte 42 — korrekt, weil
 > `v26.9.1` wenige Stunden zuvor lag. Eine Kontrollzahl, die im Normalbetrieb
 > falsch anschlägt, wird nach dem zweiten Mal ignoriert; deshalb zählt die
-> Regel jetzt die 39 Manifeste, die tatsächlich die Aussage tragen.
+> Regel die Manifeste, die tatsächlich die Aussage tragen. Seit 2026-11-02 steht
+> auch deren Zahl nicht mehr fest im Text: Sie war als „39" stehen geblieben,
+> während `v26.11.5` korrekt 41 Manifeste trug.
 
 Gegenprobe nach dem Lauf — außer der `Change Date`-Zeile der LICENSE darf nichts
 Nicht-Versioniertes im Commit stehen:

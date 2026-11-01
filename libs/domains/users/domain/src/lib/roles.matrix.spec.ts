@@ -415,3 +415,27 @@ describe('RolePermissions — OPENING_HOUR_EXCEPTIONS', () => {
     expect(roleActions(UserSystemRole.DEVICE_POS, AppResource.OPENING_HOUR_EXCEPTIONS)).toEqual([AppAction.READ])
   })
 })
+
+/**
+ * Perioden-Abschluss des Bestands (panary-cloud ADR 0093): Lesen für die Leitungsrollen, kein Schreiben, kein Staff.
+ * Den Abschluss legt der Server an (`provider: undefined`), deshalb hat keine Rolle CREATE/UPDATE/DELETE.
+ */
+describe('RolePermissions — STOCK_PERIOD_CLOSINGS', () => {
+  it('Owner, Techniker und Manager lesen, mehr nicht', () => {
+    for (const role of [UserSystemRole.TENANT_OWNER, UserSystemRole.TENANT_TECHNICIAN, UserSystemRole.TENANT_MANAGER]) {
+      expect(roleActions(role, AppResource.STOCK_PERIOD_CLOSINGS), role).toEqual([AppAction.READ])
+    }
+  })
+
+  it('TENANT_STAFF und Geräte haben keinen Zugriff', () => {
+    for (const role of [
+      UserSystemRole.TENANT_STAFF,
+      UserSystemRole.DEVICE_POS,
+      UserSystemRole.DEVICE_KDS,
+      UserSystemRole.DEVICE_TABLET,
+      UserSystemRole.DEVICE_KIOSK,
+    ]) {
+      expect(roleActions(role, AppResource.STOCK_PERIOD_CLOSINGS), role).toEqual([])
+    }
+  })
+})

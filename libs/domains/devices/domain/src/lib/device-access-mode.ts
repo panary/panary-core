@@ -151,7 +151,14 @@ export const intersectAllowedIds = (value: unknown, allowedIds: readonly string[
 export const DEVICE_ASSIGNMENT_FIELDS = ['deviceAccessMode', 'assignedUserIds'] as const
 
 export interface DeviceAssignmentViolation {
-  reason: 'FORBIDDEN_ROLE' | 'INVALID_BODY' | 'INVALID_MODE' | 'INVALID_IDS' | 'DUPLICATE_IDS' | 'TOO_MANY_IDS' | 'EMPTY_ASSIGNMENT'
+  reason:
+    | 'FORBIDDEN_ROLE'
+    | 'INVALID_BODY'
+    | 'INVALID_MODE'
+    | 'INVALID_IDS'
+    | 'DUPLICATE_IDS'
+    | 'TOO_MANY_IDS'
+    | 'EMPTY_ASSIGNMENT'
   /** Client-stabile Meldung — Adapter werfen sie unveraendert als BadRequest/Forbidden. */
   message: string
 }

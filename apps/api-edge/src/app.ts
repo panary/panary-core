@@ -379,6 +379,12 @@ app.hooks({
     requireDeviceReverification(),
     resolvePosOperator(),
     secureByDefault({ publicServices: ['authentication'] }),
+    // Array-Body abweisen (#1256), bevor ein `'feld' in data`-Gate ihn uebersehen kann; nach Auth,
+    // vor allen Service-Hooks. Custom Methods laufen daran vorbei.
+    async (context: HookContext, next: NextFunction) => {
+      rejectArrayBody(context)
+      await next()
+    },
     async (context: HookContext, next: NextFunction) => {
       await captureAuditBefore(context)
       await next()
@@ -387,14 +393,6 @@ app.hooks({
       await recordAuditEvent(context)
     },
   ],
-  // Nach den App-around-Hooks (Auth), aber vor allen Service-Hooks: Array-Body weist
-  // `rejectArrayBody` ab (#1256), bevor ein `'feld' in data`-Gate ihn uebersehen kann.
-  // Custom Methods laufen daran vorbei.
-  before: {
-    create: [rejectArrayBody],
-    update: [rejectArrayBody],
-    patch: [rejectArrayBody],
-  },
 })
 
 export { app }

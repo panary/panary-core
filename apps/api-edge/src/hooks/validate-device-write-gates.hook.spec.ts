@@ -35,23 +35,24 @@ describe.each([
     })
   })
 
-  it('Owner passiert das Rollen-Gate, ohne dass ein Feld gesetzt wird', async () => {
-    const context = makeContext([], { role: 'tenant:owner' })
-    await expect(hook(context)).resolves.toBe(context)
-    expect(context.data).toEqual([])
-  })
-
-  it('interner Aufruf (ohne provider) ist ausgenommen', async () => {
-    const context = makeContext([], { internal: true })
-    await expect(hook(context)).resolves.toBe(context)
+  it('Owner und interner Aufruf passieren das Rollen-Gate (Bestellart-Hook); Zuweisung weist den Array-Body ab (#1256)', async () => {
+    for (const ctx of [makeContext([], { role: 'tenant:owner' }), makeContext([], { internal: true })]) {
+      if (hook === validateDeviceAssignment) {
+        await expect(hook(ctx)).rejects.toMatchObject({ code: 400 })
+      } else {
+        await expect(hook(ctx)).resolves.toBe(ctx)
+        expect(ctx.data).toEqual([])
+      }
+    }
   })
 })
 
 // Der Techniker darf die Zuweisung ändern (DEVICE_ACCESS_EXEMPT_ROLES), nicht aber die Standard-Bestellart.
-it('Techniker: nur das Bestellart-Gate lehnt den Array-Body ab', async () => {
+it('Techniker: Bestellart-Gate: 403, Zuweisung: 400', async () => {
   await expect(validateDeviceOrderChannel(makeContext([], { role: 'tenant:technician' }))).rejects.toMatchObject({
     code: 403,
   })
-  const context = makeContext([], { role: 'tenant:technician' })
-  await expect(validateDeviceAssignment(context)).resolves.toBe(context)
+  await expect(validateDeviceAssignment(makeContext([], { role: 'tenant:technician' }))).rejects.toMatchObject({
+    code: 400,
+  })
 })

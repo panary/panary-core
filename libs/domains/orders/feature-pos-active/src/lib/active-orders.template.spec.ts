@@ -78,7 +78,7 @@ describe('Offene Bestellungen — Bon-Karte (core#1126)', () => {
   it('jede Unterzeile trägt eine eigene Preiszelle rechtsbündig in der Preisspalte', () => {
     // Modifier: Name in Spalte 2, Preiszelle immer gerendert (auch leer), damit das Raster nicht verrutscht
     // Drei Stellen: freie Position, Kombination und Komponenten-Modifier (core#1127)
-    expect(template.match(/extra\.priceFormatted\s*\}\}<\/span>/g)).toHaveLength(3)
+    expect(template.match(/extra\.priceFormatted\s*\}\}<\/span\s*>/g)).toHaveLength(3)
     expect(template).not.toMatch(/@if \(extra\.priceFormatted\)/)
     expect(menuParts).not.toMatch(/@if \(line\.(sideDish|drink)PriceFormatted\)/)
     expect(menuParts.match(/text-right">\{\{/g)).toHaveLength(2)
@@ -152,5 +152,37 @@ describe('Offene Bestellungen — Abrechnungskreis (core#1125)', () => {
   it('zeigt den Kreis nur, wenn er nicht synthetisch ist', () => {
     expect(chip).toMatch(/@else if \(order\.settlementScope && !isSyntheticSettlementScope\(order\.settlementScope\)\)/)
     expect(chip).toMatch(/\{\{ order\.settlementScope \}\}/)
+  })
+})
+
+// core#1141: Eine Karte je Abrechnungskreis. Die Gruppierung selbst prüft `open-order-groups.spec.ts` in der
+// Domain-Lib; hier steht, dass die Liste sie benutzt und die Summe nicht selbst gerechnet wird.
+describe('Offene Bestellungen — Karte je Abrechnungskreis (core#1141)', () => {
+  const template = read('./active-orders.component.html')
+  const component = read('./active-orders.component.ts')
+  const circle = template.slice(template.indexOf(`entry.kind === 'circle'`), template.indexOf('@let vm = entry.vm'))
+
+  it('die Liste läuft über die gruppierten Einträge und nutzt den Domain-Helfer', () => {
+    expect(template).toMatch(/@for \(entry of entries\(\); track entry\.key\)/)
+    expect(component).toMatch(/groupOpenOrdersBySettlementScope\(this\.sortedOrders\(\)\)/)
+  })
+
+  it('die Kreis-Karte zeigt Tisch, Zahl, Zeit seit der ersten Bestellung und Summe, und klappt auf', () => {
+    expect(circle).toMatch(/data-testid="circle-title"/)
+    expect(circle).toMatch(/CIRCLE_TITLE' \| translate: \{ table: entry\.table, count: entry\.orderCount \}/)
+    expect(circle).toMatch(/data-testid="circle-since"/)
+    expect(circle).toMatch(/data-testid="circle-total"/)
+    expect(circle).toMatch(/\(click\)="toggleCircle\(entry\.key\)"/)
+    expect(circle).toMatch(/\[attr\.aria-expanded\]="entry\.expanded"/)
+  })
+
+  it('die Summe addiert Cent-Beträge der Einzelkarten statt Positionen selbst zu rechnen', () => {
+    expect(component).toMatch(/sumCents\(entry\.orders\.map\(order => toCents\(this\.calculateTotal\(order\)\)\)\)/)
+    expect(component).not.toMatch(/entry\.orders\.reduce/)
+  })
+
+  it('ein Personalessen im Kreis verbirgt die Summe wie auf der Einzelkarte', () => {
+    expect(component).toMatch(/hasStaffMeal\s*\?\s*null/)
+    expect(circle).toMatch(/@if \(entry\.totalFormatted; as total\)/)
   })
 })

@@ -440,6 +440,8 @@
     "COMPANY_ERROR": "Error assigning company",
     "PAGER": "Pager",
     "SETTLEMENT_SCOPE": "Settlement scope",
+    "CIRCLE_TITLE": "Table {{table}} · {{count}} orders",
+    "CIRCLE_SINCE": "for {{minutes}} min",
     "DISCOUNT_LABEL": "Discount",
     "SPLIT": "Split"
   },

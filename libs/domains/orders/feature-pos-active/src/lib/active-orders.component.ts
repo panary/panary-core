@@ -37,10 +37,14 @@ import {
 } from '@panary/orders/data-access'
 import {
   effectiveLineItems,
+  fromCents,
   groupModifiersByComponent,
+  groupOpenOrdersBySettlementScope,
   isSyntheticSettlementScope,
   type AppliedDiscount,
   type ModifierLineItem,
+  sumCents,
+  toCents,
 } from '@panary/orders/domain'
 import { DiscountService } from '@panary/discounts/data-access'
 import type { Discount as ManagedDiscount } from '@panary/discounts/domain'
@@ -90,6 +94,28 @@ interface OrderCardVm {
   itemsGapClass: string
 }
 
+/** Kreis-Karte (core#1141): eine Karte je Abrechnungskreis mit mindestens zwei offenen Bestellungen. */
+interface CircleCardVm {
+  kind: 'circle'
+  key: string
+  table: string
+  orderCount: number
+  /** `null`, sobald eine Bestellung des Kreises ein Personalessen ist: Der Betrag bleibt am Terminal verborgen. */
+  totalFormatted: string | null
+  firstRecordingDate: string
+  elapsedMinutes: number
+  expanded: boolean
+}
+
+interface OrderEntryVm {
+  kind: 'order'
+  key: string
+  vm: OrderCardVm
+}
+
+type ActiveEntryVm = CircleCardVm | OrderEntryVm
+
+const ELAPSED_TICK_MS = 30_000
 const ZOOM_STORAGE_KEY = 'pos_active_orders_zoom'
 const ZOOM_DEFAULT = 0.85
 const ZOOM_MIN = 0.5
@@ -138,6 +164,54 @@ export class ActiveOrdersComponent {
 
   // Memoisiertes Pro-Order-VM — rechnet nur bei Order-Änderungen, nicht pro CD-Zyklus
   orderVms = computed(() => this.sortedOrders().map(order => this.#buildOrderVm(order)))
+
+  /** Aktuelle Zeit für „seit der ersten Bestellung"; tickt, damit die Karte ohne neue Order-Events weiterläuft. */
+  readonly #now = signal(Date.now())
+
+  /** Aufgeklappte Kreis-Karten (Schlüssel = Abrechnungskreis). */
+  readonly expandedCircles = signal<ReadonlySet<string>>(new Set())
+
+  /**
+   * Einträge der Liste: eine Karte je Abrechnungskreis, Bestellungen ohne Tisch einzeln. Aufgeklappt folgen der
+   * Kreis-Karte ihre Einzelbestellungen als gewohnte Karten (core#1141).
+   */
+  entries = computed<ActiveEntryVm[]>(() => {
+    const vmById = new Map(this.orderVms().map(vm => [vm.order._id, vm]))
+    const expanded = this.expandedCircles()
+    const now = this.#now()
+    const result: ActiveEntryVm[] = []
+    for (const entry of groupOpenOrdersBySettlementScope(this.sortedOrders())) {
+      if (entry.kind === 'order') {
+        result.push({
+          kind: 'order',
+          key: entry.key,
+          vm: vmById.get(entry.order._id) ?? this.#buildOrderVm(entry.order),
+        })
+        continue
+      }
+      const isExpanded = expanded.has(entry.key)
+      const hasStaffMeal = entry.orders.some(order => !!order.staffPaymentInfo)
+      result.push({
+        kind: 'circle',
+        key: entry.key,
+        table: entry.table,
+        orderCount: entry.orders.length,
+        // Summe der Kartenbeträge in Cent, jede Bestellung über dieselbe Engine wie ihre Einzelkarte
+        totalFormatted: hasStaffMeal
+          ? null
+          : this.formatPrice(fromCents(sumCents(entry.orders.map(order => toCents(this.calculateTotal(order)))))),
+        firstRecordingDate: entry.firstRecordingDate,
+        elapsedMinutes: Math.max(0, Math.floor((now - Date.parse(entry.firstRecordingDate)) / 60_000)),
+        expanded: isExpanded,
+      })
+      if (isExpanded) {
+        for (const order of entry.orders) {
+          result.push({ kind: 'order', key: order._id, vm: vmById.get(order._id) ?? this.#buildOrderVm(order) })
+        }
+      }
+    }
+    return result
+  })
 
   orders = this.sortedOrders
   protected readonly OrderStatus = OrderStatus
@@ -192,7 +266,9 @@ export class ActiveOrdersComponent {
   #itemsScrollState = signal<Record<string, { atTop: boolean; atBottom: boolean }>>({})
 
   constructor() {
+    const nowTimer = setInterval(() => this.#now.set(Date.now()), ELAPSED_TICK_MS)
     inject(DestroyRef).onDestroy(() => {
+      clearInterval(nowTimer)
       if (this.#highlightTimer !== null) clearTimeout(this.#highlightTimer)
     })
 
@@ -251,6 +327,14 @@ export class ActiveOrdersComponent {
     } catch {
       // Speicher gesperrt: Zoom gilt dann nur bis zum Neuladen
     }
+  }
+
+  toggleCircle(key: string) {
+    this.expandedCircles.update(current => {
+      const next = new Set(current)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
   }
 
   toggleSelection(orderId: string) {

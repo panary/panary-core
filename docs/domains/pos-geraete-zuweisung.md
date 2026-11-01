@@ -158,6 +158,12 @@ Löschen ein Umweg um das Setzen. Interne Aufrufe (`provider: undefined`) sind w
 `checkDeviceAssignmentWrite` ausgenommen. Das Rollen-Gate läuft vor der Wertprüfung, ein Unberechtigter
 bekommt also nie die Liste erlaubter Werte zu sehen.
 
+**Array-Body zählt als berührt (panary/panary-core#1254).** `touchesDeviceOrderChannel` und
+`touchesDeviceAssignment` liefern für ein Array `true`: `'feld' in []` ist `false` und hätte das
+Rollen-Gate übersprungen. Ein Array-Body trifft damit auf dasselbe Rollen-Gate wie ein Body mit Feld;
+die Hooks in api-edge rufen die Domain-Funktionen auf und erben das (`validate-device-write-gates.hook.spec.ts`).
+Berechtigte Rollen kommen durch, das Feld wird dabei nicht gesetzt.
+
 **Nicht self-patchbar, nicht im Redeem.** Das Feld steht nicht in `SELF_PATCHABLE_DEVICE_FIELDS` (das POS
 selbst hat keinen Schreibweg; am Socket sieht der Server nur das Gerät, nicht die Person) und nicht in
 `deviceDataSchema` (der Pairing-Redeem setzt es nicht). Beides hält `device-order-channel-invariants.spec.ts`

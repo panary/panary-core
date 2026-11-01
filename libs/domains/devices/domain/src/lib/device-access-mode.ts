@@ -162,8 +162,13 @@ export interface DeviceAssignmentActor {
   internal?: boolean
 }
 
-/** true, wenn der Schreib-Body ueberhaupt eines der Zuweisungs-Felder beruehrt. */
+/**
+ * true, wenn der Schreib-Body ueberhaupt eines der Zuweisungs-Felder beruehrt.
+ * Ein Array-Body zaehlt als beruehrt (fail-closed): `'field' in []` ist `false`
+ * und wuerde das Rollen-Gate ueberspringen.
+ */
 export const touchesDeviceAssignment = (data: unknown): boolean => {
+  if (Array.isArray(data)) return true
   if (!data || typeof data !== 'object') return false
   return DEVICE_ASSIGNMENT_FIELDS.some(field => field in (data as Record<string, unknown>))
 }

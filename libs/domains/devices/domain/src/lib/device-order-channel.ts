@@ -36,9 +36,14 @@ export interface DeviceOrderChannelActor {
   internal?: boolean
 }
 
-/** true, wenn der Schreib-Body das Feld überhaupt berührt (auch mit `null` oder `undefined`). */
+/**
+ * true, wenn der Schreib-Body das Feld überhaupt berührt (auch mit `null` oder `undefined`).
+ * Ein Array-Body zählt als berührt (fail-closed): `'field' in []` ist `false`, das Rollen-Gate
+ * würde sonst übersprungen, und der Adapter schriebe ein Müllfeld bzw. scheiterte erst im SQL.
+ */
 export const touchesDeviceOrderChannel = (data: unknown): boolean =>
-  !!data && typeof data === 'object' && DEVICE_ORDER_CHANNEL_FIELD in (data as Record<string, unknown>)
+  Array.isArray(data) ||
+  (!!data && typeof data === 'object' && DEVICE_ORDER_CHANNEL_FIELD in (data as Record<string, unknown>))
 
 /**
  * Normalisiert den gespeicherten Wert. Alles außer den beiden Literalen (auch `null`,

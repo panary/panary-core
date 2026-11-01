@@ -21,6 +21,7 @@ import { ensureTenantIsolation } from '@panary/shared-backend'
 import { requireDeviceReverification } from './hooks/require-device-reverification.hook'
 import { resolvePosOperator } from './hooks/resolve-pos-operator.hook'
 import { recordSyncOutbox } from './hooks/sync-outbox-recorder.hook'
+import { rejectArrayBody } from './hooks/reject-array-body.hook'
 import { captureAuditBefore } from './hooks/capture-audit-before.hook'
 import { recordAuditEvent } from './hooks/record-audit-event.hook'
 import { allowApiKey } from '@panary/shared-backend'
@@ -386,6 +387,13 @@ app.hooks({
       await recordAuditEvent(context)
     },
   ],
+  // Vor allen Service-Hooks: Array-Body weist `rejectArrayBody` ab (#1256), bevor ein
+  // `'feld' in data`-Gate ihn uebersehen kann.
+  before: {
+    create: [rejectArrayBody],
+    update: [rejectArrayBody],
+    patch: [rejectArrayBody],
+  },
 })
 
 export { app }

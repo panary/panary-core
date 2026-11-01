@@ -132,6 +132,15 @@ describe('validateStaffMealExclusivity (Edge)', () => {
       })
     })
 
+    it('Array-Body wird abgewiesen statt als leerer Patch durchzugehen (#1256)', async () => {
+      const ctx = buildContext({
+        provider: 'rest',
+        data: [{ staffPaymentInfo: staff, appliedDiscounts: [foreignDiscount] }],
+      })
+      await expect(validateStaffMealExclusivity(ctx)).rejects.toBeInstanceOf(BadRequest)
+      expect(assertStaffMealDiscountExclusivity).not.toHaveBeenCalled()
+    })
+
     it('Multi-Patch ohne id → nicht geprüft (kein eindeutiger Vorzustand)', async () => {
       const getSpy = vi.fn()
       const ctx = buildContext({ provider: 'socketio', id: null, data: { staffPaymentInfo: staff }, getSpy })

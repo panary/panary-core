@@ -1,6 +1,8 @@
 // JIT-Compiler zuerst laden: @angular/material ist partial-compiled; ohne Linker
 // (kein analogjs-Plugin in dieser node-Vitest-Config) faellt Angular auf JIT zurueck.
 import '@angular/compiler'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import { Injector, runInInjectionContext, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
@@ -332,5 +334,18 @@ describe('SplitOrderDialogComponent — Erfolg', () => {
       undefined,
     )
     expect(close).toHaveBeenCalledWith({ sourceOrderId: 'quelle', targetOrderId: 'ziel', targetSequenceNumber: 13 })
+  })
+})
+
+// core#1257: Die Zeilen zeigen die Menge erst ab 2, wie der Bon. Geprüft am Inline-Template, die Spec rendert
+// sonst kein Markup.
+describe('SplitOrderDialogComponent — Menge erst ab 2 (core#1257)', () => {
+  const source = readFileSync(fileURLToPath(new URL('./split-order-dialog.component.ts', import.meta.url)), 'utf8')
+
+  it('blendet „1 ×" vor dem Namen aus', () => {
+    expect(source.replace(/\s+/g, ' ')).toMatch(
+      /<p class="text-sm font-semibold text-ink truncate"> @if \(line\.amount > 1\) \{ \{\{ line\.amount \}\} × \} \{\{ line\.name \}\} <\/p>/,
+    )
+    expect(source).not.toContain('{{ line.amount }} × {{ line.name }}')
   })
 })

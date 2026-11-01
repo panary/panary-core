@@ -471,7 +471,12 @@
                             class="grid grid-cols-[2rem_minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 items-baseline"
                             data-testid="line-grid"
                           >
-                            <span class="font-bold">{{ item.amount }}x</span>
+                            <!-- Menge erst ab 2 (core#1257); die Zelle bleibt, sonst rückt der Name in die Mengenspalte -->
+                            <span class="font-bold">
+                              @if (item.amount > 1) {
+                                {{ item.amount }}x
+                              }
+                            </span>
                             <span class="text-ink">{{ item.name }}</span>
                             <span class="font-semibold whitespace-nowrap tabular-nums text-right">{{
                               line.lineTotalFormatted
@@ -519,7 +524,11 @@
                                       class="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 items-baseline"
                                       data-testid="line-grid"
                                     >
-                                      <span class="font-bold text-xs">{{ item.amount }}x</span>
+                                      <span class="font-bold text-xs">
+                                        @if (item.amount > 1) {
+                                          {{ item.amount }}x
+                                        }
+                                      </span>
                                       <span class="text-ink text-sm">{{ item.name }}</span>
                                       <span class="font-semibold text-sm whitespace-nowrap tabular-nums text-right">{{
                                         line.lineTotalFormatted

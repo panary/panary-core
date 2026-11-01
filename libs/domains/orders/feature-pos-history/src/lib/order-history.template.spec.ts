@@ -84,3 +84,17 @@ describe('Historie-Template — Menü und Extras je Komponente (core#1235)', () 
     expect(source).not.toContain('menuDrink.price')
   })
 })
+
+// core#1257: Das Bon-Detail zeigt die Menge erst ab 2, wie der gedruckte Bon.
+describe('Historie: Menge erst ab 2 (core#1257)', () => {
+  const zeile = source.slice(
+    source.indexOf('<ng-template #historyLine'),
+    source.indexOf('line.item.price * line.item.amount'),
+  )
+
+  it('blendet die Menge 1 aus und behält die Mengenzelle', () => {
+    expect(zeile.replace(/\s+/g, ' ')).toMatch(
+      /<span class="font-bold"> @if \(line\.item\.amount > 1\) \{ \{\{ line\.item\.amount \}\}x \} <\/span> <span>\{\{ line\.item\.name \}\}<\/span>/,
+    )
+  })
+})

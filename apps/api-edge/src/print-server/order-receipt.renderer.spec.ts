@@ -276,15 +276,45 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
       expect(text).not.toContain('Tel.')
     })
 
-    it('beginnt mit der Bestellnummer statt mit einer Leerflaeche', () => {
-      const zeilen = kopfZeilen(kopfOrder(), locationMitKopf)
-      const erste = zeilen.findIndex(z => z.text.trim().length > 0)
+    // Bis #1257 begann der Kuechenbon direkt mit „Bestellnummer". Jetzt steht
+    // davor die Systemzeile — klein, mittig — und „Bestellnummer" bleibt mittig.
+    it.each([
+      ['80mm', 48],
+      ['58mm', 32],
+    ] as const)(
+      'beginnt auf %s mit „Panary-Bestellsystem" in Font B, mittig ueber der Bestellnummer',
+      (paperWidth, columns) => {
+        const zeilen = kopfZeilen(kopfOrder(), locationMitKopf, paperWidth)
+        const texte = zeilen.slice(0, 4).map(z => z.text.trim())
 
-      // Genau eine Leerzeile Vorlauf: Sie flusht die `initialize()`-Bytes, bevor
-      // die erste zentrierte Zeile ihre Polsterung ausstellt. Ohne sie liefen die
-      // Leerzeichen noch im Zustand des vorherigen Druckauftrags.
-      expect(erste).toBe(1)
-      expect(zeilen[erste].text.trim()).toBe('Bestellnummer')
+        // Genau eine Leerzeile Vorlauf: Sie flusht die `initialize()`-Bytes und traegt
+        // den Wechsel auf Font B. Die Leerzeile vor „Bestellnummer" traegt den Rueckwechsel.
+        expect(texte).toEqual(['', 'Panary-Bestellsystem', '', 'Bestellnummer'])
+        const system = zeilen[1]
+        const nummer = zeilen[3]
+        expect(system.charDots, 'Systemzeile nicht in Font B').toBe(9)
+        expect(Math.abs(centerOffsetDots(system, columns))).toBeLessThanOrEqual(system.charDots)
+        expect(nummer.charDots, 'Bestellnummer nicht zurueck in Font A').toBe(12)
+        expect(Math.abs(centerOffsetDots(nummer, columns))).toBeLessThanOrEqual(nummer.charDots)
+      },
+    )
+  })
+
+  describe('Bestellart-Badge (#1257)', () => {
+    // GS B 1 schaltet die Invertierung ein — weiss auf schwarz.
+    const invertAn = (bytes: Uint8Array) =>
+      bytes.findIndex((b, i) => b === 0x1d && bytes[i + 1] === 0x42 && bytes[i + 2] === 1)
+
+    it.each(['kitchen', 'full'] as const)('druckt AUSSEN auf dem %s-Bon ohne Invertierung', variant => {
+      const bytes = renderOrderReceipt(kopfOrder(), locationMitKopf, { variant })
+
+      expect(invertAn(bytes)).toBe(-1)
+    })
+
+    it('invertiert STORNIERT weiterhin', () => {
+      const bytes = renderOrderReceipt(kopfOrder({ cancellation: { reason: 'Test' } }), locationMitKopf)
+
+      expect(invertAn(bytes)).toBeGreaterThan(-1)
     })
   })
 
@@ -372,6 +402,46 @@ describe('order-receipt.renderer — Kopfbereich (#342)', () => {
       expect(text).toContain('Bestellzeit: 12:00 Uhr')
       expect(text).not.toContain('Uhrzeit:')
       expect(text).toContain('Datum: 20.9.2026')
+    })
+
+    // #1257: Kasse, Datum und Bestellzeit in einer Zeile, sonst die drei Zeilen von vorher.
+    const metaZeilen = (paperWidth: PaperWidth, deviceName?: string) =>
+      decodeEscPosLines(renderOrderReceipt(kopfOrder(), locationMitKopf, { paperWidth }, deviceName), 30).filter(z =>
+        /Kasse:|Datum:|Bestellzeit:/.test(z.text),
+      )
+
+    it('setzt auf 80 mm alle drei Angaben in eine Zeile, die Mitte in die Papiermitte', () => {
+      const zeilen = metaZeilen('80mm', 'Kasse')
+
+      expect(zeilen.map(z => z.text.replace(/ +/g, ' '))).toEqual([
+        'Kasse: Kasse Datum: 20.9.2026 Bestellzeit: 12:00 Uhr',
+      ])
+      const zeile = zeilen[0]
+      expect(zeile.charDots).toBe(9)
+      // Linker Rand bis rechter Rand: volle Papierbreite, also randbuendig links und rechts.
+      expect(zeile.leadDots).toBe(0)
+      expect(zeile.contentDots).toBe(48 * 12)
+      // Die Mitte „Datum: 20.9.2026" sitzt mittig — gemessen an ihrer Lage in der Zeile.
+      const start = zeile.text.indexOf('Datum:') * 9
+      const mitte = start + ('Datum: 20.9.2026'.length * 9) / 2
+      expect(Math.abs(mitte - (48 * 12) / 2)).toBeLessThanOrEqual(9)
+    })
+
+    it('setzt ohne Kassennamen Datum links und Bestellzeit rechts', () => {
+      expect(metaZeilen('80mm').map(z => z.text.replace(/ +/g, ' '))).toEqual([
+        'Datum: 20.9.2026 Bestellzeit: 12:00 Uhr',
+      ])
+    })
+
+    it.each([
+      ['58mm', 'Kasse'],
+      ['80mm', 'Theke links am Fenster'],
+    ] as const)('faellt auf %s mit Kasse „%s" auf drei Zeilen zurueck', (paperWidth, deviceName) => {
+      expect(metaZeilen(paperWidth, deviceName).map(z => z.text)).toEqual([
+        `Kasse: ${deviceName}`,
+        'Datum: 20.9.2026',
+        'Bestellzeit: 12:00 Uhr',
+      ])
     })
   })
 
@@ -594,14 +664,23 @@ describe('order-receipt.renderer — Druckerrolle und Bon-Variante (#347)', () =
     })
 
     it('unterscheidet sich zwischen den Varianten AUSSCHLIESSLICH um Kopf und TSE', () => {
-      // Gegenprobe zur Aufzaehlung oben: Eine Filiale ohne Stammdaten und eine
-      // Order ohne TSE lassen beide Varianten byte-identisch werden. Faellt das,
-      // schaltet die Variante noch etwas Drittes, das niemand benannt hat.
-      const ohneKopf = { settings: location.settings }
-      const voll = renderOrderReceipt(bonOrder(), ohneKopf, { variant: 'full' })
-      const kueche = renderOrderReceipt(bonOrder(), ohneKopf, { variant: 'kitchen' })
+      // Gegenprobe zur Aufzaehlung oben: Eine Order ohne TSE laesst beide Varianten
+      // ab „Bestellnummer" byte-identisch werden — davor steht seit #1257 der Kopf
+      // (Filiale bzw. Systemzeile). Faellt das, schaltet die Variante noch etwas
+      // Drittes, das niemand benannt hat.
+      const abBestellnummer = (bytes: Uint8Array) => {
+        const text = new TextDecoder('latin1').decode(bytes)
+        return Array.from(bytes.subarray(text.indexOf('Bestellnummer')))
+      }
+      const voll = renderOrderReceipt(bonOrder(), filiale, { variant: 'full' })
+      const kueche = renderOrderReceipt(bonOrder(), filiale, { variant: 'kitchen' })
 
-      expect(Array.from(kueche)).toEqual(Array.from(voll))
+      expect(abBestellnummer(kueche)).toEqual(abBestellnummer(voll))
+    })
+
+    it('druckt die Systemzeile nur auf dem Kuechenbon', () => {
+      expect(renderToText(bonOrder(), filiale, { variant: 'kitchen' })).toContain('Panary-Bestellsystem')
+      expect(renderToText(bonOrder(), filiale, { variant: 'full' })).not.toContain('Panary-Bestellsystem')
     })
   })
 })
@@ -636,8 +715,9 @@ describe('order-receipt.renderer — Modifier je Stück (#698)', () => {
 
   it('lässt eine Bestandszeile ohne Merkmal unverändert: einmal je Zeile, ohne „je“', () => {
     const text = renderToText(order({}), location)
-    expect(text).toContain('1x Kaese')
-    expect(text).not.toContain('je 1x Kaese')
+    // Menge 1 trägt seit #1257 keine Angabe mehr.
+    expect(text).toContain('Kaese')
+    expect(text).not.toContain('1x Kaese')
     expect(text).toContain('1,00 EUR')
     expect(text).toContain('17,00 EUR')
   })
@@ -706,6 +786,66 @@ describe('Gesamtzeile in genau einer Zeile (#758)', () => {
   ] as const)('%s auf %s', (price, paperWidth, betrag) => {
     expect(gesamtZeilen(price, paperWidth)).toEqual([`Gesamt ${betrag}`])
   })
+
+  // #1257: Die Summe steht in Positionsgroesse. Ein `GS !` mit Wert ungleich 0
+  // vergroesserte Breite oder Hoehe.
+  it('druckt „Gesamt" ohne Vergroesserung', () => {
+    const order = {
+      dailySequenceNumber: 7,
+      dineLocation: 'take-out',
+      recordingDate: '2026-09-20T10:00:00.000Z',
+      lineItems: [{ _id: 'li-g1', name: 'Platte', topic: 'Speisen', amount: 1, price: 9, taxInside: 7, taxOutside: 7 }],
+    }
+    const bytes = renderOrderReceipt(order, location, { variant: 'kitchen' })
+    const ab = new TextDecoder('latin1').decode(bytes).lastIndexOf('Gesamt')
+    const rest = bytes.subarray(ab - 20)
+    const vergroessert = rest.findIndex((b, i) => b === 0x1d && rest[i + 1] === 0x21 && rest[i + 2] !== 0)
+
+    expect(vergroessert).toBe(-1)
+  })
+})
+
+describe('order-receipt.renderer — Mengenangabe erst ab 2 (#1257)', () => {
+  const order = (amount: number, modAmount: number, extra: Record<string, unknown> = {}) => ({
+    dailySequenceNumber: 7,
+    dineLocation: 'take-out',
+    recordingDate: '2026-10-14T10:00:00.000Z',
+    lineItems: [
+      {
+        _id: 'li-1',
+        name: 'Burger',
+        topic: 'Burger',
+        amount,
+        price: 8,
+        taxInside: 19,
+        taxOutside: 7,
+        modifiers: [
+          { _id: 'm-1', name: 'Kaese', price: 1, amount: modAmount, taxInside: 19, taxOutside: 7, topic: 'Extras' },
+        ],
+        ...extra,
+      },
+    ],
+  })
+  const zeilen = (o: Record<string, unknown>) =>
+    decodeEscPosLines(renderOrderReceipt(o, location), 22)
+      .map(z => z.text.replace(/\s+\S+ EUR$/, ''))
+      .filter(t => /Burger|Kaese/.test(t) && t !== 'BURGER')
+
+  it('laesst die Menge 1 an Position und Modifier weg', () => {
+    expect(zeilen(order(1, 1))).toEqual(['Burger', 'Kaese'])
+  })
+
+  it('druckt die Menge ab 2', () => {
+    expect(zeilen(order(2, 2))).toEqual(['2x Burger', '2x Kaese'])
+  })
+
+  it('behaelt „je 1x" bei Modifiern je Stück', () => {
+    expect(zeilen(order(2, 1, { modifierScope: 'unit' }))).toEqual(['2x Burger', 'je 1x Kaese'])
+  })
+
+  it('druckt OHNE-Zeilen ohne Menge', () => {
+    expect(zeilen(order(1, -1))).toEqual(['Burger', 'OHNE Kaese'])
+  })
 })
 
 describe('order-receipt.renderer — Modifier je Menü-Komponente (#1127)', () => {
@@ -743,7 +883,7 @@ describe('order-receipt.renderer — Modifier je Menü-Komponente (#1127)', () =
     ],
   })
   const lines = (o: Record<string, unknown>, variant: 'full' | 'kitchen') =>
-    decodeEscPosLines(renderOrderReceipt(o, location, { variant }), 20)
+    decodeEscPosLines(renderOrderReceipt(o, location, { variant }), 24)
   const positions = (o: Record<string, unknown>, variant: 'full' | 'kitchen') => {
     const all = lines(o, variant).map(l => l.text)
     const start = all.findIndex(t => t.includes('XXL Hamburger'))
@@ -754,10 +894,10 @@ describe('order-receipt.renderer — Modifier je Menü-Komponente (#1127)', () =
     const o = order([mod('Bacon', 1.5), mod('Mayo', 0.5, POMMES)])
 
     expect(positions(o, variant).map(t => t.replace(/\s+\S+ EUR$/, ''))).toEqual([
-      '1x XXL Hamburger',
-      '1x Bacon',
+      'XXL Hamburger',
+      'Bacon',
       '+ Pommes',
-      '1x Mayo',
+      'Mayo',
       '+ Cola Zero',
     ])
     const all = lines(o, variant)
@@ -771,12 +911,12 @@ describe('order-receipt.renderer — Modifier je Menü-Komponente (#1127)', () =
   it('lässt eine Bestellung ohne Zuordnung wie vorher: Komponenten, dann alle Modifier', () => {
     expect(
       positions(order([mod('Bacon', 1.5), mod('Mayo', 0.5)]), 'full').map(t => t.replace(/\s+\S+ EUR$/, '')),
-    ).toEqual(['1x XXL Hamburger', '+ Pommes', '+ Cola Zero', '1x Bacon', '1x Mayo'])
+    ).toEqual(['XXL Hamburger', '+ Pommes', '+ Cola Zero', 'Bacon', 'Mayo'])
   })
 
   it('fällt bei einer unbekannten Referenz auf die Bestandsdarstellung zurück', () => {
     const unbekannt = '019ecd00-0000-7000-8000-0000000000ff'
-    expect(positions(order([mod('Mayo', 0.5, unbekannt)]), 'full')[3]).toContain('1x Mayo')
+    expect(positions(order([mod('Mayo', 0.5, unbekannt)]), 'full')[3]).toContain('Mayo')
   })
 
   it('ändert keine Summe: Gesamt mit und ohne Zuordnung bitgenau gleich', () => {

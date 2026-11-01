@@ -124,7 +124,13 @@ function errorKey(code: unknown): string {
                   </p>
                 }
                 @for (line of unit.lines; track line._id) {
-                  <p class="text-sm font-semibold text-ink truncate">{{ line.amount }} × {{ line.name }}</p>
+                  <!-- Menge erst ab 2 (core#1257), wie auf dem Bon -->
+                  <p class="text-sm font-semibold text-ink truncate">
+                    @if (line.amount > 1) {
+                      {{ line.amount }} ×
+                    }
+                    {{ line.name }}
+                  </p>
                   @for (mod of line.modifiers ?? []; track $index) {
                     <p class="text-xs text-ink-muted truncate">+ {{ mod.name }}</p>
                   }

@@ -74,10 +74,11 @@ describe('groupOpenOrdersBySettlementScope (core#1141)', () => {
 
 describe('openOrderCircleTotalCents (core#1141)', () => {
   const totals: Record<string, number> = { a: 10.1, b: 0.2, c: 5 }
-  const totalOf = (o: { _id: string }) => totals[o._id]
+  type Circle = { _id: string; staffPaymentInfo?: unknown }
+  const totalOf = (o: Circle) => totals[o._id]
 
   it('addiert die Beträge der Einzelkarten in Cent, ohne Fließkomma-Drift', () => {
-    expect(openOrderCircleTotalCents([{ _id: 'a' }, { _id: 'b' }], totalOf)).toBe(1030)
+    expect(openOrderCircleTotalCents<Circle>([{ _id: 'a' }, { _id: 'b' }], totalOf)).toBe(1030)
   })
 
   it('verbirgt die Summe, sobald eine Bestellung ein Personalessen ist', () => {

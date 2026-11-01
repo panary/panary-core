@@ -4,6 +4,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiService } from '../../core/api.service'
+import { AuthService } from '../../core/auth.service'
 import { DeviceStatusService } from '../../core/device-status.service'
 import { DeviceListComponent } from './device-list'
 
@@ -21,6 +22,7 @@ interface DeviceFixture {
   locationId?: string
   deviceAccessMode?: string
   assignedUserIds?: string[]
+  defaultOrderChannel?: string | null
 }
 
 const POS_USERS = [
@@ -28,7 +30,7 @@ const POS_USERS = [
   { _id: 'u-bruno', firstName: 'Bruno', lastName: 'Berg' },
 ]
 
-function setup(devices: DeviceFixture[], opts: { requestCodeResponse?: Record<string, unknown> } = {}) {
+function setup(devices: DeviceFixture[], opts: { requestCodeResponse?: Record<string, unknown>; role?: string } = {}) {
   const patch = vi.fn().mockResolvedValue({})
   const create = vi.fn().mockResolvedValue(opts.requestCodeResponse ?? { code: '123456', deviceAccessMode: 'shared' })
   const api = {
@@ -51,6 +53,7 @@ function setup(devices: DeviceFixture[], opts: { requestCodeResponse?: Record<st
     providers: [
       { provide: ApiService, useValue: api },
       { provide: DeviceStatusService, useValue: deviceStatus },
+      { provide: AuthService, useValue: { user: signal({ role: opts.role ?? 'tenant:owner' }) } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       // Ausserhalb einer gerenderten Komponente gibt es keinen echten
       // ChangeDetectorRef — markForCheck ist hier ohne Wirkung und ohne Belang.
@@ -236,5 +239,68 @@ describe('Geraeteliste — Zuweisung', () => {
       })
       expect(component['pairingAssignmentDirty']()).toBe(false)
     })
+  })
+})
+
+/** Ein `change`-Event eines <select> (node-Umgebung ohne DOM). */
+const changeEvent = (value: string) => ({ target: { value } }) as unknown as Event
+
+describe('Geraeteliste — Standard-Bestellart (core#1166)', () => {
+  beforeEach(() => TestBed.resetTestingModule())
+
+  it.each(['tenant:owner', 'platform:owner'])('%s darf bearbeiten', role => {
+    const { component } = setup([sharedDevice('a')], { role })
+    expect(component['canEditOrderChannel']()).toBe(true)
+  })
+
+  it.each(['tenant:technician', 'tenant:manager', 'platform:admin'])('%s sieht den Wert schreibgeschuetzt', role => {
+    const { component } = setup([sharedDevice('a')], { role })
+    expect(component['canEditOrderChannel']()).toBe(false)
+  })
+
+  it('nur pos-counter und tablet tragen eine Bestellart', () => {
+    const { component } = setup([])
+    expect(component['supportsOrderChannel']({ type: 'pos-counter' })).toBe(true)
+    expect(component['supportsOrderChannel']({ type: 'tablet' })).toBe(true)
+    expect(component['supportsOrderChannel']({ type: 'kds' })).toBe(false)
+    expect(component['supportsOrderChannel']({ type: 'other' })).toBe(false)
+  })
+
+  it('Owner speichert den Wert und laedt neu; leere Auswahl sendet null', async () => {
+    const { component, patch } = setup([sharedDevice('a')])
+    await component['ngOnInit']()
+
+    await component['setOrderChannel'](component['devices']()[0], changeEvent('telephone'))
+    expect(patch).toHaveBeenLastCalledWith('devices', 'a', { defaultOrderChannel: 'telephone' })
+
+    await component['setOrderChannel'](component['devices']()[0], changeEvent(''))
+    expect(patch).toHaveBeenLastCalledWith('devices', 'a', { defaultOrderChannel: null })
+  })
+
+  it('Techniker sendet nichts, auch wenn der Handler erreicht wird', async () => {
+    const { component, patch } = setup([sharedDevice('a')], { role: 'tenant:technician' })
+    await component['ngOnInit']()
+
+    await component['setOrderChannel'](component['devices']()[0], changeEvent('pos'))
+    expect(patch).not.toHaveBeenCalled()
+  })
+
+  it('Serverfehler wird angezeigt', async () => {
+    const { component, patch } = setup([sharedDevice('a')])
+    await component['ngOnInit']()
+    patch.mockRejectedValueOnce(new Error('403'))
+
+    const event = changeEvent('pos')
+    await component['setOrderChannel'](component['devices']()[0], event)
+    expect(component['actionError']()).toBeTruthy()
+    // Der DOM-Wert wird auf den gespeicherten zurueckgesetzt, sonst zeigt das <select> die verworfene Auswahl.
+    expect((event.target as unknown as { value: string }).value).toBe('')
+  })
+
+  it('unlesbarer gespeicherter Wert zeigt „keine"', () => {
+    const { component } = setup([])
+    expect(component['orderChannelValue']({ defaultOrderChannel: 'online' })).toBe('')
+    expect(component['orderChannelValue']({ defaultOrderChannel: 'pos' })).toBe('pos')
+    expect(component['orderChannelLabelKey']({ defaultOrderChannel: null })).toBe('DEVICES.ORDER_CHANNEL_NONE')
   })
 })

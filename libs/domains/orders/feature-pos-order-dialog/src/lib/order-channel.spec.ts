@@ -32,6 +32,19 @@ describe('defaultOrderChannel', () => {
   })
 })
 
+describe('defaultOrderChannel — Terminal-Standard (core#1166)', () => {
+  it('der Terminal-Wert schlaegt den Betriebsmodus in beide Richtungen', () => {
+    expect(defaultOrderChannel('pos-cashier', 'telephone')).toBe(OrderChannel.TELEPHONE)
+    expect(defaultOrderChannel('orders-only', 'pos')).toBe(OrderChannel.POS)
+  })
+
+  it('null und undefined fallen auf den Betriebsmodus zurueck', () => {
+    expect(defaultOrderChannel('pos-cashier', null)).toBe(OrderChannel.POS)
+    expect(defaultOrderChannel('pos-cashier', undefined)).toBe(OrderChannel.POS)
+    expect(defaultOrderChannel('orders-only', null)).toBe(OrderChannel.TELEPHONE)
+  })
+})
+
 describe('toggledOrderChannel', () => {
   it('schaltet zwischen Kasse und Telefon hin und her', () => {
     expect(toggledOrderChannel(OrderChannel.POS)).toBe(OrderChannel.TELEPHONE)

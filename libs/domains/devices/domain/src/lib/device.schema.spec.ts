@@ -99,3 +99,21 @@ describe('deviceQueryProperties', () => {
     expect(Object.keys(deviceQueryProperties.properties)).not.toContain('assignedUserIds')
   })
 })
+
+describe('deviceSchema — Standard-Bestellart (core#1166)', () => {
+  it('Bestandsgeraet ohne das Feld bleibt gueltig', async () => {
+    await expect(validateDevice(validDevice)).resolves.toBeTruthy()
+  })
+
+  it.each(['pos', 'telephone', null])('akzeptiert %j', async value => {
+    await expect(validateDevice({ ...validDevice, defaultOrderChannel: value })).resolves.toBeTruthy()
+  })
+
+  it.each(['online', 'app', 'POS', ''])('lehnt %j ab', async value => {
+    await expect(validateDevice({ ...validDevice, defaultOrderChannel: value })).rejects.toThrow()
+  })
+
+  it('deviceDataSchema (Redeem) kennt das Feld bewusst nicht', async () => {
+    await expect(validateDeviceData({ ...validDeviceData, defaultOrderChannel: 'pos' })).rejects.toThrow()
+  })
+})

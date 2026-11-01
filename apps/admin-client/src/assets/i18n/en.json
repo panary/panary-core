@@ -276,7 +276,11 @@
     "ASSIGNMENT_LIMIT": "No more than {{max}} employees are possible.",
     "ASSIGNMENT_EMPTY_WARNING": "At least one employee must be selected — otherwise nobody could sign in.",
     "ASSIGNMENT_LAST_SHARED_WARNING": "This is the last shared terminal of this location. After assigning it there is no station left where employees can clock in and out by staff number.",
-    "ASSIGNMENT_APPLY_TO_CODE": "Generate a new code with this assignment"
+    "ASSIGNMENT_APPLY_TO_CODE": "Generate a new code with this assignment",
+    "ORDER_CHANNEL": "Default order type",
+    "ORDER_CHANNEL_NONE": "None (by location)",
+    "ORDER_CHANNEL_POS": "Register",
+    "ORDER_CHANNEL_TELEPHONE": "Phone"
   },
   "USERS": {
     "TITLE": "Users",

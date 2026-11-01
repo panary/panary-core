@@ -11,7 +11,7 @@ import {
 import { CommonModule } from '@angular/common'
 import { Router } from '@angular/router'
 import { PosSessionService } from '@panary/auth/data-access'
-import { DeviceAssignmentService } from '@panary/devices/data-access'
+import { DeviceAssignmentService, DeviceOrderChannelService } from '@panary/devices/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
 import { ConnectionService, OFFLINE_OUTBOX, storePosOperatorToken } from '@panary/shared/data-access'
@@ -85,6 +85,7 @@ export class LoginComponent implements OnInit {
   private readonly configService = inject(DeviceConfigService)
   private readonly connectionService = inject(ConnectionService)
   protected readonly deviceAssignment = inject(DeviceAssignmentService)
+  readonly #deviceOrderChannel = inject(DeviceOrderChannelService)
   readonly themeService = inject(ThemeServiceService)
   readonly languageService = inject(LanguageService)
   readonly updateService = inject(UpdateService)
@@ -276,6 +277,8 @@ export class LoginComponent implements OnInit {
       // Ein Fehler dabei darf den Login nicht kippen — der Server-Scope wirkt
       // ohnehin, der Service faellt still auf `shared` zurueck.
       await this.deviceAssignment.refresh().catch(() => undefined)
+      // Standard-Bestellart (core#1166): reine Vorbelegung, bei Fehler gilt der Cache bzw. der Betriebsmodus.
+      await this.#deviceOrderChannel.refresh().catch(() => undefined)
 
       // Load POS users
       await this.loadPosUsers()

@@ -29,6 +29,7 @@ import type { ProductSchema } from '@panary/products/domain'
 import { DiscountCodeService, DiscountService } from '@panary/discounts/data-access'
 import type { Discount as ManagedDiscount } from '@panary/discounts/domain'
 import { AuthService } from '@panary/auth/data-access'
+import { DeviceOrderChannelService } from '@panary/devices/data-access'
 import { PosHandednessService, UserService } from '@panary/users/data-access'
 import { resolvePosHandedness } from '@panary/users/domain'
 import { LocationService } from '@panary/locations/data-access'
@@ -80,6 +81,8 @@ interface SetupOptions {
    * Bezahlansicht; der Kassenbetrieb (`pos-cashier`) schaltet sie ein (core#831).
    */
   operationMode?: string
+  /** Standard-Bestellart des Terminals (`DeviceOrderChannelService.channel`), Vorgabe: keine. */
+  deviceOrderChannel?: 'pos' | 'telephone' | null
   /** Antwort von `OrderCheckoutService.payCash` — Standard: bezahlt. */
   payCashResult?: 'paid' | 'cash-session-declined' | 'failed'
   /** Was `OrderService.createOrder` liefert — `null` spielt ein gescheitertes Anlegen nach. */
@@ -163,6 +166,9 @@ function setup(options: SetupOptions = {}) {
   })
   /** Was `matDialog.open()` als Auswahl zurueckgibt — pro Test gesetzt. */
   const dialogResult = { value: undefined as unknown }
+
+  /** Standard-Bestellart des Terminals — pro Test per `deviceOrderChannel.set('telephone')` nachgezogen. */
+  const deviceOrderChannel = signal<'pos' | 'telephone' | null>(options.deviceOrderChannel ?? null)
 
   /** Mandantensperre der Cloud (core#489) — pro Test per `suspended.set(true)` gesetzt. */
   const suspended = signal(false)
@@ -326,6 +332,10 @@ function setup(options: SetupOptions = {}) {
       },
       { provide: TenantSuspensionService, useValue: { suspended } },
       {
+        provide: DeviceOrderChannelService,
+        useValue: { channel: deviceOrderChannel.asReadonly() },
+      },
+      {
         provide: PosHandednessService,
         useValue: { effective: (user: unknown) => chosenHandedness() ?? resolvePosHandedness(user as never) },
       },
@@ -375,6 +385,7 @@ function setup(options: SetupOptions = {}) {
     dialogResult,
     suspended,
     chosenHandedness,
+    deviceOrderChannel,
   }
 }
 
@@ -2920,6 +2931,51 @@ describe('Kasse — Blocker folgt dem Standort (core#868)', () => {
     activeLocation.set(undefined)
 
     expect(component.blockingReason()).toBe('Standort konnte nicht geladen werden.')
+  })
+})
+
+describe('OrderDialog — Standard-Bestellart des Terminals (core#1166)', () => {
+  it('ohne Terminal-Wert gilt der Betriebsmodus wie bisher', () => {
+    expect(setup({ operationMode: 'pos-cashier' }).component.orderChannel()).toBe('pos')
+    expect(setup({ operationMode: 'orders-only' }).component.orderChannel()).toBe('telephone')
+  })
+
+  it('der Terminal-Wert schlaegt den Betriebsmodus in beide Richtungen', () => {
+    expect(setup({ operationMode: 'pos-cashier', deviceOrderChannel: 'telephone' }).component.orderChannel()).toBe(
+      'telephone',
+    )
+    expect(setup({ operationMode: 'orders-only', deviceOrderChannel: 'pos' }).component.orderChannel()).toBe('pos')
+  })
+
+  it('der Umschalter ueberschreibt die Vorbelegung dieser einen Bestellung', () => {
+    const { component } = setup({ operationMode: 'pos-cashier', deviceOrderChannel: 'telephone' })
+    component.toggleOrderChannel()
+    expect(component.orderChannel()).toBe('pos')
+  })
+
+  it('eine Server-Aenderung waehrend der Bestellung ueberschreibt die Wahl des Kassierers nie', () => {
+    const { component, deviceOrderChannel } = setup({ operationMode: 'pos-cashier', deviceOrderChannel: 'telephone' })
+    component.toggleOrderChannel() // Kassierer waehlt Kasse
+
+    deviceOrderChannel.set('telephone') // Realtime-Event: Owner stellt um
+    deviceOrderChannel.set(null)
+
+    expect(component.orderChannel()).toBe('pos')
+  })
+
+  it('eine Server-Aenderung wirkt erst ab der naechsten Bestellung', () => {
+    const first = setup({ operationMode: 'pos-cashier', deviceOrderChannel: 'telephone' })
+    first.deviceOrderChannel.set('pos')
+    expect(first.component.orderChannel()).toBe('telephone')
+
+    expect(setup({ operationMode: 'pos-cashier', deviceOrderChannel: 'pos' }).component.orderChannel()).toBe('pos')
+  })
+
+  it('der gesendete Kanal ist der vorbelegte', async () => {
+    const { component, createdOrders } = setup({ operationMode: 'orders-only', deviceOrderChannel: 'pos' })
+    component.increaseLineItem(product('p-1'))
+    await component.placeOrder()
+    expect(createdOrders[0]['orderChannel']).toBe('pos')
   })
 })
 

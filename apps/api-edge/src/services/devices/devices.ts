@@ -23,6 +23,7 @@ import type { Device, DeviceService } from './devices.class'
 import { ensureIndexes, getJsonFieldHooks, logger } from '@panary/shared-backend'
 import { restrictDeviceSelfPatch } from '../../hooks/restrict-device-self-patch.hook'
 import { validateDeviceAssignment } from '../../hooks/validate-device-assignment.hook'
+import { validateDeviceOrderChannel } from '../../hooks/validate-device-order-channel.hook'
 import { captureDeviceForCascade, cascadeRemoveDeviceApikeys } from '../../hooks/cascade-device-apikeys.hook'
 
 // SQLite speichert Objekt-Felder als TEXT — ohne Stringify/Parse-Hooks landet
@@ -126,6 +127,7 @@ export const devices = (app: Application) => {
       // Schema-Meldung.
       create: [
         validateDeviceAssignment,
+        validateDeviceOrderChannel,
         validateData(deviceDataValidator),
         schemaHooks.resolveData(deviceDataResolver),
         ...jsonHooks.before,
@@ -136,6 +138,7 @@ export const devices = (app: Application) => {
       patch: [
         restrictDeviceSelfPatch,
         validateDeviceAssignment,
+        validateDeviceOrderChannel,
         validateData(devicePatchValidator),
         schemaHooks.resolveData(devicePatchResolver),
         ...jsonHooks.before,

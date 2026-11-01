@@ -276,7 +276,11 @@
     "ASSIGNMENT_LIMIT": "Mehr als {{max}} Mitarbeiter sind nicht möglich.",
     "ASSIGNMENT_EMPTY_WARNING": "Mindestens ein Mitarbeiter muss gewählt sein — sonst könnte sich niemand mehr anmelden.",
     "ASSIGNMENT_LAST_SHARED_WARNING": "Dies ist das letzte geteilte Terminal dieses Standorts. Nach der Zuweisung gibt es keine Stempel-Station mehr, an der Mitarbeiter per Personalnummer ein- und ausstempeln können.",
-    "ASSIGNMENT_APPLY_TO_CODE": "Neuen Code mit dieser Zuweisung erzeugen"
+    "ASSIGNMENT_APPLY_TO_CODE": "Neuen Code mit dieser Zuweisung erzeugen",
+    "ORDER_CHANNEL": "Standard-Bestellart",
+    "ORDER_CHANNEL_NONE": "Keine (nach Standort)",
+    "ORDER_CHANNEL_POS": "Kasse",
+    "ORDER_CHANNEL_TELEPHONE": "Telefon"
   },
   "USERS": {
     "TITLE": "Benutzer",

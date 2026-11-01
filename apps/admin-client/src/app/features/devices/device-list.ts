@@ -3,13 +3,18 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject
 import { TranslateModule } from '@ngx-translate/core'
 import { QRCodeComponent } from 'angularx-qrcode'
 import {
+  DEVICE_ORDER_CHANNEL_WRITE_ROLES,
   DeviceAccessMode,
+  DeviceOrderChannel,
+  DeviceType,
   isDeviceAssigned,
   resolveAssignedUserIds,
   resolveDeviceAccessMode,
+  resolveDeviceOrderChannel,
   type DeviceAccessModeValue,
 } from '@panary/devices/domain'
 import { ApiService } from '../../core/api.service'
+import { AuthService } from '../../core/auth.service'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { DeviceStatusService } from '../../core/device-status.service'
 import { formatApiError } from '../../core/error-helper'
@@ -27,6 +32,7 @@ interface Device {
   locationId?: string
   deviceAccessMode?: DeviceAccessModeValue
   assignedUserIds?: string[]
+  defaultOrderChannel?: string | null
 }
 
 @Component({
@@ -87,6 +93,7 @@ interface Device {
                 <th>{{ 'DEVICES.LAST_SEEN' | translate }}</th>
                 <th>{{ 'DEVICES.CONNECTION' | translate }}</th>
                 <th>{{ 'DEVICES.ASSIGNMENT' | translate }}</th>
+                <th>{{ 'DEVICES.ORDER_CHANNEL' | translate }}</th>
                 <th>{{ 'COMMON.STATUS_ACTIVE' | translate }}</th>
                 <th class="text-right">{{ 'COMMON.ACTIONS' | translate }}</th>
               </tr>
@@ -143,6 +150,26 @@ interface Device {
                       <span class="text-xs text-ink-faint">
                         {{ 'DEVICES.ASSIGNMENT_SHARED' | translate }}
                       </span>
+                    }
+                  </td>
+                  <td>
+                    @if (supportsOrderChannel(device)) {
+                      @if (canEditOrderChannel()) {
+                        <select
+                          class="text-xs rounded-lg border border-line-strong bg-surface-panel px-2 py-1"
+                          [attr.aria-label]="'DEVICES.ORDER_CHANNEL' | translate"
+                          [value]="orderChannelValue(device)"
+                          (change)="setOrderChannel(device, $event)"
+                        >
+                          <option value="">{{ 'DEVICES.ORDER_CHANNEL_NONE' | translate }}</option>
+                          <option value="pos">{{ 'DEVICES.ORDER_CHANNEL_POS' | translate }}</option>
+                          <option value="telephone">{{ 'DEVICES.ORDER_CHANNEL_TELEPHONE' | translate }}</option>
+                        </select>
+                      } @else {
+                        <span class="text-xs text-ink-muted">{{ orderChannelLabelKey(device) | translate }}</span>
+                      }
+                    } @else {
+                      <span class="text-xs text-ink-faint">–</span>
                     }
                   </td>
                   <td>
@@ -357,6 +384,7 @@ export class DeviceListComponent implements OnInit {
   private api = inject(ApiService)
   private clipboard = inject(Clipboard)
   private cdr = inject(ChangeDetectorRef)
+  private auth = inject(AuthService)
   protected deviceStatus = inject(DeviceStatusService)
 
   protected devices = signal<Device[]>([])
@@ -487,6 +515,51 @@ export class DeviceListComponent implements OnInit {
       // Leer-Hinweis, die Zuweisung bleibt unbedienbar statt halb bedienbar.
     }
   }
+
+  //#region Standard-Bestellart (core#1166)
+  /**
+   * Nur der Owner darf das Feld schreiben (Gate: checkDeviceOrderChannelWrite, Edge-Hook).
+   * Der Techniker hat `devices: MANAGE` und bekaeme beim Speichern sonst ein 403, deshalb
+   * sieht er den Wert schreibgeschuetzt. Reine UX: die Grenze zieht der Server.
+   */
+  protected canEditOrderChannel = computed(() => DEVICE_ORDER_CHANNEL_WRITE_ROLES.has(this.auth.user()?.role ?? ''))
+
+  /** Nur Geraete, die Bestellungen aufnehmen, haben eine Bestellart. */
+  protected supportsOrderChannel(device: Device): boolean {
+    return device.type === DeviceType.POS_COUNTER || device.type === DeviceType.TABLET
+  }
+
+  protected orderChannelValue(device: Device): string {
+    return resolveDeviceOrderChannel(device) ?? ''
+  }
+
+  protected orderChannelLabelKey(device: Device): string {
+    switch (resolveDeviceOrderChannel(device)) {
+      case DeviceOrderChannel.POS:
+        return 'DEVICES.ORDER_CHANNEL_POS'
+      case DeviceOrderChannel.TELEPHONE:
+        return 'DEVICES.ORDER_CHANNEL_TELEPHONE'
+      default:
+        return 'DEVICES.ORDER_CHANNEL_NONE'
+    }
+  }
+
+  protected async setOrderChannel(device: Device, event: Event) {
+    if (!this.canEditOrderChannel()) return
+    const select = event.target as HTMLSelectElement
+    this.actionError.set(null)
+    try {
+      // Leere Auswahl = null: Zuruecksetzen auf „kein Standard".
+      await this.api.patch<Device>('devices', device._id, { defaultOrderChannel: select.value || null })
+    } catch (e: unknown) {
+      this.actionError.set(formatApiError(e))
+    }
+    await this.refreshAll()
+    // Die Property-Bindung `[value]` schreibt nur bei geaendertem Ausdruckswert. Nach einem Fehlschlag bleibt
+    // der Wert gleich, das <select> zeigt sonst weiter die verworfene Auswahl.
+    select.value = this.orderChannelValue(this.devices().find(entry => entry._id === device._id) ?? device)
+  }
+  //#endregion
 
   //#region Zuweisung
   protected isAssigned(device: Device): boolean {

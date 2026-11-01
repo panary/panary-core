@@ -56,7 +56,8 @@ verdrahtet.
 
 **2. Der Küchenbon behält Preise und Summen.** Der Unterschied zwischen den
 Varianten sind **ausschließlich Filialkopf und TSE-Block**. Positionen,
-Nachlässe und Gesamtsumme sind byte-gleich.
+Nachlässe und Gesamtsumme sind byte-gleich. *Nachtrag 2026-11-01:* Der Küchenbon
+trägt statt gar keines Kopfes eine Systemzeile, siehe unten.
 
 **3. Eine Vorlage mit zwei Varianten, kein zweiter Renderer.**
 `renderOrderReceipt` nimmt `variant: 'kitchen' | 'full'` und schaltet damit zwei
@@ -158,6 +159,19 @@ Drucker im Log aus wie ein richtig gerollter.
   Aufrufer. Ob die Quittungsvariante mittelfristig dorthin wandert, entscheidet
   ADR 0007, nicht dieses ADR.
 - **Kein Stations-Routing.** Siehe oben — verworfen, nicht vergessen.
+
+## Nachtrag 2026-11-01: Systemzeile auf dem Küchenbon (#1257)
+
+Der Küchenbon beginnt jetzt mit einer kleinen, zentrierten Zeile
+„Panary-Bestellsystem" (Font B) statt ohne Kopf. Entscheidung Michael
+2026-11-01. Der Vollbon behält den Filialkopf unverändert: Er ist dort
+Pflichtangabe des Kundenbelegs, und `receiptVariantForRole` bleibt die einzige
+Stelle des Bestands-Defaults.
+
+Entscheidung 2 gilt damit **ab „Bestellnummer"**: Von dort an sind beide
+Varianten byte-gleich, davor steht der jeweilige Kopf. Der Varianten-Test
+vergleicht entsprechend den Strom ab „Bestellnummer", statt gestrichen zu werden.
+Layout und Font-Sequenz: [Print-Server-API §11](../integrations/print-server-api.md).
 
 ## Status
 

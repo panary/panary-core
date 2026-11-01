@@ -1,4 +1,5 @@
 import {
+  amountPrefix,
   computeOrderTax,
   effectiveLineItems,
   fromCents,
@@ -20,9 +21,11 @@ const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
 /**
  * Welche Bon-Variante gedruckt wird (#347).
  *
- * `kitchen` laesst **nur** Filialkopf und TSE-Block weg — Positionen, Nachlaesse
- * und Gesamtsumme sind in beiden Varianten byte-gleich. Die Kueche soll sehen,
- * was der Gast zahlt; der Unterschied ist der Belegcharakter, nicht der Inhalt.
+ * `kitchen` ersetzt den Filialkopf durch die Systemzeile „Panary-Bestellsystem"
+ * (#1257) und laesst den TSE-Block weg — ab „Bestellnummer" sind Positionen,
+ * Nachlaesse und Gesamtsumme in beiden Varianten byte-gleich. Die Kueche soll
+ * sehen, was der Gast zahlt; der Unterschied ist der Belegcharakter, nicht der
+ * Inhalt.
  *
  * Bewusst zwei Varianten und kein zweiter Renderer: Eine zweite Vorlage waere
  * eine Layout-Dopplung, die beim naechsten Positions-Umbau zur Haelfte
@@ -85,8 +88,9 @@ export function renderOrderReceipt(
   // einem Kundenbeleg Pflichtangabe (§146a AO, ADR 0007). Zwischen #342 und #347
   // fehlten sie auf JEDEM Ausdruck, weil eine Vorlage beide Zwecke bediente —
   // erst #346 (Render je Zieldrucker) und die Druckerrolle machen die
-  // Fallunterscheidung möglich. Auf dem Küchenbon bleibt der Kopf weg: dort ist
-  // die eigene Adresse sinnlos und kostet nur Papier.
+  // Fallunterscheidung möglich. Auf dem Küchenbon steht statt der Adresse nur
+  // die kleine Systemzeile „Panary-Bestellsystem" (#1257): dort ist die eigene
+  // Adresse sinnlos und kostet nur Papier.
   //
   // Nicht der alte Block von vor #342 — der stellte die Polsterung vor die
   // Font-Umschaltung und druckte die Straßenzeile 51 Dots zu weit rechts.
@@ -98,9 +102,11 @@ export function renderOrderReceipt(
   enc.align('center').line('Bestellnummer')
   enc.align('center').bold(true).size(4, 4).line(`${order.dailySequenceNumber}`).size(1, 1).bold(false)
 
-  // Bestellart als Badge (invertiert: weiß auf schwarz)
+  // Bestellart — gross, aber nicht mehr invertiert (#1257): Der schwarze Balken
+  // zog mehr Blick als die Bestellnummer. Invertiert bleiben nur die Sonderfaelle
+  // Personalessen, Firmenkunde und STORNIERT, die auffallen sollen.
   const dineLabel = order.dineLocation === 'dine-in' ? 'INNEN' : 'AUSSEN'
-  enc.align('center').size(2, 2).invert(true).text(dineLabel).invert(false).size(1, 1)
+  enc.align('center').size(2, 2).text(dineLabel).size(1, 1)
   enc.newline()
 
   // Abholzeit direkt unter dem Badge — das ist die Angabe, die die Küche braucht,
@@ -130,15 +136,16 @@ export function renderOrderReceipt(
   enc.newline()
   enc.rule({ style: 'single' })
 
-  enc.font('B')
-  if (deviceName) enc.line(`Kasse: ${deviceName}`)
-  enc.line(`Datum: ${formatPrintDate(creationDate, timeZone)}`)
   // „Bestellzeit" statt „Uhrzeit": Seit #342 trägt der Bon ZWEI Zeitangaben —
   // die Abholzeit gross unter dem Badge und hier den Registrierungszeitpunkt als
   // Beleg-Metadatum. Ein unspezifisches „Uhrzeit" waere zwischen beiden nicht
   // unterscheidbar.
-  enc.line(`Bestellzeit: ${formatPrintTime(creationDate, timeZone)} Uhr`)
-  enc.font('A')
+  const meta = [
+    ...(deviceName ? [`Kasse: ${deviceName}`] : []),
+    `Datum: ${formatPrintDate(creationDate, timeZone)}`,
+    `Bestellzeit: ${formatPrintTime(creationDate, timeZone)} Uhr`,
+  ]
+  appendMetaLine(enc, meta, cols)
 
   // Personalessen / Firmenkunde / Storno — hervorgehoben
   const hasExtra = order.staffPaymentInfo || order.customerPaymentInfo || order.cancellation
@@ -243,23 +250,17 @@ export function renderOrderReceipt(
   const totalPrice = calcTotalWithDiscount(order)
   appendDiscountLines(enc, order, nameW, priceW)
 
-  const totalLabel = 'Gesamt'
+  // In Positionsgroesse (#1257): fett, einfach breit und hoch. Die doppelte Summe
+  // stand groesser als die Positionen, die die Kueche eigentlich lesen muss.
   const totalText = fmtEur(totalPrice)
-  const totalW = totalWidth(totalLabel, totalText, cols)
-  const totalPriceW = totalText.length * totalW
   enc.newline()
   enc.rule({ style: 'single' })
   enc.table(
     [
-      { width: cols - totalPriceW, align: 'left' },
-      { width: totalPriceW, align: 'right' },
+      { width: cols - totalText.length, align: 'left' },
+      { width: totalText.length, align: 'right' },
     ],
-    [
-      [
-        (e: any) => e.bold(true).size(totalW, 2).text(totalLabel).size(1, 1).bold(false),
-        (e: any) => e.bold(true).size(totalW, 2).text(totalText).size(1, 1).bold(false),
-      ],
-    ],
+    [[(e: any) => e.bold(true).text('Gesamt').bold(false), (e: any) => e.bold(true).text(totalText).bold(false)]],
   )
   enc.rule({ style: 'single' })
 
@@ -280,16 +281,18 @@ export function renderOrderReceipt(
 }
 
 // Filialkopf des Vollbons: Name, Anschrift, Telefon — zentriert, klein gesetzt.
-// No-Op ausser dem fuehrenden Umbruch, wenn die Variante `kitchen` ist.
+// Der Kuechenbon bekommt stattdessen `appendKitchenHeader`.
 //
-// Der fuehrende `newline()` ist Pflicht, nicht Kosmetik, und steht deshalb VOR
-// der Variantenpruefung: Ohne ihn stellt der Composer die Zentrier-Polsterung der
-// ersten Zeile VOR das `ESC @` aus `initialize()` — die Leerzeichen liefen dann
-// noch im Zustand des vorangegangenen Druckauftrags. Der Kuechenbon beginnt
-// dadurch unveraendert mit genau einer Leerzeile vor „Bestellnummer".
+// Der fuehrende `newline()` ist Pflicht, nicht Kosmetik: Ohne ihn stellt der
+// Composer die Zentrier-Polsterung der ersten Zeile VOR das `ESC @` aus
+// `initialize()` — die Leerzeichen liefen dann noch im Zustand des
+// vorangegangenen Druckauftrags.
 function appendLocationHeader(enc: any, location: any, variant: ReceiptVariant): void {
+  if (variant === 'kitchen') {
+    appendKitchenHeader(enc)
+    return
+  }
   enc.newline()
-  if (variant !== 'full') return
 
   const name = typeof location?.name === 'string' ? location.name.trim() : ''
   const zeilen = headerDetailLines(location)
@@ -319,6 +322,64 @@ function appendLocationHeader(enc: any, location: any, variant: ReceiptVariant):
 
   enc.align('left')
   enc.newline()
+}
+
+const KITCHEN_HEADER = 'Panary-Bestellsystem'
+
+// Kopf des Kuechenbons (#1257): eine kleine, zentrierte Systemzeile in Font B.
+//
+// Beide Font-Wechsel brauchen eine eigene Zeile (Falle siehe oben). Der Wechsel
+// auf B sitzt deshalb in der fuehrenden Leerzeile, die ohnehin `initialize()`
+// abschliesst, und der Rueckwechsel auf A in der Leerzeile vor „Bestellnummer".
+// Ohne die zweite rechnete der Composer die Polsterung von „Bestellnummer" in
+// Font-A-Spalten, gedruckt wuerde sie aber noch in 9-Dot-Zellen — die Zeile
+// saesse links der Mitte.
+function appendKitchenHeader(enc: any): void {
+  enc.font('B').newline()
+  enc.align('center').line(KITCHEN_HEADER)
+  enc.font('A').align('left').newline()
+}
+
+// Kasse, Datum und Bestellzeit in EINER Zeile, links/Mitte/rechts (#1257).
+//
+// Font B wird VOR der Tabelle gesetzt — `font()` wirft in Tabellenzellen. Die
+// Spaltenzahl ist dann die des Font-B-Composers: `cols / 42 * 56`, also 64 auf
+// 80 mm und abgerundet 42 auf 58 mm. Linke und rechte Spalte sind gleich breit,
+// sonst saesse die Mitte nicht in der Papiermitte. Passt die Zeile nicht, fallen
+// die Angaben auf je eine Zeile zurueck wie vor #1257 — auf 58 mm ist das mit
+// Kassenname der Regelfall.
+function appendMetaLine(enc: any, meta: string[], cols: number): void {
+  const fontBCols = Math.floor((cols / 42) * 56)
+  enc.font('B')
+  const first = meta[0]
+  const last = meta[meta.length - 1]
+  if (meta.length === 2 && first.length + 1 + last.length <= fontBCols) {
+    enc.table(
+      [
+        { width: fontBCols - last.length, align: 'left' },
+        { width: last.length, align: 'right' },
+      ],
+      [[first, last]],
+    )
+  } else if (meta.length === 3) {
+    const w = Math.max(first.length, last.length)
+    const middle = fontBCols - 2 * w
+    if (middle >= meta[1].length + 2) {
+      enc.table(
+        [
+          { width: w, align: 'left' },
+          { width: middle, align: 'center' },
+          { width: w, align: 'right' },
+        ],
+        [meta],
+      )
+    } else {
+      for (const zeile of meta) enc.line(zeile)
+    }
+  } else {
+    for (const zeile of meta) enc.line(zeile)
+  }
+  enc.font('A')
 }
 
 // Anschrift und Telefon als druckfertige Zeilen. Leere Bestandteile fallen weg,
@@ -423,17 +484,6 @@ function pickupWidth(label: string, cols: number): number {
   return label.length * 3 <= cols ? 3 : 2
 }
 
-// Zeichenbreite der Gesamtzeile — dasselbe Prinzip wie `pickupWidth`
-// (panary/panary-core#758). Das feste Spaltenverhaeltnis 55/45 liess auf 58 mm
-// (32 Spalten) nur 14 Zellen = 7 doppelt breite Zeichen fuer den Betrag, und
-// `x,xx EUR` hat schon 8: Jeder Betrag brach in „35,91" / „EUR" um. Jetzt
-// bekommt der Betrag genau seine Textbreite, und erst wenn Bezeichnung und
-// Betrag doppelt breit nicht mehr nebeneinander passen, wird die Breite
-// einfach. Die doppelte Hoehe bleibt — sie macht die Summe lesbar.
-function totalWidth(label: string, amount: string, cols: number): number {
-  return (label.length + amount.length) * 2 <= cols ? 2 : 1
-}
-
 // ─── Artikel-Rendering mit voller Encoder-Kontrolle ───
 
 function appendArticle(
@@ -446,7 +496,7 @@ function appendArticle(
   sideDishPrice: number,
 ): void {
   const prefix = namePrefix(article)
-  const name = `${article.amount}x ${prefix}${article.name}`
+  const name = `${amountPrefix(article.amount)}${prefix}${article.name}`
 
   // Hauptartikel — Produkt fett, Preis fett, in einer Tabellenzeile
   const price = calcArticlePrice(article)
@@ -554,16 +604,17 @@ function appendModifierLines(
       // Betrag aus der Engine (`modifierLineGrossCents`, #698): Gilt der Modifier je Stück
       // (`modifierScope: 'unit'` oder Komponenten-Zeile), ist es der Gesamtaufpreis der Zeile,
       // und die Mengenangabe trägt „je" — „2x Burger / je 1x Käse 2,00". Sonst rechnete sich
-      // der Bon nicht gegen die Positionssumme auf.
+      // der Bon nicht gegen die Positionssumme auf. Mit „je" bleibt auch `1x` stehen (#1257):
+      // „je Käse 2,00" läse sich wie ein Stückpreis.
       const modCents = modifierLineGrossCents(article, mod)
       const modPrice = !isFixed && modCents !== 0 ? fmtEur(fromCents(modCents)) : ''
-      const perUnit = mod.amount > 0 && modifiersCountPerUnit(article) ? 'je ' : ''
+      const perUnit = mod.amount > 0 && modifiersCountPerUnit(article)
       enc.table(
         [
           { width: subNameW - extraIndent, marginLeft: 4 + extraIndent, align: 'left' },
           { width: priceW, align: 'right' },
         ],
-        [[`${perUnit}${amount}x ${modName}`, modPrice]],
+        [[`${perUnit ? `je ${amount}x ` : amountPrefix(amount)}${modName}`, modPrice]],
       )
     }
     enc.font('A')

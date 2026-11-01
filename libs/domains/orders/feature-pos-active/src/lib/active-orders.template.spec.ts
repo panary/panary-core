@@ -181,3 +181,23 @@ describe('Offene Bestellungen — Karte je Abrechnungskreis (core#1141)', () => 
     expect(circle).toMatch(/@if \(entry\.totalFormatted; as total\)/)
   })
 })
+
+// core#1257: Die Menge steht erst ab 2 da, wie im Bestelldialog (#795) und auf dem Bon. Die Mengenzelle bleibt
+// stehen, sonst rückt der Name im dreispaltigen Raster in die Mengenspalte.
+describe('Offene Bestellungen — Menge erst ab 2 (core#1257)', () => {
+  const template = read('./active-orders.component.html')
+  const raster = template
+    .split('data-testid="line-grid"')
+    .slice(1)
+    .map(teil => teil.slice(0, teil.indexOf('line.lineTotalFormatted')))
+
+  it('jede Position blendet die Menge 1 innerhalb der Mengenzelle aus', () => {
+    expect(raster).toHaveLength(2)
+    for (const teil of raster) {
+      expect(teil.replace(/\s+/g, ' ')).toMatch(
+        /<span class="font-bold[^"]*"> @if \(item\.amount > 1\) \{ \{\{ item\.amount \}\}x \} <\/span> <span class="text-ink/,
+      )
+    }
+    expect(template).not.toMatch(/<span class="font-bold[^"]*">\{\{ item\.amount \}\}x<\/span>/)
+  })
+})

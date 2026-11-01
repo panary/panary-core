@@ -408,7 +408,6 @@
     "FINALIZE": "Abschließen",
     "FINALIZE_INVALID_ORDER": "Bestellung hat keine gültige ID. Abschluss nicht möglich.",
     "FINALIZE_NO_USER": "Kein Benutzer angemeldet. Bitte erneut anmelden, um zu kassieren.",
-    "CANCELED": "STORNIERT",
     "STAFF_MEAL": "Personalessen",
     "STAFF_MEAL_DISCOUNT_NOTE": "Rabattiert · Betrag beim Abschluss",
     "CANCEL": "Storno",

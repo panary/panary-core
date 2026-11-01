@@ -408,7 +408,6 @@
     "FINALIZE": "Finalize",
     "FINALIZE_INVALID_ORDER": "Order has no valid ID. Cannot finalize.",
     "FINALIZE_NO_USER": "No user logged in. Please sign in again to take payment.",
-    "CANCELED": "CANCELED",
     "STAFF_MEAL": "Staff meal",
     "STAFF_MEAL_DISCOUNT_NOTE": "Discounted · Amount shown at checkout",
     "CANCEL": "Cancel",

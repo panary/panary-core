@@ -26,7 +26,6 @@ import {
   Order,
   OrderLineItem,
   OrderService,
-  OrderStatus,
 } from '@panary/orders/data-access'
 import {
   PrintDialogComponent,
@@ -224,7 +223,6 @@ export class ActiveOrdersComponent {
   })
 
   orders = this.sortedOrders
-  protected readonly OrderStatus = OrderStatus
   protected readonly isSyntheticSettlementScope = isSyntheticSettlementScope
 
   zoomLevel: WritableSignal<number> = signal(readStoredZoom())

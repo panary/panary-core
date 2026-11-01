@@ -33,27 +33,6 @@
   }
 }
 
-/* Rubber Stamp Effect */
-.stamp-canceled {
-  @apply border-8 border-red-700 text-red-700 font-black uppercase tracking-widest px-8 py-4 rounded-xl opacity-90;
-  font-size: 3rem;
-  /* Much larger */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(-15deg);
-  z-index: 50;
-  /* Ensure it is on top */
-  /* Simulate ink texture/grunge */
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='200' height='100' viewBox='0 0 200 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg width='200' height='100' viewBox='0 0 200 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
-  -webkit-mask-mode: alpha;
-  mask-mode: alpha;
-  pointer-events: none;
-  mix-blend-mode: multiply;
-  text-shadow: 0 0 2px rgba(185, 28, 28, 0.2);
-}
-
 /* Scroll-Indikator-Pille */
 .scroll-pill {
   display: inline-flex;

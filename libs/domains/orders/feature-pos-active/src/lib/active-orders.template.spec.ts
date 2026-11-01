@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { isOrderOpen, OrderStatus } from '@panary/orders/domain'
 
 // core#807: Unter „Offene Bestellungen" stand unter einem Festpreis-Menü der volle Listenpreis des
 // Getränks, und Menüs in einer Kombination zeigten Beilage und Getränk gar nicht.
@@ -199,5 +200,27 @@ describe('Offene Bestellungen — Menge erst ab 2 (core#1257)', () => {
       )
     }
     expect(template).not.toMatch(/<span class="font-bold[^"]*">\{\{ item\.amount \}\}x<\/span>/)
+  })
+})
+
+// core#1264: Der Stempel „storniert" hing an `production` („Küche in Bearbeitung"). Ein echter Storno
+// (`aborted`) erscheint hier nie, `ordersActive` filtert ihn über `isOrderOpen` heraus — der Stempel
+// hatte also keinen richtigen Anlass und ist entfernt.
+describe('Offene Bestellungen — kein Storno-Stempel für production (core#1264)', () => {
+  const template = read('./active-orders.component.html')
+  const styles = read('./active-orders.component.scss')
+  const component = read('./active-orders.component.ts')
+
+  it('rendert keinen Storno-Stempel und keine Statusbedingung auf production', () => {
+    expect(template).not.toContain('stamp-canceled')
+    expect(template).not.toContain('ACTIVE_ORDERS.CANCELED')
+    expect(template).not.toContain('OrderStatus.PRODUCTION')
+    expect(styles).not.toContain('.stamp-canceled')
+  })
+
+  it('die Liste bleibt auf offene Bestellungen beschränkt, aborted gehört nicht dazu', () => {
+    expect(component).toContain('this.#orderService.ordersActive()')
+    expect(isOrderOpen(OrderStatus.PRODUCTION)).toBe(true)
+    expect(isOrderOpen(OrderStatus.ABORTED)).toBe(false)
   })
 })

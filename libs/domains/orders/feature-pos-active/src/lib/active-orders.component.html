@@ -340,11 +340,6 @@
                   </div>
                 }
 
-                <!-- CANCELED Badge (Rubber Stamp) -->
-                @if (order.status === OrderStatus.PRODUCTION) {
-                  <div class="stamp-canceled">{{ 'ACTIVE_ORDERS.CANCELED' | translate }}</div>
-                }
-
                 <!-- Bon-Inhalt: dieselbe Grid-Zelle wie das Overlay, inneres Scrollen über `min-h-0` -->
                 <div class="row-start-1 col-start-1 min-h-0 flex flex-col overflow-hidden" data-testid="order-receipt">
                   <!-- ── Fester Bereich: Badges + Header + obere Tearline (scrollt nie) ── -->

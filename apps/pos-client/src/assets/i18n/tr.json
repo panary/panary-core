@@ -408,7 +408,6 @@
     "FINALIZE": "Tamamla",
     "FINALIZE_INVALID_ORDER": "Siparişin geçerli bir kimliği yok. Tamamlanamıyor.",
     "FINALIZE_NO_USER": "Oturum açılmamış. Ödeme almak için lütfen tekrar giriş yapın.",
-    "CANCELED": "İPTAL EDİLDİ",
     "STAFF_MEAL": "Personel yemeği",
     "STAFF_MEAL_DISCOUNT_NOTE": "İndirimli · Tutar kapanışta",
     "CANCEL": "İptal",

@@ -117,6 +117,8 @@ describe('touchesDeviceAssignment', () => {
     [{ deviceAccessMode: 'shared' }, true],
     [{ assignedUserIds: [] }, true],
     [{ deviceAccessMode: undefined }, true],
+    [[], true],
+    [[{ deviceAccessMode: 'shared' }], true],
   ])('%o → %s', (data, expected) => {
     expect(touchesDeviceAssignment(data)).toBe(expected)
   })
@@ -124,6 +126,13 @@ describe('touchesDeviceAssignment', () => {
 
 describe('checkDeviceAssignmentWrite', () => {
   const admin = { role: 'tenant:owner' }
+
+  it('Array-Body → Rollen-Gate greift (Nicht-Berechtigte FORBIDDEN_ROLE, Berechtigte/intern erlaubt)', () => {
+    expect(checkDeviceAssignmentWrite({ role: 'device:pos-client' }, [])?.reason).toBe('FORBIDDEN_ROLE')
+    expect(checkDeviceAssignmentWrite(undefined, [{ deviceAccessMode: 'shared' }])?.reason).toBe('FORBIDDEN_ROLE')
+    expect(checkDeviceAssignmentWrite(admin, [])).toBeNull()
+    expect(checkDeviceAssignmentWrite({ internal: true }, [])).toBeNull()
+  })
 
   it('Body ohne Zuweisungs-Felder → immer erlaubt (auch fuer POS-Geraet)', () => {
     expect(checkDeviceAssignmentWrite({ role: 'device:pos-client' }, { uiScale: { density: 'large' } })).toBeNull()

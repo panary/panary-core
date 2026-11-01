@@ -93,4 +93,13 @@ describe('touchesDeviceOrderChannel', () => {
     expect(touchesDeviceOrderChannel({})).toBe(false)
     expect(touchesDeviceOrderChannel('x')).toBe(false)
   })
+
+  it('Array-Body zählt als berührt (kein Umweg um das Rollen-Gate)', () => {
+    expect(touchesDeviceOrderChannel([])).toBe(true)
+    expect(touchesDeviceOrderChannel([{ defaultOrderChannel: 'pos' }])).toBe(true)
+    expect(checkDeviceOrderChannelWrite({ role: 'tenant:technician' }, [])?.reason).toBe('FORBIDDEN_ROLE')
+    expect(checkDeviceOrderChannelWrite(undefined, [])?.reason).toBe('FORBIDDEN_ROLE')
+    expect(checkDeviceOrderChannelWrite({ role: 'tenant:owner' }, [])).toBeNull()
+    expect(checkDeviceOrderChannelWrite({ internal: true }, [])).toBeNull()
+  })
 })

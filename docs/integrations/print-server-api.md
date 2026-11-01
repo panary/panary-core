@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker, die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet, und der Zeichensatz je Drucker samt Transliteration typografischer Zeichen.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker, die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet, der Zeichensatz je Drucker samt Transliteration typografischer Zeichen und die abschaltbare Währungsangabe auf dem Bestellbon.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -994,3 +994,50 @@ zeigt erst das Papier: Die Tests messen den Bytestrom.
 
 ⚠️ **Nur der IP-Pfad wertet das Feld aus.** MQTT-Drucker bekommen ihre Nutzlast
 vom POS-Client; dort rendert das Backend nicht.
+
+---
+
+## 15. Währung auf dem Bestellbon abschaltbar
+
+Seit [panary/panary-core#1258](https://github.com/panary/panary-core/issues/1258)
+entscheidet `location.settings.receiptSettings.showCurrency`, ob hinter den
+Beträgen des Bestellbons `EUR` steht. Gepflegt wird es in panary-cloud unter den
+Bon-Einstellungen ([cloud#1654](https://github.com/panary/panary-cloud/issues/1654)).
+
+| `showCurrency` | Ausgabe |
+|---|---|
+| fehlt | `12,30 EUR` — wie vor #1258 |
+| `true` | `12,30 EUR` (byte-identisch zum fehlenden Feld) |
+| `false` | `12,30` |
+
+Der Schalter gilt an **jeder** Betragsstelle und in beiden Varianten (§13):
+Positionen, Menü-Aufpreise, Modifier, Kombinationssumme, Nachlass und „Gesamt".
+Formatiert wird über eine Funktion (`fmtAmount`); der Wert wird einmal in
+`renderOrderReceipt` gelesen und durchgereicht.
+
+🚨 **Der Bestands-Default sitzt allein im Renderer:**
+`settings?.receiptSettings?.showCurrency !== false`. Eine Prüfung auf Truthiness
+nähme jeder Bestandsfiliale beim Update still die Währung, denn keine trägt das
+Feld. Das Schema hat bewusst **kein** `default` — es wäre ohnehin nur
+dokumentierend, weil der `dataValidator` ohne `useDefaults` läuft (dieselbe Lage
+wie bei der Druckerrolle, §13).
+
+Die **Trennlinie über der Kombinationssumme** folgt der Betragsbreite
+(`'-'.repeat(betrag.length)`), rechtsbündig über dem Betrag. Vorher stand dort
+fest `--------`, acht Zeichen wie `x,xx EUR`. Mit `EUR` ist die Linie bei
+Summen ab 10,00 seit #1258 deshalb länger als vorher, bei einstelligen gleich.
+
+**Kein Sync-Umbau:** Die Edge speichert `settings` als ganze JSON-Spalte
+(`LOCATION_JSON_FIELDS` in `services/locations/locations.ts`), `receiptSettings`
+hat kein `additionalProperties: false`. Das Feld reist mit dem bestehenden
+Cloud→Edge-Sync.
+
+⚠️ Bis cloud#1654 gemergt ist, baut die cloud-Seite „Belege" `receiptSettings`
+beim Speichern aus festen Feldern neu auf. Ein per API gesetztes `false` geht dann
+still verloren, und der Bon druckt wieder `EUR` — die sichere Richtung.
+
+Nicht betroffen ist der fiskalische Beleg (`receipt-escpos.renderer.ts`, Währung
+aus `receipt.currency`); er wird vom Edge nicht aufgerufen
+([ADR 0007](../adr/0007-beleg-bon-system.md)). Und wie überall in diesem Dokument
+gilt: **Nur der IP-Pfad** rendert serverseitig, MQTT-Drucker bekommen ihre
+Nutzlast vom POS-Client und sehen den Schalter nicht.

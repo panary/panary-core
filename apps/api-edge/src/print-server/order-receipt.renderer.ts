@@ -77,6 +77,9 @@ export function renderOrderReceipt(
   const timeZone = printTimeZoneForLocation(location)
   const drinkPrice = settings?.genericProductSettings?.generalDrinkPrice ?? 0
   const sideDishPrice = settings?.genericProductSettings?.generalSideDishPrice ?? 0
+  // 🚨 `!== false`, nicht Truthiness (#1258): Bestandsfilialen tragen das Feld nicht
+  // und muessen weiter `EUR` drucken. Der Default „an" sitzt nur hier.
+  const showCurrency = settings?.receiptSettings?.showCurrency !== false
 
   const enc = createEscposEncoder(cols, encoding)
   enc.initialize()
@@ -202,18 +205,19 @@ export function renderOrderReceipt(
     enc.rule({ style: 'single' })
 
     for (const article of combo) {
-      appendArticle(enc, article, nameW, priceW, subNameW, drinkPrice, sideDishPrice)
+      appendArticle(enc, article, nameW, priceW, subNameW, drinkPrice, sideDishPrice, showCurrency)
     }
 
-    const comboPrice = calcComboPrice(combo)
+    // Die Trennlinie folgt der Betragsbreite — mit und ohne `EUR` (#1258).
+    const comboText = fmtAmount(calcComboPrice(combo), showCurrency)
     enc.table(
       [
         { width: nameW, align: 'left' },
         { width: priceW, align: 'right' },
       ],
       [
-        ['', '--------'],
-        ['', (e: any) => e.bold(true).text(fmtEur(comboPrice)).bold(false)],
+        ['', '-'.repeat(comboText.length)],
+        ['', (e: any) => e.bold(true).text(comboText).bold(false)],
       ],
     )
   }
@@ -237,7 +241,7 @@ export function renderOrderReceipt(
         .bold(false)
       enc.rule({ style: 'single' })
     }
-    appendArticle(enc, article, nameW, priceW, subNameW, drinkPrice, sideDishPrice)
+    appendArticle(enc, article, nameW, priceW, subNameW, drinkPrice, sideDishPrice, showCurrency)
   }
 
   // ─────────────────────────────────────────
@@ -248,11 +252,11 @@ export function renderOrderReceipt(
   // schreibt. So drucken Nachlasszeile und „Gesamt" garantiert aus demselben Lauf —
   // auch bei einer Order, deren persistierte Beträge noch fehlen.
   const totalPrice = calcTotalWithDiscount(order)
-  appendDiscountLines(enc, order, nameW, priceW)
+  appendDiscountLines(enc, order, nameW, priceW, showCurrency)
 
   // In Positionsgroesse (#1257): fett, einfach breit und hoch. Die doppelte Summe
   // stand groesser als die Positionen, die die Kueche eigentlich lesen muss.
-  const totalText = fmtEur(totalPrice)
+  const totalText = fmtAmount(totalPrice, showCurrency)
   enc.newline()
   enc.rule({ style: 'single' })
   enc.table(
@@ -411,7 +415,7 @@ function headerDetailLines(location: any): string[] {
 // Wert — nicht aus `valuePercent`/`valueCents`: Die Definition überzeichnet den
 // Abzug, sobald die Engine klemmt (z. B. Deckelung auf die Positionssumme), und
 // der Bon rechnete sich dann nicht mehr gegen sein eigenes „Gesamt" auf.
-function appendDiscountLines(enc: any, order: any, nameW: number, priceW: number): void {
+function appendDiscountLines(enc: any, order: any, nameW: number, priceW: number, showCurrency: boolean): void {
   for (const d of order?.appliedDiscounts ?? []) {
     const cents = Math.max(0, Math.round(d?.computedAmountCents ?? 0))
     // Wirkungslose Einträge unterdrücken — eine Zeile über 0,00 EUR erklärt keine Differenz.
@@ -422,7 +426,7 @@ function appendDiscountLines(enc: any, order: any, nameW: number, priceW: number
         { width: nameW, align: 'left' },
         { width: priceW, align: 'right' },
       ],
-      [[`Nachlass: ${name}`, fmtEur(-fromCents(cents))]],
+      [[`Nachlass: ${name}`, fmtAmount(-fromCents(cents), showCurrency)]],
     )
   }
 }
@@ -494,6 +498,7 @@ function appendArticle(
   subNameW: number,
   drinkPrice: number,
   sideDishPrice: number,
+  showCurrency: boolean,
 ): void {
   const prefix = namePrefix(article)
   const name = `${amountPrefix(article.amount)}${prefix}${article.name}`
@@ -506,7 +511,12 @@ function appendArticle(
       { width: nameW, align: 'left' },
       { width: priceW, align: 'right' },
     ],
-    [[(e: any) => e.bold(true).text(name).bold(false), (e: any) => e.bold(true).text(fmtEur(price)).bold(false)]],
+    [
+      [
+        (e: any) => e.bold(true).text(name).bold(false),
+        (e: any) => e.bold(true).text(fmtAmount(price, showCurrency)).bold(false),
+      ],
+    ],
   )
 
   // FIXED_PROPORTIONAL: Komponenten sind im Festpreis enthalten → keine Aufschläge
@@ -517,14 +527,41 @@ function appendArticle(
   // gleich. `components[]` druckt der Bon nicht, deren Modifier bleiben deshalb am Hauptartikel.
   const groups = groupModifiersByComponent(article, { components: false })
   if (article.isMenu && hasComponentModifiers(groups)) {
-    appendModifierLines(enc, article, groups.main, isFixed, subNameW, priceW)
+    appendModifierLines(enc, article, groups.main, isFixed, subNameW, priceW, showCurrency)
     if (article.menuSideDish) {
-      appendMenuComponentLine(enc, article, article.menuSideDish, sideDishPrice, isFixed, subNameW, priceW)
-      appendModifierLines(enc, article, groups.sideDish, isFixed, subNameW, priceW, COMPONENT_MODIFIER_INDENT)
+      appendMenuComponentLine(
+        enc,
+        article,
+        article.menuSideDish,
+        sideDishPrice,
+        isFixed,
+        subNameW,
+        priceW,
+        showCurrency,
+      )
+      appendModifierLines(
+        enc,
+        article,
+        groups.sideDish,
+        isFixed,
+        subNameW,
+        priceW,
+        showCurrency,
+        COMPONENT_MODIFIER_INDENT,
+      )
     }
     if (article.menuDrink) {
-      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, subNameW, priceW)
-      appendModifierLines(enc, article, groups.drink, isFixed, subNameW, priceW, COMPONENT_MODIFIER_INDENT)
+      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, subNameW, priceW, showCurrency)
+      appendModifierLines(
+        enc,
+        article,
+        groups.drink,
+        isFixed,
+        subNameW,
+        priceW,
+        showCurrency,
+        COMPONENT_MODIFIER_INDENT,
+      )
     }
     return
   }
@@ -533,16 +570,25 @@ function appendArticle(
   // Menü-Beilage & Getränk — Font B, eingerückt
   if (article.isMenu) {
     if (article.menuSideDish) {
-      appendMenuComponentLine(enc, article, article.menuSideDish, sideDishPrice, isFixed, subNameW, priceW)
+      appendMenuComponentLine(
+        enc,
+        article,
+        article.menuSideDish,
+        sideDishPrice,
+        isFixed,
+        subNameW,
+        priceW,
+        showCurrency,
+      )
     }
     if (article.menuDrink) {
-      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, subNameW, priceW)
+      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, subNameW, priceW, showCurrency)
     }
   }
 
   // Modifiers — Font B, eingerückt. Bei FIXED sind Menü-Bestandteile inklusive →
   // kein Einzelpreis (der Festpreis steht oben).
-  appendModifierLines(enc, article, article.modifiers ?? [], isFixed, subNameW, priceW)
+  appendModifierLines(enc, article, article.modifiers ?? [], isFixed, subNameW, priceW, showCurrency)
 }
 
 // Zusätzliche Einrückung der Modifier unter einer Menü-Komponente (#1127). Die Namensspalte wird um denselben
@@ -563,6 +609,7 @@ function appendMenuComponentLine(
   isFixed: boolean,
   subNameW: number,
   priceW: number,
+  showCurrency: boolean,
 ): void {
   const perUnitCents = isFixed ? 0 : Math.max(0, toCents(component.price ?? 0) - toCents(generalPrice))
   const units = (component.amount ?? 1) * (article.amount ?? 1)
@@ -573,7 +620,7 @@ function appendMenuComponentLine(
       { width: subNameW, marginLeft: 4, align: 'left' },
       { width: priceW, align: 'right' },
     ],
-    [[`+ ${component.name}`, extraCents > 0 ? fmtEur(fromCents(extraCents)) : '']],
+    [[`+ ${component.name}`, extraCents > 0 ? fmtAmount(fromCents(extraCents), showCurrency) : '']],
   )
   enc.font('A')
 }
@@ -585,6 +632,7 @@ function appendModifierLines(
   isFixed: boolean,
   subNameW: number,
   priceW: number,
+  showCurrency: boolean,
   extraIndent = 0,
 ): void {
   if (modifiers.length > 0) {
@@ -607,7 +655,7 @@ function appendModifierLines(
       // der Bon nicht gegen die Positionssumme auf. Mit „je" bleibt auch `1x` stehen (#1257):
       // „je Käse 2,00" läse sich wie ein Stückpreis.
       const modCents = modifierLineGrossCents(article, mod)
-      const modPrice = !isFixed && modCents !== 0 ? fmtEur(fromCents(modCents)) : ''
+      const modPrice = !isFixed && modCents !== 0 ? fmtAmount(fromCents(modCents), showCurrency) : ''
       const perUnit = mod.amount > 0 && modifiersCountPerUnit(article)
       enc.table(
         [
@@ -629,8 +677,9 @@ function namePrefix(article: any): string {
   return a && i ? `(${a} ${i}) ` : ''
 }
 
-function fmtEur(price: number): string {
-  return `${price.toFixed(2).replace('.', ',')} EUR`
+function fmtAmount(price: number, showCurrency: boolean): string {
+  const amount = price.toFixed(2).replace('.', ',')
+  return showCurrency ? `${amount} EUR` : amount
 }
 
 function round(v: number): number {

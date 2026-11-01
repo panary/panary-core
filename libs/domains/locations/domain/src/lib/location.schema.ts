@@ -295,6 +295,10 @@ export const settingsSchema = Type.Object({
       retentionDays: Type.Optional(Type.Integer({ minimum: 0 })),
       tseEnabled: Type.Optional(Type.Boolean()),
       printTarget: Type.Optional(Type.String({ maxLength: 120 })),
+      // Währung „EUR" hinter jedem Betrag des Bestellbons (#1258). Bewusst ohne
+      // `default`: Der Bestands-Default „an" sitzt allein im Edge-Renderer
+      // (`showCurrency !== false`), ein fehlendes Feld druckt also weiter `EUR`.
+      showCurrency: Type.Optional(Type.Boolean()),
       // Reform-Readiness-Flags (ADR §9 / Phase 5) — config-getrieben, KEINE
       // hartkodierten Fristen/Schwellen. „digitale Belegpflicht ab 2029" wird so
       // eine reine Aktivierung ohne Datenmodell-Umbau. Enforcement folgt in der

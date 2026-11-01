@@ -118,7 +118,7 @@ jobs:
       # Nur main schreibt den Cache: Ein PR-Eintrag waere nur fuer denselben PR
       # lesbar und belegte das 10-GB-Kontingent.
       - name: Rust Cache
-        uses: swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
+        uses: swatinem/rust-cache@c8037a86dde8214a8310e9f54a8fc61ab362aa31 # v2
         with:
           workspaces: apps/pos-client/src-tauri -> target
           save-if: ${{ github.event_name == 'push' }}
@@ -185,7 +185,7 @@ jobs:
           targets: x86_64-pc-windows-msvc
 
       - name: Rust Cache
-        uses: swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
+        uses: swatinem/rust-cache@c8037a86dde8214a8310e9f54a8fc61ab362aa31 # v2
         with:
           workspaces: apps/pos-client/src-tauri -> target
           save-if: ${{ github.event_name == 'push' }}

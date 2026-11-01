@@ -6,7 +6,7 @@ import { computed, Injector, runInInjectionContext, signal } from '@angular/core
 import { Router } from '@angular/router'
 import { PosSessionService, type PosLogoutReason } from '@panary/auth/data-access'
 import { TranslateService } from '@ngx-translate/core'
-import { DeviceAssignmentService } from '@panary/devices/data-access'
+import { DeviceAssignmentService, DeviceOrderChannelService } from '@panary/devices/data-access'
 import { DeviceAccessMode, type DeviceAccessModeValue } from '@panary/devices/domain'
 import { ConnectionService, LanguageService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
@@ -80,6 +80,7 @@ function setup(options: SetupOptions = {}) {
   } = options
 
   const assignment = fakeAssignment(mode, assignedUserIds)
+  const orderChannel = { refresh: vi.fn().mockResolvedValue(undefined) }
   const find = vi.fn().mockResolvedValue({ data: users })
   const navigate = vi.fn()
 
@@ -120,6 +121,7 @@ function setup(options: SetupOptions = {}) {
       },
       { provide: ConnectionService, useValue: connection },
       { provide: DeviceAssignmentService, useValue: assignment },
+      { provide: DeviceOrderChannelService, useValue: orderChannel },
       { provide: ThemeServiceService, useValue: { theme: 'light', setTheme: vi.fn() } },
       { provide: LanguageService, useValue: { currentLanguage: signal('de'), setLanguage: vi.fn() } },
       { provide: UpdateService, useValue: {} },
@@ -149,6 +151,7 @@ function setup(options: SetupOptions = {}) {
     outboxPending,
     find,
     navigate,
+    orderChannel,
     /**
      * Faehrt den echten Ladepfad (connect → warten → Zuweisung → Benutzer →
      * Einstiegsschritt). Bracket-Zugriff, weil `ngOnInit` das Promise nicht
@@ -300,6 +303,19 @@ describe('LoginComponent — Ladepfad', () => {
     // Login nicht in die Fehlermaske kippen.
     expect(component.currentStep()).toBe('select-user')
     expect(find).toHaveBeenCalledOnce()
+  })
+
+  it('holt die Standard-Bestellart bei jedem Ladepfad und uebersteht einen Fehler dabei (core#1166)', async () => {
+    const { component, find, orderChannel } = setup({ mode: DeviceAccessMode.SHARED, users: USERS.slice(0, 2) })
+    orderChannel.refresh.mockRejectedValueOnce(new Error('devices nicht erreichbar'))
+
+    await component['connectAndLoadUsers']()
+    expect(orderChannel.refresh).toHaveBeenCalledOnce()
+    expect(component.currentStep()).toBe('select-user')
+    expect(find).toHaveBeenCalledOnce()
+
+    await component['connectAndLoadUsers']()
+    expect(orderChannel.refresh).toHaveBeenCalledTimes(2)
   })
 
   it('fordert nur die fuer den Login noetigen Felder an', async () => {

@@ -94,6 +94,7 @@ import { AuthService } from '@panary/auth/data-access'
 import { PosHandednessService, User, UserService } from '@panary/users/data-access'
 import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
+import { DeviceOrderChannelService } from '@panary/devices/data-access'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
 import {
   buildQuickPreOrderPayload,
@@ -246,6 +247,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly translateService: TranslateService = inject(TranslateService)
   protected readonly userService: UserService = inject(UserService)
   readonly #posHandedness = inject(PosHandednessService)
+  readonly #deviceOrderChannel = inject(DeviceOrderChannelService)
   protected readonly matDialog: MatDialog = inject(MatDialog)
   // Meldeweg für alles, was das Abschließen der Bestellung überleben muss — die Infobox
   // gehört zur Bestellung und ist mit ihr weg (siehe #placeOrder, Rabattcode-Fehlschlag).
@@ -328,6 +330,8 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   // ausschliesslich computeOrderTax.
   readonly lineDiscounts = signal<LineDiscountMap>({})
 
+  readonly #deviceChannelAtStart = this.#deviceOrderChannel.channel()
+
   /**
    * Vertriebskanal der Bestellung.
    *
@@ -340,6 +344,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Kontext-Ableitung hätte die dann als POS gezählt und den Fehler nur
    * umgedreht. Vorbelegt wird trotzdem nach Betriebsmodus, damit der
    * Regelfall ohne zusätzlichen Griff stimmt.
+   *
+   * Hat das Terminal eine Standard-Bestellart (core#1166), schlägt sie den Modus. Sie wird **einmal beim
+   * Aufbau** gelesen, nicht als Quelle des `linkedSignal`: Die Kasse baut sich je Bestellung neu auf
+   * (`KassePageComponent`), eine Server-Änderung wirkt also ab der nächsten Bestellung, und eine bereits
+   * getroffene Wahl des Kassierers wird nie überschrieben.
    */
   readonly orderChannel = linkedSignal<string | undefined, PosOrderChannel>({
     // Quelle ist der Modus als `computed`-Wert, nicht der Standort: Ein Refresh des Standorts liefert ein neues
@@ -347,7 +356,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // stehen (ein `linkedSignal` mit der bloßen Funktion setzt bei jedem Lauf zurück). Kommt der Standort erst
     // nach dem Aufbau (Neuladen auf `/kasse`, core#878), wechselt der Modus von „fehlt" auf „pos-cashier".
     source: computed(() => this.locationService.activeLocation()?.operationMode),
-    computation: operationMode => defaultOrderChannel(operationMode),
+    computation: operationMode => defaultOrderChannel(operationMode, this.#deviceChannelAtStart),
   })
   private _productButtons: PosButton[] = []
   private _table: string | undefined = undefined

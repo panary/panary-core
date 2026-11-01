@@ -2,6 +2,7 @@ import { querySyntax, Static, StringEnum, Type } from '@feathersjs/typebox'
 import { baseSchema } from '@panary/shared-common'
 
 import { DeviceAccessMode, MAX_ASSIGNED_USER_IDS } from './device-access-mode'
+import { DeviceOrderChannel } from './device-order-channel'
 
 //#region Enums & Constants (Reusable)
 export const DeviceType = {
@@ -82,6 +83,10 @@ export const deviceSchema = Type.Object(
     assignedUserIds: Type.Optional(
       Type.Array(Type.String({ format: 'uuid' }), { maxItems: MAX_ASSIGNED_USER_IDS, uniqueItems: true }),
     ),
+    // Standard-Bestellart je Terminal (panary/panary-core#1166). Nullable: `null` setzt
+    // zurueck auf „kein Standard" (Kanal des Standort-operationMode). Schreibzugriff nur
+    // Owner (device-order-channel.ts); NICHT self-patchbar, NICHT in deviceDataSchema.
+    defaultOrderChannel: Type.Optional(Type.Union([StringEnum(Object.values(DeviceOrderChannel)), Type.Null()])),
     createdBy: Type.String({ maxLength: 100 }),
   },
   { $id: 'Device', additionalProperties: false },

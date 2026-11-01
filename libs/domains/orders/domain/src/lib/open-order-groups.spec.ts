@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { groupOpenOrdersBySettlementScope, type OpenOrderGroupInput } from './open-order-groups'
+import {
+  groupOpenOrdersBySettlementScope,
+  openOrderCircleTotalCents,
+  type OpenOrderGroupInput,
+} from './open-order-groups'
 
 const order = (id: string, over: Partial<OpenOrderGroupInput> = {}): OpenOrderGroupInput => ({
   _id: id,
@@ -65,5 +69,20 @@ describe('groupOpenOrdersBySettlementScope (core#1141)', () => {
     const a = order('a', { table: '  ' })
     const b = order('b', { table: '  ' })
     expect(groupOpenOrdersBySettlementScope([a, b]).map(e => e.kind)).toEqual(['order', 'order'])
+  })
+})
+
+describe('openOrderCircleTotalCents (core#1141)', () => {
+  const totals: Record<string, number> = { a: 10.1, b: 0.2, c: 5 }
+  const totalOf = (o: { _id: string }) => totals[o._id]
+
+  it('addiert die Beträge der Einzelkarten in Cent, ohne Fließkomma-Drift', () => {
+    expect(openOrderCircleTotalCents([{ _id: 'a' }, { _id: 'b' }], totalOf)).toBe(1030)
+  })
+
+  it('verbirgt die Summe, sobald eine Bestellung ein Personalessen ist', () => {
+    expect(
+      openOrderCircleTotalCents([{ _id: 'a' }, { _id: 'c', staffPaymentInfo: { userName: 'X' } }], totalOf),
+    ).toBeNull()
   })
 })

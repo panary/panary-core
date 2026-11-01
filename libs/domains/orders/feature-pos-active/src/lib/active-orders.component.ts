@@ -40,11 +40,10 @@ import {
   fromCents,
   groupModifiersByComponent,
   groupOpenOrdersBySettlementScope,
+  openOrderCircleTotalCents,
   isSyntheticSettlementScope,
   type AppliedDiscount,
   type ModifierLineItem,
-  sumCents,
-  toCents,
 } from '@panary/orders/domain'
 import { DiscountService } from '@panary/discounts/data-access'
 import type { Discount as ManagedDiscount } from '@panary/discounts/domain'
@@ -175,12 +174,26 @@ export class ActiveOrdersComponent {
    * Einträge der Liste: eine Karte je Abrechnungskreis, Bestellungen ohne Tisch einzeln. Aufgeklappt folgen der
    * Kreis-Karte ihre Einzelbestellungen als gewohnte Karten (core#1141).
    */
+  readonly #groups = computed(() => groupOpenOrdersBySettlementScope(this.sortedOrders()))
+
+  /** Summe je Kreis, nur bei Order-Änderungen neu gerechnet — der Minuten-Takt fasst die Engine nicht an. */
+  readonly #circleTotals = computed(() => {
+    const totals = new Map<string, string | null>()
+    for (const entry of this.#groups()) {
+      if (entry.kind !== 'circle') continue
+      const cents = openOrderCircleTotalCents(entry.orders, order => this.calculateTotal(order))
+      totals.set(entry.key, cents === null ? null : this.formatPrice(fromCents(cents)))
+    }
+    return totals
+  })
+
   entries = computed<ActiveEntryVm[]>(() => {
     const vmById = new Map(this.orderVms().map(vm => [vm.order._id, vm]))
     const expanded = this.expandedCircles()
+    const totals = this.#circleTotals()
     const now = this.#now()
     const result: ActiveEntryVm[] = []
-    for (const entry of groupOpenOrdersBySettlementScope(this.sortedOrders())) {
+    for (const entry of this.#groups()) {
       if (entry.kind === 'order') {
         result.push({
           kind: 'order',
@@ -190,18 +203,15 @@ export class ActiveOrdersComponent {
         continue
       }
       const isExpanded = expanded.has(entry.key)
-      const hasStaffMeal = entry.orders.some(order => !!order.staffPaymentInfo)
+      const elapsedMs = now - Date.parse(entry.firstRecordingDate)
       result.push({
         kind: 'circle',
         key: entry.key,
         table: entry.table,
         orderCount: entry.orders.length,
-        // Summe der Kartenbeträge in Cent, jede Bestellung über dieselbe Engine wie ihre Einzelkarte
-        totalFormatted: hasStaffMeal
-          ? null
-          : this.formatPrice(fromCents(sumCents(entry.orders.map(order => toCents(this.calculateTotal(order)))))),
+        totalFormatted: totals.get(entry.key) ?? null,
         firstRecordingDate: entry.firstRecordingDate,
-        elapsedMinutes: Math.max(0, Math.floor((now - Date.parse(entry.firstRecordingDate)) / 60_000)),
+        elapsedMinutes: Number.isFinite(elapsedMs) ? Math.max(0, Math.floor(elapsedMs / 60_000)) : 0,
         expanded: isExpanded,
       })
       if (isExpanded) {

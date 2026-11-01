@@ -1,10 +1,11 @@
+import { sumCents, toCents } from './pricing/money'
 import { isSyntheticSettlementScope } from './settlement-scope'
 
 // Gruppierung der Liste „Offen" nach Abrechnungskreis (ADR 0063 Nr. 6, core#1141).
 //
 // Reine Funktion im Domain-Paket und nicht in der Komponente: Die Regel „welche
 // Bestellungen bilden eine Karte" muss testbar sein, ohne eine Komponente zu rendern,
-// und darf am POS nur einmal stehen. Summen bildet der Aufrufer — hier wird nie gerechnet.
+// und darf am POS nur einmal stehen. Beträge liefert der Aufrufer je Bestellung (Engine), hier wird nur addiert.
 
 /** Die Felder, aus denen die Gruppierung folgt. */
 export type OpenOrderGroupInput = {
@@ -65,6 +66,7 @@ export function groupOpenOrdersBySettlementScope<TOrder extends OpenOrderGroupIn
     }
     if (emitted.has(scope)) continue
     emitted.add(scope)
+    // Ungültiges Datum (NaN) verliert jeden Vergleich und verdrängt so nie eine gültige Bestellung
     const oldest = members.reduce((a, b) => (Date.parse(b.recordingDate) < Date.parse(a.recordingDate) ? b : a))
     entries.push({
       kind: 'circle',
@@ -83,4 +85,19 @@ function groupableScope(order: OpenOrderGroupInput): string | null {
   const scope = order.settlementScope
   if (!table || typeof scope !== 'string' || !scope || isSyntheticSettlementScope(scope)) return null
   return scope
+}
+
+/**
+ * Summe einer Kreis-Karte in Cent, oder `null`, wenn sie nicht gezeigt werden darf.
+ *
+ * `totalOf` liefert den Betrag je Bestellung aus derselben Engine wie die Einzelkarte; diese Funktion addiert
+ * nur, in Cent. Ein Personalessen im Kreis verbirgt die Summe (`null`), wie die Einzelkarte: Die Rabattsätze sind
+ * pro Mitarbeiter verschieden und sollen am Terminal nicht ablesbar sein.
+ */
+export function openOrderCircleTotalCents<TOrder extends { staffPaymentInfo?: unknown }>(
+  orders: ReadonlyArray<TOrder>,
+  totalOf: (order: TOrder) => number,
+): number | null {
+  if (orders.some(order => !!order.staffPaymentInfo)) return null
+  return sumCents(orders.map(order => toCents(totalOf(order))))
 }

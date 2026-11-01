@@ -176,13 +176,8 @@ describe('Offene Bestellungen — Karte je Abrechnungskreis (core#1141)', () => 
     expect(circle).toMatch(/\[attr\.aria-expanded\]="entry\.expanded"/)
   })
 
-  it('die Summe addiert Cent-Beträge der Einzelkarten statt Positionen selbst zu rechnen', () => {
-    expect(component).toMatch(/sumCents\(entry\.orders\.map\(order => toCents\(this\.calculateTotal\(order\)\)\)\)/)
-    expect(component).not.toMatch(/entry\.orders\.reduce/)
-  })
-
-  it('ein Personalessen im Kreis verbirgt die Summe wie auf der Einzelkarte', () => {
-    expect(component).toMatch(/hasStaffMeal\s*\?\s*null/)
+  it('die Summe kommt aus dem Domain-Helfer, der Cent-Beträge der Einzelkarten addiert (open-order-groups.spec.ts)', () => {
+    expect(component).toMatch(/openOrderCircleTotalCents\(entry\.orders, order => this\.calculateTotal\(order\)\)/)
     expect(circle).toMatch(/@if \(entry\.totalFormatted; as total\)/)
   })
 })

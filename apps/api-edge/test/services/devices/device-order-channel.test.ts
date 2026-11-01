@@ -3,6 +3,7 @@
 // bliebe gruen, auch wenn die Reihenfolge in devices.ts das Gate umgeht.
 // Jeder Sperr-Test hat eine Gegenprobe mit erlaubter Rolle, sonst ginge ein Test, der aus
 // ganz anderem Grund scheitert (falscher Tenant, kaputter Body), als „Sperre wirkt" durch.
+// Jeder Test legt sein Geraet selbst an (testing.md §10.2): geteilt ist hier die Zeile, nicht die Bindung.
 import assert from 'assert'
 import { uuidv7 } from 'uuidv7'
 import { app } from '../../../src/app'
@@ -10,20 +11,20 @@ import { app } from '../../../src/app'
 interface DeviceRecord {
   _id: string
   deviceId: string
+  name?: string
   defaultOrderChannel?: string | null
 }
 
 describe('Standard-Bestellart — Rollen-Gate am Edge', () => {
   const tenantId = uuidv7()
   let locationId: string
-  let device: DeviceRecord
 
   const actor = (role: string) => {
     const user = { _id: uuidv7(), role, tenantId, activeLocationId: locationId, locationId }
     return { provider: 'rest', authenticated: true, user } as never
   }
 
-  const devicePosParams = () =>
+  const devicePosParams = (device: DeviceRecord) =>
     ({
       provider: 'socketio',
       authenticated: true,
@@ -37,8 +38,24 @@ describe('Standard-Bestellart — Rollen-Gate am Edge', () => {
       authentication: { strategy: 'apiKey', authenticated: true, payload: { apiKey: true, deviceId: device.deviceId } },
     }) as never
 
-  const stored = async () =>
-    ((await app.service('devices').get(device._id, { provider: undefined })) as DeviceRecord).defaultOrderChannel
+  /** `initial` geht per internem Patch hinein: Das Feld steht bewusst nicht in `deviceDataSchema` (Redeem setzt es nicht). */
+  const createDevice = async (initial?: string): Promise<DeviceRecord> => {
+    const device = (await app
+      .service('devices')
+      .create({ name: `Terminal ${uuidv7()}`, type: 'pos-counter', tenantId, locationId } as never, {
+        provider: undefined,
+      })) as DeviceRecord
+    if (initial) {
+      await app.service('devices').patch(device._id, { defaultOrderChannel: initial } as never, { provider: undefined })
+    }
+    onTestFinished(async () => {
+      await app.service('devices').remove(device._id, { provider: undefined })
+    })
+    return device
+  }
+
+  const load = async (device: DeviceRecord) =>
+    (await app.service('devices').get(device._id, { provider: undefined })) as DeviceRecord
 
   const forbidden = (err: Error) => err.name === 'Forbidden'
 
@@ -53,11 +70,6 @@ describe('Standard-Bestellart — Rollen-Gate am Edge', () => {
       { provider: undefined },
     )) as { _id: string }
     locationId = location._id
-    device = (await app
-      .service('devices')
-      .create({ name: 'Telefon-Terminal', type: 'pos-counter', tenantId, locationId } as never, {
-        provider: undefined,
-      })) as DeviceRecord
   })
 
   afterAll(async () => {
@@ -65,23 +77,29 @@ describe('Standard-Bestellart — Rollen-Gate am Edge', () => {
   })
 
   it('Bestandsgeraet ohne Wert liest null (Migration: nullable Spalte)', async () => {
-    assert.ok((await stored()) == null)
+    const device = await createDevice()
+    assert.ok((await load(device)).defaultOrderChannel == null)
   })
 
   it('Owner setzt und setzt zurueck', async () => {
+    const device = await createDevice()
+
     await app.service('devices').patch(device._id, { defaultOrderChannel: 'telephone' } as never, actor('tenant:owner'))
-    assert.strictEqual(await stored(), 'telephone')
+    assert.strictEqual((await load(device)).defaultOrderChannel, 'telephone')
 
     await app.service('devices').patch(device._id, { defaultOrderChannel: null } as never, actor('tenant:owner'))
-    assert.ok((await stored()) == null)
+    assert.ok((await load(device)).defaultOrderChannel == null)
   })
 
   it('platform:owner darf ebenfalls', async () => {
+    const device = await createDevice()
     await app.service('devices').patch(device._id, { defaultOrderChannel: 'pos' } as never, actor('platform:owner'))
-    assert.strictEqual(await stored(), 'pos')
+    assert.strictEqual((await load(device)).defaultOrderChannel, 'pos')
   })
 
   it('Techniker (devices: MANAGE) wird fuer dieses Feld mit 403 abgewiesen — Setzen UND Zuruecksetzen', async () => {
+    const device = await createDevice('pos')
+
     await assert.rejects(
       app
         .service('devices')
@@ -92,36 +110,41 @@ describe('Standard-Bestellart — Rollen-Gate am Edge', () => {
       app.service('devices').patch(device._id, { defaultOrderChannel: null } as never, actor('tenant:technician')),
       forbidden,
     )
-    assert.strictEqual(await stored(), 'pos', 'der Wert darf sich nicht veraendert haben')
+    assert.strictEqual((await load(device)).defaultOrderChannel, 'pos', 'der Wert darf sich nicht veraendert haben')
   })
 
   it('Gegenprobe: derselbe Techniker darf andere Felder weiterhin patchen', async () => {
+    const device = await createDevice()
     await app.service('devices').patch(device._id, { name: 'Telefon-Terminal 2' } as never, actor('tenant:technician'))
-    const after = (await app.service('devices').get(device._id, { provider: undefined })) as { name: string }
-    assert.strictEqual(after.name, 'Telefon-Terminal 2')
+    assert.strictEqual((await load(device)).name, 'Telefon-Terminal 2')
   })
 
   it('das Geraet selbst kann den Wert nicht aendern (kein Self-Patch-Feld)', async () => {
+    const device = await createDevice('pos')
+
     await assert.rejects(
-      app.service('devices').patch(device._id, { defaultOrderChannel: 'telephone' } as never, devicePosParams()),
+      app.service('devices').patch(device._id, { defaultOrderChannel: 'telephone' } as never, devicePosParams(device)),
       forbidden,
     )
-    assert.strictEqual(await stored(), 'pos')
+    assert.strictEqual((await load(device)).defaultOrderChannel, 'pos')
   })
 
   it('Owner: unbekannter Kanal → 400, Wert bleibt', async () => {
+    const device = await createDevice('pos')
+
     await assert.rejects(
       app.service('devices').patch(device._id, { defaultOrderChannel: 'online' } as never, actor('tenant:owner')),
       (err: Error) => err.name === 'BadRequest',
     )
-    assert.strictEqual(await stored(), 'pos')
+    assert.strictEqual((await load(device)).defaultOrderChannel, 'pos')
   })
 
   it('interner Aufruf (Seed, Pairing) ist erlaubt', async () => {
+    const device = await createDevice()
     await app
       .service('devices')
       .patch(device._id, { defaultOrderChannel: 'telephone' } as never, { provider: undefined })
-    assert.strictEqual(await stored(), 'telephone')
+    assert.strictEqual((await load(device)).defaultOrderChannel, 'telephone')
   })
 
   it('Create ist gleich gegated: Techniker kann ein Geraet nicht mit Wert anlegen', async () => {

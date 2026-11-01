@@ -5,6 +5,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiService } from '../../core/api.service'
+import { AuthService } from '../../core/auth.service'
 import { DeviceStatusService } from '../../core/device-status.service'
 import { ApikeyCreatedDialogComponent } from '../apikeys/apikey-created-dialog'
 import { DeviceListComponent } from './device-list'
@@ -28,6 +29,7 @@ function providers(clipboard?: Partial<Clipboard>) {
       provide: DeviceStatusService,
       useValue: { connectedDeviceIds: signal(new Set()), online: signal(0), total: signal(0), refresh: vi.fn() },
     },
+    { provide: AuthService, useValue: { user: signal({ role: 'tenant:owner' }) } },
     { provide: TranslateService, useValue: { instant: (key: string) => key } },
     { provide: ChangeDetectorRef, useValue: { markForCheck: () => undefined, detectChanges: () => undefined } },
     ...(clipboard ? [{ provide: Clipboard, useValue: clipboard }] : []),

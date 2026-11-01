@@ -387,8 +387,9 @@ app.hooks({
       await recordAuditEvent(context)
     },
   ],
-  // Vor allen Service-Hooks: Array-Body weist `rejectArrayBody` ab (#1256), bevor ein
-  // `'feld' in data`-Gate ihn uebersehen kann.
+  // Nach den App-around-Hooks (Auth), aber vor allen Service-Hooks: Array-Body weist
+  // `rejectArrayBody` ab (#1256), bevor ein `'feld' in data`-Gate ihn uebersehen kann.
+  // Custom Methods laufen daran vorbei.
   before: {
     create: [rejectArrayBody],
     update: [rejectArrayBody],

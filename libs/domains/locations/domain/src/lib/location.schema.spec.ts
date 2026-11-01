@@ -208,9 +208,10 @@ describe('settings.businessDaySettings', () => {
   })
 })
 
-// Währung auf dem Bestellbon abschaltbar (#1258). Optional und ohne Default —
-// eine Location ohne das Feld validiert weiter, und der Validator ergänzt nichts,
-// was der Renderer als Opt-out lesen könnte.
+// Währung auf dem Bestellbon abschaltbar (#1258). Optional — eine Location ohne
+// das Feld validiert weiter und kommt ohne das Feld beim Renderer an, der es dann
+// als „an" liest. Ein `default` im Schema würde hier NICHT rot: Der Laufzeit-
+// Validator (`dataValidator`, `new Ajv({})`) setzt keine Defaults ein.
 describe('settings.receiptSettings.showCurrency', () => {
   const withReceiptSettings = (receiptSettings: unknown) => ({
     ...syncedCloudLocation,
@@ -222,7 +223,7 @@ describe('settings.receiptSettings.showCurrency', () => {
     await expect(validator(withReceiptSettings({ showCurrency: false }))).resolves.toBeTruthy()
   })
 
-  it('akzeptiert receiptSettings ohne das Feld und setzt keinen Default', async () => {
+  it('akzeptiert receiptSettings ohne das Feld und reicht sie unverändert durch', async () => {
     const validated = (await validator(withReceiptSettings({ localPrintOnly: false }))) as {
       settings: { receiptSettings: Record<string, unknown> }
     }

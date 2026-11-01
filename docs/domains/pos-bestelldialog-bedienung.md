@@ -114,7 +114,7 @@ Spalte 2 ist entfallen ([ADR 0059](../adr/0059-pos-layout-b-zonen-steuerleiste-s
 | Pos.-Rab. (nur mit Auswahl), Personalessen, Firmenkunde, Rabattcode, Preise ein/aus, Weitere Aktionen | „Optionen" in der Reihe unter dem Warenkorb, öffnet nach oben; „Weitere Aktionen" öffnet „Bestellung leeren" und „Kunde entfernen"; ein geprüfter Code steht am Eintrag ([core#908](https://github.com/panary/panary-core/issues/908)) |
 | Funktionstasten über dem Raster | keine im Hauptbereich; nur laufende Abläufe setzen welche (`boardFunctionButtons`, core#965) |
 | Meldungen | Hinweis über dem unteren Rasterrand, 4 s, Fehler 6 s, nimmt keine Tipps an; ohne Leerlauf-Text und ohne Echo von Gruppe oder Funktionsblock (`notice`, core#908) |
-| Kanal Kasse/Telefon | Schalter im Warenkorbkopf, Zustand ohne Antippen ablesbar |
+| Kanal Kasse/Telefon | Schalter im Warenkorbkopf, Zustand ohne Antippen ablesbar. Vorbelegt mit der Standard-Bestellart des Terminals, sonst mit dem Kanal des Standort-Betriebsmodus (core#1166); der Umschalter gilt nur für diese Bestellung |
 
 ## Layout
 

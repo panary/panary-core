@@ -135,6 +135,54 @@ Drei Dinge, die die UI absichtlich tut:
   `deviceAccessMode`, blendet die UI die Zuweisung aus. Ein älterer Edge würde die Auswahl beim
   Redeem stillschweigend verlieren — sie gar nicht erst anzubieten ist das ehrlichere Verhalten.
 
+## Standard-Bestellart je Terminal (core#1166)
+
+Ein Terminal mit fester Aufgabe (eines nur für Telefonbestellungen, zwei an der Theke) hat ein optionales
+Feld `devices.defaultOrderChannel`: `'pos'`, `'telephone'` oder `null` (kein Standard). Neue Bestellungen
+starten in diesem Kanal, der Umschalter im Bestelldialog überschreibt ihn weiterhin je Bestellung.
+
+| Baustein | Ort |
+| --- | --- |
+| Werte, `resolveDeviceOrderChannel`, Gate `checkDeviceOrderChannelWrite` | `libs/domains/devices/domain/src/lib/device-order-channel.ts` |
+| Edge-Hook (dünner Adapter, vor `validateData`) | `apps/api-edge/src/hooks/validate-device-order-channel.hook.ts` |
+| Spalte | Migration `20261101120000_devices_add_default_order_channel` (nullable, kein Default, kein Backfill) |
+| Auswahl | Edge-Admin, Geräteliste, Spalte „Standard-Bestellart" |
+| Laden am POS | `DeviceOrderChannelService` (`@panary/devices/data-access`) |
+| Vorbelegung | `defaultOrderChannel(operationMode, deviceChannel)` in `order-channel.ts`, gelesen im Bestelldialog |
+
+**Wer schreibt: nur `tenant:owner` und `platform:owner`.** Entscheidung von Michael: kein Filialleiter,
+kein Techniker, kein `platform:admin`/Support. Der Techniker behält `DEVICES: MANAGE` (alle anderen
+Felder), nur dieses eine ist für ihn gesperrt, und der Admin zeigt es ihm schreibgeschützt. Das Gate gilt
+für **jeden** externen Zugriff auf den Key, auch für `null` (Zurücksetzen) und `undefined`: Sonst wäre das
+Löschen ein Umweg um das Setzen. Interne Aufrufe (`provider: undefined`) sind wie bei
+`checkDeviceAssignmentWrite` ausgenommen. Das Rollen-Gate läuft vor der Wertprüfung, ein Unberechtigter
+bekommt also nie die Liste erlaubter Werte zu sehen.
+
+**Nicht self-patchbar, nicht im Redeem.** Das Feld steht nicht in `SELF_PATCHABLE_DEVICE_FIELDS` (das POS
+selbst hat keinen Schreibweg; am Socket sieht der Server nur das Gerät, nicht die Person) und nicht in
+`deviceDataSchema` (der Pairing-Redeem setzt es nicht). Beides hält `device-order-channel-invariants.spec.ts`
+in api-edge fest, ebenso dass `DeviceOrderChannel` die Werte `OrderChannel.POS`/`TELEPHONE` spiegelt (die
+devices-Domain darf orders-/users-Domain nicht importieren).
+
+**Lokal, kein Sync, kein Feature-Flag.** `devices` steht in keiner Sync-Allowlist: Edge- und Cloud-Geräte
+sind getrennte Datensätze. Das Feld funktioniert so in beiden Betriebsarten, sobald der jeweilige Server
+das Schema kennt.
+
+**Laden am POS.** Wie `DeviceAssignmentService`, nicht wie `UiScaleService`: Der Server gewinnt,
+`refresh()` läuft im Ladepfad des Login-Screens bei jedem Verbindungsaufbau, der `patched`-Listener filtert
+auf die **eigene** `deviceId` (das Publish geht an den ganzen Mandanten), und der localStorage-Cache ist an
+die `deviceId` gebunden (Cache eines früheren Pairings wird verworfen). Ein Fehler beim Laden kippt den
+Login nicht; dann gilt der Cache, ohne ihn der Betriebsmodus.
+
+**Wann es wirkt.** Der Bestelldialog liest den Wert **einmal beim Aufbau**, nicht als Quelle des
+`linkedSignal`. Die Kasse baut sich je Bestellung neu auf, eine Server-Änderung gilt also ab der
+**nächsten** Bestellung, und eine bereits getroffene Wahl des Kassierers wird nie überschrieben.
+
+**Cloud-Teil.** Die Cloud importiert `devicePatchSchema` und `DEVICE_PRIVILEGED_ROLES` aus Core. Vor dem
+Pin-Bump lehnt sie das Feld mit 400 ab, danach nähme sie es **ohne** Owner-Gate an (der Techniker dürfte).
+Pin-Bump und Hook gehören deshalb in panary/panary-cloud#1487 in denselben PR. Ein Core-Release mit dem
+Feld darf von keinem anderen Cloud-Pin-Bump aufgenommen werden, bevor der Cloud-Hook gemergt ist.
+
 ## Der Login-Screen am zugewiesenen Gerät
 
 Alles hier ist **UX, keine Sicherheitsgrenze** — durchgesetzt wird serverseitig (siehe oben).
@@ -202,6 +250,7 @@ Alle drei sind eigene Tickets, siehe ADR 0023.
 
 ## Verwandt
 
+* [Bestelldialog — Kanal Kasse/Telefon](pos-bestelldialog-bedienung.md)
 * [ADR 0023 — Zugewiesene POS-Geräte](../adr/0023-zugewiesene-pos-geraete.md)
 * [POS-Pairing-Wizard](pos-pairing-wizard.md)
 * [Geräte-Online-Tracking](geraete-online-tracking.md)

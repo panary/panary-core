@@ -309,6 +309,12 @@ describe('SetupComponent — Formular-Schema', () => {
     expect(component.isStep2Valid()).toBe(true)
   })
 
+  it('verlangt die Organisation auch bei gesetzter Filiale', () => {
+    const { component } = setup()
+    component.selectedLocationId.set('l-1')
+    expect(component.isStep2Valid()).toBe(false)
+  })
+
   it('prüft den Gerätenamen auf Inhalt und erlaubte Zeichen', () => {
     const { component } = setup()
     component.deviceName.set('  ')

@@ -65,14 +65,14 @@ describe('Kontostatus im Benutzerformular', () => {
     const { component } = setup()
     await openRecord(component, 'u-other')
 
-    expect(component['form'].status).toBe('ARCHIVED')
+    expect(component['user']().status).toBe('ARCHIVED')
   })
 
   it('Konto ohne status (Altbestand) faellt auf ACTIVE zurueck', async () => {
     const { component } = setup({ status: undefined })
     await openRecord(component, 'u-other')
 
-    expect(component['form'].status).toBe('ACTIVE')
+    expect(component['user']().status).toBe('ACTIVE')
   })
 
   it('fremdes Konto → Feld sichtbar', async () => {
@@ -100,9 +100,9 @@ describe('Kontostatus im Benutzerformular', () => {
   it('Reaktivieren schickt status: ACTIVE an den Server', async () => {
     const { component, patch } = setup()
     await openRecord(component, 'u-other')
-    component['form'].status = 'ACTIVE'
+    component['userForm'].status().value.set('ACTIVE')
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     expect(patch).toHaveBeenCalledTimes(1)
     expect(patch.mock.calls[0][2].status).toBe('ACTIVE')
@@ -112,7 +112,7 @@ describe('Kontostatus im Benutzerformular', () => {
     const { component, patch } = setup({ _id: ACTOR._id, status: 'ACTIVE' })
     await openRecord(component, ACTOR._id)
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     expect(patch).toHaveBeenCalledTimes(1)
     expect('status' in patch.mock.calls[0][2]).toBe(false)
@@ -121,9 +121,11 @@ describe('Kontostatus im Benutzerformular', () => {
   it('Neuanlage: status wird NICHT mitgeschickt — ein neuer Nutzer ist immer aktiv', async () => {
     const { component, api } = setup()
     await openRecord(component, 'new')
-    component['form'].loginname = 'neu'
+    component['userForm'].loginname().value.set('neu')
+    // Seit core#1173 prueft `onSave` das Schema selbst: Neuanlage braucht ein Passwort.
+    component['userForm'].password().value.set('geheim')
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     expect(api.create).toHaveBeenCalledTimes(1)
     expect('status' in api.create.mock.calls[0][1]).toBe(false)

@@ -72,14 +72,14 @@ describe('Benutzerformular: Konto ohne E-Mail', () => {
     const { component } = setup()
     await openRecord(component, 'u-other')
 
-    expect(component['form'].email).toBe('')
+    expect(component['user']().email).toBe('')
   })
 
   it('Patch enthaelt KEIN email-Feld — sonst 400 an format: email', async () => {
     const { component, patch } = setup()
     await openRecord(component, 'u-other')
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     expect(patch).toHaveBeenCalledTimes(1)
     expect('email' in patch.mock.calls[0][2]).toBe(false)
@@ -88,9 +88,9 @@ describe('Benutzerformular: Konto ohne E-Mail', () => {
   it('Reaktivieren eines Kontos ohne E-Mail schickt status, aber kein email (ADR 0028)', async () => {
     const { component, patch } = setup()
     await openRecord(component, 'u-other')
-    component['form'].status = 'ACTIVE'
+    component['userForm'].status().value.set('ACTIVE')
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     const body = patch.mock.calls[0][2]
     expect(body.status).toBe('ACTIVE')
@@ -100,9 +100,12 @@ describe('Benutzerformular: Konto ohne E-Mail', () => {
   it('Neuanlage ohne E-Mail: create-Body traegt kein email-Feld', async () => {
     const { component, api } = setup()
     await openRecord(component, 'new')
-    component['form'].firstName = 'Neu'
+    component['userForm'].firstName().value.set('Neu')
+    // Seit core#1173 prueft `onSave` das Schema selbst: Neuanlage braucht Loginname und Passwort.
+    component['userForm'].loginname().value.set('neu')
+    component['userForm'].password().value.set('geheim')
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     expect(api.create).toHaveBeenCalledTimes(1)
     expect('email' in api.create.mock.calls[0][1]).toBe(false)
@@ -112,7 +115,7 @@ describe('Benutzerformular: Konto ohne E-Mail', () => {
     const { component, patch } = setup({ email: 'kelly@example.com' })
     await openRecord(component, 'u-other')
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     expect(patch.mock.calls[0][2].email).toBe('kelly@example.com')
   })
@@ -120,9 +123,9 @@ describe('Benutzerformular: Konto ohne E-Mail', () => {
   it('neu eingegebene E-Mail wird gesendet', async () => {
     const { component, patch } = setup()
     await openRecord(component, 'u-other')
-    component['form'].email = 'neu@example.com'
+    component['userForm'].email().value.set('neu@example.com')
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     expect(patch.mock.calls[0][2].email).toBe('neu@example.com')
   })
@@ -130,9 +133,9 @@ describe('Benutzerformular: Konto ohne E-Mail', () => {
   it('bewusste Folge: eine gesetzte E-Mail laesst sich nicht leeren', async () => {
     const { component, patch } = setup({ email: 'kelly@example.com' })
     await openRecord(component, 'u-other')
-    component['form'].email = ''
+    component['userForm'].email().value.set('')
 
-    await component['onSave']({ invalid: false, controls: {} })
+    await component['onSave']()
 
     // Kein `email: ''` im Body — der Server behaelt den alten Wert. Leeren
     // erforderte `''`/`null` im geteilten userSchema (#288, Entscheidung

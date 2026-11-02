@@ -167,7 +167,10 @@ PIN-Wechsel und zurück) oder ein erneutes Laden startet ihn nicht neu. Ein
 Ablaufbalken am unteren Rand des Banners zeigt die Restzeit: eine CSS-Animation
 über die volle Dauer, deren negativer Startversatz die schon verstrichene Zeit
 abbildet, sodass der Balken nach einem Wiedereinblenden an der richtigen Stelle
-weiterläuft. Der Timer wird imperativ gestartet, nicht per `effect`, weil die
+weiterläuft. Der Versatz ist ein `computed` und entsteht nur beim Ein- oder
+Ausblenden neu; jede weitere Auswertung läse sonst eine neue Uhrzeit und schöbe die
+laufende Animation vor. Der Neustart nach der Re-Verifikation (`onReverified`) zählt
+als erstes Sichtbarwerden. Der Timer wird imperativ gestartet, nicht per `effect`, weil die
 Login-Specs ohne Template und Change Detection laufen.
 
 Abwägung: Der Login erscheint direkt nach dem Logout, oft wenn niemand am Gerät

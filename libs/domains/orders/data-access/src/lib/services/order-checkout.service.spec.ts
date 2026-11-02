@@ -182,3 +182,86 @@ describe('OrderCheckoutService.payCash — Ruhetag (#1133)', () => {
     expect(params.isExpectedError(CLOSED_DAY_ERROR)).toBe(false)
   })
 })
+
+/** Je Test ein eigener Aufbau: Status je Bestellung für `get`, Ergebnisse je `patch` der Reihe nach. */
+function setupCircle(statuses: Record<string, string | Error>, patchResults: Array<'ok' | unknown> = []) {
+  const patched: Array<{ id: unknown; data: Record<string, any> }> = []
+  const read: unknown[] = []
+  const results = [...patchResults]
+  const patch = vi.fn(async (id: unknown, data: Record<string, any>) => {
+    patched.push({ id, data })
+    const next = results.shift()
+    if (next === 'ok' || next === undefined) return {}
+    throw next
+  })
+  const get = vi.fn(async (id: string) => {
+    read.push(id)
+    const status = statuses[id]
+    if (status instanceof Error) throw status
+    return { _id: id, status }
+  })
+  const injector = Injector.create({ providers: [{ provide: OrderService, useValue: { patch, get } }] })
+  const service = runInInjectionContext(injector, () => new OrderCheckoutService())
+  return { service, patched, read }
+}
+
+const circleInput = (requestCashSession = vi.fn().mockResolvedValue(true)) => ({
+  orders: [
+    { orderId: 'o-1', total: 12.5 },
+    { orderId: 'o-2', total: 3.1 },
+  ],
+  cashierId: 'u-1',
+  requestCashSession,
+})
+
+describe('OrderCheckoutService.payCashCircle — Tisch kassieren (core#1142)', () => {
+  it('kassiert jede Bestellung des Kreises mit ihrem eigenen Betrag, der Reihe nach', async () => {
+    const { service, patched } = setupCircle({ 'o-1': 'active', 'o-2': 'produced' })
+
+    const outcome = await service.payCashCircle(circleInput())
+
+    expect(outcome).toEqual({ result: 'paid', paid: ['o-1', 'o-2'], skipped: [], remaining: [] })
+    expect(patched.map(c => [c.id, c.data['status'], c.data['payment'].totalAmount])).toEqual([
+      ['o-1', OrderStatus.COMPLETED, 12.5],
+      ['o-2', OrderStatus.COMPLETED, 3.1],
+    ])
+  })
+
+  it('überspringt eine schon abgeschlossene Bestellung, statt ihre Zahlung zu überschreiben', async () => {
+    const { service, patched } = setupCircle({ 'o-1': 'completed', 'o-2': 'active' })
+
+    const outcome = await service.payCashCircle(circleInput())
+
+    expect(outcome).toEqual({ result: 'paid', paid: ['o-2'], skipped: ['o-1'], remaining: [] })
+    expect(patched.map(c => c.id)).toEqual(['o-2'])
+  })
+
+  it('hält bei der ersten nicht kassierten Bestellung an und nennt den Rest', async () => {
+    const declined = vi.fn().mockResolvedValue(false)
+    const { service, patched } = setupCircle({ 'o-1': 'active', 'o-2': 'active' }, [CASH_SESSION_ERROR])
+
+    const outcome = await service.payCashCircle(circleInput(declined))
+
+    expect(outcome).toEqual({ result: 'cash-session-declined', paid: [], skipped: [], remaining: ['o-1', 'o-2'] })
+    expect(patched).toHaveLength(1)
+  })
+
+  it('fragt die Kassen-Freigabe nur bei der ersten Bestellung, die übrigen laufen ohne Rückfrage', async () => {
+    const approve = vi.fn().mockResolvedValue(true)
+    const { service } = setupCircle({ 'o-1': 'active', 'o-2': 'active' }, [CASH_SESSION_ERROR, 'ok', 'ok'])
+
+    const outcome = await service.payCashCircle(circleInput(approve))
+
+    expect(outcome.result).toBe('paid')
+    expect(approve).toHaveBeenCalledTimes(1)
+  })
+
+  it('bucht nicht blind, wenn sich eine Bestellung nicht lesen lässt', async () => {
+    const { service, patched } = setupCircle({ 'o-1': 'active', 'o-2': new Error('offline') })
+
+    const outcome = await service.payCashCircle(circleInput())
+
+    expect(outcome).toEqual({ result: 'failed', paid: ['o-1'], skipped: [], remaining: ['o-2'] })
+    expect(patched.map(c => c.id)).toEqual(['o-1'])
+  })
+})

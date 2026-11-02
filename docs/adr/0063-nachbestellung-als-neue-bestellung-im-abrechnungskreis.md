@@ -5,7 +5,7 @@ description: 'ADR zur Nachbuchung nach der Bestellannahme: jede Nachbestellung w
 tags: [orders, receipts, fiskalisierung, tse, pos]
 status: stable
 decision: accepted
-implementation: 'Nr. 2 und 4 gebaut (#1139), Nr. 6 Kreis-Karte (#1141), Nr. 1, 6 und 7 Nachbestellen (#1140); übrige Folge-Issues siehe Abschnitt „Umsetzung"'
+implementation: 'Nr. 2 und 4 gebaut (#1139), Nr. 6 Kreis-Karte (#1141), Nr. 1, 6 und 7 Nachbestellen (#1140), Nr. 5 Tisch kassieren ohne Sammelbeleg (#1142); übrige Folge-Issues siehe Abschnitt „Umsetzung"'
 generated: { by: claude-code/opus-5.5, at: 2026-10-27T09:00:00Z }
 sources:
   - { id: gutachten-345, resource: 'https://github.com/panary/panary-core/issues/345', title: 'Rechtsgutachten Split und Nachbuchung (Kommentar an #345)' }

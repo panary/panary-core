@@ -5,7 +5,12 @@ import { Injector, runInInjectionContext, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateService } from '@ngx-translate/core'
-import { OrderCheckoutService, type PayCashInput, type PayCashResult } from '@panary/orders/data-access'
+import {
+  OrderCheckoutService,
+  type PayCashCircleResult,
+  type PayCashInput,
+  type PayCashResult,
+} from '@panary/orders/data-access'
 import { LocationService } from '@panary/locations/data-access'
 import { UserService } from '@panary/users/data-access'
 import {
@@ -18,22 +23,35 @@ import {
 // sondern geht über `OrderCheckoutService.payCash` — dieselbe Logik wie die Bezahlansicht der Kasse.
 const DATA: CashPaymentDialogData = { orderId: 'order-1', total: 17.9, cashierId: 'user-1' }
 
-function setup(payCash: (input: PayCashInput) => Promise<PayCashResult>) {
+function setup(
+  payCash: (input: PayCashInput) => Promise<PayCashResult>,
+  data: CashPaymentDialogData = DATA,
+  payCashCircle: () => Promise<PayCashCircleResult> = async () => ({
+    result: 'paid',
+    paid: [],
+    skipped: [],
+    remaining: [],
+  }),
+) {
   const payCashMock = vi.fn(payCash)
+  const payCashCircleMock = vi.fn(payCashCircle)
   const close = vi.fn()
   const open = vi.fn()
   const notifications = new NotificationService()
   const notify = vi.spyOn(notifications, 'notify')
   const injector = Injector.create({
     providers: [
-      { provide: MAT_DIALOG_DATA, useValue: DATA },
+      { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: MatDialogRef, useValue: { close } },
-      { provide: OrderCheckoutService, useValue: { payCash: payCashMock } },
+      { provide: OrderCheckoutService, useValue: { payCash: payCashMock, payCashCircle: payCashCircleMock } },
       { provide: MatDialog, useValue: { open } },
       { provide: LocationService, useValue: { activeLocation: signal(undefined) } },
       { provide: UserService, useValue: { users: signal([]) } },
       { provide: NotificationService, useValue: notifications },
-      { provide: TranslateService, useValue: { instant: (key: string) => key } },
+      {
+        provide: TranslateService,
+        useValue: { instant: (key: string, params?: object) => (params ? `${key} ${JSON.stringify(params)}` : key) },
+      },
     ],
   })
   const dialog = runInInjectionContext(injector, () => new CashPaymentDialogComponent()) as unknown as {
@@ -41,7 +59,20 @@ function setup(payCash: (input: PayCashInput) => Promise<PayCashResult>) {
     onKeepOpen(): void
     paying(): boolean
   }
-  return { dialog, payCashMock, close, notify }
+  return { dialog, payCashMock, payCashCircleMock, close, notify }
+}
+
+// core#1142: „Tisch kassieren" — ein Bezahlvorgang über alle offenen Bestellungen eines Kreises.
+const CIRCLE: CashPaymentDialogData = {
+  circle: {
+    table: '4',
+    orders: [
+      { orderId: 'o-1', total: 12.5 },
+      { orderId: 'o-2', total: 3.1 },
+    ],
+  },
+  total: 15.6,
+  cashierId: 'user-1',
 }
 
 describe('CashPaymentDialogComponent (core#834)', () => {
@@ -93,5 +124,57 @@ describe('CashPaymentDialogComponent (core#834)', () => {
     expect(CASH_PAYMENT_DIALOG_CONFIG.maxWidth).toBe('94vw')
     expect(CASH_PAYMENT_DIALOG_CONFIG.width).toBe('min(46rem, 94vw)')
     expect(CASH_PAYMENT_DIALOG_CONFIG.disableClose).toBe(true)
+  })
+})
+
+describe('CashPaymentDialogComponent — Tisch kassieren (core#1142)', () => {
+  it('kassiert den Kreis über payCashCircle, nicht über payCash, und schließt mit true', async () => {
+    const { dialog, payCashMock, payCashCircleMock, close } = setup(async () => 'paid', CIRCLE)
+    await dialog.onCollect()
+    expect(payCashMock).not.toHaveBeenCalled()
+    expect(payCashCircleMock.mock.calls[0]).toEqual([
+      expect.objectContaining({ orders: CIRCLE.circle.orders, cashierId: 'user-1' }),
+    ])
+    expect(close).toHaveBeenCalledWith(true)
+  })
+
+  it('bleibt offen, solange noch nichts gebucht ist, wie bei einer einzelnen Bestellung', async () => {
+    const { dialog, close, notify } = setup(
+      async () => 'paid',
+      CIRCLE,
+      async () => ({
+        result: 'cash-session-declined',
+        paid: [],
+        skipped: [],
+        remaining: ['o-1', 'o-2'],
+      }),
+    )
+    await dialog.onCollect()
+    expect(close).not.toHaveBeenCalled()
+    expect(notify.mock.calls.map(([type, message]) => [type, message])).toEqual([
+      ['warning', 'ORDER_DIALOG.PAYMENT_CASH_SESSION_DECLINED'],
+    ])
+  })
+
+  it('schließt nach einem Teil-Abbruch und nennt quittierpflichtig, was nicht gebucht ist', async () => {
+    const { dialog, close, notify } = setup(
+      async () => 'paid',
+      CIRCLE,
+      async () => ({
+        result: 'failed',
+        paid: ['o-1'],
+        skipped: [],
+        remaining: ['o-2'],
+      }),
+    )
+    await dialog.onCollect()
+    expect(close).toHaveBeenCalledWith(false)
+    const [type, message, options] = notify.mock.calls[0]
+    expect(type).toBe('warning')
+    expect(message).toContain('ORDER_DIALOG.PAYMENT_TABLE_PARTIAL')
+    expect(message).toContain('"paid":1')
+    expect(message).toContain('"count":2')
+    expect(message).toMatch(/"rest":"3,10/)
+    expect(options).toMatchObject({ sticky: true })
   })
 })

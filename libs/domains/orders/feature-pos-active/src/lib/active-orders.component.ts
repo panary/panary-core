@@ -44,6 +44,10 @@ import {
   kasseReorderFor,
   type KasseReorder,
   openOrderCircleTotalCents,
+  settledOrdersInCircle,
+  sumCents,
+  tableCheckoutPlan,
+  type TableCheckoutItem,
   isSyntheticSettlementScope,
   type AppliedDiscount,
   type ModifierLineItem,
@@ -110,6 +114,10 @@ interface CircleCardVm {
   elapsedMinutes: number
   expanded: boolean
   reorder: KasseReorder | null
+  /** Zahlliste für „Tisch kassieren" (core#1142); `null` mit Personalessen im Kreis. */
+  checkout: TableCheckoutItem[] | null
+  /** Schon kassierte Bestellungen des Kreises am Geschäftstag — der gezahlte Teil nach einem Abbruch. */
+  settledCount: number
 }
 
 interface OrderEntryVm {
@@ -222,6 +230,11 @@ export class ActiveOrdersComponent {
         elapsedMinutes: Number.isFinite(elapsedMs) ? Math.max(0, Math.floor(elapsedMs / 60_000)) : 0,
         expanded: isExpanded,
         reorder: kasseReorderFor(entry),
+        checkout: tableCheckoutPlan(entry.orders, order => this.calculateTotal(order)),
+        settledCount: settledOrdersInCircle(this.#orderService.orders(), {
+          settlementScope: entry.settlementScope,
+          businessDayId: entry.orders[0]?.businessDayId,
+        }),
       })
       if (isExpanded) {
         for (const order of entry.orders) {
@@ -233,6 +246,8 @@ export class ActiveOrdersComponent {
   })
 
   orders = this.sortedOrders
+  /** `orders-only` schließt nur ab; das Label der Kreis-Aktion folgt dem Modus wie „Abschließen". */
+  protected readonly isCashierMode = computed(() => this.#isCashierMode())
   protected readonly isSyntheticSettlementScope = isSyntheticSettlementScope
 
   zoomLevel: WritableSignal<number> = signal(readStoredZoom())
@@ -360,6 +375,48 @@ export class ActiveOrdersComponent {
       },
       () => this.#reorderHandoff.take(),
     )
+  }
+
+  /**
+   * „Tisch kassieren" (ADR 0063 Nr. 5, core#1142): ein Bezahlvorgang über alle offenen Bestellungen des Kreises,
+   * je Bestellung ein Abschluss und ein Beleg. Im Bestellbetrieb (`orders-only`) nur abschließen, wie die Einzelkarte.
+   * Ein abgebrochener Ablauf lässt die übrigen Bestellungen offen; der nächste Tipp kassiert nur sie.
+   */
+  async checkoutCircle(entry: { table: string; checkout: TableCheckoutItem[] | null }) {
+    const plan = entry.checkout
+    if (!plan || plan.length === 0) return
+
+    if (!this.#isCashierMode()) {
+      for (const item of plan) {
+        try {
+          await this.#orderService.complete(item.orderId)
+        } catch {
+          // handleError hat gemeldet; der Rest bleibt offen und lässt sich erneut abschließen.
+          return
+        }
+      }
+      return
+    }
+
+    const performedById = this.#resolveCashierId()
+    if (!performedById) {
+      this.#notifications.warning(this.#translate.instant('ACTIVE_ORDERS.FINALIZE_NO_USER'))
+      return
+    }
+    // Beträge und Summe aus denselben Cent-Werten (`tableCheckoutPlan`): Was der Gast zahlt, ist die Summe dessen,
+    // was je Bestellung gebucht wird.
+    const data: CashPaymentDialogData = {
+      circle: {
+        table: entry.table,
+        orders: plan.map(item => ({ orderId: item.orderId, total: fromCents(item.totalCents) })),
+      },
+      total: fromCents(sumCents(plan.map(item => item.totalCents))),
+      cashierId: performedById,
+    }
+    this.#matDialog.open<CashPaymentDialogComponent, CashPaymentDialogData, boolean>(CashPaymentDialogComponent, {
+      ...CASH_PAYMENT_DIALOG_CONFIG,
+      data,
+    })
   }
 
   toggleCircle(key: string) {

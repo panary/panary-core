@@ -3,6 +3,8 @@ import {
   groupOpenOrdersBySettlementScope,
   openOrderCircleTotalCents,
   type OpenOrderGroupInput,
+  settledOrdersInCircle,
+  tableCheckoutPlan,
 } from './open-order-groups'
 
 const order = (id: string, over: Partial<OpenOrderGroupInput> = {}): OpenOrderGroupInput => ({
@@ -85,5 +87,57 @@ describe('openOrderCircleTotalCents (core#1141)', () => {
     expect(
       openOrderCircleTotalCents([{ _id: 'a' }, { _id: 'c', staffPaymentInfo: { userName: 'X' } }], totalOf),
     ).toBeNull()
+  })
+})
+
+describe('tableCheckoutPlan (core#1142)', () => {
+  const totals: Record<string, number> = { a: 12.5, b: 3.1, c: 0.2 }
+  const totalOf = (o: OpenOrderGroupInput) => totals[o._id]
+
+  it('kassiert die älteste Bestellung zuerst, je mit ihrem Betrag in Cent', () => {
+    const plan = tableCheckoutPlan(
+      [
+        order('b', { recordingDate: '2026-11-01T10:30:00.000Z' }),
+        order('a', { recordingDate: '2026-11-01T10:00:00.000Z' }),
+      ],
+      totalOf,
+    )
+    expect(plan).toEqual([
+      { orderId: 'a', totalCents: 1250 },
+      { orderId: 'b', totalCents: 310 },
+    ])
+  })
+
+  it('entscheidet bei gleicher Aufnahmezeit nach der ID', () => {
+    expect(tableCheckoutPlan([order('c'), order('a')], totalOf)?.map(i => i.orderId)).toEqual(['a', 'c'])
+  })
+
+  it('bietet einen Kreis mit Personalessen nicht als Ganzes an', () => {
+    expect(tableCheckoutPlan([order('a'), { ...order('b'), staffPaymentInfo: { userId: 'u' } }], totalOf)).toBeNull()
+  })
+
+  it('bietet einen leeren Kreis nicht an', () => {
+    expect(tableCheckoutPlan([], totalOf)).toBeNull()
+  })
+})
+
+describe('settledOrdersInCircle (core#1142)', () => {
+  const circle = { settlementScope: '4#1', businessDayId: 'bd-1' }
+
+  it('zählt nur kassierte Bestellungen desselben Kreises am selben Geschäftstag', () => {
+    expect(
+      settledOrdersInCircle(
+        [
+          { status: 'completed', settlementScope: '4#1', businessDayId: 'bd-1' },
+          { status: 'completed', settlementScope: '4#1', businessDayId: 'bd-1' },
+          { status: 'active', settlementScope: '4#1', businessDayId: 'bd-1' },
+          { status: 'aborted', settlementScope: '4#1', businessDayId: 'bd-1' },
+          { status: 'unclaimed', settlementScope: '4#1', businessDayId: 'bd-1' },
+          { status: 'completed', settlementScope: '4#2', businessDayId: 'bd-1' },
+          { status: 'completed', settlementScope: '4#1', businessDayId: 'bd-0' },
+        ],
+        circle,
+      ),
+    ).toBe(2)
   })
 })

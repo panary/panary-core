@@ -10,7 +10,7 @@ import {
   ElementRef,
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { FormsModule } from '@angular/forms'
+import { disabled, form, FormField, FormRoot, maxLength, required, validate } from '@angular/forms/signals'
 import {
   AdminLoginMembership,
   AdminLoginRejection,
@@ -69,7 +69,7 @@ type PairingMode = 'cloud' | 'local'
 
 @Component({
   selector: 'lib-setup',
-  imports: [IconComponent, PanaryLogoComponent, CommonModule, FormsModule, TranslateModule],
+  imports: [IconComponent, PanaryLogoComponent, CommonModule, FormField, FormRoot, TranslateModule],
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',
   standalone: true,
@@ -90,18 +90,52 @@ export class SetupComponent {
   // Signals statt Properties: `filteredLocations` und das OnPush-Template müssen Änderungen sehen,
   // auch die nach einem `await` gesetzten (core#765).
   readonly serverUrl = signal('http://localhost:3030')
-  readonly email = signal('')
-  readonly password = signal('')
-  readonly selectedTenantId = signal('')
-  readonly selectedLocationId = signal('')
-  readonly deviceName = signal('')
-  readonly deviceType = signal<DeviceType>('pos-counter')
-
-  // Lokaler-Hub-Pfad
-  readonly manualHubUrl = signal('')
   // 253 Zeichen ist die maximale DNS-Namenslaenge, plus Schema und Port.
   readonly manualHubMaxLength = 255
-  readonly pairingCode = signal('')
+  readonly DEVICE_NAME_MAX_LENGTH = 50
+  readonly DEVICE_NAME_PATTERN = /^[a-zA-Z0-9äöüÄÖÜß\s\-_]+$/
+
+  // Ein Modell fuer alle Schritte (core#1174). Die Namen darunter sind die `value`-Signale der Felder,
+  // damit Code und Specs weiter `email()` und `email.set(…)` lesen und schreiben.
+  readonly setupForm = form(
+    signal({
+      email: '',
+      password: '',
+      selectedTenantId: '',
+      selectedLocationId: '',
+      deviceName: '',
+      deviceType: 'pos-counter' as DeviceType,
+      manualHubUrl: '',
+      pairingCode: '',
+      customUrlInput: '',
+    }),
+    s => {
+      validate(s.email, ({ value }) => (value().trim() ? undefined : { kind: 'required' }))
+      required(s.password)
+      required(s.selectedTenantId)
+      required(s.selectedLocationId)
+      disabled(s.selectedLocationId, ({ valueOf }) => !valueOf(s.selectedTenantId))
+      maxLength(s.deviceName, this.DEVICE_NAME_MAX_LENGTH)
+      validate(s.deviceName, ({ value }) => {
+        const name = value().trim()
+        if (!name) return { kind: 'required' }
+        return this.DEVICE_NAME_PATTERN.test(name) ? undefined : { kind: 'pattern' }
+      })
+      maxLength(s.pairingCode, 6)
+      validate(s.pairingCode, ({ value }) => (/^\d{6}$/.test(value().trim()) ? undefined : { kind: 'pattern' }))
+      maxLength(s.manualHubUrl, this.manualHubMaxLength)
+    },
+  )
+  readonly email = this.setupForm.email().value
+  readonly password = this.setupForm.password().value
+  readonly selectedTenantId = this.setupForm.selectedTenantId().value
+  readonly selectedLocationId = this.setupForm.selectedLocationId().value
+  readonly deviceName = this.setupForm.deviceName().value
+  readonly deviceType = this.setupForm.deviceType().value
+
+  // Lokaler-Hub-Pfad
+  readonly manualHubUrl = this.setupForm.manualHubUrl().value
+  readonly pairingCode = this.setupForm.pairingCode().value
 
   // Cloud-Login-Modus im `server-login`-Schritt: Pairing-Code (bevorzugt, keine
   // Credentials aufs Gerät) oder Admin-Zugangsdaten (Fallback). Der Code-Pfad
@@ -139,7 +173,7 @@ export class SetupComponent {
   // Cloud-URL-Override (versteckt: Klick auf den „Panary Cloud"-Namen im Login-Step)
   readonly urlOverrideOpen = signal(false)
   readonly cloudUrlCustomized = signal(false)
-  readonly customUrlInput = signal('')
+  readonly customUrlInput = this.setupForm.customUrlInput().value
 
   // Hub-Discovery (aus dem Service)
   readonly hubs = this.hubDiscovery.hubs
@@ -483,7 +517,7 @@ export class SetupComponent {
 
   //#region Lokaler Hub: Pairing-Code
   isPairingCodeValid(): boolean {
-    return /^\d{6}$/.test(this.pairingCode().trim())
+    return !this.setupForm.pairingCode().invalid()
   }
 
   async submitPairingCode(): Promise<void> {
@@ -519,19 +553,17 @@ export class SetupComponent {
   }
 
   isStep1Valid(): boolean {
-    return this.serverUrl().trim().length > 0 && this.email().trim().length > 0 && this.password().length > 0
+    return (
+      this.serverUrl().trim().length > 0 && !this.setupForm.email().invalid() && !this.setupForm.password().invalid()
+    )
   }
 
   isStep2Valid(): boolean {
-    return this.selectedTenantId().length > 0 && this.selectedLocationId().length > 0
+    return !this.setupForm.selectedTenantId().invalid() && this.selectedLocationId().length > 0
   }
 
-  readonly DEVICE_NAME_MAX_LENGTH = 50
-  readonly DEVICE_NAME_PATTERN = /^[a-zA-Z0-9äöüÄÖÜß\s\-_]+$/
-
   isStep3Valid(): boolean {
-    const name = this.deviceName().trim()
-    return name.length > 0 && name.length <= this.DEVICE_NAME_MAX_LENGTH && this.DEVICE_NAME_PATTERN.test(name)
+    return !this.setupForm.deviceName().invalid()
   }
 
   getDeviceNameError(): string | null {

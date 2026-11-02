@@ -2,6 +2,7 @@
 import '@angular/compiler'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  APP_ID,
   DestroyRef,
   Injector,
   runInInjectionContext,
@@ -68,6 +69,8 @@ function setup(
       { provide: LanguageService, useValue: { currentLanguage: () => 'de', setLanguage: () => undefined } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       { provide: APP_CONFIG, useValue: { appVersion: 'test', cloudUrl: 'https://api.panary.test' } },
+      // `form()` (core#1174) braucht die AppId, die sonst die Plattform stellt.
+      { provide: APP_ID, useValue: 'test' },
       { provide: ɵChangeDetectionScheduler, useValue: { notify: () => undefined } },
       {
         provide: ɵEffectScheduler,
@@ -268,5 +271,51 @@ describe('SetupComponent — Organisationswahl', () => {
 
     expect(component.filteredLocations().map(loc => loc._id)).toEqual(['l1'])
     expect(component.selectedLocationId()).toBe('l1')
+  })
+})
+
+// core#1174: Die Eingaben aller Schritte liegen in einem `form()`; die bisherigen Signale sind dessen
+// `value`-Signale. Geprüft werden die Schemaregeln hinter `isStepXValid()`/`isPairingCodeValid()`.
+// Das Template rendert diese Lib (environment: 'node') nicht; die Bindungen prüft ngc.
+describe('SetupComponent — Formular-Schema', () => {
+  it('gibt den Pairing-Code nur mit genau sechs Ziffern frei', () => {
+    const { component } = setup()
+    component.pairingCode.set('12345')
+    expect(component.isPairingCodeValid()).toBe(false)
+    component.pairingCode.set('12345a')
+    expect(component.isPairingCodeValid()).toBe(false)
+    component.pairingCode.set(' 123456 ')
+    expect(component.isPairingCodeValid()).toBe(true)
+  })
+
+  it('verlangt E-Mail (nicht nur Leerzeichen) und Passwort', () => {
+    const { component } = setup()
+    component.email.set('   ')
+    component.password.set('geheim')
+    expect(component.isStep1Valid()).toBe(false)
+    component.email.set('owner@example.invalid')
+    expect(component.isStep1Valid()).toBe(true)
+    component.password.set('')
+    expect(component.isStep1Valid()).toBe(false)
+  })
+
+  it('sperrt die Filiale, solange keine Organisation gewählt ist', () => {
+    const { component } = setup()
+    expect(component.setupForm.selectedLocationId().disabled()).toBe(true)
+    component.selectedTenantId.set('t-1')
+    expect(component.setupForm.selectedLocationId().disabled()).toBe(false)
+    expect(component.isStep2Valid()).toBe(false)
+    component.selectedLocationId.set('l-1')
+    expect(component.isStep2Valid()).toBe(true)
+  })
+
+  it('prüft den Gerätenamen auf Inhalt und erlaubte Zeichen', () => {
+    const { component } = setup()
+    component.deviceName.set('  ')
+    expect(component.isStep3Valid()).toBe(false)
+    component.deviceName.set('Kasse <1>')
+    expect(component.isStep3Valid()).toBe(false)
+    component.deviceName.set('Kasse 1')
+    expect(component.isStep3Valid()).toBe(true)
   })
 })

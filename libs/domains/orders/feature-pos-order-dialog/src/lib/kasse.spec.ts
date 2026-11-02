@@ -11,12 +11,18 @@ import { KASSE_EXIT_URL, KassePageComponent, kasseOrigin } from './kasse-page.co
 import { kasseBookingGuard, kasseLeaveGuard } from './kasse.guards'
 import { KasseDraftRegistry } from './kasse-draft-registry'
 
-function setup(navigationSucceeds = true, previousUrl?: string, returnEnabled = true) {
+function setup(navigationSucceeds = true, previousUrl?: string, returnEnabled = true, navigationState?: unknown) {
   const navigations: string[] = []
   const suspended = signal(false)
   const notifications = new NotificationService()
   const router = {
-    currentNavigation: () => (previousUrl ? { previousNavigation: { finalUrl: previousUrl } } : null),
+    currentNavigation: () =>
+      previousUrl || navigationState
+        ? {
+            ...(previousUrl ? { previousNavigation: { finalUrl: previousUrl } } : {}),
+            extras: { state: navigationState },
+          }
+        : null,
     navigateByUrl: (url: string) => {
       navigations.push(url)
       return Promise.resolve(navigationSucceeds)
@@ -61,6 +67,28 @@ describe('KassePageComponent (core#828)', () => {
     expect(navigations).toEqual([KASSE_EXIT_URL])
     expect(page.run()).toBe(0)
     expect(await page.canLeave()).toBe(true)
+  })
+})
+
+describe('KassePageComponent — Nachbestellung (core#1140)', () => {
+  const pageOf = (injector: Injector) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runInInjectionContext(injector, () => new KassePageComponent()) as any
+
+  it('reicht Tisch und Kreis aus dem Navigations-State nur an die erste Bestellung', () => {
+    const { injector } = setup(true, '/orders/active', false, {
+      kasseReorder: { table: '4', settlementScope: '4#1' },
+    })
+    const page = pageOf(injector)
+
+    expect(page.reorderFor(0)).toEqual({ table: '4', settlementScope: '4#1' })
+    expect(page.reorderFor(1)).toBeNull()
+  })
+
+  it('ohne Navigations-State (Neuladen, Rail) ist nichts vorbelegt', () => {
+    const { injector } = setup(true, '/orders/active')
+
+    expect(pageOf(injector).reorderFor(0)).toBeNull()
   })
 })
 

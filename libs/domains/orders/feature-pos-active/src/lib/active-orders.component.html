@@ -41,7 +41,20 @@
             <!-- Kreis-Karte (core#1141): ein Abrechnungskreis, mehrere offene Bestellungen. Aufklappen zeigt die
                  Einzelbestellungen als gewohnte Karten direkt dahinter. -->
             <div [style.zoom]="zoomLevel()" class="flex flex-col gap-2 w-80 shrink-0">
-              <div class="flex-none h-12"></div>
+              <!-- Aktionen des Kreises über der Karte: Die Karte selbst ist ein Button (Aufklappen). -->
+              <div class="flex-none h-12 flex items-center justify-end gap-2 px-4">
+                @if (entry.reorder; as preset) {
+                  <button
+                    type="button"
+                    class="pnry-touch hover-morph-btn-rect bg-surface-elevated text-ink h-12 px-5 rounded-xl flex items-center justify-center gap-2 border border-line hover:bg-line shadow-sm"
+                    data-testid="circle-reorder"
+                    (click)="reorder(preset)"
+                  >
+                    <lib-icon name="plus-circle" class="text-[1.25rem]" />
+                    <span class="font-bold text-sm">{{ 'ACTIVE_ORDERS.REORDER' | translate }}</span>
+                  </button>
+                }
+              </div>
               <button
                 type="button"
                 class="pnry-touch w-full text-left bg-surface-input border-2 border-line rounded-2xl px-6 py-5 flex flex-col gap-3 hover:border-line-strong transition-colors"
@@ -126,6 +139,16 @@
                       <div class="w-3/5 h-px bg-line my-1"></div>
 
                       <!-- Action buttons -->
+                      @if (vm.reorder; as preset) {
+                        <button
+                          class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
+                          data-testid="order-reorder"
+                          (click)="reorder(preset); $event.stopPropagation()"
+                        >
+                          <lib-icon name="plus-circle" class="text-[1.375rem] text-ink" />
+                          <span class="text-sm font-bold">{{ 'ACTIVE_ORDERS.REORDER' | translate }}</span>
+                        </button>
+                      }
                       <button
                         class="pnry-touch w-4/5 min-h-14 px-4 rounded-xl bg-surface-elevated text-ink flex items-center gap-3 border border-line hover:bg-surface-bg dark:hover:bg-line hover:border-line-strong transition-colors"
                         (click)="openStaffMealView(); $event.stopPropagation()"

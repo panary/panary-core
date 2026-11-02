@@ -271,6 +271,72 @@ describe('orders service — Abrechnungskreis (settlementScope)', () => {
     expect(journal.map(entry => [entry.type, entry.userId])).toEqual([['settlement-scope-reassigned', userId]])
   })
 
+  // Nachbestellung (ADR 0063 Nr. 1, core#1140): Referenz `Transaktion` auf die ERSTE
+  // Bestellung des Kreises, geschrieben von `recordFollowUpReference()` in after.create.
+  const followUpReferences = async (targetOrderId: string) =>
+    (await app.service('order-references').find({
+      ...internal,
+      paginate: false,
+      query: { targetOrderId, refType: 'Transaktion' },
+    } as never)) as unknown as Array<{ sourceOrderId: string; refBusinessDayId?: string | null }>
+
+  it('verweist jede Nachbestellung eines Kreises auf seine erste Bestellung', async () => {
+    const table = uniqueTable()
+    const first = await createOrder({ table })
+    const second = await createOrder({ table, settlementScope: first.settlementScope })
+    const third = await createOrder({ table, settlementScope: first.settlementScope })
+
+    expect(await followUpReferences(first._id)).toEqual([])
+    const [toSecond] = await followUpReferences(second._id)
+    const [toThird] = await followUpReferences(third._id)
+    expect(toSecond?.sourceOrderId).toBe(first._id)
+    expect(toThird?.sourceOrderId).toBe(first._id)
+    expect(toSecond?.refBusinessDayId).toBe(first.businessDayId)
+  })
+
+  it('schreibt keine Transaktions-Referenz, wenn der Edge die Bestellung einem neuen Besuch zuordnet', async () => {
+    const table = uniqueTable()
+    const first = await createOrder({ table })
+    await complete(first._id)
+
+    const late = await createOrder({ table, settlementScope: `${table}#1` })
+
+    expect(late.settlementScope).toBe(`${table}#2`)
+    expect(await followUpReferences(late._id)).toEqual([])
+  })
+
+  it('schreibt fuer einen Split keine Transaktions-Referenz, er traegt seine eigene', async () => {
+    // `orders.split` legt die Teilbestellung mit `inheritSettlementScope` an (ADR 0049).
+    const table = uniqueTable()
+    const first = await createOrder({ table })
+    const part = (await app.service('orders').create(
+      {
+        tenantId,
+        locationId,
+        status: 'active',
+        orderChannel: 'pos',
+        dineLocation: 'dine-in',
+        lineItems: [lineItem()],
+        isFinished: false,
+        estimatedDuration: 0,
+        remainingTime: 0,
+        recordingDate: new Date().toISOString(),
+        table,
+        settlementScope: first.settlementScope,
+      } as never,
+      { ...internal, user: { _id: userId, tenantId, locationId }, inheritSettlementScope: true } as never,
+    )) as Order
+    onTestFinished(async () => {
+      await app
+        .service('orders')
+        .remove(part._id, internal)
+        .catch(() => undefined)
+    })
+
+    expect(part.settlementScope).toBe(first.settlementScope)
+    expect(await followUpReferences(part._id)).toEqual([])
+  })
+
   it('uebernimmt den Kreis eines alten Clients (ohne Besuch) unveraendert', async () => {
     const table = uniqueTable()
     const order = await createOrder({ table, settlementScope: table })

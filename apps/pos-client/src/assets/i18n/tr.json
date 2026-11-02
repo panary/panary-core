@@ -441,6 +441,7 @@
     "SETTLEMENT_SCOPE": "Hesap grubu",
     "CIRCLE_TITLE": "Masa {{table}} · {{count}} sipariş",
     "CIRCLE_SINCE": "{{minutes}} dk",
+    "REORDER": "Ek sipariş",
     "DISCOUNT_LABEL": "İndirim",
     "SPLIT": "Böl"
   },
@@ -747,6 +748,7 @@
     "ENTERPRISE_ONLY": "Sadece Enterprise sürümünde",
     "BUSINESS_DAY_HINT_OPEN_HERE": "Açık iş günü yok. Sipariş gönderilirken reddedilecek.",
     "BUSINESS_DAY_HINT_ADMIN": "Açık iş günü yok. Lütfen Cloud Admin'de açın, aksi halde sipariş reddedilir.",
+    "REORDER_BANNER": "Ek sipariş · Masa {{table}}",
     "BUSINESS_DAY_HINT_ACTION": "Günü aç",
     "ORDER_NOT_POSSIBLE": "Sipariş verilemez"
   },

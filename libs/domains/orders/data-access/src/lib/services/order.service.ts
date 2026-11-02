@@ -63,6 +63,12 @@ export interface CreateOrderInput {
   orderInteractions?: Array<OrderInteraction>
   creationContext?: CreationContext
   appliedDiscounts?: AppliedDiscount[]
+  /**
+   * Abrechnungskreis einer Nachbestellung (ADR 0063 Nr. 1, core#1140): der Kreis der offenen Bestellung, aus der
+   * nachbestellt wird. Ohne ihn leitet der Server den Kreis aus `table` ab. Mit ihm bleibt die Nachbestellung auch
+   * dann im Kreis, wenn er ein alter Besuch-0-Kreis ist; einen inzwischen geschlossenen Besuch ordnet der Edge um.
+   */
+  settlementScope?: string
 }
 
 /** Antwort der Edge-Custom-Method `orders.split`. */
@@ -446,7 +452,8 @@ export class OrderService extends BaseService<Order> {
     //
     // Dieselbe Funktion wie am Edge (`@panary/orders/domain`) — eine zweite
     // Ableitung waere Drift, die niemandem auffiele.
-    order.settlementScope = deriveSettlementScope({
+    // Ein mitgegebener Kreis (Nachbestellung, core#1140) gewinnt, wie am Edge.
+    order.settlementScope ||= deriveSettlementScope({
       table: order.table,
       locationId: order.locationId,
       // Offline steht weder der Geschaeftstag noch die endgueltige Belegnummer
@@ -565,6 +572,7 @@ export class OrderService extends BaseService<Order> {
       orderInteractions = [],
       creationContext,
       appliedDiscounts,
+      settlementScope,
     } = input
     // businessDayId wird vom Backend automatisch verwaltet (standalone: Auto-Rotate)
     const businessDayId = this.#locationService.activeLocation()?.currentBusinessDay?.businessDayId
@@ -596,6 +604,8 @@ export class OrderService extends BaseService<Order> {
     // oben: dessen Typ schliesst `_id` aus (der Server vergibt sie im Regelfall),
     // und das soll der Default bleiben.
     if (_id) (order as Order)._id = _id
+    // Gleiche Begründung: Im Regelfall stempelt der Server den Kreis, nur die Nachbestellung bringt ihren mit.
+    if (settlementScope) (order as Order).settlementScope = settlementScope
 
     if (pager) order.pager = pager
     if (table) order.table = table

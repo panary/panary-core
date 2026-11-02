@@ -1021,3 +1021,31 @@ describe('order-receipt.renderer — Währung abschaltbar (#1258)', () => {
     expect(zeilen[linie].leadDots + zeilen[linie].contentDots).toBe(summe.leadDots + summe.contentDots)
   })
 })
+
+describe('order-receipt.renderer — Nachbestellung (core#1140)', () => {
+  const tischOrder = (table: string) => ({ ...buildMenuOrder(1), table })
+
+  it.each(['kitchen', 'full'] as const)(
+    'nennt im %s-Bon „Nachbestellung“ und den Tisch in einer Kopfzeile',
+    variant => {
+      const text = renderToText(tischOrder('4'), location, { variant, followUp: true })
+      expect(text).toMatch(/Nachbestellung . Tisch 4/)
+      expect(text).not.toContain('Tisch: 4')
+    },
+  )
+
+  it('druckt ohne Referenz den Tisch wie bisher', () => {
+    const text = renderToText(tischOrder('4'), location, { followUp: false })
+    expect(text).toContain('Tisch: 4')
+    expect(text).not.toContain('Nachbestellung')
+  })
+
+  it('bricht die Kopfzeile auf 58 mm nicht um, sie wird schmaler statt umzubrechen', () => {
+    const zeilen = decodeEscPosLines(
+      renderOrderReceipt(tischOrder('Terrasse 12'), location, { paperWidth: '58mm', followUp: true }),
+      30,
+    )
+    expect(zeilen.filter(z => z.text.includes('Nachbestellung'))).toHaveLength(1)
+    expect(zeilen.some(z => /Nachbestellung . Tisch Terrasse 12/.test(z.text))).toBe(true)
+  })
+})

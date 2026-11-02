@@ -73,6 +73,7 @@ import {
   computeOrderTax,
   groupModifiersByComponent,
   isSplittableLine,
+  type KasseReorder,
   lineConfigKey,
   mergeIdenticalLines,
   modifiersCountPerUnit,
@@ -569,6 +570,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       showPagers: !!this.locationService.showPagers,
       showTables: !!this.locationService.showTables,
       takeOut: this._dineLocation === DineLocation.TAKE_OUT,
+      tablePreset: !!this.reorder(),
     })
     return closingStepViews(steps, this.#closingStep, { pager: this._pager, table: this._table })
   }
@@ -796,6 +798,12 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * ein leerer `order-cancel` in den OrderInteractions (core#828).
    */
   readonly isFollowUp = input(false)
+
+  /**
+   * Nachbestellung aus einer offenen Bestellung (ADR 0063 Nr. 1 und 6, core#1140): Tisch und Kreis stehen fest. Die
+   * Abschlusskette fragt den Tisch nicht, und die Bestellung geht mit dem Kreis der offenen Bestellung raus.
+   */
+  readonly reorder = input<KasseReorder | null>(null)
 
   /** DINE LOCATION OVERLAY */
   showDineLocationSelection = false
@@ -1257,7 +1265,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Neue Kette, neue Wahl: Ein abgebrochener Versuch ließ Pager und Tisch sonst stehen — die Bestellung trug sie
     // still mit, und seit core#1069 zeigte sie auch der Schrittkopf.
     this._pager = undefined
-    this._table = undefined
+    this._table = this.reorder()?.table
 
     if (this.locationService.showPagers) {
       this.setPagerSubbuttons()
@@ -1401,7 +1409,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         isFunctionButton: true,
         callback: () => {
           this._pager = pager
-          if (this.locationService.showTables) {
+          if (this.locationService.showTables && !this.reorder()) {
             this.setTableSubbuttons()
           } else {
             this.setProductionTimeSubbuttons()
@@ -3062,9 +3070,11 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const dineLocation = !this._dineLocation ? DineLocation.DINE_IN : this._dineLocation
 
+    // Eine Nachbestellung zum Mitnehmen bleibt am Tisch und im Kreis: Der Gast zahlt sie mit dem Tisch (core#1140).
+    const reorder = this.reorder()
     if (dineLocation === DineLocation.TAKE_OUT) {
       this._pager = undefined
-      this._table = undefined
+      if (!reorder) this._table = undefined
     }
     if (this.isStaffMealOrder && this._currentUser) {
       staffMealDetails = {
@@ -3194,6 +3204,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // (Offline-)Create an der uuid-Validierung scheitern lässt.
       creationContext: this._currentUser?._id ? { createdBy: this._currentUser._id.toString() } : undefined,
       appliedDiscounts: appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
+      settlementScope: reorder?.settlementScope,
     })
 
     if (payNow && orderId) {

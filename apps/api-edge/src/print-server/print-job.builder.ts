@@ -107,6 +107,8 @@ export interface OrderReceiptJob {
    */
   orderId: string
   deviceName?: string
+  /** Nachbestellung (Referenz `Transaktion`, core#1140) — siehe `OrderReceiptOptions.followUp`. */
+  followUp?: boolean
 }
 
 /**
@@ -163,6 +165,7 @@ export async function executeOrderReceiptJob(
           paperWidth,
           encoding: codepage,
           variant,
+          followUp: job.followUp,
         },
         job.deviceName,
       )

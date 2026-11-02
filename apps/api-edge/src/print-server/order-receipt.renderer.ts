@@ -51,6 +51,11 @@ export function receiptVariantForRole(role: string | undefined | null): ReceiptV
 export interface OrderReceiptOptions extends EscposOptions {
   /** Default `full` — siehe `receiptVariantForRole`. */
   variant?: ReceiptVariant
+  /**
+   * Nachbestellung im Kreis des Tisches (ADR 0063 Nr. 7, core#1140): Die Bestellung traegt eine
+   * Referenz `Transaktion`. Der Aufrufer liest sie, der Renderer bleibt eine reine Funktion.
+   */
+  followUp?: boolean
 }
 
 /**
@@ -63,7 +68,7 @@ export function renderOrderReceipt(
   options: OrderReceiptOptions = {},
   deviceName?: string,
 ): Uint8Array {
-  const { paperWidth = '80mm', variant = 'full', encoding } = options
+  const { paperWidth = '80mm', variant = 'full', encoding, followUp = false } = options
   const cols = COLUMNS_MAP[paperWidth] || 48
 
   // Spaltenbreiten
@@ -123,8 +128,14 @@ export function renderOrderReceipt(
   enc.align('left')
   enc.newline()
 
-  // Tisch / Pager
-  if (order.table) {
+  // Tisch / Pager. Bei einer Nachbestellung sagt die Kopfzeile beides: Die Kueche kocht nur die
+  // neuen Positionen und bringt sie an den Tisch, der schon isst (core#1140). Doppelte Breite nur,
+  // solange die Zeile passt — ein Umbruch mitten im Tisch-Label waere schlechter als kleinere Schrift.
+  if (order.table && followUp) {
+    const head = `Nachbestellung · Tisch ${order.table}`
+    const width = head.length * 2 <= cols ? 2 : 1
+    enc.align('center').bold(true).size(width, 2).line(head).size(1, 1).bold(false).align('left')
+  } else if (order.table) {
     enc.align('center').bold(true).size(2, 2).line(`Tisch: ${order.table}`).size(1, 1).bold(false).align('left')
   }
   if (order.pager) {

@@ -224,3 +224,28 @@ describe('Offene Bestellungen — kein Storno-Stempel für production (core#1264
     expect(isOrderOpen(OrderStatus.ABORTED)).toBe(false)
   })
 })
+
+// core#1140: „Nachbestellen" an Einzel- und Kreis-Karte öffnet die Kasse mit Tisch und Kreis, nur mit Tisch.
+describe('Offene Bestellungen — Nachbestellen (core#1140)', () => {
+  const template = read('./active-orders.component.html')
+  const component = read('./active-orders.component.ts')
+  const circle = template.slice(template.indexOf(`entry.kind === 'circle'`), template.indexOf('@let vm = entry.vm'))
+  const overlay = template.slice(template.indexOf('<!-- Selection Overlay -->'), template.indexOf("'staff-meal'"))
+
+  it('die Kreis-Karte trägt die Aktion über der Karte, nicht im Aufklapp-Button', () => {
+    const actions = circle.slice(0, circle.indexOf('data-testid="circle-card"'))
+    expect(actions).toMatch(/@if \(entry\.reorder; as preset\)/)
+    expect(actions).toMatch(/data-testid="circle-reorder"/)
+    expect(actions).toMatch(/\(click\)="reorder\(preset\)"/)
+  })
+
+  it('die Einzelkarte bietet die Aktion im Overlay nur mit Vorbelegung an', () => {
+    expect(overlay).toMatch(/@if \(vm\.reorder; as preset\)/)
+    expect(overlay).toMatch(/data-testid="order-reorder"/)
+  })
+
+  it('die Vorbelegung kommt aus dem Domain-Helfer und reist als Navigations-State zur Kasse', () => {
+    expect(component.match(/reorder: kasseReorderFor\(/g)).toHaveLength(2)
+    expect(component).toMatch(/navigate\(\['\/kasse'\], \{ state: \{ \[KASSE_REORDER_STATE_KEY\]: preset \} \}\)/)
+  })
+})

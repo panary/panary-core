@@ -36,7 +36,23 @@ import type { HookContext, NextFunction } from '../declarations'
 // Interne Aufrufe (Sync-Apply, Worker) bleiben frei: Dort kommt ein fertiger
 // Stand an, den der Edge nicht ablehnen darf.
 
-const mutex = new Mutex()
+// Je Bestellung ein Mutex: Kollidieren koennen nur Patches derselben Bestellung,
+// die Kassen anderer Bestellungen sollen nicht warten. Der Eintrag faellt weg,
+// sobald niemand mehr wartet.
+const mutexes = new Map<string, Mutex>()
+
+const runExclusivePerOrder = async (orderId: string, task: () => Promise<void>): Promise<void> => {
+  let mutex = mutexes.get(orderId)
+  if (!mutex) {
+    mutex = new Mutex()
+    mutexes.set(orderId, mutex)
+  }
+  try {
+    await mutex.runExclusive(task)
+  } finally {
+    if (!mutex.isLocked()) mutexes.delete(orderId)
+  }
+}
 
 interface PaymentLite {
   transactions?: Array<{ _id?: unknown }>
@@ -60,12 +76,12 @@ const sameTransactions = (incoming: PaymentLite | null | undefined, stored: Paym
  * Around-Hook am `patch`: Pruefung und Schreiben eines Zahlungs-Patches laufen
  * hintereinander, nie verschraenkt. Ohne ihn lesen zwei gleichzeitige
  * Kassiervorgaenge beide „offen", bevor der erste gespeichert ist. Der Edge ist
- * single-process, ein Prozess-Mutex genuegt (wie `reject-second-open-cash-session`).
+ * single-process, ein Mutex im Prozess genuegt (wie `reject-second-open-cash-session`).
  * Nur externe Patches mit `payment` warten — alles andere laeuft ungebremst.
  */
 export const serializeOrderPaymentPatch = async (context: HookContext, next: NextFunction): Promise<void> => {
   if (!carriesPayment(context)) return next()
-  await mutex.runExclusive(() => next())
+  await runExclusivePerOrder(String(context.id), () => next())
 }
 
 /**
@@ -88,9 +104,7 @@ export const lockSettledOrderPayment = async (context: HookContext): Promise<Hoo
     return context
   }
 
-  throw new BadRequest(AppErrorMessages[AppError.ORDER_ALREADY_SETTLED], {
-    code: AppError.ORDER_ALREADY_SETTLED,
-    orderId: String(context.id),
-    status: stored.status,
-  })
+  // Bewusst ohne Status im Body: Der Vorstand ist ungescoped gelesen (wie in
+  // `validateOrderStatusTransition`), die Antwort soll nichts darueber verraten.
+  throw new BadRequest(AppErrorMessages[AppError.ORDER_ALREADY_SETTLED], { code: AppError.ORDER_ALREADY_SETTLED })
 }

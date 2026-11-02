@@ -159,6 +159,19 @@ describe('orders.patch — Zahlung einer abgeschlossenen Bestellung', () => {
     expect(await storedPayment(order._id)).toEqual(first)
   })
 
+  it('auch eine nicht abgeholte Bestellung (unclaimed) behaelt ihre Zahlung', async () => {
+    const order = await createOpenOrder()
+    const first = payment(firstCashierId)
+    await checkout(order._id, first)
+    await app.service('orders').patch(order._id, { status: 'unclaimed' } as never, internal)
+
+    await expect(
+      app.service('orders').patch(order._id, { payment: payment(secondCashierId) } as never, deviceParams()),
+    ).rejects.toMatchObject({ code: 400, data: { code: AppError.ORDER_ALREADY_SETTLED } })
+
+    expect(await storedPayment(order._id)).toEqual(first)
+  })
+
   it('dieselbe Zahlung noch einmal (verlorene Antwort, Wiederholung) geht durch und aendert nichts', async () => {
     const order = await createOpenOrder()
     const first = payment(firstCashierId)

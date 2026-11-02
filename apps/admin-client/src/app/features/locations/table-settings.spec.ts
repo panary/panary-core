@@ -381,6 +381,7 @@ describe('TableSettingsComponent — Eingabefelder im Template', () => {
     tableLabel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
     await fixture.whenStable()
 
+    expect(api.patch).toHaveBeenCalled()
     const tables = lastPayload(api).settings.tableSettings.rooms[0].tables as Array<{ label: string }>
     expect(tables.map(t => t.label)).toEqual(['T7'])
     expect(tableLabel.value).toBe('')

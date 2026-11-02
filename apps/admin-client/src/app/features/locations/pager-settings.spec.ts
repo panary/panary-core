@@ -1,6 +1,6 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { TranslateService } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -45,7 +45,7 @@ describe('PagerSettingsComponent', () => {
     const { component, api } = setup()
     await component.ngOnInit()
 
-    component.newPagerNumber = 7
+    component.pagerForm.newPager().value.set(7)
     await component.addPager()
 
     expect(component.pagers()).toEqual([1, 2, 7])
@@ -60,7 +60,7 @@ describe('PagerSettingsComponent', () => {
     const { component, connection } = setup({ patch: () => Promise.reject(err) })
     await component.ngOnInit()
 
-    component.newPagerNumber = 7
+    component.pagerForm.newPager().value.set(7)
     await component.addPager()
 
     expect(component.pagers()).toEqual([1, 2])
@@ -83,7 +83,7 @@ describe('PagerSettingsComponent', () => {
     const { component, api } = setup({ cloudPaired: true })
     await component.ngOnInit()
 
-    component.newPagerNumber = 7
+    component.pagerForm.newPager().value.set(7)
     await component.addPager()
 
     expect(component.pagers()).toEqual([1, 2])
@@ -95,7 +95,7 @@ describe('PagerSettingsComponent', () => {
     const { component, api } = setup()
     await component.ngOnInit()
 
-    component.newPagerNumber = 2
+    component.pagerForm.newPager().value.set(2)
     await component.addPager()
 
     expect(component.pagerDuplicateError()).toBe(true)
@@ -110,5 +110,98 @@ describe('PagerSettingsComponent', () => {
 
     expect(component.pagers()).toEqual([2])
     expect(api.patch).toHaveBeenCalledTimes(1)
+  })
+
+  // core#1173: Die Grenzen stehen im Signal-Forms-Schema, nicht mehr im Handler.
+  it('lehnt eine Sammelanlage über 100 über das Schema ab', async () => {
+    const { component, api } = setup()
+    await component.ngOnInit()
+
+    component.pagerForm.batchCount().value.set(101)
+    await component.addBatch()
+
+    expect(component.batchError()).toBe('LOCATION.PAGER_BATCH_MAX')
+    expect(component.pagers()).toEqual([1, 2])
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('legt eine Sammelanlage an und leert danach das Eingabefeld', async () => {
+    const { component, api } = setup()
+    await component.ngOnInit()
+
+    component.pagerForm.batchCount().value.set(3)
+    await component.addBatch()
+
+    expect(component.pagers()).toEqual([1, 2, 3, 4, 5])
+    expect(component.pagerInput().batchCount).toBeNull()
+    expect(api.patch).toHaveBeenCalledTimes(1)
+  })
+
+  it('lehnt eine Pager-Nummer unter 1 über das Schema ab', async () => {
+    const { component, api } = setup()
+    await component.ngOnInit()
+
+    component.pagerForm.newPager().value.set(0)
+    await component.addPager()
+
+    expect(component.pagers()).toEqual([1, 2])
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+})
+
+// core#1173: Die Zahlenfelder hängen per `[formField]` am Modell. Geprüft wird über das gerenderte
+// Template, denn diese Bindung prüfen die Handler-Tests oben nicht.
+describe('PagerSettingsComponent — Eingabefelder im Template', () => {
+  async function render() {
+    const api = {
+      find: vi.fn().mockResolvedValue({
+        data: [{ _id: 'loc-1', settings: { pagerSettings: { enabled: true, pagers: [1, 2] } } }],
+      }),
+      patch: vi.fn().mockResolvedValue({}),
+    }
+    const connection = {
+      healthLoaded: signal(true),
+      cloudPaired: signal(false),
+      emergencyOverrideActive: signal(false),
+      emergencyOverrideSinceMin: signal<number | null>(null),
+      cloudUnreachable: signal(false),
+      cloudContactUnknown: signal(false),
+      refreshHealth: vi.fn().mockResolvedValue(undefined),
+    }
+    await TestBed.configureTestingModule({
+      imports: [PagerSettingsComponent, TranslateModule.forRoot()],
+      providers: [
+        CloudManagedService,
+        { provide: ApiService, useValue: api },
+        { provide: ConnectionService, useValue: connection },
+      ],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(PagerSettingsComponent)
+    await fixture.whenStable()
+    const el = fixture.nativeElement as HTMLElement
+    const [newPager, batchCount] = [...el.querySelectorAll<HTMLInputElement>('input[type="number"]')]
+    return { fixture, api, newPager, batchCount }
+  }
+
+  it('legt die getippte Pager-Nummer per Enter an und leert das Feld', async () => {
+    const { fixture, api, newPager } = await render()
+    newPager.value = '9'
+    newPager.dispatchEvent(new Event('input'))
+    await fixture.whenStable()
+    newPager.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.pagers()).toEqual([1, 2, 9])
+    expect(api.patch).toHaveBeenCalledTimes(1)
+    expect(newPager.value).toBe('')
+  })
+
+  it('übernimmt die getippte Anzahl der Sammelanlage ins Modell', async () => {
+    const { fixture, batchCount } = await render()
+    batchCount.value = '4'
+    batchCount.dispatchEvent(new Event('input'))
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.pagerInput().batchCount).toBe(4)
   })
 })

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { email, form, FormField, FormRoot, required } from '@angular/forms/signals'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
@@ -15,7 +15,7 @@ const INPUT = `w-full bg-surface-input border border-line-soft rounded-xl p-3
 @Component({
   selector: 'app-location-detail',
   standalone: true,
-  imports: [FormsModule, TranslateModule, CloudManagedBannerComponent],
+  imports: [FormField, FormRoot, TranslateModule, CloudManagedBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-2xl space-y-4 h-full overflow-y-auto">
@@ -46,7 +46,7 @@ const INPUT = `w-full bg-surface-input border border-line-soft rounded-xl p-3
           <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_LOCATION" />
         }
 
-        <form (ngSubmit)="onSave()" class="space-y-4">
+        <form [formRoot]="locationForm" (submit)="onSave()" class="space-y-4">
           <!--
             fieldset[disabled] sperrt alle Controls nativ und nimmt sie aus der
             Tab-Reihenfolge. min-w-0, m-0, p-0 und border-0 neutralisieren die
@@ -56,26 +56,26 @@ const INPUT = `w-full bg-surface-input border border-line-soft rounded-xl p-3
             <!-- Name -->
             <div class="space-y-1.5">
               <label for="locationName" class="${LABEL}">{{ 'COMMON.NAME' | translate }} *</label>
-              <input id="locationName" [(ngModel)]="form.name" name="name" type="text" required class="${INPUT}" />
+              <input id="locationName" [formField]="locationForm.name" type="text" class="${INPUT}" />
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <!-- E-Mail -->
               <div class="space-y-1.5">
                 <label for="locationEmail" class="${LABEL}">{{ 'USERS.EMAIL' | translate }}</label>
-                <input id="locationEmail" [(ngModel)]="form.email" name="email" type="email" class="${INPUT}" />
+                <input id="locationEmail" [formField]="locationForm.email" type="email" class="${INPUT}" />
               </div>
               <!-- Telefon -->
               <div class="space-y-1.5">
                 <label for="locationPhone" class="${LABEL}">{{ 'LOCATION.PHONE' | translate }}</label>
-                <input id="locationPhone" [(ngModel)]="form.phone" name="phone" type="text" class="${INPUT}" />
+                <input id="locationPhone" [formField]="locationForm.phone" type="text" class="${INPUT}" />
               </div>
             </div>
 
             <!-- Status -->
             <div class="space-y-1.5">
               <label for="locationStatus" class="${LABEL}">{{ 'COMMON.STATUS' | translate }}</label>
-              <select id="locationStatus" [(ngModel)]="form.status" name="status" class="${INPUT}">
+              <select id="locationStatus" [formField]="locationForm.status" class="${INPUT}">
                 <option value="DRAFT">{{ 'COMMON.STATUS_DRAFT' | translate }}</option>
                 <option value="ACTIVE">{{ 'COMMON.STATUS_ACTIVE' | translate }}</option>
               </select>
@@ -92,7 +92,7 @@ const INPUT = `w-full bg-surface-input border border-line-soft rounded-xl p-3
 
           <button
             type="submit"
-            [disabled]="saving() || readOnly()"
+            [disabled]="saving() || readOnly() || locationForm().invalid()"
             class="bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm hover:bg-ink/90 transition disabled:opacity-50"
           >
             {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
@@ -117,7 +117,11 @@ export class LocationDetailComponent implements OnInit {
   error = signal<string | null>(null)
   locationId = signal<string | null>(null)
 
-  form = { name: '', email: '', phone: '', status: 'ACTIVE' }
+  readonly location = signal({ name: '', email: '', phone: '', status: 'ACTIVE' })
+  readonly locationForm = form(this.location, l => {
+    required(l.name)
+    email(l.email)
+  })
 
   async ngOnInit() {
     // Frischen Cloud-Zustand holen, statt auf den nächsten 60-s-Poll zu warten.
@@ -127,12 +131,12 @@ export class LocationDetailComponent implements OnInit {
       if (result.data.length > 0) {
         const loc = result.data[0]
         this.locationId.set(loc._id)
-        this.form = {
+        this.location.set({
           name: loc.name || '',
           email: loc.email || '',
           phone: loc.phone || '',
           status: loc.status || 'ACTIVE',
-        }
+        })
       }
     } catch (e) {
       console.error('Fehler beim Laden des Standorts:', e)
@@ -149,10 +153,12 @@ export class LocationDetailComponent implements OnInit {
       this.error.set(this.t.instant('CLOUD_MANAGED.SAVE_BLOCKED'))
       return
     }
-    if (!this.form.name) {
+    if (this.locationForm.name().invalid()) {
       this.error.set(this.t.instant('LOCATION.NAME_REQUIRED'))
       return
     }
+    if (this.locationForm().invalid()) return
+    const location = this.location()
     this.saving.set(true)
     this.error.set(null)
     this.saved.set(false)
@@ -161,13 +167,13 @@ export class LocationDetailComponent implements OnInit {
       // Validate (`format: 'email'` etc.) auf einen leeren String an. Nur
       // tatsaechlich vom User eingegebene Werte patchen.
       const payload: Record<string, unknown> = {
-        name: this.form.name,
-        status: this.form.status,
+        name: location.name,
+        status: location.status,
       }
-      if (this.form.email) payload['email'] = this.form.email
-      if (this.form.phone) payload['phone'] = this.form.phone
+      if (location.email) payload['email'] = location.email
+      if (location.phone) payload['phone'] = location.phone
       await this.api.patch('locations', this.locationId()!, payload)
-      this.locationState.locationName.set(this.form.name)
+      this.locationState.locationName.set(location.name)
       this.saved.set(true)
     } catch (e: unknown) {
       this.error.set(formatApiError(e))

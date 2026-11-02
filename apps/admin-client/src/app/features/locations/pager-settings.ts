@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { form, FormField, max, min } from '@angular/forms/signals'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
@@ -11,7 +11,7 @@ const LABEL = 'text-xs font-medium text-ink-muted uppercase tracking-wider'
 @Component({
   selector: 'app-pager-settings',
   standalone: true,
-  imports: [FormsModule, TranslateModule, CloudManagedBannerComponent],
+  imports: [FormField, TranslateModule, CloudManagedBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-2xl space-y-4 h-full overflow-y-auto">
@@ -81,10 +81,8 @@ const LABEL = 'text-xs font-medium text-ink-muted uppercase tracking-wider'
 
           <div class="flex items-center gap-2">
             <input
-              [(ngModel)]="newPagerNumber"
-              name="newPager"
+              [formField]="pagerForm.newPager"
               type="number"
-              min="1"
               placeholder="{{ 'LOCATION.PAGER_NUMBER' | translate }}"
               (keydown.enter)="addPager(); $event.preventDefault()"
               class="flex-1 bg-surface-input border border-line-soft
@@ -109,11 +107,8 @@ const LABEL = 'text-xs font-medium text-ink-muted uppercase tracking-wider'
           <!-- Batch hinzufügen -->
           <div class="flex items-center gap-2">
             <input
-              [(ngModel)]="batchCount"
-              name="batchCount"
+              [formField]="pagerForm.batchCount"
               type="number"
-              min="1"
-              max="100"
               placeholder="{{ 'LOCATION.PAGER_BATCH_PLACEHOLDER' | translate }}"
               (keydown.enter)="addBatch(); $event.preventDefault()"
               class="flex-1 bg-surface-input border border-line-soft
@@ -203,8 +198,16 @@ export class PagerSettingsComponent implements OnInit {
   pagers = signal<number[]>([])
   pagerEnabled = signal(false)
 
-  newPagerNumber: number | null = null
-  batchCount: number | null = null
+  /** Eingabefelder für Einzel- und Sammelanlage; ein leeres Zahlenfeld liefert `null`. */
+  readonly pagerInput = signal<{ newPager: number | null; batchCount: number | null }>({
+    newPager: null,
+    batchCount: null,
+  })
+  readonly pagerForm = form(this.pagerInput, p => {
+    min(p.newPager, 1)
+    min(p.batchCount, 1)
+    max(p.batchCount, 100)
+  })
   private currentSettings: any = {}
 
   private static readonly MAX_PAGERS = 200
@@ -258,8 +261,8 @@ export class PagerSettingsComponent implements OnInit {
   }
 
   async addPager() {
-    const num = this.newPagerNumber
-    if (num == null || num < 1) return
+    const num = this.pagerInput().newPager
+    if (num == null || this.pagerForm.newPager().invalid()) return
     this.pagerDuplicateError.set(false)
 
     if (this.pagers().length >= PagerSettingsComponent.MAX_PAGERS) {
@@ -275,18 +278,19 @@ export class PagerSettingsComponent implements OnInit {
     this.batchError.set(null)
     await this.#applyChange(() => {
       this.pagers.set([...this.pagers(), num].sort((a, b) => a - b))
-      this.newPagerNumber = null
+      this.pagerForm.newPager().value.set(null)
     })
   }
 
   async addBatch() {
-    const count = this.batchCount
+    const count = this.pagerInput().batchCount
     this.batchError.set(null)
     this.pagerDuplicateError.set(false)
 
     if (count == null || count < 1) return
 
-    if (count > 100) {
+    // Nach `min` oben bleibt als Grund nur die Obergrenze aus dem Schema.
+    if (this.pagerForm.batchCount().invalid()) {
       this.batchError.set(this.t.instant('LOCATION.PAGER_BATCH_MAX'))
       return
     }
@@ -310,7 +314,7 @@ export class PagerSettingsComponent implements OnInit {
 
     await this.#applyChange(() => {
       this.pagers.set([...this.pagers(), ...newPagers].sort((a, b) => a - b))
-      this.batchCount = null
+      this.pagerForm.batchCount().value.set(null)
     })
   }
 

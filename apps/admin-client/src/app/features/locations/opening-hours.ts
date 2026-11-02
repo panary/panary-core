@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { applyEach, form, FormField, required } from '@angular/forms/signals'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
@@ -28,7 +28,7 @@ interface HourException {
 @Component({
   selector: 'app-opening-hours',
   standalone: true,
-  imports: [FormsModule, TranslateModule, CloudManagedBannerComponent],
+  imports: [FormField, TranslateModule, CloudManagedBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-2xl space-y-6 h-full overflow-y-auto">
@@ -90,30 +90,31 @@ interface HourException {
         >
           <span class="${LABEL}">{{ 'OPENING_HOURS.REGULAR' | translate }}</span>
 
-          @for (hour of regular; track hour.day) {
+          @for (hour of regularForm; track hour) {
             <div class="flex items-center gap-3 py-1.5">
               <!-- Tag -->
-              <span class="w-28 text-sm font-medium text-ink shrink-0">{{ dayName(hour.day) }}</span>
+              <span class="w-28 text-sm font-medium text-ink shrink-0">{{ dayName(hour.day().value()) }}</span>
 
               <!-- Geöffnet/Geschlossen Toggle -->
               <label class="flex items-center gap-2 cursor-pointer shrink-0">
                 <input
                   type="checkbox"
-                  [checked]="!hour.closed"
-                  (change)="hour.closed = !hour.closed; saveRegular()"
+                  [checked]="!hour.closed().value()"
+                  (change)="toggleDayClosed($index)"
                   class="w-4 h-4 accent-ink"
                 />
                 <span class="text-xs text-ink-muted w-16">
-                  {{ hour.closed ? ('OPENING_HOURS.CLOSED' | translate) : ('OPENING_HOURS.OPEN' | translate) }}
+                  {{
+                    hour.closed().value() ? ('OPENING_HOURS.CLOSED' | translate) : ('OPENING_HOURS.OPEN' | translate)
+                  }}
                 </span>
               </label>
 
               <!-- Zeiten -->
-              @if (!hour.closed) {
+              @if (!hour.closed().value()) {
                 <input
                   type="time"
-                  [(ngModel)]="hour.open"
-                  [name]="'open-' + hour.day"
+                  [formField]="hour.open"
                   (change)="saveRegular()"
                   class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
                          text-ink outline-none focus:border-ink"
@@ -121,8 +122,7 @@ interface HourException {
                 <span class="text-ink-faint text-xs">—</span>
                 <input
                   type="time"
-                  [(ngModel)]="hour.close"
-                  [name]="'close-' + hour.day"
+                  [formField]="hour.close"
                   (change)="saveRegular()"
                   class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
                          text-ink outline-none focus:border-ink"
@@ -156,21 +156,19 @@ interface HourException {
               {{ 'OPENING_HOURS.NO_EXCEPTIONS' | translate }}
             </p>
           } @else {
-            @for (exc of exceptions(); track exc._id || $index) {
+            @for (exc of exceptionsForm; track exc) {
               <div class="flex items-center gap-3 py-1.5 border-t border-line-soft first:border-0">
                 <input
                   type="date"
-                  [(ngModel)]="exc.date"
-                  [name]="'exc-date-' + $index"
-                  (change)="saveException(exc)"
+                  [formField]="exc.date"
+                  (change)="saveException($index)"
                   class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
                          text-ink outline-none focus:border-ink"
                 />
                 <input
                   type="text"
-                  [(ngModel)]="exc.label"
-                  [name]="'exc-label-' + $index"
-                  (change)="saveException(exc)"
+                  [formField]="exc.label"
+                  (change)="saveException($index)"
                   placeholder="Bezeichnung"
                   class="flex-1 bg-surface-input border border-line-soft
                          rounded-lg px-2 py-1.5 text-sm text-ink outline-none
@@ -179,34 +177,32 @@ interface HourException {
                 <label class="flex items-center gap-1.5 cursor-pointer shrink-0">
                   <input
                     type="checkbox"
-                    [checked]="exc.closed"
-                    (change)="exc.closed = !exc.closed; saveException(exc)"
+                    [checked]="exc.closed().value()"
+                    (change)="toggleExceptionClosed($index)"
                     class="w-4 h-4 accent-ink"
                   />
                   <span class="text-xs text-ink-muted">{{ 'OPENING_HOURS.CLOSED' | translate }}</span>
                 </label>
-                @if (!exc.closed) {
+                @if (!exc.closed().value()) {
                   <input
                     type="time"
-                    [(ngModel)]="exc.open"
-                    [name]="'exc-open-' + $index"
-                    (change)="saveException(exc)"
+                    [formField]="exc.open"
+                    (change)="saveException($index)"
                     class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
                            text-ink outline-none"
                   />
                   <span class="text-ink-faint text-xs">—</span>
                   <input
                     type="time"
-                    [(ngModel)]="exc.close"
-                    [name]="'exc-close-' + $index"
-                    (change)="saveException(exc)"
+                    [formField]="exc.close"
+                    (change)="saveException($index)"
                     class="bg-surface-input border border-line-soft rounded-lg px-2 py-1.5 text-sm
                            text-ink outline-none"
                   />
                 }
                 <button
                   type="button"
-                  (click)="removeException(exc)"
+                  (click)="removeException(exc().value())"
                   class="w-8 h-8 flex items-center justify-center rounded-lg text-ink-faint
                          hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition text-xs shrink-0"
                 >
@@ -219,6 +215,9 @@ interface HourException {
 
         @if (error()) {
           <p class="text-red-500 dark:text-red-400 text-sm">{{ error() }}</p>
+        }
+        @if (regularForm().invalid() || exceptionsForm().invalid()) {
+          <p class="text-amber-600 dark:text-amber-400 text-sm">{{ 'OPENING_HOURS.TIME_REQUIRED' | translate }}</p>
         }
         @if (saved()) {
           <p class="text-green-600 dark:text-green-400 text-sm">{{ 'COMMON.SAVED' | translate }}</p>
@@ -238,6 +237,14 @@ export class OpeningHoursComponent implements OnInit {
   error = signal<string | null>(null)
   locationId = signal<string | null>(null)
   exceptions = signal<HourException[]>([])
+  /** Eine geleerte Uhrzeit wird nicht gespeichert, solange der Tag bzw. die Ausnahme geöffnet ist. */
+  readonly exceptionsForm = form(this.exceptions, list =>
+    applyEach(list, exc => {
+      required(exc.date)
+      required(exc.open, { when: ({ valueOf }) => !valueOf(exc.closed) })
+      required(exc.close, { when: ({ valueOf }) => !valueOf(exc.closed) })
+    }),
+  )
   /**
    * Cloud ist Source of Truth für Standort-Settings (siehe
    * panary-cloud/docs/domains/standort-einstellungen.md). Der Zustand kommt aus
@@ -249,7 +256,13 @@ export class OpeningHoursComponent implements OnInit {
   private currentSettings: any = {}
 
   enabled = false
-  regular: RegularHour[] = []
+  readonly regular = signal<RegularHour[]>([])
+  readonly regularForm = form(this.regular, hours =>
+    applyEach(hours, hour => {
+      required(hour.open, { when: ({ valueOf }) => !valueOf(hour.closed) })
+      required(hour.close, { when: ({ valueOf }) => !valueOf(hour.closed) })
+    }),
+  )
 
   dayName(day: number): string {
     return DAY_NAMES[day] || ''
@@ -267,9 +280,9 @@ export class OpeningHoursComponent implements OnInit {
         const ohs = this.currentSettings.openingHoursSettings
         if (ohs) {
           this.enabled = ohs.enabled ?? false
-          this.regular = ohs.regular ?? this.defaultRegular()
+          this.regular.set(ohs.regular ?? this.defaultRegular())
         } else {
-          this.regular = this.defaultRegular()
+          this.regular.set(this.defaultRegular())
         }
       }
 
@@ -312,8 +325,15 @@ export class OpeningHoursComponent implements OnInit {
     this.saveRegular()
   }
 
+  toggleDayClosed(index: number) {
+    const closed = this.regularForm[index].closed
+    closed().value.set(!closed().value())
+    this.saveRegular()
+  }
+
   async saveRegular() {
     if (this.blockedByCloud()) return
+    if (this.regularForm().invalid()) return
     this.error.set(null)
     this.saved.set(false)
     try {
@@ -321,7 +341,7 @@ export class OpeningHoursComponent implements OnInit {
         ...this.currentSettings,
         openingHoursSettings: {
           enabled: this.enabled,
-          regular: this.regular,
+          regular: this.regular(),
         },
       }
       await this.api.patch('locations', this.locationId()!, { settings: mergedSettings })
@@ -351,9 +371,17 @@ export class OpeningHoursComponent implements OnInit {
     }
   }
 
-  async saveException(exc: HourException) {
-    if (!exc._id) return
+  toggleExceptionClosed(index: number) {
+    const closed = this.exceptionsForm[index].closed
+    closed().value.set(!closed().value())
+    this.saveException(index)
+  }
+
+  async saveException(index: number) {
+    const exc = this.exceptions()[index]
+    if (!exc?._id) return
     if (this.blockedByCloud()) return
+    if (this.exceptionsForm[index]().invalid()) return
     try {
       await this.api.patch('opening-hour-exceptions', exc._id, {
         date: exc.date,

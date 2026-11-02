@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: Tauri Update-Server-Einrichtung
-description: 'Einrichtung des Tauri-Auto-Update-Systems: Ed25519-Signatur-Schlüsselpaar, GitHub-Actions-Release-Workflow mit latest.json und Update-Prüfung samt Installation in der POS-App.'
+description: 'Einrichtung des Tauri-Auto-Update-Systems für Windows und macOS: Ed25519-Signatur-Schlüsselpaar, Apple-Signing und Notarisierung, GitHub-Actions-Release-Workflow mit latest.json und Update-Prüfung samt Installation in der POS-App.'
 tags: [tauri, pos, updater, release]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -9,13 +9,12 @@ generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
 
 # Tauri Auto-Update — Einrichtung & Release-Prozess
 
-> **Geltungsbereich: Windows.** Der hier beschriebene Updater-Pfad (NSIS-Artefakte,
-> minisign-Signatur, `latest.json`) gilt ausschließlich für den Windows-Build. Das
-> macOS-Bundle wird zwar im selben Release mitgeliefert, hat aber **keinen
-> Auto-Updater**: `createUpdaterArtifacts` ist in `tauri.macos.conf.json` auf `false`,
-> und `latest.json` kennt nur den Schlüssel `windows-x86_64`. macOS wird durch einen
-> neuen Download aktualisiert. Begründung und der Weg zu einem macOS-Updater:
-> [ADR 0014 — POS-Build-Plattformen](../adr/0014-pos-build-plattformen.md).
+> **Geltungsbereich: Windows und macOS.** Seit panary/panary-core#1229 bekommt auch das
+> Apple-Silicon-Bundle Updater-Artefakte (`.app.tar.gz` + `.sig`), und `latest.json` trägt neben
+> `windows-x86_64` die Schlüssel `darwin-aarch64` und `darwin-aarch64-app`. Voraussetzung ist
+> Developer-ID-Signatur und Notarisierung, eingerichtet nach
+> [§ macOS](#macos-signing-und-notarisierung-einrichten). Entscheidung:
+> [ADR 0068](../adr/0068-macos-pos-signing-notarisierung-updater.md).
 
 ## Architektur-Übersicht
 
@@ -197,6 +196,53 @@ Alternativ kann der bestehende Workflow `build-pos.yml` manuell über GitHub Act
 
 ---
 
+## macOS-Signing und Notarisierung einrichten
+
+Einmalig, von Michael. Ohne diese Schritte bricht `release-macos` (und der macOS-Job von
+`build-pos.yml`) mit `Apple-Signing nicht eingerichtet` ab — gewollt, damit kein unsigniertes
+Bundle ins Manifest kommt ([ADR 0068](../adr/0068-macos-pos-signing-notarisierung-updater.md)).
+
+**Bei Apple**
+
+1. Apple Developer Program abschließen (99 USD/Jahr) und warten, bis es aktiv ist.
+2. Team-ID ablesen: developer.apple.com → Membership (10 Zeichen).
+3. Zertifikat **Developer ID Application** anlegen, am einfachsten in Xcode → Settings →
+   Accounts → Manage Certificates → + → Developer ID Application.
+4. In der Schlüsselbundverwaltung Zertifikat **mit** privatem Schlüssel als `.p12` exportieren,
+   mit eigenem Exportpasswort.
+5. `base64 -i zertifikat.p12 | pbcopy`
+6. Identität ablesen: `security find-identity -v -p codesigning`, z. B.
+   `Developer ID Application: Michael Ratke (ABCDE12345)`.
+7. App-spezifisches Passwort anlegen: account.apple.com → Anmeldung und Sicherheit.
+
+**In Bitwarden** (Projekt der `TAURI_SIGNING_*`-Einträge, lesbar für den Machine-Account hinter
+`BW_ACCESS_TOKEN`):
+
+| Eintrag | Inhalt | Kommt im Job an als |
+|---|---|---|
+| `POS_APPLE_CERTIFICATE` | Base64 der `.p12` (Schritt 5) | `APPLE_CERTIFICATE` |
+| `POS_APPLE_CERTIFICATE_PASSWORD` | Exportpasswort (Schritt 4) | `APPLE_CERTIFICATE_PASSWORD` |
+| `POS_APPLE_SIGNING_IDENTITY` | voller Name (Schritt 6) | `APPLE_SIGNING_IDENTITY` |
+| `POS_APPLE_ID` | E-Mail der Apple-ID | `APPLE_ID` |
+| `POS_APPLE_PASSWORD` | App-spezifisches Passwort (Schritt 7) | `APPLE_PASSWORD` |
+| `POS_APPLE_TEAM_ID` | Team-ID (Schritt 2) | `APPLE_TEAM_ID` |
+
+**In GitHub** je Eintrag die Bitwarden-Secret-ID als Repo-Variable (keine Geheimnisse):
+
+```bash
+gh variable set BWS_ID_POS_APPLE_CERTIFICATE --repo panary/panary-core --body <uuid>
+# ebenso BWS_ID_POS_APPLE_CERTIFICATE_PASSWORD, _SIGNING_IDENTITY, _ID, _PASSWORD, _TEAM_ID
+```
+
+**Prüfen ohne Release:** `build-pos.yml` per Dispatch starten. Der macOS-Job signiert,
+notarisiert und prüft mit `codesign`, `stapler validate` und `spctl`. Die Updater-Artefakte und
+den `darwin-aarch64`-Eintrag zeigt erst ein `pos-v*`-Release.
+
+**Lokal auf dem Mac** braucht `pnpm tauri build` seitdem `TAURI_SIGNING_PRIVATE_KEY` oder
+`--config '{"bundle":{"createUpdaterArtifacts":false}}'` — wie unter Windows.
+
+---
+
 ## 6. Troubleshooting
 
 ### Signatur-Mismatch
@@ -277,7 +323,7 @@ solange beim Deinstallieren der alten App das Häkchen oben nicht gesetzt wird.
 - **Updater-Manifest:** `release-pos.yml` liest den Namen des `-setup.exe`-Assets aus dem
   tatsächlich hochgeladenen Release, statt ihn aus dem `productName` zu bilden. Der Endpunkt
   (`latest.json`) bleibt gleich.
-- **macOS:** Ohne Auto-Updater (§ oben). Das neue Bundle heißt `Panary Terminal.app`, die alte
+- **macOS:** Damals ohne Auto-Updater. Das neue Bundle heißt `Panary Terminal.app`, die alte
   `Panary — Terminal.app` muss von Hand aus `/Applications` gelöscht werden.
 
 Ein NSIS-Hook, der die Altinstallation selbst entfernt, wurde bewusst nicht gebaut (Entscheidung

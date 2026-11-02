@@ -553,11 +553,9 @@
                     <input
                       id="current-pin"
                       type="password"
-                      [ngModel]="currentPin()"
-                      (ngModelChange)="currentPin.set($event)"
+                      [formField]="pinForm.currentPin"
                       class="w-full bg-surface-elevated border border-line-strong rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent-ink focus:border-transparent font-mono dark:text-white text-center tracking-widest text-lg"
                       placeholder="••••"
-                      maxlength="4"
                       inputmode="numeric"
                     />
                   </div>
@@ -569,11 +567,9 @@
                     <input
                       id="new-pin"
                       type="password"
-                      [ngModel]="newPin()"
-                      (ngModelChange)="newPin.set($event)"
+                      [formField]="pinForm.newPin"
                       class="w-full bg-surface-elevated border border-line-strong rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent-ink focus:border-transparent font-mono dark:text-white text-center tracking-widest text-lg"
                       placeholder="••••"
-                      maxlength="4"
                       inputmode="numeric"
                     />
                   </div>
@@ -585,11 +581,9 @@
                     <input
                       id="confirm-pin"
                       type="password"
-                      [ngModel]="confirmPin()"
-                      (ngModelChange)="confirmPin.set($event)"
+                      [formField]="pinForm.confirmPin"
                       class="w-full bg-surface-elevated border border-line-strong rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent-ink focus:border-transparent font-mono dark:text-white text-center tracking-widest text-lg"
                       placeholder="••••"
-                      maxlength="4"
                       inputmode="numeric"
                     />
                   </div>
@@ -614,7 +608,7 @@
 
                   <button
                     class="w-full h-12 rounded-xl text-lg font-bold mt-2 bg-action text-on-action hover:brightness-95 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    [disabled]="isSaving() || !newPin() || !confirmPin()"
+                    [disabled]="isSaving() || !pinChange().newPin || !pinChange().confirmPin"
                     (click)="updatePin()"
                   >
                     @if (isSaving()) {

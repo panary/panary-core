@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, W
 import { formatEur } from '@panary/shared/util-helpers'
 import { ActivatedRoute, Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
-import { FormsModule } from '@angular/forms'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { PreOrder, PreOrderService } from '@panary/pre-orders/data-access'
 import { MatDialog } from '@angular/material/dialog'
@@ -20,7 +19,7 @@ import { findRequestedPreOrder } from './pre-order-selection'
 @Component({
   selector: 'lib-pre-order-list',
   standalone: true,
-  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule, PageHeaderComponent, PosSplitComponent],
+  imports: [IconComponent, CommonModule, EurPipe, TranslateModule, PageHeaderComponent, PosSplitComponent],
   template: `
     <div class="h-full w-full bg-surface-bg flex flex-col overflow-hidden max-h-screen box-border">
       <lib-page-header
@@ -34,7 +33,9 @@ import { findRequestedPreOrder } from './pre-order-selection'
           />
           <input
             type="text"
-            [(ngModel)]="searchQuery"
+            #searchInput
+            [value]="searchQuery()"
+            (input)="searchQuery.set(searchInput.value)"
             (keyup.enter)="fetchOrders()"
             [placeholder]="'PRE_ORDERS.SEARCH_PLACEHOLDER' | translate"
             class="w-full h-11 pl-10 pr-3 rounded-xl bg-surface-input border border-line-soft outline-none focus:ring-2 focus:ring-accent-line transition-all text-ink text-sm placeholder:text-ink-faint"

@@ -246,6 +246,8 @@ export class ActiveOrdersComponent {
   })
 
   orders = this.sortedOrders
+  /** `orders-only` schließt nur ab; das Label der Kreis-Aktion folgt dem Modus wie „Abschließen". */
+  protected readonly isCashierMode = computed(() => this.#isCashierMode())
   protected readonly isSyntheticSettlementScope = isSyntheticSettlementScope
 
   zoomLevel: WritableSignal<number> = signal(readStoredZoom())
@@ -416,9 +418,6 @@ export class ActiveOrdersComponent {
       data,
     })
   }
-
-  /** `orders-only` schließt nur ab; das Label der Kreis-Aktion folgt dem Modus wie „Abschließen". */
-  readonly isCashierMode = computed(() => this.#isCashierMode())
 
   toggleCircle(key: string) {
     this.expandedCircles.update(current => {

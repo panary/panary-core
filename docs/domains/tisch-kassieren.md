@@ -38,7 +38,8 @@ wie Nachbestellungen hineinkommen: [Nachbestellung im Abrechnungskreis](nachbest
    (Kasse eröffnen, Ruhetag). Beide liegen danach am Geschäftstag, die übrigen Bestellungen laufen
    ohne Rückfrage durch.
 5. **Bestellbetrieb.** Ohne Kassierfunktion schließt die Taste die Bestellungen nur ab
-   (`complete()` je Bestellung), wie „Abschließen“ an der Einzelkarte.
+   (`complete()` je Bestellung), wie „Abschließen“ an der Einzelkarte. Ohne frisches Lesen: Ein
+   Abschluss ohne Zahlung auf einer schon abgeschlossenen Bestellung ändert nichts.
 
 ## Idempotent je Bestellung, nicht je Kreis
 

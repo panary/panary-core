@@ -15,6 +15,9 @@ einem veralteten Geschäftstag landen.
 
 > **Ruhetag (core#1133):** An einem laut Öffnungszeiten geschlossenen Tag rotiert keiner der
 > Pfade unten; Bestellungen brauchen dann eine Freigabe. Siehe [Ruhetag-Regel](ruhetag-regel.md).
+>
+> **Hinweis in der Kasse (core#1171):** Wo nicht rotiert wird (cloud-direkt, gepairte Edge ohne Offline-Override),
+> warnt die Kasse vor dem Absenden. Siehe [POS-Kasse als Route](pos-kasse-route.md#hinweis-auf-fehlenden-geschäftstag-core1171).
 
 ## Problem
 

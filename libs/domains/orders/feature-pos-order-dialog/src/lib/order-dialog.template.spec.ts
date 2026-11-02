@@ -903,3 +903,32 @@ describe('OrderDialog-Template — „+" und Einrückung der Extras (core#1234)'
     expect(template).toContain('{ line: lineItem, extra: extra, indent: !lineItem.isMenu }')
   })
 })
+
+// core#1171: Die Komponenten-Spec prüft die Entscheidung (`businessDayHint`) und den Dialog-Aufruf, aber ohne
+// Template. Hier die Verdrahtung: Live-Region außerhalb des @if, Knopf nur im Zweig „open-here" und auf
+// `openBusinessDayFromHint()`, beide Texte je Variante.
+describe('Kasse-Template — Hinweis auf fehlenden Geschäftstag (core#1171)', () => {
+  const start = template.indexOf('data-testid="business-day-hint"')
+  const block = template.slice(start, template.indexOf('@for (view of [viewKey]', start))
+
+  it('steht als Live-Region über dem Raster, das Banner darin hängt an businessDayHint()', () => {
+    expect(start).toBeGreaterThan(template.indexOf('class="kasse__grid'))
+    const region = template.slice(template.lastIndexOf('<div', start), start + 40)
+    expect(region).toContain('role="status"')
+    expect(region).not.toContain('@if')
+    expect(block).toContain('@if (businessDayHint(); as hint)')
+  })
+
+  it('zeigt je Variante den eigenen Text', () => {
+    expect(block).toContain("'ORDER_DIALOG.BUSINESS_DAY_HINT_OPEN_HERE'")
+    expect(block).toContain("'ORDER_DIALOG.BUSINESS_DAY_HINT_ADMIN'")
+  })
+
+  it('hat den Knopf „Tag eröffnen" nur im Zweig open-here, verdrahtet auf openBusinessDayFromHint()', () => {
+    const branch = block.slice(block.indexOf("@if (hint === 'open-here')"))
+    expect(block.indexOf("@if (hint === 'open-here')")).toBeGreaterThan(-1)
+    expect(block.indexOf('<button')).toBeGreaterThan(block.indexOf("@if (hint === 'open-here')"))
+    expect(branch).toContain('(click)="openBusinessDayFromHint()"')
+    expect(branch).toContain("'ORDER_DIALOG.BUSINESS_DAY_HINT_ACTION'")
+  })
+})

@@ -229,14 +229,23 @@ describe('LocationService.setCurrentBusinessDayLocally (core#1171)', () => {
     })
   })
 
-  it('ohne aktive Filiale oder ohne Tag-Kennung bleibt alles, wie es ist', async () => {
-    const leer = setup({ cached: undefined })
-    leer.service.setCurrentBusinessDayLocally({ _id: 'bd-neu', date: '2026-11-02' })
-    expect(leer.service.activeLocation()).toBeUndefined()
+  it('ohne aktive Filiale bleibt sie leer', () => {
+    const { service } = setup({ cached: undefined })
+    service.setCurrentBusinessDayLocally({ _id: 'bd-neu', date: '2026-11-02' })
+    expect(service.activeLocation()).toBeUndefined()
+  })
 
+  it('ohne Tag-Kennung bleibt die Filiale, wie sie ist', async () => {
     const { service } = setup()
     await service.restoreActiveLocationFromCache()
     service.setCurrentBusinessDayLocally({ date: '2026-11-02' })
+    expect(service.activeLocation()).toEqual(CACHED_LOCATION)
+  })
+
+  it('ohne Datum bleibt die Filiale, wie sie ist', async () => {
+    const { service } = setup()
+    await service.restoreActiveLocationFromCache()
+    service.setCurrentBusinessDayLocally({ _id: 'bd-neu' })
     expect(service.activeLocation()).toEqual(CACHED_LOCATION)
   })
 })

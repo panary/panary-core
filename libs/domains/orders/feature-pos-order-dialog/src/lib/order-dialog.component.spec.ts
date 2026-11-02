@@ -76,6 +76,8 @@ interface SetupOptions {
   cloudPaired?: boolean
   /** `ConnectionService.healthLoaded()` — Standard: Betriebsart bekannt. */
   healthLoaded?: boolean
+  /** `ConnectionService.offlineModeActive()` — Standard: kein Offline-Override der Edge. */
+  offlineModeActive?: boolean
   /** `posHandedness` des angemeldeten Mitarbeiters — fehlt es, gilt links (core#829). */
   posHandedness?: 'left' | 'right'
   /** `locationService.activeLocation` — Standard: Filiale schon geladen. Ein Signal spielt das Nachladen nach (core#868). */
@@ -341,7 +343,7 @@ function setup(options: SetupOptions = {}) {
           tier: () => options.tier ?? 'edge-with-cloud',
           healthLoaded: () => options.healthLoaded ?? true,
           cloudPaired: () => options.cloudPaired ?? false,
-          offlineModeActive: () => false,
+          offlineModeActive: () => options.offlineModeActive ?? false,
           connectionState: () => ({ status: options.connectionStatus ?? 'authenticated' }),
         },
       },
@@ -4383,6 +4385,17 @@ describe('Kasse — Hinweis auf fehlenden Geschäftstag (core#1171)', () => {
     expect(component.businessDayHint()).toBe('open-in-admin')
   })
 
+  it('Edge gepairt mit Offline-Override ohne Tag: kein Hinweis, die Edge rotiert selbst', () => {
+    const { component } = setup({
+      tier: 'edge-with-cloud',
+      cloudPaired: true,
+      offlineModeActive: true,
+      activeLocation: ohneTag(),
+    })
+
+    expect(component.businessDayHint()).toBeNull()
+  })
+
   it('Standalone-Edge ohne Tag: kein Hinweis, die erste Bestellung legt den Tag an', () => {
     const { component } = setup({ tier: 'standalone', activeLocation: ohneTag() })
 
@@ -4413,6 +4426,15 @@ describe('Kasse — Hinweis auf fehlenden Geschäftstag (core#1171)', () => {
       { data: { locationId: 'loc-1', operationMode: 'orders-only' }, disableClose: undefined },
     ])
     expect(component.businessDayHint()).toBeNull()
+  })
+
+  it('„Tag eröffnen" im Kassenbetrieb übergibt den Modus pos-cashier wie das Mehr-Menü', async () => {
+    const activeLocation = signal<unknown>({ _id: 'loc-1', settings: {}, operationMode: 'pos-cashier' })
+    const { component, openedDialogs } = setup({ tier: 'cloud-direct', activeLocation })
+
+    await component.openBusinessDayFromHint()
+
+    expect(openedDialogs.map(d => d.data)).toEqual([{ locationId: 'loc-1', operationMode: 'pos-cashier' }])
   })
 
   it('abgebrochener Eröffnungsdialog: der Hinweis bleibt', async () => {

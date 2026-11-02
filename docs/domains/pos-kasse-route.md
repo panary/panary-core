@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: POS-Kasse als Route /kasse
-description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen und Abmelden nachfragt, warum der Auto-Logout eine angefangene Bestellung verwirft (core#1064) und wie sie ein Neuladen auf /kasse übersteht.'
+description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen und Abmelden nachfragt, warum der Auto-Logout eine angefangene Bestellung verwirft (core#1064) wie sie ein Neuladen auf /kasse übersteht und wann sie vor einem fehlenden Geschäftstag warnt (core#1171).'
 tags: [orders, pos, ui, routing]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-25T22:40:00Z }
@@ -149,7 +149,9 @@ ist dasselbe Prädikat wie beim Mehr-Menü-Eintrag (`currentBusinessDay.business
 Zeiger sofort lokal: Die Cloud patcht `location.currentBusinessDay` nur fehlertolerant, und ob das Patch-Event den
 cloud-direkten POS erreicht, ist nicht gesichert. Ein späteres Realtime-Update überschreibt den Wert.
 
-Nicht abgedeckt: Ruhetage im Cloud-Direkt-Betrieb (panary/panary-cloud#1507), der Fall, dass POS-Zeiger und das
+Nicht abgedeckt: Ruhetage (an der Edge prüft `assertClosedDayApproved` auch standalone und mit Override, die
+Bestellung scheitert dort ohne Hinweis; cloud-direkt siehe panary/panary-cloud#1507), ein Tag, der zwar existiert,
+aber zu alt ist (`BUSINESS_DAY_TOO_OLD`, `BUSINESS_DAY_OPEN_TOO_LONG`), der Fall, dass POS-Zeiger und das
 Cloud-Gate (`businessdays` mit `status: 'open'`) kurz auseinanderlaufen, und die Text-Variante am gepairten Edge
 außerhalb des Unit-Tests.
 

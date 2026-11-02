@@ -12,6 +12,8 @@ import { ConnectionService, LanguageService, OFFLINE_OUTBOX } from '@panary/shar
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { LoginComponent } from './login.component'
@@ -596,5 +598,26 @@ describe('LoginComponent — Bediener-Token', () => {
     await component.verifyPin()
 
     expect(store.has('pos_operator_token')).toBe(false)
+  })
+})
+
+// Die installierte Version stand doppelt auf dem Login: im Seitenpanel neben dem
+// Geraetenamen und im Footer links unten (panary/panary-core#1169). Sie bleibt nur im
+// Footer, weil das Panel erst ab `lg` sichtbar ist. Die node-Vitest-Config rendert kein
+// Template, deshalb wird die Quelle gezaehlt statt des gerenderten DOM.
+describe('LoginComponent — Versionsanzeige', () => {
+  const html = readFileSync(join(__dirname, 'login.component.html'), 'utf8')
+
+  it('bindet die installierte Version genau einmal, im Footer', () => {
+    const bindings = html.match(/\{\{\s*appVersion\s*\}\}/g) ?? []
+    expect(bindings).toEqual(['{{ appVersion }}'])
+    const footer = html.slice(html.indexOf('<!-- Footer with Connection Indicator -->'))
+    expect(footer).toContain('Panary Terminal &bull; </span>v{{ appVersion }}')
+  })
+
+  it('zeigt im Seitenpanel nur den Geraetenamen', () => {
+    const aside = html.match(/<aside[\s\S]*?<\/aside>/)?.[0] ?? ''
+    expect(aside).toContain(`{{ deviceName() || 'POS Terminal' }}</p>`)
+    expect(aside).not.toContain('appVersion')
   })
 })

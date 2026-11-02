@@ -548,16 +548,6 @@ export class OrderService extends BaseService<Order> {
     return service.split({ orderId, lineItems, ...(performedBy ? { performedBy } : {}) }, withPosOperatorToken())
   }
 
-  private markOrdersAsCompleted(): void {
-    this.service
-      .multiPatchStatus(OrderStatus.COMPLETED, { query: { status: OrderStatus.ACTIVE } })
-      .then((orders: Order[]): void => {
-        this.notifications.success(`${orders.length} Bestellungen wurden als erledigt markiert`)
-        this.loadDocuments()
-      })
-      .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
-  }
-
   /** PUBLIC PROPERTIES */
   async createOrder(input: CreateOrderInput): Promise<number | number[] | null | undefined> {
     this.#ownCreateEchoUntil = Date.now() + OWN_CREATE_ECHO_MS
@@ -658,10 +648,6 @@ export class OrderService extends BaseService<Order> {
     return this.patch(id, {
       status: order.status === OrderStatus.ACTIVE ? OrderStatus.COMPLETED : OrderStatus.ACTIVE,
     })
-  }
-
-  markAllOrdersAsDone(): void {
-    this.markOrdersAsCompleted()
   }
 
   refreshOrders(): void {

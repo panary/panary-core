@@ -66,6 +66,26 @@ status: 'audited'               ← Manager hat Plombe im Admin-Dashboard gesetz
 | `openDay({ locationId?, openingFloatCents? })` | POS bei Schichtbeginn | Neuer BusinessDay mit `status='open'`. Verhindert Mehrfach-Eröffnung pro Location. Den operationMode-Snapshot setzt der Create-Resolver (s. o.), nicht diese Methode — sonst gäbe es zwei Ableitungen derselben Sache, und die über `create` wäre die schwächere. |
 | `closeDay({ businessDayId, countedClosingFloatCents?, cashDropsCents?, payoutsCents?, physicalCounts? })` | POS bei Tagesende | 1. Prüft `sync-outbox` auf pending Einträge — Hard-Block bei Backlog. 2. Setzt `status='closing-requested'`, `closedAt`, `closedBy`. 3. HTTP-POST an Cloud-Service `business-day-reports.startClosing`. |
 
+### Registrierung am POS-Client
+
+Der POS ruft die Lifecycle-Methoden als Custom-Methods am Feathers-Socket-Client auf. Dort existiert
+eine Custom-Method nur, wenn der Client sie registriert. Registriert er eine falsche, ist der Aufruf am
+Gerät ein lokaler `TypeError` (`service.openDay is not a function`, panary/panary-core#1120: registriert
+waren `open`/`close`). Seit panary/panary-core#1165 gilt:
+
+- Alle Methodenlisten des Clients stehen framework-frei in
+  [`client-service-methods.ts`](../../libs/shared/data-access/src/lib/services/client-service-methods.ts),
+  erreichbar über den Einstieg `@panary/shared/data-access/client-methods`. `ConnectionService`
+  registriert daraus jeden Service.
+- Die Spec [`client-methods-invariant.spec.ts`](../../apps/api-edge/src/services/client-methods-invariant.spec.ts)
+  registriert alle Edge-Services und prüft **einseitig**: Jede Custom-Method des Clients existiert an der
+  Edge. Standardmethoden sind ausgenommen. `leave-requests` hat kein Edge-Gegenstück und steht als
+  begründete Ausnahme in der Spec.
+- `discardOrphanDay` bleibt am Client bewusst unregistriert, nur der Admin-Client ruft es per REST.
+
+Nicht geprüft wird der Abgleich gegen die **Cloud**. Ein cloud-direkt gekoppelter POS nutzt dieselbe
+Registrierung, und dort fehlen einzelne Methoden (Abgleich im Kommentar zu panary/panary-core#1165).
+
 ### Outbox-Vorabprüfung
 
 Beim Closing wird die [`sync-outbox`](../../apps/api-edge/src/services/sync-outbox) auf pending-Einträge geprüft. Wenn auch nur **eine** unsynchrone Änderung existiert, wird die Aggregation blockiert — sonst würde die Cloud auf einem unvollständigen Datenbestand rechnen und der Report wäre falsch.

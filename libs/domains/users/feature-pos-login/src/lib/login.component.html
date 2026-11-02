@@ -53,7 +53,7 @@
     data-testid="login-side"
   >
     <lib-panary-logo class="text-ink" [size]="2.25" />
-    <p class="font-mono text-sm text-ink-muted">{{ deviceName() || 'POS Terminal' }} &middot; v{{ appVersion }}</p>
+    <p class="font-mono text-sm text-ink-muted">{{ deviceName() || 'POS Terminal' }}</p>
     <div class="self-start">
       <ng-container [ngTemplateOutlet]="connection" />
     </div>

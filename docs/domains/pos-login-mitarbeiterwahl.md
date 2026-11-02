@@ -13,10 +13,12 @@ Code: `libs/domains/users/feature-pos-login`.
 ## Seitenpanel (ab lg links)
 
 Panel auf App-Tokens (`bg-surface-rail`, `border-line`, `text-ink`), Konzept (Workbench-Repo, `sandbox/design-studie/konzept.html`),
-Mockup 2.5/2.6: Logo, Gerätename mit Version, Verbindungsanzeige, darunter nur auf **geteilten** Geräten die
+Mockup 2.5/2.6: Logo, Gerätename, Verbindungsanzeige, darunter nur auf **geteilten** Geräten die
 Zeiterfassung (`lib-time-clock-panel`, Logik unverändert), auf zugewiesenen Geräten die Namen der Zugewiesenen.
 Ganz unten stehen Theme- und Sprachtaste. Auf schmalen Bildschirmen entfällt das Panel; Logo, Sprache,
 Verbindung und das Slide-in der Zeiterfassung bleiben wie bisher.
+Die installierte Version steht auf jeder Breite genau einmal: im Footer links unten (`Panary Terminal • vX`,
+unter `sm` nur `vX`), rechts daneben bei Bedarf das Update-Badge mit der neuen Version (panary/panary-core#1169).
 
 ## Schritt 1 — Mitarbeiterwahl (geteilte Geräte)
 

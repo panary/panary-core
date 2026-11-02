@@ -111,9 +111,10 @@ Die Version in `apps/pos-client/src-tauri/tauri.conf.json` ist die **Source of T
 }
 ```
 
-Zusätzlich synchronisieren:
-- `apps/pos-client/src/app/app.config.ts` → `appVersion: '2026.4.0'`
-- `libs/domains/users/feature-pos-login/src/lib/login.component.html` → Footer-Versionstext
+Die in der App angezeigte Version (`APP_CONFIG.appVersion`) liest `apps/pos-client/src/app/app.config.ts` aus
+`version` der **Root-`package.json`**, nicht aus `tauri.conf.json`. Beide müssen deshalb gemeinsam gebumpt werden;
+`pnpm version:bump` (`tools/scripts/bump-version.mjs`) schreibt beide in einem Schritt. Einen eigenen Versionstext im
+Login-Template gibt es nicht mehr: Der Login zeigt `appVersion` nur im Footer links unten (panary/panary-core#1169).
 
 ### Tag erstellen und pushen
 

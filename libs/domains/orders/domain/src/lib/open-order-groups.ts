@@ -1,3 +1,4 @@
+import { OrderStatus } from './order.schema'
 import { sumCents, toCents } from './pricing/money'
 import { isSyntheticSettlementScope } from './settlement-scope'
 
@@ -100,4 +101,52 @@ export function openOrderCircleTotalCents<TOrder extends { staffPaymentInfo?: un
 ): number | null {
   if (orders.some(order => !!order.staffPaymentInfo)) return null
   return sumCents(orders.map(order => toCents(totalOf(order))))
+}
+
+/** Eine Bestellung im Zahlablauf „Tisch kassieren“: ID und Betrag in Cent, aus derselben Engine wie die Karte. */
+export type TableCheckoutItem = { orderId: string; totalCents: number }
+
+/**
+ * Zahlliste für „Tisch kassieren“ (ADR 0063 Nr. 5, core#1142): die offenen Bestellungen einer Kreis-Karte, die älteste
+ * zuerst, je mit ihrem Betrag in Cent. Die Summe für den Gast ist `sumCents` über genau diese Beträge, und dieselben
+ * Beträge gehen je Bestellung in die Zahlung. Zwei getrennte Rechnungen wichen sonst um einen Cent voneinander ab.
+ *
+ * `null`, wenn der Kreis nicht als Ganzes kassiert werden kann:
+ * - leer: nichts zu kassieren,
+ * - mit Personalessen: Es wird über die Abrechnung beglichen, nicht an der Theke, und sein Betrag bleibt am Terminal
+ *   verborgen (wie in `openOrderCircleTotalCents`). Die übrigen Bestellungen kassiert man dann einzeln.
+ */
+export function tableCheckoutPlan<TOrder extends OpenOrderGroupInput & { staffPaymentInfo?: unknown }>(
+  orders: ReadonlyArray<TOrder>,
+  totalOf: (order: TOrder) => number,
+): TableCheckoutItem[] | null {
+  if (orders.length === 0 || orders.some(order => !!order.staffPaymentInfo)) return null
+  return [...orders]
+    .sort((a, b) => {
+      const at = Date.parse(a.recordingDate)
+      const bt = Date.parse(b.recordingDate)
+      if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return at - bt
+      return a._id < b._id ? -1 : a._id > b._id ? 1 : 0
+    })
+    .map(order => ({ orderId: order._id, totalCents: toCents(totalOf(order)) }))
+}
+
+/**
+ * Wie viele Bestellungen eines Kreises sind am selben Geschäftstag schon kassiert (`completed`)? Nach einem
+ * abgebrochenen „Tisch kassieren“ zeigt die Kreis-Karte so den gezahlten Teil neben dem offenen (core#1142).
+ *
+ * Nur `completed`: Storniert (`aborted`) und nicht abgeholt (`unclaimed`) schließen einen Kreis zwar auch, gezahlt
+ * ist dort aber nichts. Der Geschäftstag gehört dazu, weil ein Kreis eines alten Clients nur das Tisch-Label ist
+ * und sich sonst mit dem Vortag mischte.
+ */
+export function settledOrdersInCircle(
+  orders: ReadonlyArray<{ status?: string | null; settlementScope?: string | null; businessDayId?: string | null }>,
+  circle: { settlementScope: string; businessDayId?: string | null },
+): number {
+  return orders.filter(
+    order =>
+      order.status === OrderStatus.COMPLETED &&
+      order.settlementScope === circle.settlementScope &&
+      (order.businessDayId ?? null) === (circle.businessDayId ?? null),
+  ).length
 }

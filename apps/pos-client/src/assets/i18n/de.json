@@ -442,6 +442,9 @@
     "CIRCLE_TITLE": "Tisch {{table}} · {{count}} Bestellungen",
     "CIRCLE_SINCE": "seit {{minutes}} Min.",
     "REORDER": "Nachbestellen",
+    "CIRCLE_CHECKOUT": "Tisch kassieren",
+    "CIRCLE_FINALIZE": "Tisch abschließen",
+    "CIRCLE_SETTLED": "{{count}} bereits kassiert",
     "DISCOUNT_LABEL": "Rabatt",
     "SPLIT": "Aufteilen"
   },
@@ -749,6 +752,7 @@
     "BUSINESS_DAY_HINT_OPEN_HERE": "Kein Geschäftstag eröffnet. Die Bestellung wird beim Absenden abgelehnt.",
     "BUSINESS_DAY_HINT_ADMIN": "Kein Geschäftstag eröffnet. Bitte im Cloud-Admin eröffnen, sonst wird die Bestellung abgelehnt.",
     "REORDER_BANNER": "Nachbestellung · Tisch {{table}}",
+    "PAYMENT_TABLE_PARTIAL": "Tisch {{table}}: {{paid}} von {{count}} Bestellungen kassiert. Nicht gebucht: {{rest}}. Der Rest steht weiter unter „Offen“.",
     "BUSINESS_DAY_HINT_ACTION": "Tag eröffnen",
     "ORDER_NOT_POSSIBLE": "Bestellung nicht möglich"
   },

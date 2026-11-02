@@ -41,17 +41,31 @@
             <!-- Kreis-Karte (core#1141): ein Abrechnungskreis, mehrere offene Bestellungen. Aufklappen zeigt die
                  Einzelbestellungen als gewohnte Karten direkt dahinter. -->
             <div [style.zoom]="zoomLevel()" class="flex flex-col gap-2 w-80 shrink-0">
-              <!-- Aktionen des Kreises über der Karte: Die Karte selbst ist ein Button (Aufklappen). -->
-              <div class="flex-none h-12 flex items-center justify-end gap-2 px-4">
+              <!-- Aktionen des Kreises über der Karte: Die Karte selbst ist ein Button (Aufklappen). Zwei Tasten teilen
+                   sich die Kartenbreite, deshalb ohne Icon: Mit Icon liefen sie über die 20rem der Karte hinaus. -->
+              <div class="flex-none h-12 flex items-center justify-end gap-2">
                 @if (entry.reorder; as preset) {
                   <button
                     type="button"
-                    class="pnry-touch hover-morph-btn-rect bg-surface-elevated text-ink h-12 px-5 rounded-xl flex items-center justify-center gap-2 border border-line hover:bg-line shadow-sm"
+                    class="pnry-touch hover-morph-btn-rect flex-1 min-w-0 bg-surface-elevated text-ink h-12 px-3 rounded-xl flex items-center justify-center border border-line hover:bg-line shadow-sm"
                     data-testid="circle-reorder"
                     (click)="reorder(preset)"
                   >
-                    <lib-icon name="plus-circle" class="text-[1.25rem]" />
-                    <span class="font-bold text-sm">{{ 'ACTIVE_ORDERS.REORDER' | translate }}</span>
+                    <span class="font-bold text-sm truncate">{{ 'ACTIVE_ORDERS.REORDER' | translate }}</span>
+                  </button>
+                }
+                <!-- Tisch kassieren (core#1142): ein Bezahlvorgang über alle offenen Bestellungen des Kreises. Mit
+                     Personalessen im Kreis fehlt die Taste, die Bestellungen werden dann einzeln abgeschlossen. -->
+                @if (entry.checkout) {
+                  <button
+                    type="button"
+                    class="pnry-touch hover-morph-btn-rect flex-1 min-w-0 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 h-12 px-3 rounded-xl flex items-center justify-center border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900 shadow-sm"
+                    data-testid="circle-checkout"
+                    (click)="checkoutCircle(entry)"
+                  >
+                    <span class="font-bold text-sm truncate">{{
+                      (isCashierMode() ? 'ACTIVE_ORDERS.CIRCLE_CHECKOUT' : 'ACTIVE_ORDERS.CIRCLE_FINALIZE') | translate
+                    }}</span>
                   </button>
                 }
               </div>
@@ -77,6 +91,11 @@
                     <span class="text-xl font-black text-ink" data-testid="circle-total">{{ total }}</span>
                   }
                 </div>
+                @if (entry.settledCount > 0) {
+                  <span class="text-xs font-bold text-emerald-700 dark:text-emerald-300" data-testid="circle-settled">
+                    {{ 'ACTIVE_ORDERS.CIRCLE_SETTLED' | translate: { count: entry.settledCount } }}
+                  </span>
+                }
               </button>
             </div>
           } @else {

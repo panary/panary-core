@@ -253,3 +253,38 @@ describe('Offene Bestellungen — Nachbestellen (core#1140)', () => {
     expect(reorder.match(/#reorderHandoff\.take\(\)/g)).toHaveLength(2)
   })
 })
+
+// core#1142: „Tisch kassieren" an der Kreis-Karte — ein Bezahlvorgang über alle offenen Bestellungen des Kreises.
+describe('Offene Bestellungen — Tisch kassieren (core#1142)', () => {
+  const template = read('./active-orders.component.html')
+  const component = read('./active-orders.component.ts')
+  const circle = template.slice(template.indexOf(`entry.kind === 'circle'`), template.indexOf('@let vm = entry.vm'))
+  const single = template.slice(template.indexOf('@let vm = entry.vm'))
+  const checkout = component.slice(component.indexOf('  async checkoutCircle('), component.indexOf('  toggleCircle('))
+
+  it('steht nur an der Kreis-Karte, über der Karte, und nur mit Zahlliste', () => {
+    const actions = circle.slice(0, circle.indexOf('data-testid="circle-card"'))
+    expect(actions).toMatch(/@if \(entry\.checkout\)/)
+    expect(actions).toMatch(/data-testid="circle-checkout"/)
+    expect(actions).toMatch(/\(click\)="checkoutCircle\(entry\)"/)
+    expect(single).not.toMatch(/checkoutCircle/)
+  })
+
+  it('Zahlliste und gezahlter Teil kommen aus den Domain-Helfern', () => {
+    expect(component).toMatch(/checkout: tableCheckoutPlan\(entry\.orders, order => this\.calculateTotal\(order\)\)/)
+    expect(component).toMatch(/settledCount: settledOrdersInCircle\(this\.#orderService\.orders\(\)/)
+    expect(circle).toMatch(/@if \(entry\.settledCount > 0\)/)
+  })
+
+  it('kassiert im Kassenbetrieb über die Bezahlansicht mit Summe aus denselben Cent-Beträgen', () => {
+    expect(checkout).toMatch(/total: fromCents\(sumCents\(plan\.map\(item => item\.totalCents\)\)\)/)
+    expect(checkout).toMatch(/total: fromCents\(item\.totalCents\)/)
+    expect(checkout).toMatch(/open<CashPaymentDialogComponent/)
+    expect(checkout).not.toMatch(/payCash/)
+  })
+
+  it('schließt im Bestellbetrieb nur ab und hält beim ersten Fehler an', () => {
+    expect(checkout.indexOf('!this.#isCashierMode()')).toBeLessThan(checkout.indexOf('#orderService.complete'))
+    expect(checkout).toMatch(/catch \{[\s\S]*?return\s*\}/)
+  })
+})

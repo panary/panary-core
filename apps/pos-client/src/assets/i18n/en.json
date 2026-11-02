@@ -442,6 +442,9 @@
     "CIRCLE_TITLE": "Table {{table}} · {{count}} orders",
     "CIRCLE_SINCE": "for {{minutes}} min",
     "REORDER": "Order more",
+    "CIRCLE_CHECKOUT": "Settle table",
+    "CIRCLE_FINALIZE": "Close table",
+    "CIRCLE_SETTLED": "{{count}} already paid",
     "DISCOUNT_LABEL": "Discount",
     "SPLIT": "Split"
   },
@@ -749,6 +752,7 @@
     "BUSINESS_DAY_HINT_OPEN_HERE": "No business day open. The order will be rejected on submit.",
     "BUSINESS_DAY_HINT_ADMIN": "No business day open. Please open it in the Cloud Admin, otherwise the order will be rejected.",
     "REORDER_BANNER": "Additional order · Table {{table}}",
+    "PAYMENT_TABLE_PARTIAL": "Table {{table}}: {{paid}} of {{count}} orders paid. Not booked: {{rest}}. The rest is still under \"Open\".",
     "BUSINESS_DAY_HINT_ACTION": "Open day",
     "ORDER_NOT_POSSIBLE": "Order not possible"
   },

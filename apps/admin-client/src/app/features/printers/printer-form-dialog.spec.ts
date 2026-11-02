@@ -90,6 +90,14 @@ describe('PrinterFormDialogComponent — Formular (core#1173)', () => {
     expect(close).not.toHaveBeenCalled()
   })
 
+  it('sperrt Speichern ohne Namen auch bei gültiger IP', async () => {
+    const { type, saveButton } = await render(bestand())
+    expect(saveButton().disabled).toBe(false)
+
+    await type('printerName', '')
+    expect(saveButton().disabled).toBe(true)
+  })
+
   it('verlangt beim MQTT-Drucker keine IP', async () => {
     const { type, saveButton } = await render(null)
     await type('printerName', 'Küche')

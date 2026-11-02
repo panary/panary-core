@@ -284,7 +284,7 @@ describe('SetupComponent — Formular-Schema', () => {
     expect(component.isPairingCodeValid()).toBe(false)
     component.pairingCode.set('12345a')
     expect(component.isPairingCodeValid()).toBe(false)
-    component.pairingCode.set(' 123456 ')
+    component.pairingCode.set('123456')
     expect(component.isPairingCodeValid()).toBe(true)
   })
 

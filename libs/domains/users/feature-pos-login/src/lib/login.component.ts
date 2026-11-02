@@ -139,12 +139,15 @@ export class LoginComponent implements OnInit {
   /**
    * Startversatz der Balken-Animation: negativ um die schon verstrichene Zeit. Blendet ein
    * Schrittwechsel das Banner aus und wieder ein, setzt der Balken an der richtigen Stelle
-   * fort, statt von vorn zu laufen.
+   * fort, statt von vorn zu laufen. Ein `computed`, damit der Wert nur beim Ein- oder
+   * Ausblenden neu entsteht: Jede weitere Auswertung (etwa nach einer PIN-Ziffer) laese
+   * sonst eine neue Uhrzeit und schoebe die laufende Animation vor.
    */
-  protected idleNoticeAnimationDelayMs(): number {
+  protected readonly idleNoticeAnimationDelayMs = computed(() => {
     const shownAt = this.#idleNoticeShownAt()
-    return shownAt === null ? 0 : -Math.min(Date.now() - shownAt, IDLE_NOTICE_DURATION_MS)
-  }
+    if (shownAt === null || !this.showIdleLogoutNotice()) return 0
+    return -Math.min(Date.now() - shownAt, IDLE_NOTICE_DURATION_MS)
+  })
 
   protected readonly idleNoticeDurationMs = IDLE_NOTICE_DURATION_MS
 

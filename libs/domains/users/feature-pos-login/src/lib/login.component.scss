@@ -48,3 +48,9 @@
   animation-timing-function: linear;
   animation-fill-mode: forwards;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .idle-notice-bar {
+    animation: none;
+  }
+}

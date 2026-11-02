@@ -596,6 +596,43 @@ describe('LoginComponent — Inaktivitaets-Hinweis blendet sich aus (#1170)', ()
     expect(component.idleLogoutNotice()).toBe(false)
   })
 
+  it('haelt den Balken-Versatz zwischen zwei Auswertungen fest', async () => {
+    const { component, load } = idleSetup()
+    await load()
+    const first = component['idleNoticeAnimationDelayMs']()
+
+    vi.advanceTimersByTime(3_000)
+
+    expect(component['idleNoticeAnimationDelayMs']()).toBe(first)
+  })
+
+  it('setzt den Balken nach dem Wiedereinblenden an der verstrichenen Stelle fort', async () => {
+    const { component, load } = idleSetup()
+    await load()
+    vi.advanceTimersByTime(4_000)
+
+    component.currentStep.set('change-pin')
+    component.backToUsers()
+
+    expect(component['idleNoticeAnimationDelayMs']()).toBe(-4_000)
+  })
+
+  it('startet nach der Re-Verifikation, nicht schon im Schritt reverify', async () => {
+    const { component, connection, load } = idleSetup({ reverificationRequired: true })
+    await load()
+    expect(component.currentStep()).toBe('reverify')
+    vi.advanceTimersByTime(IDLE_NOTICE_DURATION_MS)
+    expect(component.idleLogoutNotice()).toBe(true)
+
+    connection.deviceReverificationRequired.set(false)
+    component['onReverified']()
+    vi.advanceTimersByTime(IDLE_NOTICE_DURATION_MS - 1)
+    expect(component.showIdleLogoutNotice()).toBe(true)
+
+    vi.advanceTimersByTime(1)
+    expect(component.idleLogoutNotice()).toBe(false)
+  })
+
   it('startet ohne Inaktivitaets-Logout keinen Timer', async () => {
     const { component, load } = idleSetup({ endReason: null })
     component.idleLogoutNotice.set(false)

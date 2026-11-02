@@ -115,7 +115,8 @@
     "EXCEPTIONS": "Ausnahmen (Feiertage, Betriebsurlaub)",
     "ADD_EXCEPTION": "Ausnahme hinzufügen",
     "NO_EXCEPTIONS": "Keine Ausnahmen konfiguriert",
-    "LOAD_ERROR": "Öffnungszeiten konnten nicht geladen werden."
+    "LOAD_ERROR": "Öffnungszeiten konnten nicht geladen werden.",
+    "TIME_REQUIRED": "Bitte Datum, Öffnungs- und Schließzeit angeben – unvollständige Einträge werden nicht gespeichert."
   },
   "CLOUD_MANAGED": {
     "TITLE": "Diese Filiale wird in der Cloud verwaltet.",

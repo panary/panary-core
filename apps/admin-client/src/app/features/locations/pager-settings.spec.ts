@@ -45,7 +45,7 @@ describe('PagerSettingsComponent', () => {
     const { component, api } = setup()
     await component.ngOnInit()
 
-    component.newPagerNumber = 7
+    component.pagerForm.newPager().value.set(7)
     await component.addPager()
 
     expect(component.pagers()).toEqual([1, 2, 7])
@@ -60,7 +60,7 @@ describe('PagerSettingsComponent', () => {
     const { component, connection } = setup({ patch: () => Promise.reject(err) })
     await component.ngOnInit()
 
-    component.newPagerNumber = 7
+    component.pagerForm.newPager().value.set(7)
     await component.addPager()
 
     expect(component.pagers()).toEqual([1, 2])
@@ -83,7 +83,7 @@ describe('PagerSettingsComponent', () => {
     const { component, api } = setup({ cloudPaired: true })
     await component.ngOnInit()
 
-    component.newPagerNumber = 7
+    component.pagerForm.newPager().value.set(7)
     await component.addPager()
 
     expect(component.pagers()).toEqual([1, 2])
@@ -95,7 +95,7 @@ describe('PagerSettingsComponent', () => {
     const { component, api } = setup()
     await component.ngOnInit()
 
-    component.newPagerNumber = 2
+    component.pagerForm.newPager().value.set(2)
     await component.addPager()
 
     expect(component.pagerDuplicateError()).toBe(true)
@@ -110,5 +110,41 @@ describe('PagerSettingsComponent', () => {
 
     expect(component.pagers()).toEqual([2])
     expect(api.patch).toHaveBeenCalledTimes(1)
+  })
+
+  // core#1173: Die Grenzen stehen im Signal-Forms-Schema, nicht mehr im Handler.
+  it('lehnt eine Sammelanlage über 100 über das Schema ab', async () => {
+    const { component, api } = setup()
+    await component.ngOnInit()
+
+    component.pagerForm.batchCount().value.set(101)
+    await component.addBatch()
+
+    expect(component.batchError()).toBe('LOCATION.PAGER_BATCH_MAX')
+    expect(component.pagers()).toEqual([1, 2])
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('legt eine Sammelanlage an und leert danach das Eingabefeld', async () => {
+    const { component, api } = setup()
+    await component.ngOnInit()
+
+    component.pagerForm.batchCount().value.set(3)
+    await component.addBatch()
+
+    expect(component.pagers()).toEqual([1, 2, 3, 4, 5])
+    expect(component.pagerInput().batchCount).toBeNull()
+    expect(api.patch).toHaveBeenCalledTimes(1)
+  })
+
+  it('lehnt eine Pager-Nummer unter 1 über das Schema ab', async () => {
+    const { component, api } = setup()
+    await component.ngOnInit()
+
+    component.pagerForm.newPager().value.set(0)
+    await component.addPager()
+
+    expect(component.pagers()).toEqual([1, 2])
+    expect(api.patch).not.toHaveBeenCalled()
   })
 })

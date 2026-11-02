@@ -115,7 +115,8 @@
     "EXCEPTIONS": "İstisnalar (Tatil, Kapalı)",
     "ADD_EXCEPTION": "İstisna ekle",
     "NO_EXCEPTIONS": "Yapılandırılmış istisna yok",
-    "LOAD_ERROR": "Çalışma saatleri yüklenemedi."
+    "LOAD_ERROR": "Çalışma saatleri yüklenemedi.",
+    "TIME_REQUIRED": "Lütfen tarih, açılış ve kapanış saatini girin – eksik girişler kaydedilmez."
   },
   "CLOUD_MANAGED": {
     "TITLE": "Bu şube bulutta yönetiliyor.",

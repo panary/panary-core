@@ -1,6 +1,6 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { TranslateService } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -319,5 +319,66 @@ describe('TableSettingsComponent — Cloud-Verwaltung', () => {
     expect(component.rooms()).toHaveLength(1)
     expect(component.enabled()).toBe(true)
     expect(api.patch).not.toHaveBeenCalled()
+  })
+})
+
+// core#1173: Die Eingabefelder hängen ohne `FormsModule` per `[value]` + `(input)` an den Handlern.
+// Geprüft wird über das gerenderte Template, denn genau diese Bindung geht beim Umbau still verloren.
+describe('TableSettingsComponent — Eingabefelder im Template', () => {
+  async function render() {
+    const api = {
+      find: vi.fn().mockResolvedValue({
+        data: [
+          { _id: 'loc-1', settings: { tableSettings: { enabled: true, rooms: [{ name: 'Innen', tables: [] }] } } },
+        ],
+      }),
+      patch: vi.fn().mockResolvedValue({}),
+    }
+    const connection = {
+      healthLoaded: signal(true),
+      cloudPaired: signal(false),
+      emergencyOverrideActive: signal(false),
+      emergencyOverrideSinceMin: signal<number | null>(null),
+      cloudUnreachable: signal(false),
+      cloudContactUnknown: signal(false),
+      refreshHealth: vi.fn().mockResolvedValue(undefined),
+    }
+    await TestBed.configureTestingModule({
+      imports: [TableSettingsComponent, TranslateModule.forRoot()],
+      providers: [
+        CloudManagedService,
+        { provide: ApiService, useValue: api },
+        { provide: ConnectionService, useValue: connection },
+      ],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(TableSettingsComponent)
+    await fixture.whenStable()
+    const el = fixture.nativeElement as HTMLElement
+    const [roomName, tableLabel] = [...el.querySelectorAll<HTMLInputElement>('input[type="text"]')]
+    return { fixture, api, roomName, tableLabel }
+  }
+
+  it('zeigt den geladenen Bereichsnamen und speichert den getippten', async () => {
+    const { fixture, api, roomName } = await render()
+    expect(roomName.value).toBe('Innen')
+
+    roomName.value = 'Terrasse'
+    roomName.dispatchEvent(new Event('input'))
+    roomName.dispatchEvent(new Event('change'))
+    await fixture.whenStable()
+
+    expect(lastPayload(api).settings.tableSettings.rooms[0].name).toBe('Terrasse')
+  })
+
+  it('legt den getippten Tisch per Enter an und leert das Feld', async () => {
+    const { fixture, api, tableLabel } = await render()
+    tableLabel.value = 'T7'
+    tableLabel.dispatchEvent(new Event('input'))
+    tableLabel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    await fixture.whenStable()
+
+    const tables = lastPayload(api).settings.tableSettings.rooms[0].tables as Array<{ label: string }>
+    expect(tables.map(t => t.label)).toEqual(['T7'])
+    expect(tableLabel.value).toBe('')
   })
 })

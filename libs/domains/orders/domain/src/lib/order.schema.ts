@@ -277,6 +277,11 @@ export const paymentSchema = Type.Object({
 export const creationContextSchema = Type.Object({
   createdBy: Type.String({ format: 'uuid' }),
   createdVia: Type.Optional(Type.String({ format: 'uuid' })),
+  // Snapshot des Geraetenamens zum Buchungszeitpunkt (panary/panary-core#1303).
+  // Die Edge stempelt ihn ausschliesslich aus der Geraete-Session, nie aus dem
+  // Body, und patcht ihn nie nach — eine spaetere Umbenennung aendert alte Bons
+  // nicht. Grenze wie `device.name`.
+  createdViaName: Type.Optional(Type.String({ maxLength: 100 })),
 })
 
 // Eingebetteter TSE-Snapshot (KassenSichV). Strukturell identisch zu

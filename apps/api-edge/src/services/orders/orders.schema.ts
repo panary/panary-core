@@ -1,11 +1,12 @@
 import { resolve } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 import type { HookContext } from '../../declarations'
-import { dataValidator, queryValidator } from '@panary/shared-backend'
+import { dataValidator, logger, queryValidator } from '@panary/shared-backend'
 import { uuidv7 } from 'uuidv7'
 
 // Import domain schema
 import {
+  CreationContext,
   Order,
   orderDataSchema,
   orderPatchSchema,
@@ -16,6 +17,7 @@ import {
 import { OrderService } from './orders.class'
 import { mayWriteOrderSplitFields } from '../../hooks/order-split-params'
 import { attributedOperatorId, isDeviceSession } from '../../utils/pos-operator-attribution'
+import { resolveActorDeviceId } from '../../hooks/restrict-device-self-patch.hook'
 
 //#region 1. Main Resolver (Output)
 export const orderResolver = resolve<Order, HookContext<OrderService>>({
@@ -26,6 +28,84 @@ export const orderExternalResolver = resolve<Order, HookContext<OrderService>>({
   // TODO: Add resolver logic for external output here
   // Example: Filtering sensitive data
 })
+//#endregion
+
+//#region Geraet der Buchung (panary/panary-core#1303)
+type CreationDevice = Pick<CreationContext, 'createdVia' | 'createdViaName'>
+
+/**
+ * Geraet und Geraetename einer neuen Bestellung. Die Quelle ist die Session,
+ * nie der Body — ein gefaelschtes `createdVia`/`createdViaName` aus dem Request
+ * bleibt wirkungslos. Reihenfolge:
+ *
+ * 1. Split-Teilbeleg: erbt beides von der Quelle (`params.inheritCreationDevice`,
+ *    setzt nur `orders.split`). Er gehoert zum urspruenglichen Bon, nicht zur
+ *    Kasse, die teilt. Fehlt der Quelle das Feld, fehlt es auch dem Teilbeleg.
+ * 2. Pull-Apply (`fromSync`, intern): der Datensatz der Cloud gilt unveraendert,
+ *    sonst ginge der Snapshot beim Zurueckziehen einer Order still verloren.
+ * 3. Geraete-Session: ID aus der Session, Name per Lookup ueber `deviceId`.
+ * 4. Sonst (JWT, interne Aufrufe): `createdVia` aus dem Body wie bisher, nie ein Name.
+ *
+ * `params` baut der Server; Feathers reicht einem externen Aufrufer nur Query und
+ * Route durch. Beide Sonderfaelle sind von aussen unerreichbar.
+ */
+const resolveCreationDevice = async (
+  value: CreationContext | null | undefined,
+  context: HookContext<OrderService>,
+): Promise<CreationDevice> => {
+  const params = context.params as { provider?: string; fromSync?: boolean; inheritCreationDevice?: CreationDevice }
+  if (params.inheritCreationDevice) {
+    return {
+      createdVia: params.inheritCreationDevice.createdVia,
+      createdViaName: params.inheritCreationDevice.createdViaName,
+    }
+  }
+  if (!params.provider && params.fromSync === true) {
+    return { createdVia: value?.createdVia, createdViaName: value?.createdViaName }
+  }
+  const sessionDeviceId = resolveActorDeviceId(context as unknown as Parameters<typeof resolveActorDeviceId>[0])
+  if (sessionDeviceId) {
+    return { createdVia: sessionDeviceId, createdViaName: await lookupDeviceName(context, sessionDeviceId) }
+  }
+  return { createdVia: value?.createdVia }
+}
+
+/**
+ * Name des Geraets zum Buchungszeitpunkt. Gesucht wird ueber das Feld `deviceId`,
+ * nicht ueber `_id` (Muster `stampDeviceLastSeen` in channels.ts). Ein fehlendes
+ * Geraet oder ein Lookup-Fehler laesst nur den Namen weg — ein Bon darf daran
+ * nie scheitern.
+ */
+const lookupDeviceName = async (context: HookContext<OrderService>, deviceId: string): Promise<string | undefined> => {
+  try {
+    const res = (await context.app.service('devices').find({
+      query: { deviceId, $limit: 1 },
+      paginate: false,
+      provider: undefined,
+    } as any)) as Array<{ name?: unknown }> | { data?: Array<{ name?: unknown }> } | undefined
+    const rows = Array.isArray(res) ? res : (res?.data ?? [])
+    const name = rows[0]?.name
+    return typeof name === 'string' && name.length > 0 ? name : undefined
+  } catch (err) {
+    logger.warn({
+      message: 'Geraetename fuer die Bestellung nicht ermittelbar',
+      event: 'orders.creation_device_name_lookup_failed',
+      deviceId,
+      error: String(err),
+    })
+    return undefined
+  }
+}
+
+/** Frueher Return ohne Bediener und Geraet: Body-Werte nur ueber `resolveCreationDevice`. */
+const withoutDeviceFields = (value: CreationContext, device: CreationDevice): CreationContext => {
+  const { createdVia: _via, createdViaName: _name, ...rest } = value
+  return {
+    ...rest,
+    ...(device.createdVia ? { createdVia: device.createdVia } : {}),
+    ...(device.createdViaName ? { createdViaName: device.createdViaName } : {}),
+  } as CreationContext
+}
 //#endregion
 
 //#region 2. Create Resolver (POST)
@@ -67,10 +147,10 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
         })
       : undefined
     const rawUserId: string | undefined = deviceOperator || (context.params as any)?.user?._id || value?.createdBy
-    const rawDeviceId: string | undefined = (context.params as any)?.device?._id || value?.createdVia
+    const device = await resolveCreationDevice(value, context)
 
-    if (!rawUserId && !rawDeviceId) {
-      return value
+    if (!rawUserId && !device.createdVia) {
+      return value ? withoutDeviceFields(value, device) : value
     }
 
     // "device:<uuid>" → nur die UUID extrahieren
@@ -78,7 +158,8 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
 
     return {
       createdBy: (rawUserId ? stripPrefix(rawUserId) : value?.createdBy) as string,
-      createdVia: rawDeviceId ? stripPrefix(rawDeviceId) : value?.createdVia,
+      createdVia: device.createdVia ? stripPrefix(device.createdVia) : undefined,
+      ...(device.createdViaName ? { createdViaName: device.createdViaName } : {}),
     }
   },
 })
@@ -103,6 +184,12 @@ export const orderPatchResolver = resolve<Order, HookContext<OrderService>>({
   // Ein Test darauf muss den Wert NACHLESEN, nicht den Statuscode pruefen.
   settlementScope: async () => undefined,
   lineItems: async () => undefined,
+  // Erfassungskontext (Bediener, Geraet, Geraetename) ist ein Snapshot der Anlage
+  // (panary/panary-core#1303) und wird nie nachgetragen — auch nicht vom Pull-Apply.
+  // `orderPatchSchema` ist `Type.Partial(orderSchema)` und liesse ihn sonst durch.
+  //
+  // ⚠️ Der Strip ist STILL: Der Client bekommt HTTP 200, und nichts passiert.
+  creationContext: async () => undefined,
   // Gegenbuchungen des Splits (panary/panary-core#349). Fuer jeden anderen
   // Aufrufer gestrippt — und das ist kein Formalismus: `splitOff` senkt ueber
   // `effectiveLineItems()` das ausgewiesene Brutto UND die Steuer. Ein Client,

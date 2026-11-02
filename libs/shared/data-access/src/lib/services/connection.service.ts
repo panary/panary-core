@@ -10,6 +10,10 @@ import { Utils } from '@panary/shared/util-helpers'
 import { AppConfigService, DeviceConfigService } from '@panary/shared/data-access-config'
 import { BusinessDaySchema } from '@panary/businessdays/domain'
 import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
+import { CLIENT_SERVICE_METHODS } from './client-service-methods'
+
+// Bestehender Export-Pfad: Die Spec von `BusinessDayService` importiert die Liste über den Haupteinstieg.
+export { BUSINESSDAYS_CLIENT_METHODS } from './client-service-methods'
 
 type ServiceTypes = {
   users: SocketService & {
@@ -17,16 +21,15 @@ type ServiceTypes = {
     checkout: (data: { id: Id }) => Promise<{ workingTimeId: string }>
     startBreak: (data: { id: Id }) => Promise<{ workingTimeId: string }>
     endBreak: (data: { id: Id }) => Promise<{ workingTimeId: string }>
-    mustChangePassword: (data: { newPassword: string }, params?: Params) => Promise<any>
     lookupByEmployeeNumber: (data: { employeeNumber: string }, params?: Params) => Promise<any>
     stampByEmployeeNumber: (data: { employeeNumber: string; action: string }, params?: Params) => Promise<any>
   }
   businessdays: SocketService & {
-    open: (data: { locationId: string }) => Promise<{ businessDayId: Id; date: string }>
-    close: (data: { locationId: string }) => Promise<{ businessDay: BusinessDaySchema }>
-  }
-  orders: SocketService & {
-    multiPatchStatus: (data: { status: number }) => Promise<{ orders: any }>
+    openDay: (data: unknown, params?: Params) => Promise<BusinessDaySchema>
+    closeDay: (data: unknown, params?: Params) => Promise<BusinessDaySchema>
+    refreshClosingStatus: (data: unknown, params?: Params) => Promise<BusinessDaySchema>
+    approveClosedDay: (data: unknown, params?: Params) => Promise<unknown>
+    getClosedDayStatus: (data: unknown, params?: Params) => Promise<unknown>
   }
 }
 
@@ -43,26 +46,6 @@ export type ServiceName = keyof ConnectionService
  */
 const PAIRING_CONNECTED = 'connected'
 const PAIRING_DISCONNECTED = 'disconnected'
-
-/**
- * Methoden, die der Client am Service `businessdays` registriert. Eine nicht registrierte Custom-Method ist
- * clientseitig nicht vorhanden: Am cloud-direct-POS scheiterte so „Geschäftstag eröffnen" mit
- * „service.openDay is not a function" (panary/panary-core#1120). Exportiert, damit die Spec von
- * `BusinessDayService` gegen genau diese Liste läuft.
- */
-export const BUSINESSDAYS_CLIENT_METHODS = [
-  'find',
-  'get',
-  'create',
-  'update',
-  'patch',
-  'remove',
-  'openDay',
-  'closeDay',
-  'refreshClosingStatus',
-  'approveClosedDay',
-  'getClosedDayStatus',
-] as const
 
 @Injectable({
   providedIn: 'root',
@@ -609,55 +592,12 @@ export class ConnectionService {
     const socketClient = socketio(this.#socket)
 
     this.#app.configure(socketClient)
-    this.#app.use('users', socketClient.service('users'), {
-      methods: [
-        'find',
-        'get',
-        'create',
-        'update',
-        'patch',
-        'remove',
-        'checkin',
-        'checkout',
-        'startBreak',
-        'endBreak',
-        'verifyPin',
-        'changePin',
-        // Bedienhand am Terminal (#833) — ohne Registrierung ist die Custom-Method clientseitig unsichtbar.
-        'setPosHandedness',
-        // Stempeln per Personalnummer am Login-Bildschirm (#1198) — Edge (#1197) und Cloud (cloud#1557).
-        'lookupByEmployeeNumber',
-        'stampByEmployeeNumber',
-      ],
-    })
-    this.#app.use('locations', socketClient.service('locations'), {
-      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'openBusinessDay', 'performDailyClosing'],
-    })
-    // `split` (Bon-Split, #349/#350) — ohne Registrierung ist die Custom-Method clientseitig unsichtbar.
-    this.#app.use('orders', socketClient.service('orders'), {
-      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'multiPatchStatus', 'split'],
-    })
-    // Die Edge heißt die Lifecycle-Methoden `openDay`/`closeDay`/`refreshClosingStatus`;
-    // registriert waren hier nur `open`/`close`, die es dort nicht gibt — der Aufruf
-    // aus dem POS lief damit ins Leere. Dazu die Ruhetag-Freigabe (panary/panary-core#1133).
-    this.#app.use('businessdays', socketClient.service('businessdays'), {
-      methods: [...BUSINESSDAYS_CLIENT_METHODS],
-    })
-    // cash-sessions inkl. Custom-Method openAuthorized (manager-autorisierte
-    // Kassen-Eröffnung am POS) — ohne explizite Registrierung wäre die
-    // Custom-Method clientseitig unsichtbar.
-    this.#app.use('cash-sessions', socketClient.service('cash-sessions'), {
-      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'openAuthorized'],
-    })
-    this.#app.use('leave-requests', socketClient.service('leave-requests'), {
-      methods: ['find', 'get', 'create', 'update', 'patch', 'remove'],
-    })
-    this.#app.use('pre-orders', socketClient.service('pre-orders'), {
-      methods: ['find', 'get', 'create', 'update', 'patch', 'remove', 'convert'],
-    })
-    this.#app.use('opening-hour-exceptions', socketClient.service('opening-hour-exceptions'), {
-      methods: ['find', 'get', 'create', 'update', 'patch', 'remove'],
-    })
+    // Die Methodenlisten liegen framework-frei in `client-service-methods.ts`: Die Edge prüft per Spec, dass jede
+    // Custom-Method dort existiert (panary/panary-core#1165). Ohne Registrierung ist eine Custom-Method
+    // clientseitig unsichtbar.
+    for (const [path, methods] of Object.entries(CLIENT_SERVICE_METHODS)) {
+      this.#app.use(path, socketClient.service(path), { methods: [...methods] })
+    }
 
     // Explicitly connect if not auto-connected (Device Auth case)
     if (deviceConfig?.deviceId && !this.#socket.connected) {

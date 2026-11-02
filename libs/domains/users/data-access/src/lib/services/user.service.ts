@@ -189,13 +189,6 @@ export class UserService extends BaseService<User> {
     return this.service.stampByEmployeeNumber({ employeeNumber, action })
   }
 
-  async mustChangePassword(data: { newPassword: string }, params: Params = {}): Promise<User> {
-    console.log(data)
-    return this.service
-      .mustChangePassword(data, params)
-      .catch((error: unknown) => this.helper.handleError(this.serviceName, error))
-  }
-
   updateLocalStorageUsers(): void {
     this.find({}).then((response: Paginated<User> | User[]): void => {
       let users: User[]

@@ -30,6 +30,7 @@
       "@panary/shared-common": ["./libs/shared/common/src/index.ts"],
       "@panary/shared/data-access": ["./libs/shared/data-access/src/index.ts"],
       "@panary/shared/data-access/server": ["./libs/shared/data-access/src/server.ts"],
+      "@panary/shared/data-access/client-methods": ["./libs/shared/data-access/src/client-methods.ts"],
       "@panary/allergens/domain": ["./libs/domains/allergens/domain/src/index.ts"],
       "@panary/apikeys/domain": ["./libs/domains/apikeys/domain/src/index.ts"],
       "@panary/tse/domain": ["./libs/domains/tse/domain/src/index.ts"],

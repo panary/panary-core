@@ -276,6 +276,16 @@ export class AccountFormComponent {
   Der eigene Handler hängt an `(submit)`, nicht an `(ngSubmit)`.
 - **Kein `[disabled]` an einem Element mit `[formField]`.** Deaktivierung gehört ins Schema (`disabled(p.feld, …)`).
   Buttons sind keine Felder und dürfen `[disabled]` tragen.
+- **Kein `name`-Attribut an einem Element mit `[formField]`** — der Compiler lehnt es ab (`NG8022`), die
+  Direktive setzt den Namen selbst. Grenzen und Pflicht gehören als `min()`, `max()`, `required()` ins
+  Schema statt als Attribut ans Element.
+- **Ein Eingabefeld ohne Formular** (Suchfeld, Inline-Umbenennung mit eigenem Handler) braucht kein `form()`:
+  `[value]="signal()"` plus `(input)="handler(ref.value)"` über eine Template-Referenz (`#ref`). `$event`
+  bleibt dabei untypisiert, die Referenz nicht.
+- **Listen** (Öffnungszeiten je Tag, Ausnahmen) validieren per `applyEach(liste, eintrag => …)`. Der
+  Feldbaum eines Arrays ist iterierbar: `@for (eintrag of form; track eintrag)`, Werte über
+  `eintrag.feld().value()`, Index-Zugriff im Code über `form[i].feld().value.set(…)`. Bedingte Pflicht:
+  `required(e.open, { when: ({ valueOf }) => !valueOf(e.closed) })`.
 - **Reaktion auf Eingaben** über `computed()` oder `linkedSignal()` auf dem Modell, nicht über ein `effect()`
   mit Signal-Writes (§2.1). Beispiel: eine Auswahl, die beim Tippen im Suchfeld verfällt, ist ein
   `linkedSignal({ source: suchbegriff, computation: () => null })`.

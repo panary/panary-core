@@ -8,7 +8,7 @@ import {
   ElementRef,
   viewChildren,
 } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { form, FormField, max, min, required, validate } from '@angular/forms/signals'
 import { AssistantShellComponent } from '../../core/assistant-shell'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
@@ -21,7 +21,7 @@ interface StepAnswer {
 @Component({
   selector: 'app-group-wizard',
   standalone: true,
-  imports: [FormsModule, AssistantShellComponent],
+  imports: [FormField, AssistantShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-assistant-shell title="Produktgruppe" (closed)="cancelled.emit()">
@@ -133,8 +133,9 @@ interface StepAnswer {
               }
               <input
                 type="text"
-                [(ngModel)]="nameInput"
-                (ngModelChange)="onNameInput($event)"
+                #groupNameField
+                [formField]="inputForm.name"
+                (input)="onNameInput(groupNameField.value)"
                 placeholder="z.B. Pizza, Getränke, Desserts..."
                 class="flex-1 bg-surface-input border border-line-soft rounded-lg
                        px-3 py-2.5 text-sm text-ink focus:border-ink focus:ring-1 focus:ring-ink outline-none"
@@ -142,7 +143,7 @@ interface StepAnswer {
               <button
                 type="button"
                 (click)="submitName()"
-                [disabled]="!nameInput.trim()"
+                [disabled]="inputForm.name().invalid()"
                 class="bg-ink text-surface-panel font-medium px-3 py-2.5
                        rounded-lg text-sm hover:bg-ink/90 transition
                        disabled:opacity-30 disabled:cursor-not-allowed"
@@ -318,9 +319,8 @@ interface StepAnswer {
                     <input
                       id="wizardVatIn"
                       type="number"
-                      [(ngModel)]="customTaxInside"
+                      [formField]="inputForm.taxInside"
                       step="0.1"
-                      min="0"
                       class="w-full bg-surface-input border border-line-soft
                              rounded-lg px-3 py-2 text-sm text-ink outline-none
                              focus:border-ink"
@@ -331,9 +331,8 @@ interface StepAnswer {
                     <input
                       id="wizardVatOut"
                       type="number"
-                      [(ngModel)]="customTaxOutside"
+                      [formField]="inputForm.taxOutside"
                       step="0.1"
-                      min="0"
                       class="w-full bg-surface-input border border-line-soft
                              rounded-lg px-3 py-2 text-sm text-ink outline-none
                              focus:border-ink"
@@ -343,8 +342,10 @@ interface StepAnswer {
                 <button
                   type="button"
                   (click)="submitCustomTax()"
+                  [disabled]="inputForm.taxInside().invalid() || inputForm.taxOutside().invalid()"
                   class="bg-ink text-surface-panel font-medium
-                         px-4 py-2 rounded-xl text-sm hover:bg-ink/90 transition"
+                         px-4 py-2 rounded-xl text-sm hover:bg-ink/90 transition
+                         disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Übernehmen
                 </button>
@@ -440,11 +441,18 @@ export class GroupWizardComponent implements OnInit {
   answers = signal<Map<string, StepAnswer>>(new Map())
 
   // Eingabe-State
-  nameInput = ''
+  readonly wizardInput = signal({ name: '', taxInside: 19 as number | null, taxOutside: 7 as number | null })
+  readonly inputForm = form(this.wizardInput, w => {
+    validate(w.name, ({ value }) => (value().trim() ? undefined : { kind: 'required' }))
+    required(w.taxInside)
+    min(w.taxInside, 0)
+    max(w.taxInside, 100)
+    required(w.taxOutside)
+    min(w.taxOutside, 0)
+    max(w.taxOutside, 100)
+  })
   showColorPicker = signal(false)
   showCustomTax = signal(false)
-  customTaxInside = 19
-  customTaxOutside = 7
 
   // Formulardaten
   formData = signal({
@@ -516,7 +524,7 @@ export class GroupWizardComponent implements OnInit {
     })
     this.currentStep.set(stepIndex)
     // Eingabe-State wiederherstellen
-    if (stepIndex === 1) this.nameInput = this.formData().name
+    if (stepIndex === 1) this.inputForm.name().value.set(this.formData().name)
     if (stepIndex === 2) this.showColorPicker.set(false)
     if (stepIndex === 3) this.showCustomTax.set(false)
   }
@@ -532,8 +540,8 @@ export class GroupWizardComponent implements OnInit {
   }
 
   submitName() {
-    const name = this.nameInput.trim()
-    if (!name) return
+    if (this.inputForm.name().invalid()) return
+    const name = this.wizardInput().name.trim()
     this.formData.update(f => ({ ...f, name, acronym: name.substring(0, 3).toUpperCase() }))
     this.answerStep(1, name, name)
   }
@@ -557,12 +565,10 @@ export class GroupWizardComponent implements OnInit {
   }
 
   submitCustomTax() {
-    this.formData.update(f => ({ ...f, taxInside: this.customTaxInside, taxOutside: this.customTaxOutside }))
-    this.answerStep(
-      3,
-      { inside: this.customTaxInside, outside: this.customTaxOutside },
-      `${this.customTaxInside}% / ${this.customTaxOutside}%`,
-    )
+    if (this.inputForm.taxInside().invalid() || this.inputForm.taxOutside().invalid()) return
+    const { taxInside, taxOutside } = this.wizardInput() as { taxInside: number; taxOutside: number }
+    this.formData.update(f => ({ ...f, taxInside, taxOutside }))
+    this.answerStep(3, { inside: taxInside, outside: taxOutside }, `${taxInside}% / ${taxOutside}%`)
   }
 
   // --- Save ---

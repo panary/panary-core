@@ -9,7 +9,7 @@ import {
   viewChildren,
   ElementRef,
 } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { form, FormField, max, maxLength, min, required, validate } from '@angular/forms/signals'
 import { AssistantShellComponent } from '../../core/assistant-shell'
 import { ApiService } from '../../core/api.service'
 import { formatApiError } from '../../core/error-helper'
@@ -36,7 +36,7 @@ interface ExistingProduct {
 @Component({
   selector: 'app-product-wizard',
   standalone: true,
-  imports: [EurPipe, FormsModule, AssistantShellComponent],
+  imports: [EurPipe, FormField, AssistantShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-assistant-shell title="Produkt" (closed)="cancelled.emit()">
@@ -215,13 +215,18 @@ interface ExistingProduct {
             <div class="flex items-center gap-2">
               <input
                 type="text"
-                [(ngModel)]="nameInput"
+                [formField]="inputForm.name"
                 (keydown.enter)="submitName()"
                 [placeholder]="'z.B. ' + namePlaceholder()"
                 class="flex-1 bg-surface-input border border-line-soft rounded-lg
                        px-3 py-2.5 text-sm text-ink focus:border-ink focus:ring-1 focus:ring-ink outline-none"
               />
-              <button type="button" (click)="submitName()" [disabled]="!nameInput.trim()" [class]="cls.btnArrow">
+              <button
+                type="button"
+                (click)="submitName()"
+                [disabled]="inputForm.name().invalid()"
+                [class]="cls.btnArrow"
+              >
                 →
               </button>
             </div>
@@ -275,9 +280,8 @@ interface ExistingProduct {
             <div class="flex items-center gap-2">
               <input
                 type="number"
-                [(ngModel)]="priceInput"
+                [formField]="inputForm.price"
                 step="0.01"
-                min="0"
                 placeholder="0.00"
                 (keydown.enter)="submitPrice()"
                 class="flex-1 bg-surface-input border border-line-soft rounded-lg
@@ -285,7 +289,14 @@ interface ExistingProduct {
                        focus:border-ink"
               />
               <span class="text-sm font-medium text-ink-muted">€</span>
-              <button type="button" (click)="submitPrice()" [class]="cls.btnArrow">→</button>
+              <button
+                type="button"
+                (click)="submitPrice()"
+                [disabled]="inputForm.price().invalid()"
+                [class]="cls.btnArrow"
+              >
+                →
+              </button>
             </div>
           </div>
         }
@@ -350,9 +361,8 @@ interface ExistingProduct {
                     <input
                       id="productWizardVatIn"
                       type="number"
-                      [(ngModel)]="customTaxIn"
+                      [formField]="inputForm.taxInside"
                       step="0.1"
-                      min="0"
                       [class]="cls.inputSm"
                     />
                   </div>
@@ -361,14 +371,20 @@ interface ExistingProduct {
                     <input
                       id="productWizardVatOut"
                       type="number"
-                      [(ngModel)]="customTaxOut"
+                      [formField]="inputForm.taxOutside"
                       step="0.1"
-                      min="0"
                       [class]="cls.inputSm"
                     />
                   </div>
                 </div>
-                <button type="button" (click)="submitCustomTax()" [class]="cls.btnPrimary">Übernehmen</button>
+                <button
+                  type="button"
+                  (click)="submitCustomTax()"
+                  [disabled]="inputForm.taxInside().invalid() || inputForm.taxOutside().invalid()"
+                  [class]="cls.btnPrimary"
+                >
+                  Übernehmen
+                </button>
               }
             </div>
           </div>
@@ -502,8 +518,7 @@ interface ExistingProduct {
                 <div class="flex items-center gap-2">
                   <input
                     type="text"
-                    [(ngModel)]="customAcronymInput"
-                    maxlength="10"
+                    [formField]="inputForm.acronym"
                     (keydown.enter)="submitCustomAcronym()"
                     placeholder="z.B. 1, K32, P12"
                     class="flex-1 bg-surface-input border border-line-soft rounded-lg
@@ -513,7 +528,7 @@ interface ExistingProduct {
                   <button
                     type="button"
                     (click)="submitCustomAcronym()"
-                    [disabled]="!customAcronymInput.trim()"
+                    [disabled]="inputForm.acronym().invalid()"
                     [class]="cls.btnArrow"
                   >
                     →
@@ -623,13 +638,28 @@ export class ProductWizardComponent implements OnInit {
   answers = signal<Map<string, StepAnswer>>(new Map())
 
   // Eingabe-State
-  nameInput = ''
-  priceInput = 0
+  readonly wizardInput = signal({
+    name: '',
+    price: 0 as number | null,
+    acronym: '',
+    taxInside: 19 as number | null,
+    taxOutside: 7 as number | null,
+  })
+  readonly inputForm = form(this.wizardInput, w => {
+    validate(w.name, ({ value }) => (value().trim() ? undefined : { kind: 'required' }))
+    required(w.price)
+    min(w.price, 0)
+    validate(w.acronym, ({ value }) => (value().trim() ? undefined : { kind: 'required' }))
+    maxLength(w.acronym, 10)
+    required(w.taxInside)
+    min(w.taxInside, 0)
+    max(w.taxInside, 100)
+    required(w.taxOutside)
+    min(w.taxOutside, 0)
+    max(w.taxOutside, 100)
+  })
   showCustomAcronym = signal(false)
-  customAcronymInput = ''
   showCustomTax = signal(false)
-  customTaxIn = 19
-  customTaxOut = 7
   selectedCategories = signal<string[]>([])
   primaryCategoryId = signal<string | null>(null)
 
@@ -756,8 +786,8 @@ export class ProductWizardComponent implements OnInit {
       return copy
     })
     this.currentStep.set(stepIndex)
-    if (stepIndex === 2) this.nameInput = this.form().name
-    if (stepIndex === 3) this.priceInput = this.form().price
+    if (stepIndex === 2) this.inputForm.name().value.set(this.form().name)
+    if (stepIndex === 3) this.inputForm.price().value.set(this.form().price)
     if (stepIndex === 4) this.showCustomTax.set(false)
     if (stepIndex <= 5) {
       this.primaryCategoryId.set(null)
@@ -774,16 +804,18 @@ export class ProductWizardComponent implements OnInit {
 
   // --- Name ---
   submitName() {
-    const name = this.nameInput.trim()
-    if (!name) return
+    if (this.inputForm.name().invalid()) return
+    const name = this.wizardInput().name.trim()
     this.form.update(f => ({ ...f, name }))
     this.answer('name', 2, name, name)
   }
 
   // --- Preis ---
   submitPrice() {
-    this.form.update(f => ({ ...f, price: this.priceInput }))
-    this.answer('price', 3, this.priceInput, formatEur(this.priceInput))
+    const price = this.wizardInput().price
+    if (price == null || this.inputForm.price().invalid()) return
+    this.form.update(f => ({ ...f, price }))
+    this.answer('price', 3, price, formatEur(price))
   }
 
   // --- MwSt. ---
@@ -793,13 +825,10 @@ export class ProductWizardComponent implements OnInit {
   }
 
   submitCustomTax() {
-    this.form.update(f => ({ ...f, taxInside: this.customTaxIn, taxOutside: this.customTaxOut }))
-    this.answer(
-      'tax',
-      4,
-      { inside: this.customTaxIn, outside: this.customTaxOut },
-      `${this.customTaxIn}% / ${this.customTaxOut}%`,
-    )
+    if (this.inputForm.taxInside().invalid() || this.inputForm.taxOutside().invalid()) return
+    const { taxInside, taxOutside } = this.wizardInput() as { taxInside: number; taxOutside: number }
+    this.form.update(f => ({ ...f, taxInside, taxOutside }))
+    this.answer('tax', 4, { inside: taxInside, outside: taxOutside }, `${taxInside}% / ${taxOutside}%`)
   }
 
   // --- Kategorie ---
@@ -841,8 +870,8 @@ export class ProductWizardComponent implements OnInit {
   }
 
   submitCustomAcronym() {
-    const acr = this.customAcronymInput.trim()
-    if (!acr) return
+    if (this.inputForm.acronym().invalid()) return
+    const acr = this.wizardInput().acronym.trim()
     this.form.update(f => ({ ...f, acronym: acr }))
     this.answer('acronym', 6, acr, acr)
   }

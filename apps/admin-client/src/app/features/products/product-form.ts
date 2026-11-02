@@ -10,9 +10,8 @@ import {
   output,
   effect,
   untracked,
-  viewChild,
 } from '@angular/core'
-import { FormsModule, NgForm } from '@angular/forms'
+import { applyEach, form, FormField, FormRoot, maxLength, min, required } from '@angular/forms/signals'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
@@ -67,7 +66,8 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
   selector: 'app-product-form',
   standalone: true,
   imports: [
-    FormsModule,
+    FormField,
+    FormRoot,
     ConfirmDialogComponent,
     TranslateModule,
     SearchableSelectComponent,
@@ -122,7 +122,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
         <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_PRODUCTS" />
       }
 
-      <form #f="ngForm" (ngSubmit)="onSave()" class="space-y-5">
+      <form [formRoot]="productForm" (submit)="onSave()" class="space-y-5">
         <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-5" [class.opacity-60]="readOnly()">
           <!-- Status-Pille -->
           <div class="relative flex bg-surface-bg rounded-2xl p-1.5 border border-line-soft">
@@ -135,9 +135,9 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
             @for (s of statuses; track s.value) {
               <button
                 type="button"
-                (click)="form.status = s.value"
+                (click)="productForm.status().value.set(s.value)"
                 [class]="
-                  form.status === s.value
+                  product().status === s.value
                     ? 'text-ink font-semibold'
                     : 'text-ink-faint hover:text-ink-muted dark:hover:text-ink'
                 "
@@ -146,7 +146,6 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                 {{ s.label | translate }}
               </button>
             }
-            <input type="hidden" [(ngModel)]="form.status" name="status" />
           </div>
 
           @if (!isNew()) {
@@ -206,35 +205,23 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
               <div class="flex items-center ${INPUT} !p-0 overflow-hidden">
                 <input
                   id="productIcon"
-                  [(ngModel)]="form.icon"
-                  name="icon"
+                  [formField]="productForm.icon"
                   type="text"
-                  maxlength="4"
                   placeholder="🍽"
                   class="w-11 h-full shrink-0 text-center text-lg bg-transparent outline-none border-r
                        border-line-soft p-3"
                 />
                 <input
                   id="productName"
-                  [(ngModel)]="form.name"
-                  name="name"
+                  [formField]="productForm.name"
                   type="text"
-                  required
                   class="flex-1 bg-transparent outline-none p-3"
                 />
               </div>
             </div>
             <div class="space-y-1">
               <label for="productAcronym" class="${LABEL}">{{ 'PRODUCTS.ACRONYM' | translate }} *</label>
-              <input
-                id="productAcronym"
-                [(ngModel)]="form.acronym"
-                name="acronym"
-                type="text"
-                required
-                maxlength="10"
-                class="${INPUT} font-mono"
-              />
+              <input id="productAcronym" [formField]="productForm.acronym" type="text" class="${INPUT} font-mono" />
             </div>
           </div>
 
@@ -249,9 +236,9 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
             @for (t of productTypes; track t.value) {
               <button
                 type="button"
-                (click)="form.productType = t.value"
+                (click)="productForm.productType().value.set(t.value)"
                 [class]="
-                  form.productType === t.value
+                  product().productType === t.value
                     ? 'text-ink font-semibold'
                     : 'text-ink-faint hover:text-ink-muted dark:hover:text-ink'
                 "
@@ -260,7 +247,6 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                 {{ t.label | translate }}
               </button>
             }
-            <input type="hidden" [(ngModel)]="form.productType" name="productType" />
           </div>
 
           <!-- Preis + Steuern -->
@@ -269,11 +255,9 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
               <label for="productPrice" class="${LABEL}">{{ 'PRODUCTS.PRICE' | translate }} (&euro;) *</label>
               <input
                 id="productPrice"
-                [(ngModel)]="form.price"
-                name="price"
+                [formField]="productForm.price"
                 type="number"
                 step="0.01"
-                min="0"
                 class="${INPUT} font-mono"
               />
             </div>
@@ -281,8 +265,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
               <label for="productTaxInside" class="${LABEL}">{{ 'PRODUCTS.TAX_INSIDE' | translate }}</label>
               <input
                 id="productTaxInside"
-                [(ngModel)]="form.taxInside"
-                name="taxInside"
+                [formField]="productForm.taxInside"
                 type="number"
                 step="0.1"
                 class="${INPUT} font-mono"
@@ -292,8 +275,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
               <label for="productTaxOutside" class="${LABEL}">{{ 'PRODUCTS.TAX_OUTSIDE' | translate }}</label>
               <input
                 id="productTaxOutside"
-                [(ngModel)]="form.taxOutside"
-                name="taxOutside"
+                [formField]="productForm.taxOutside"
                 type="number"
                 step="0.1"
                 class="${INPUT} font-mono"
@@ -302,15 +284,10 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
           </div>
 
           <!-- Bundle-Preisgestaltung (nur bei BUNDLE) -->
-          @if (form.productType === 'BUNDLE') {
+          @if (product().productType === 'BUNDLE') {
             <div class="space-y-1">
               <label for="productBundlePricingMode" class="${LABEL}">{{ 'PRODUCTS.BUNDLE_PRICING' | translate }}</label>
-              <select
-                id="productBundlePricingMode"
-                [(ngModel)]="form.bundlePricingMode"
-                name="bundlePricingMode"
-                class="${INPUT}"
-              >
+              <select id="productBundlePricingMode" [formField]="productForm.bundlePricingMode" class="${INPUT}">
                 <option value="ROLLUP">{{ 'PRODUCTS.BUNDLE_ROLLUP' | translate }}</option>
                 <option value="FIXED_PROPORTIONAL">{{ 'PRODUCTS.BUNDLE_FIXED' | translate }}</option>
               </select>
@@ -374,7 +351,8 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
               </div>
             </div>
 
-            @for (group of optionGroups(); track group.id; let gi = $index) {
+            @for (groupField of optionGroupsForm; track groupField; let gi = $index) {
+              @let group = groupField().value();
               <div class="border border-line-soft rounded-xl overflow-hidden">
                 <!-- Group Header -->
                 <div
@@ -409,10 +387,8 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                       >
                       <input
                         [id]="'optGroupName-' + gi"
-                        [(ngModel)]="group.name"
-                        [name]="'og_' + gi + '_name'"
+                        [formField]="groupField.name"
                         type="text"
-                        required
                         placeholder="z.B. Saucen & Dips"
                         class="${INPUT_SM}"
                       />
@@ -426,10 +402,8 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                         }}</label>
                         <input
                           [id]="'optGroupMin-' + gi"
-                          [(ngModel)]="group.minSelections"
-                          [name]="'og_' + gi + '_min'"
+                          [formField]="groupField.minSelections"
                           type="number"
-                          min="0"
                           class="${INPUT_SM} font-mono"
                         />
                       </div>
@@ -439,10 +413,8 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                         }}</label>
                         <input
                           [id]="'optGroupMax-' + gi"
-                          [(ngModel)]="group.maxSelections"
-                          [name]="'og_' + gi + '_max'"
+                          [formField]="groupField.maxSelections"
                           type="number"
-                          min="1"
                           class="${INPUT_SM} font-mono"
                         />
                       </div>
@@ -452,10 +424,8 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                         }}</label>
                         <input
                           [id]="'optGroupFree-' + gi"
-                          [(ngModel)]="group.freeQuantity"
-                          [name]="'og_' + gi + '_free'"
+                          [formField]="groupField.freeQuantity"
                           type="number"
-                          min="0"
                           class="${INPUT_SM} font-mono"
                         />
                       </div>
@@ -507,7 +477,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                         </p>
                       }
 
-                      @for (opt of group.options; track $index; let oi = $index) {
+                      @for (optField of groupField.options; track optField; let oi = $index) {
                         <div
                           class="flex items-center gap-2 bg-surface-panel dark:bg-surface-bg/50 border border-line-soft
                                   rounded-lg p-2"
@@ -516,15 +486,14 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                           <app-searchable-select
                             class="flex-1 min-w-0"
                             [items]="productSelectItems()"
-                            [(value)]="opt.productId"
+                            [formField]="optField.productId"
                             placeholder="Produkt suchen..."
                           />
                           <!-- Preisaufschlag -->
                           <div class="flex items-center gap-1 shrink-0">
                             <span class="text-ink-faint dark:text-line-strong text-xs">+&euro;</span>
                             <input
-                              [(ngModel)]="opt.priceAdjustment"
-                              [name]="'og_' + gi + '_opt_' + oi + '_adj'"
+                              [formField]="optField.priceAdjustment"
                               type="number"
                               step="0.01"
                               placeholder="0.00"
@@ -534,12 +503,7 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                           </div>
                           <!-- Standard -->
                           <label class="flex items-center gap-1 text-xs text-ink-faint shrink-0 cursor-pointer">
-                            <input
-                              [(ngModel)]="opt.isDefault"
-                              [name]="'og_' + gi + '_opt_' + oi + '_def'"
-                              type="checkbox"
-                              class="w-3 h-3 accent-ink"
-                            />
+                            <input [formField]="optField.isDefault" type="checkbox" class="w-3 h-3 accent-ink" />
                             Std.
                           </label>
                           <!-- Entfernen -->
@@ -576,12 +540,14 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
         <div class="flex gap-3 pt-4">
           <button
             type="submit"
-            [disabled]="saving() || savedSuccess() || readOnly()"
+            [disabled]="
+              saving() || savedSuccess() || readOnly() || productForm().invalid() || optionGroupsForm().invalid()
+            "
             [class]="
               'save-btn ' + (savedSuccess() ? 'save-btn--success' : saving() ? 'save-btn--saving' : 'save-btn--default')
             "
-            [class.opacity-50]="!form.name && !saving() && !savedSuccess()"
-            [class.cursor-not-allowed]="!form.name"
+            [class.opacity-50]="productForm().invalid() && !saving() && !savedSuccess()"
+            [class.cursor-not-allowed]="productForm().invalid()"
           >
             <span class="save-btn__content">
               @if (savedSuccess()) {
@@ -691,7 +657,7 @@ export class ProductFormComponent implements OnInit {
   ]
 
   get typeIndex(): number {
-    return this.productTypes.findIndex(t => t.value === this.form.productType)
+    return this.productTypes.findIndex(t => t.value === this.product().productType)
   }
 
   statuses = [
@@ -701,11 +667,11 @@ export class ProductFormComponent implements OnInit {
   ]
 
   get statusIndex(): number {
-    return this.statuses.findIndex(s => s.value === this.form.status)
+    return this.statuses.findIndex(s => s.value === this.product().status)
   }
 
   statusPillBg(): string {
-    switch (this.form.status) {
+    switch (this.product().status) {
       case 'ACTIVE':
         return 'bg-green-600/60 dark:bg-green-800/60'
       case 'DRAFT':
@@ -716,29 +682,46 @@ export class ProductFormComponent implements OnInit {
         return 'bg-line'
     }
   }
-  private formRef = viewChild<NgForm>('f')
   private originalHash = ''
 
   /** Ob das Formular ungespeicherte Änderungen hat */
   isDirty(): boolean {
     // Gesperrt gibt es nichts zu speichern — sonst böte der Dirty-Dialog ein Speichern an, das scheitert.
     if (this.readOnly()) return false
-    if (this.isNew()) return !!this.form.name
-    return objectHash({ ...this.form, og: this.optionGroups() }) !== this.originalHash
+    if (this.isNew()) return !!this.product().name
+    return objectHash({ ...this.product(), og: this.optionGroups() }) !== this.originalHash
   }
 
-  form = {
+  readonly product = signal({
     name: '',
     icon: '',
     acronym: '',
-    price: 0,
-    taxInside: 19,
-    taxOutside: 7,
+    price: 0 as number | null,
+    taxInside: 19 as number | null,
+    taxOutside: 7 as number | null,
     productType: 'PRODUCT',
     status: 'DRAFT',
     bundlePricingMode: 'ROLLUP' as 'ROLLUP' | 'FIXED_PROPORTIONAL',
     categoryIds: [] as string[],
-  }
+  })
+  readonly productForm = form(this.product, p => {
+    required(p.name)
+    required(p.acronym)
+    maxLength(p.acronym, 10)
+    maxLength(p.icon, 4)
+    required(p.price)
+    min(p.price, 0)
+    required(p.taxInside)
+    required(p.taxOutside)
+  })
+  /** Gruppen ohne Namen fallen beim Speichern weg (unten), deshalb ist der Name hier keine Pflicht. */
+  readonly optionGroupsForm = form(this.optionGroups, groups =>
+    applyEach(groups, g => {
+      min(g.minSelections, 0)
+      min(g.maxSelections, 1)
+      min(g.freeQuantity, 0)
+    }),
+  )
 
   constructor() {
     // Reagiert auf ID-Änderungen (Prev/Next im Panel). id() bewusst getrackt;
@@ -803,9 +786,8 @@ export class ProductFormComponent implements OnInit {
 
   private async loadProduct(prodId: string | undefined) {
     // Form-Controls zurücksetzen (verhindert kurzes Aufblitzen von Validierungsfehlern)
-    this.formRef()?.resetForm()
     this.error.set(null)
-    this.form = {
+    this.productForm().reset({
       name: '',
       icon: '',
       acronym: '',
@@ -816,7 +798,7 @@ export class ProductFormComponent implements OnInit {
       status: 'DRAFT',
       bundlePricingMode: 'ROLLUP',
       categoryIds: [],
-    }
+    })
     this.optionGroups.set([])
     this.entityId.set('')
     this.externalId.set(null)
@@ -832,7 +814,7 @@ export class ProductFormComponent implements OnInit {
       const p = await this.api.get<any>('products', prodId)
       this.entityId.set(p._id || '')
       this.externalId.set(p.externalId || null)
-      this.form = {
+      this.product.set({
         name: p.name || '',
         icon: p.icon || '',
         acronym: p.acronym || '',
@@ -843,7 +825,7 @@ export class ProductFormComponent implements OnInit {
         status: p.status || 'ACTIVE',
         bundlePricingMode: p.bundlePricingMode || 'ROLLUP',
         categoryIds: Array.isArray(p.categoryIds) ? p.categoryIds : [],
-      }
+      })
       if (Array.isArray(p.optionGroups)) {
         this.optionGroups.set(
           p.optionGroups.map((g: any) => ({
@@ -862,7 +844,7 @@ export class ProductFormComponent implements OnInit {
           })),
         )
       }
-      this.originalHash = objectHash({ ...this.form, og: this.optionGroups() })
+      this.originalHash = objectHash({ ...this.product(), og: this.optionGroups() })
     } catch {
       this.error.set(this.t.instant('PRODUCTS.NOT_FOUND'))
     }
@@ -880,14 +862,14 @@ export class ProductFormComponent implements OnInit {
 
   isGroupSelected(group: { _id: string; externalId?: string | null }): boolean {
     const keys = this.groupKeys(group)
-    return this.form.categoryIds.some(cid => keys.includes(cid))
+    return this.product().categoryIds.some(cid => keys.includes(cid))
   }
 
   toggleCategory(group: { _id: string; externalId?: string | null }, event: Event) {
     const checked = (event.target as HTMLInputElement).checked
     const keys = this.groupKeys(group)
-    const rest = this.form.categoryIds.filter(cid => !keys.includes(cid))
-    this.form.categoryIds = checked ? [...rest, group.externalId ?? group._id] : rest
+    const rest = this.product().categoryIds.filter(cid => !keys.includes(cid))
+    this.productForm.categoryIds().value.set(checked ? [...rest, group.externalId ?? group._id] : rest)
   }
 
   // --- OptionGroup Mutationen ---
@@ -910,19 +892,21 @@ export class ProductFormComponent implements OnInit {
     this.optionGroups.update(gs => gs.filter(g => g.id !== groupId))
   }
 
+  /** Ersetzt die Optionen einer Gruppe unveraenderlich — das Modell gehoert jetzt `optionGroupsForm`. */
+  private updateOptions(groupId: string, change: (options: OptionGroupOption[]) => OptionGroupOption[]) {
+    this.optionGroups.update(gs => gs.map(g => (g.id === groupId ? { ...g, options: change(g.options) } : g)))
+  }
+
   addOption(group: OptionGroup) {
-    group.options = [...group.options, { productId: '', priceAdjustment: 0, isDefault: false }]
-    this.optionGroups.update(gs => [...gs])
+    this.updateOptions(group.id, options => [...options, { productId: '', priceAdjustment: 0, isDefault: false }])
   }
 
   removeOption(group: OptionGroup, index: number) {
-    group.options = group.options.filter((_, i) => i !== index)
-    this.optionGroups.update(gs => [...gs])
+    this.updateOptions(group.id, options => options.filter((_, i) => i !== index))
   }
 
   clearOptions(group: OptionGroup) {
-    group.options = []
-    this.optionGroups.update(gs => [...gs])
+    this.updateOptions(group.id, () => [])
   }
 
   addProductsByCategory(group: OptionGroup, category: { _id: string; externalId?: string | null }) {
@@ -931,8 +915,7 @@ export class ProductFormComponent implements OnInit {
     const newOptions = this.allProducts()
       .filter(p => p.categoryIds.some(cid => keys.includes(cid)) && !existing.has(p._id))
       .map(p => ({ productId: p._id, priceAdjustment: 0, isDefault: false }))
-    group.options = [...group.options, ...newOptions]
-    this.optionGroups.update(gs => [...gs])
+    this.updateOptions(group.id, options => [...options, ...newOptions])
     this.activeCategoryPicker.set(null)
   }
 
@@ -1007,7 +990,7 @@ export class ProductFormComponent implements OnInit {
 
   /** Änderungen verwerfen (Hash zurücksetzen) */
   discardChanges(): void {
-    this.originalHash = objectHash({ ...this.form, og: this.optionGroups() })
+    this.originalHash = objectHash({ ...this.product(), og: this.optionGroups() })
   }
 
   // --- Speichern ---
@@ -1017,15 +1000,20 @@ export class ProductFormComponent implements OnInit {
       this.error.set(this.t.instant('CLOUD_MANAGED.SAVE_BLOCKED'))
       return
     }
-    if (!this.form.name || !this.form.acronym) {
+    if (this.productForm.name().invalid() || this.productForm.acronym().invalid()) {
       this.error.set(this.t.instant('PRODUCTS.NAME_ACRONYM_REQUIRED'))
+      return
+    }
+    // Nicht still abbrechen: `saveAndContinue` liest `error()`, sonst navigierte der Dirty-Dialog ohne Speichern weiter.
+    if (this.productForm().invalid() || this.optionGroupsForm().invalid()) {
+      this.error.set(this.t.instant('PRODUCTS.FORM_INVALID'))
       return
     }
     this.saving.set(true)
     this.error.set(null)
 
     try {
-      const data: any = { ...this.form }
+      const data: any = { ...this.product() }
 
       // Leeres Icon nicht senden
       if (!data.icon) delete data.icon
@@ -1074,16 +1062,16 @@ export class ProductFormComponent implements OnInit {
             p._id === this.id()
               ? {
                   ...p,
-                  name: this.form.name,
-                  acronym: this.form.acronym,
-                  productType: this.form.productType,
-                  categoryIds: this.form.categoryIds,
+                  name: this.product().name,
+                  acronym: this.product().acronym,
+                  productType: this.product().productType,
+                  categoryIds: this.product().categoryIds,
                 }
               : p,
           ),
         )
       }
-      this.originalHash = objectHash({ ...this.form, og: this.optionGroups() })
+      this.originalHash = objectHash({ ...this.product(), og: this.optionGroups() })
       this.savedSuccess.set(true)
       this.cdr.markForCheck()
       if (this.panelMode()) this.saved.emit()

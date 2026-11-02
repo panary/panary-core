@@ -332,6 +332,7 @@
     "NO_PRODUCTS": "Ürün yok",
     "NOT_FOUND": "Ürün bulunamadı",
     "NAME_ACRONYM_REQUIRED": "Ad ve kısaltma gereklidir",
+    "FORM_INVALID": "Lütfen fiyatı, KDV’yi ve seçenek gruplarını kontrol edin – bir değer boş veya izin verilen aralığın dışında.",
     "ACRONYM": "Kısaltma",
     "PRICE": "Fiyat",
     "TYPE": "Tür",

@@ -9,9 +9,21 @@ import {
   output,
   effect,
   untracked,
-  viewChild,
 } from '@angular/core'
-import { FormsModule, NgForm } from '@angular/forms'
+import {
+  applyWhen,
+  email,
+  form,
+  FormField,
+  FormRoot,
+  max,
+  maxLength,
+  min,
+  minLength,
+  pattern,
+  required,
+  type FieldState,
+} from '@angular/forms/signals'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
@@ -22,7 +34,7 @@ import { objectHash } from '../../core/dirty-check'
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [FormsModule, TranslateModule],
+  imports: [FormField, FormRoot, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-2xl space-y-6'">
@@ -30,7 +42,7 @@ import { objectHash } from '../../core/dirty-check'
         {{ (isNew() ? 'USERS.NEW_USER' : 'USERS.EDIT_USER') | translate }}
       </h1>
 
-      <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
+      <form [formRoot]="userForm" (submit)="onSave()" class="space-y-5">
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1">
             <label for="userFirstName" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
@@ -38,8 +50,7 @@ import { objectHash } from '../../core/dirty-check'
             }}</label>
             <input
               id="userFirstName"
-              [(ngModel)]="form.firstName"
-              name="firstName"
+              [formField]="userForm.firstName"
               type="text"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink focus:border-ink
@@ -52,8 +63,7 @@ import { objectHash } from '../../core/dirty-check'
             }}</label>
             <input
               id="userLastName"
-              [(ngModel)]="form.lastName"
-              name="lastName"
+              [formField]="userForm.lastName"
               type="text"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink focus:border-ink
@@ -68,20 +78,15 @@ import { objectHash } from '../../core/dirty-check'
           >
           <input
             id="userLoginname"
-            [(ngModel)]="form.loginname"
-            name="loginname"
-            #loginname="ngModel"
+            [formField]="userForm.loginname"
             type="text"
-            required
-            minlength="2"
-            maxlength="30"
-            [class]="inputClass(loginname)"
+            [class]="inputClass(userForm.loginname())"
           />
-          @if (loginname.invalid && loginname.touched) {
+          @if (userForm.loginname().invalid() && userForm.loginname().touched()) {
             <p class="text-red-500 dark:text-red-400 text-xs mt-1">
-              @if (loginname.errors?.['required']) {
+              @if (userForm.loginname().getError('required')) {
                 {{ 'USERS.LOGIN_NAME_REQUIRED' | translate }}
-              } @else if (loginname.errors?.['minlength']) {
+              } @else if (userForm.loginname().getError('minLength')) {
                 {{ 'COMMON.MIN_CHARS' | translate: { count: 2 } }}
               }
             </p>
@@ -92,16 +97,8 @@ import { objectHash } from '../../core/dirty-check'
           <label for="userEmail" class="text-xs font-medium text-ink-muted uppercase tracking-wider">{{
             'USERS.EMAIL' | translate
           }}</label>
-          <input
-            id="userEmail"
-            [(ngModel)]="form.email"
-            name="email"
-            #email="ngModel"
-            type="email"
-            email
-            [class]="inputClass(email)"
-          />
-          @if (email.invalid && email.touched) {
+          <input id="userEmail" [formField]="userForm.email" type="email" [class]="inputClass(userForm.email())" />
+          @if (userForm.email().invalid() && userForm.email().touched()) {
             <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'USERS.EMAIL_INVALID' | translate }}</p>
           }
         </div>
@@ -112,19 +109,15 @@ import { objectHash } from '../../core/dirty-check'
           </label>
           <input
             id="userPassword"
-            [(ngModel)]="form.password"
-            name="password"
-            #password="ngModel"
+            [formField]="userForm.password"
             type="password"
-            [required]="isNew()"
-            minlength="3"
-            [class]="inputClass(password)"
+            [class]="inputClass(userForm.password())"
           />
-          @if (password.invalid && password.touched) {
+          @if (userForm.password().invalid() && userForm.password().touched()) {
             <p class="text-red-500 dark:text-red-400 text-xs mt-1">
-              @if (password.errors?.['required']) {
+              @if (userForm.password().getError('required')) {
                 {{ 'USERS.PASSWORD_REQUIRED' | translate }}
-              } @else if (password.errors?.['minlength']) {
+              } @else if (userForm.password().getError('minLength')) {
                 {{ 'COMMON.MIN_CHARS' | translate: { count: 3 } }}
               }
             </p>
@@ -138,8 +131,7 @@ import { objectHash } from '../../core/dirty-check'
             >
             <select
               id="userRole"
-              [(ngModel)]="form.role"
-              name="role"
+              [formField]="userForm.role"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink outline-none"
             >
@@ -155,8 +147,7 @@ import { objectHash } from '../../core/dirty-check'
             }}</label>
             <input
               id="userFunction"
-              [(ngModel)]="form.staffRole"
-              name="staffRole"
+              [formField]="userForm.staffRole"
               type="text"
               placeholder="z.B. Kellner, Koch"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
@@ -175,14 +166,13 @@ import { objectHash } from '../../core/dirty-check'
             }}</label>
             <select
               id="userStatus"
-              [(ngModel)]="form.status"
-              name="status"
+              [formField]="userForm.status"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink outline-none"
             >
               <option value="ACTIVE">{{ 'USERS.STATUS_ACTIVE' | translate }}</option>
               <option value="ARCHIVED">{{ 'USERS.STATUS_ARCHIVED' | translate }}</option>
-              @if (form.status === 'REJECTED') {
+              @if (user().status === 'REJECTED') {
                 <!-- Nur sichtbar, wenn das Konto diesen Status TRAEGT: Ein select
                      ohne passende option wuerde das Modell still leerraeumen.
                      REJECTED wird nicht aktiv angeboten (Registrierungs-Ablehnung). -->
@@ -190,7 +180,7 @@ import { objectHash } from '../../core/dirty-check'
               }
             </select>
             <p class="text-xs text-ink-muted dark:text-ink-faint">
-              {{ (form.status === 'ACTIVE' ? 'USERS.STATUS_HINT_ACTIVE' : 'USERS.STATUS_HINT_BLOCKED') | translate }}
+              {{ (user().status === 'ACTIVE' ? 'USERS.STATUS_HINT_ACTIVE' : 'USERS.STATUS_HINT_BLOCKED') | translate }}
             </p>
           </div>
         }
@@ -198,12 +188,12 @@ import { objectHash } from '../../core/dirty-check'
         <!-- POS-Benutzer -->
         <div class="flex items-center gap-6 pt-2">
           <label class="flex items-center gap-2 cursor-pointer">
-            <input [(ngModel)]="form.isPosUser" name="isPosUser" type="checkbox" class="w-4 h-4 accent-ink" />
+            <input [formField]="userForm.isPosUser" type="checkbox" class="w-4 h-4 accent-ink" />
             <span class="text-sm text-ink-muted dark:text-ink">{{ 'USERS.POS_USER' | translate }}</span>
           </label>
         </div>
 
-        @if (form.isPosUser) {
+        @if (user().isPosUser) {
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
               <label for="employeeNumber" class="text-xs font-medium text-ink-muted uppercase tracking-wider">
@@ -211,18 +201,13 @@ import { objectHash } from '../../core/dirty-check'
               </label>
               <input
                 id="employeeNumber"
-                [(ngModel)]="form.employeeNumber"
-                name="employeeNumber"
-                #employeeNumber="ngModel"
+                [formField]="userForm.employeeNumber"
                 type="text"
-                minlength="6"
-                maxlength="6"
-                pattern="[0-9]*"
                 inputmode="numeric"
                 placeholder="z.B. 100001"
-                [class]="inputClass(employeeNumber)"
+                [class]="inputClass(userForm.employeeNumber())"
               />
-              @if (employeeNumber.invalid && employeeNumber.touched) {
+              @if (userForm.employeeNumber().invalid() && userForm.employeeNumber().touched()) {
                 <p class="text-red-500 dark:text-red-400 text-xs mt-1">
                   {{ 'USERS.EMPLOYEE_NUMBER_INVALID' | translate }}
                 </p>
@@ -238,7 +223,7 @@ import { objectHash } from '../../core/dirty-check'
               @if (!isNew() && hasPosPin() && !editingPin()) {
                 <button
                   type="button"
-                  (click)="editingPin.set(true); form.posPin = ''"
+                  (click)="editingPin.set(true); userForm.posPin().value.set('')"
                   class="w-full text-left bg-surface-input border border-line-soft rounded-lg p-3
                          text-ink-faint hover:border-line-strong transition cursor-pointer"
                 >
@@ -247,18 +232,13 @@ import { objectHash } from '../../core/dirty-check'
               } @else {
                 <input
                   id="posPin"
-                  [(ngModel)]="form.posPin"
-                  name="posPin"
-                  #posPin="ngModel"
+                  [formField]="userForm.posPin"
                   type="text"
-                  minlength="4"
-                  maxlength="6"
-                  pattern="[0-9]*"
                   inputmode="numeric"
                   [placeholder]="isNew() ? 'z.B. 1234' : 'Neuen PIN eingeben'"
-                  [class]="inputClass(posPin)"
+                  [class]="inputClass(userForm.posPin())"
                 />
-                @if (posPin.invalid && posPin.touched) {
+                @if (userForm.posPin().invalid() && userForm.posPin().touched()) {
                   <p class="text-red-500 dark:text-red-400 text-xs mt-1">{{ 'USERS.POS_PIN_INVALID' | translate }}</p>
                 }
               }
@@ -273,16 +253,11 @@ import { objectHash } from '../../core/dirty-check'
           </p>
 
           <label class="flex items-center gap-2 cursor-pointer">
-            <input
-              [(ngModel)]="form.allowStaffMealOrders"
-              name="allowStaffMealOrders"
-              type="checkbox"
-              class="w-4 h-4 accent-ink"
-            />
+            <input [formField]="userForm.allowStaffMealOrders" type="checkbox" class="w-4 h-4 accent-ink" />
             <span class="text-sm text-ink-muted dark:text-ink">{{ 'USERS.STAFF_MEAL_ELIGIBLE' | translate }}</span>
           </label>
 
-          @if (form.allowStaffMealOrders) {
+          @if (user().allowStaffMealOrders) {
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1">
                 <label for="discountType" class="text-xs text-ink-faint uppercase tracking-wider">{{
@@ -290,8 +265,7 @@ import { objectHash } from '../../core/dirty-check'
                 }}</label>
                 <select
                   id="discountType"
-                  [(ngModel)]="form.discountType"
-                  name="discountType"
+                  [formField]="userForm.discountType"
                   class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                          text-ink outline-none"
                 >
@@ -302,18 +276,15 @@ import { objectHash } from '../../core/dirty-check'
               <div class="space-y-1">
                 <label for="discountValue" class="text-xs text-ink-faint uppercase tracking-wider">
                   {{
-                    (form.discountType === 'percent' ? 'USERS.DISCOUNT_LABEL_PERCENT' : 'USERS.DISCOUNT_LABEL_AMOUNT')
+                    (user().discountType === 'percent' ? 'USERS.DISCOUNT_LABEL_PERCENT' : 'USERS.DISCOUNT_LABEL_AMOUNT')
                       | translate
                   }}
                 </label>
                 <input
                   id="discountValue"
-                  [(ngModel)]="form.discount"
-                  name="discount"
+                  [formField]="userForm.discount"
                   type="number"
                   step="0.5"
-                  min="0"
-                  [max]="form.discountType === 'percent' ? 100 : 9999"
                   placeholder="z.B. 50"
                   class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                          text-ink focus:border-ink
@@ -341,12 +312,12 @@ import { objectHash } from '../../core/dirty-check'
         <div class="flex gap-3 pt-4">
           <button
             type="submit"
-            [disabled]="saving() || savedSuccess() || f.invalid"
+            [disabled]="saving() || savedSuccess() || userForm().invalid()"
             [class]="
               'save-btn ' + (savedSuccess() ? 'save-btn--success' : saving() ? 'save-btn--saving' : 'save-btn--default')
             "
-            [class.opacity-50]="f.invalid && !saving() && !savedSuccess()"
-            [class.cursor-not-allowed]="f.invalid"
+            [class.opacity-50]="userForm().invalid() && !saving() && !savedSuccess()"
+            [class.cursor-not-allowed]="userForm().invalid()"
           >
             <span class="save-btn__content">
               @if (savedSuccess()) {
@@ -392,7 +363,6 @@ export class UserFormComponent {
   errors = signal<string[]>([])
   hasPosPin = signal(false)
   editingPin = signal(false)
-  private formRef = viewChild<NgForm>('f')
   private originalHash = ''
 
   /**
@@ -412,21 +382,20 @@ export class UserFormComponent {
   canEditStatus = computed(() => !this.isNew() && !!this.id() && this.id() !== this.auth.user()?._id)
 
   isDirty(): boolean {
-    if (this.isNew()) return !!this.form.loginname
-    return objectHash(this.form) !== this.originalHash
+    if (this.isNew()) return !!this.user().loginname
+    return objectHash(this.user()) !== this.originalHash
   }
 
   async saveAndContinue(): Promise<boolean> {
-    const f = this.formRef()
-    if (f) await this.onSave(f)
+    await this.onSave()
     return this.errors().length === 0
   }
 
   discardChanges(): void {
-    this.originalHash = objectHash(this.form)
+    this.originalHash = objectHash(this.user())
   }
 
-  form = {
+  readonly user = signal({
     loginname: '',
     firstName: '',
     lastName: '',
@@ -440,14 +409,40 @@ export class UserFormComponent {
     employeeNumber: '',
     allowStaffMealOrders: false,
     discountType: 'percent' as 'percent' | 'amount',
-    discount: 0,
-  }
+    discount: 0 as number | null,
+  })
+
+  readonly userForm = form(this.user, u => {
+    required(u.loginname)
+    minLength(u.loginname, 2)
+    maxLength(u.loginname, 30)
+    email(u.email)
+    required(u.password, { when: () => this.isNew() })
+    minLength(u.password, 3)
+    // Personalnummer und PIN zaehlen nur fuer POS-Benutzer; sonst sind die Felder ausgeblendet.
+    applyWhen(
+      u,
+      ({ valueOf }) => valueOf(u.isPosUser),
+      pos => {
+        pattern(pos.employeeNumber, /^\d{6}$/)
+        pattern(pos.posPin, /^\d{4,6}$/)
+      },
+    )
+    applyWhen(
+      u,
+      ({ valueOf }) => valueOf(u.allowStaffMealOrders),
+      meal => {
+        min(meal.discount, 0)
+        max(meal.discount, ({ valueOf }) => (valueOf(meal.discountType) === 'percent' ? 100 : 9999))
+      },
+    )
+  })
 
   private readonly baseInputClass = 'w-full bg-surface-input border rounded-lg p-3 text-ink focus:ring-1 outline-none'
 
-  inputClass(ctrl: any): string {
-    if (!ctrl || ctrl.pristine) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
-    if (ctrl.invalid) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
+  inputClass(state: FieldState<string>): string {
+    if (!state.dirty()) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
+    if (state.invalid()) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
     return `${this.baseInputClass} border-green-500/30 focus:border-green-400 focus:ring-green-400`
   }
 
@@ -462,9 +457,8 @@ export class UserFormComponent {
   // ngOnInit entfernt — Initialisierungslogik läuft über effect() im Konstruktor
 
   private async loadUser(userId: string | undefined) {
-    this.formRef()?.resetForm()
     this.errors.set([])
-    this.form = {
+    this.userForm().reset({
       loginname: '',
       firstName: '',
       lastName: '',
@@ -479,7 +473,7 @@ export class UserFormComponent {
       allowStaffMealOrders: false,
       discountType: 'percent',
       discount: 0,
-    }
+    })
 
     if (!userId || userId === 'new') {
       this.isNew.set(true)
@@ -491,7 +485,7 @@ export class UserFormComponent {
       const user = await this.api.get<any>('users', userId)
       this.hasPosPin.set(!!user.hasPosPin)
       this.editingPin.set(false)
-      this.form = {
+      this.user.set({
         loginname: user.loginname || '',
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -506,17 +500,17 @@ export class UserFormComponent {
         allowStaffMealOrders: user.allowStaffMealOrders ?? false,
         discountType: user.discountDetails?.discountType || 'percent',
         discount: user.discountDetails?.discount ?? 0,
-      }
-      this.originalHash = objectHash(this.form)
+      })
+      this.originalHash = objectHash(this.user())
     } catch {
       this.errors.set([this.t.instant('USERS.NOT_FOUND')])
     }
     this.cdr.markForCheck()
   }
 
-  async onSave(f: NgForm) {
-    if (f.invalid) {
-      Object.values(f.controls).forEach(c => c.markAsTouched())
+  async onSave() {
+    if (this.userForm().invalid()) {
+      this.userForm().markAsTouched()
       return
     }
 
@@ -524,7 +518,7 @@ export class UserFormComponent {
     this.errors.set([])
 
     try {
-      const data: any = { ...this.form }
+      const data: any = { ...this.user() }
       // Booleans explizit koerzieren (HTML-Checkboxen können 1/0 statt true/false liefern)
       data.isPosUser = !!data.isPosUser
       data.allowStaffMealOrders = !!data.allowStaffMealOrders
@@ -569,7 +563,7 @@ export class UserFormComponent {
       } else {
         await this.api.patch('users', this.id()!, data)
       }
-      this.originalHash = objectHash(this.form)
+      this.originalHash = objectHash(this.user())
       this.savedSuccess.set(true)
       this.cdr.markForCheck()
       if (this.panelMode()) this.saved.emit(createdId)

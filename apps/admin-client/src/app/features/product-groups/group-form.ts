@@ -9,9 +9,8 @@ import {
   output,
   effect,
   untracked,
-  viewChild,
 } from '@angular/core'
-import { FormsModule, NgForm } from '@angular/forms'
+import { form, FormField, FormRoot, max, maxLength, min, required, type FieldState } from '@angular/forms/signals'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
@@ -24,7 +23,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 @Component({
   selector: 'app-group-form',
   standalone: true,
-  imports: [FormsModule, ConfirmDialogComponent, TranslateModule, CloudManagedBannerComponent],
+  imports: [FormField, FormRoot, ConfirmDialogComponent, TranslateModule, CloudManagedBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 space-y-5' : 'p-8 max-w-2xl space-y-6'">
@@ -74,7 +73,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <app-cloud-managed-banner sublineKey="CLOUD_MANAGED.SUBLINE_PRODUCT_GROUPS" />
       }
 
-      <form #f="ngForm" (ngSubmit)="onSave(f)" class="space-y-5">
+      <form [formRoot]="groupForm" (submit)="onSave()" class="space-y-5">
         <fieldset [disabled]="readOnly()" class="min-w-0 m-0 p-0 border-0 space-y-5" [class.opacity-60]="readOnly()">
           <!-- Status-Pille -->
           <div class="relative flex bg-surface-bg rounded-2xl p-1.5 border border-line-soft">
@@ -87,9 +86,9 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
             @for (s of statuses; track s.value) {
               <button
                 type="button"
-                (click)="form.status = s.value"
+                (click)="groupForm.status().value.set(s.value)"
                 [class]="
-                  form.status === s.value
+                  group().status === s.value
                     ? 'text-ink font-semibold'
                     : 'text-ink-faint hover:text-ink-muted dark:hover:text-ink'
                 "
@@ -98,7 +97,6 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 {{ s.label | translate }}
               </button>
             }
-            <input type="hidden" [(ngModel)]="form.status" name="status" />
           </div>
 
           @if (!isNew()) {
@@ -125,17 +123,13 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
               >
               <input
                 id="groupName"
-                [(ngModel)]="form.name"
-                name="name"
-                #name="ngModel"
+                #groupNameInput
+                [formField]="groupForm.name"
                 type="text"
-                required
-                minlength="1"
-                maxlength="120"
-                (ngModelChange)="autoAssignColor($event)"
-                [class]="inputClass(name)"
+                (input)="autoAssignColor(groupNameInput.value)"
+                [class]="inputClass(groupForm.name())"
               />
-              @if (name.invalid && name.touched) {
+              @if (groupForm.name().invalid() && groupForm.name().touched()) {
                 <p class="text-red-500 dark:text-red-400 text-xs mt-1">
                   {{ 'PRODUCT_GROUPS.NAME_REQUIRED' | translate }}
                 </p>
@@ -148,10 +142,8 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
               }}</label>
               <input
                 id="groupAcronym"
-                [(ngModel)]="form.acronym"
-                name="acronym"
+                [formField]="groupForm.acronym"
                 type="text"
-                maxlength="10"
                 class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink focus:border-ink
                      focus:ring-1 focus:ring-ink outline-none font-mono"
@@ -172,9 +164,9 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                 >
                   <span
                     class="w-8 h-8 rounded-full shrink-0 border border-line-strong"
-                    [style.background-color]="form.color"
+                    [style.background-color]="group().color"
                   ></span>
-                  <span class="text-sm text-ink-muted dark:text-ink font-mono">{{ form.color }}</span>
+                  <span class="text-sm text-ink-muted dark:text-ink font-mono">{{ group().color }}</span>
                   <button
                     type="button"
                     (click)="showColorPicker = !showColorPicker"
@@ -192,9 +184,9 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                     @for (c of colorPalette; track c) {
                       <button
                         type="button"
-                        (click)="form.color = c; showColorPicker = false"
+                        (click)="groupForm.color().value.set(c); showColorPicker = false"
                         [class]="
-                          form.color === c
+                          group().color === c
                             ? 'w-7 h-7 rounded-full ring-2 ring-ink ring-offset-1 ring-offset-surface-input scale-110'
                             : 'w-7 h-7 rounded-full hover:scale-110 hover:ring-1 hover:ring-line-strong'
                         "
@@ -206,7 +198,6 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
                   </div>
                 }
               </div>
-              <input id="groupColor" [(ngModel)]="form.color" name="color" type="hidden" />
             </div>
             <!-- Reihenfolge -->
             <div class="space-y-1">
@@ -215,16 +206,12 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
               >
               <input
                 id="groupSortOrder"
-                [(ngModel)]="form.index"
-                name="index"
-                #indexCtrl="ngModel"
+                [formField]="groupForm.index"
                 type="number"
-                required
-                min="0"
                 step="1"
-                [class]="inputClass(indexCtrl)"
+                [class]="inputClass(groupForm.index())"
               />
-              @if (indexCtrl.invalid && indexCtrl.touched) {
+              @if (groupForm.index().invalid() && groupForm.index().touched()) {
                 <p class="text-red-500 dark:text-red-400 text-xs mt-1">
                   {{ 'PRODUCT_GROUPS.SORT_ORDER_REQUIRED' | translate }}
                 </p>
@@ -240,12 +227,9 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
               }}</label>
               <input
                 id="groupVatIn"
-                [(ngModel)]="form.taxInside"
-                name="taxInside"
+                [formField]="groupForm.taxInside"
                 type="number"
                 step="0.1"
-                min="0"
-                max="100"
                 class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink focus:border-ink
                      focus:ring-1 focus:ring-ink outline-none font-mono"
@@ -257,12 +241,9 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
               }}</label>
               <input
                 id="groupVatOut"
-                [(ngModel)]="form.taxOutside"
-                name="taxOutside"
+                [formField]="groupForm.taxOutside"
                 type="number"
                 step="0.1"
-                min="0"
-                max="100"
                 class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink focus:border-ink
                      focus:ring-1 focus:ring-ink outline-none font-mono"
@@ -273,7 +254,7 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
           <!-- Sichtbarkeit -->
           <div class="flex items-center gap-6 pt-2">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input [(ngModel)]="form.excluded" name="excluded" type="checkbox" class="w-4 h-4 accent-ink" />
+              <input [formField]="groupForm.excluded" type="checkbox" class="w-4 h-4 accent-ink" />
               <span class="text-sm text-ink-muted dark:text-ink">{{ 'PRODUCT_GROUPS.HIDE_IN_ORDER' | translate }}</span>
             </label>
           </div>
@@ -296,12 +277,12 @@ import { ConfirmDialogComponent } from '../../core/confirm-dialog'
         <div class="flex gap-3 pt-4">
           <button
             type="submit"
-            [disabled]="saving() || savedSuccess() || f.invalid || readOnly()"
+            [disabled]="saving() || savedSuccess() || groupForm().invalid() || readOnly()"
             [class]="
               'save-btn ' + (savedSuccess() ? 'save-btn--success' : saving() ? 'save-btn--saving' : 'save-btn--default')
             "
-            [class.opacity-50]="f.invalid && !saving() && !savedSuccess()"
-            [class.cursor-not-allowed]="f.invalid"
+            [class.opacity-50]="groupForm().invalid() && !saving() && !savedSuccess()"
+            [class.cursor-not-allowed]="groupForm().invalid()"
           >
             <span class="save-btn__content">
               @if (savedSuccess()) {
@@ -387,11 +368,11 @@ export class GroupFormComponent implements OnInit {
   ]
 
   get statusIndex(): number {
-    return this.statuses.findIndex(s => s.value === this.form.status)
+    return this.statuses.findIndex(s => s.value === this.group().status)
   }
 
   statusPillBg(): string {
-    switch (this.form.status) {
+    switch (this.group().status) {
       case 'ACTIVE':
         return 'bg-green-600/60 dark:bg-green-800/60'
       case 'DRAFT':
@@ -408,39 +389,49 @@ export class GroupFormComponent implements OnInit {
   isDirty(): boolean {
     // Gesperrt gibt es nichts zu speichern — sonst böte der Dirty-Dialog ein Speichern an, das scheitert.
     if (this.readOnly()) return false
-    if (this.isNew()) return !!this.form.name
-    return objectHash(this.form) !== this.originalHash
+    if (this.isNew()) return !!this.group().name
+    return objectHash(this.group()) !== this.originalHash
   }
 
   async saveAndContinue(): Promise<boolean> {
-    const f = this.formRef()
-    if (f) await this.onSave(f)
+    await this.onSave()
     return this.errors().length === 0
   }
 
   discardChanges(): void {
-    this.originalHash = objectHash(this.form)
+    this.originalHash = objectHash(this.group())
   }
   entityId = signal<string>('')
   externalId = signal<string | null>(null)
-  private formRef = viewChild<NgForm>('f')
-
-  form = {
+  readonly group = signal({
     name: '',
     acronym: '',
     color: '#6366f1',
-    index: 0,
-    taxInside: 19,
-    taxOutside: 7,
+    index: 0 as number | null,
+    taxInside: 19 as number | null,
+    taxOutside: 7 as number | null,
     excluded: false,
     status: 'ACTIVE',
-  }
+  })
+  readonly groupForm = form(this.group, g => {
+    required(g.name)
+    maxLength(g.name, 120)
+    maxLength(g.acronym, 10)
+    required(g.index)
+    min(g.index, 0)
+    required(g.taxInside)
+    min(g.taxInside, 0)
+    max(g.taxInside, 100)
+    required(g.taxOutside)
+    min(g.taxOutside, 0)
+    max(g.taxOutside, 100)
+  })
 
   private readonly baseInputClass = 'w-full bg-surface-input border rounded-lg p-3 text-ink focus:ring-1 outline-none'
 
-  inputClass(ctrl: any): string {
-    if (!ctrl || ctrl.pristine) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
-    if (ctrl.invalid) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
+  inputClass(state: FieldState<unknown>): string {
+    if (!state.dirty()) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
+    if (state.invalid()) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
     return `${this.baseInputClass} border-green-500/30 focus:border-green-400 focus:ring-green-400`
   }
 
@@ -473,7 +464,7 @@ export class GroupFormComponent implements OnInit {
     if (!color) return false
     const used = this.usedColors()
     // Eigene Gruppe ausschließen
-    return used.has(color.toLowerCase()) && this.form.color?.toLowerCase() !== color.toLowerCase()
+    return used.has(color.toLowerCase()) && this.group().color?.toLowerCase() !== color.toLowerCase()
   }
 
   /** Generiert eine Farbe aus dem Namen (deterministisch), die nicht vergeben ist */
@@ -491,18 +482,17 @@ export class GroupFormComponent implements OnInit {
     for (let offset = 0; offset < this.colorPalette.length; offset++) {
       const candidate = this.colorPalette[(startIdx + offset) % this.colorPalette.length]
       if (!this.isColorUsed(candidate)) {
-        this.form.color = candidate
+        this.groupForm.color().value.set(candidate)
         return
       }
     }
     // Alle vergeben → nehme die Hash-Farbe trotzdem
-    this.form.color = this.colorPalette[startIdx]
+    this.groupForm.color().value.set(this.colorPalette[startIdx])
   }
 
   private async loadGroup(groupId: string | undefined) {
-    this.formRef()?.resetForm()
     this.errors.set([])
-    this.form = {
+    this.groupForm().reset({
       name: '',
       acronym: '',
       color: '#6366f1',
@@ -511,7 +501,7 @@ export class GroupFormComponent implements OnInit {
       taxOutside: 7,
       excluded: false,
       status: 'DRAFT',
-    }
+    })
     this.entityId.set('')
     this.externalId.set(null)
 
@@ -519,7 +509,7 @@ export class GroupFormComponent implements OnInit {
       this.isNew.set(true)
       // Erste freie Farbe als Default
       const firstFree = this.colorPalette.find(c => !this.usedColors().has(c.toLowerCase()))
-      this.form.color = firstFree || this.colorPalette[0]
+      this.groupForm.color().value.set(firstFree || this.colorPalette[0])
       return
     }
 
@@ -528,7 +518,7 @@ export class GroupFormComponent implements OnInit {
       const group = await this.api.get<any>('product-groups', groupId)
       this.entityId.set(group._id || '')
       this.externalId.set(group.externalId || null)
-      this.form = {
+      this.group.set({
         name: group.name || '',
         acronym: group.acronym || '',
         color: group.color || '#6366f1',
@@ -537,21 +527,21 @@ export class GroupFormComponent implements OnInit {
         taxOutside: group.taxOutside ?? 7,
         excluded: group.excluded ?? false,
         status: group.status || 'ACTIVE',
-      }
-      this.originalHash = objectHash(this.form)
+      })
+      this.originalHash = objectHash(this.group())
     } catch {
       this.errors.set([this.t.instant('PRODUCT_GROUPS.NOT_FOUND')])
     }
     this.cdr.markForCheck()
   }
 
-  async onSave(f: NgForm) {
+  async onSave() {
     if (this.readOnly()) {
       this.errors.set([this.t.instant('CLOUD_MANAGED.SAVE_BLOCKED')])
       return
     }
-    if (f.invalid) {
-      Object.values(f.controls).forEach(c => c.markAsTouched())
+    if (this.groupForm().invalid()) {
+      this.groupForm().markAsTouched()
       return
     }
 
@@ -559,7 +549,7 @@ export class GroupFormComponent implements OnInit {
     this.errors.set([])
 
     try {
-      const data: any = { ...this.form }
+      const data: any = { ...this.group() }
       data.excluded = !!data.excluded
       if (!data.acronym) delete data.acronym
 
@@ -568,7 +558,7 @@ export class GroupFormComponent implements OnInit {
       } else {
         await this.api.patch('product-groups', this.id()!, data)
       }
-      this.originalHash = objectHash(this.form)
+      this.originalHash = objectHash(this.group())
       this.savedSuccess.set(true)
       this.cdr.markForCheck()
       // Tabelle sofort aktualisieren

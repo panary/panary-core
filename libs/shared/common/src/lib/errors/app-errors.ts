@@ -45,6 +45,10 @@ export const AppError = {
   CLOSED_DAY_PIN_INVALID: 'BD_6011',
   CLOSED_DAY_ROLE_DENIED: 'BD_6012',
 
+  // --- ORDERS (7000-7999) ---
+  // Zahlung einer schon abgeschlossenen Bestellung aendern (panary/panary-core#1300).
+  ORDER_ALREADY_SETTLED: 'ORDER_7001',
+
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
   INVALID_INPUT: 'VAL_4001',
@@ -92,6 +96,9 @@ export const AppErrorMessages: Record<AppError, string> = {
     'Laut Öffnungszeiten ist heute geschlossen. Verkauf nur nach Freigabe durch einen berechtigten Mitarbeiter.',
   [AppError.CLOSED_DAY_PIN_INVALID]: 'PIN ungültig.',
   [AppError.CLOSED_DAY_ROLE_DENIED]: 'Dieser Mitarbeiter darf den Ruhetag nicht freigeben.',
+
+  [AppError.ORDER_ALREADY_SETTLED]:
+    'Diese Bestellung ist bereits abgeschlossen. Die gebuchte Zahlung kann nicht mehr geändert werden.',
 
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',

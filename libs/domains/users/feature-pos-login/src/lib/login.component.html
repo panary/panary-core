@@ -156,10 +156,19 @@
         <!-- ==================== HINWEIS NACH INAKTIVITAETS-LOGOUT (#604) ==================== -->
         @if (showIdleLogoutNotice()) {
           <div
-            class="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 px-4 py-3"
+            class="relative mb-6 flex items-start gap-3 overflow-hidden rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 px-4 py-3"
             role="status"
             data-testid="idle-logout-notice"
           >
+            <!-- Ablaufbalken (#1170): zeigt, wann sich der Hinweis selbst ausblendet -->
+            <div class="absolute inset-x-0 bottom-0 h-1 bg-amber-200 dark:bg-amber-900" aria-hidden="true">
+              <div
+                class="idle-notice-bar h-full bg-amber-500"
+                data-testid="idle-logout-progress"
+                [style.animation-duration.ms]="idleNoticeDurationMs"
+                [style.animation-delay.ms]="idleNoticeAnimationDelayMs()"
+              ></div>
+            </div>
             <lib-icon name="clock" class="text-[1.25rem] text-amber-600 dark:text-amber-400" />
             <div class="text-sm">
               <p class="font-semibold text-amber-800 dark:text-amber-200">

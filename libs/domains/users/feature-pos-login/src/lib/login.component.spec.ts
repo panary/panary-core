@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
-import { LoginComponent } from './login.component'
+import { IDLE_NOTICE_DURATION_MS, LoginComponent } from './login.component'
 
 // Die Einstiegs-Weiche des Login-Screens (PNRY-FEAT-DEVICE-ASSIGNMENT-001).
 // Auf einem zugewiesenen Geraet mit genau einem Mitarbeiter waere die
@@ -514,6 +514,96 @@ describe('LoginComponent — Hinweis nach Inaktivitaets-Logout (#604)', () => {
       expect(component.showIdleLogoutNotice()).toBe(false)
     },
   )
+})
+
+// #1170: Der Hinweis blendet sich nach IDLE_NOTICE_DURATION_MS selbst aus. Gezaehlt wird ab
+// dem ersten Sichtbarwerden, ein Schrittwechsel oder erneutes Laden startet nicht neu.
+describe('LoginComponent — Inaktivitaets-Hinweis blendet sich aus (#1170)', () => {
+  function idleSetup(options: SetupOptions = {}) {
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    const ctx = setup({ endReason: 'idle', ...options })
+    // Wie `ngOnInit`, aber ohne den unbeobachteten Ladeaufruf: den faehrt der Test selbst.
+    ctx.component.idleLogoutNotice.set(true)
+    ctx.component.idleLogoutInterrupted.set(options.endInterrupted ?? false)
+    return ctx
+  }
+
+  it('dauert mindestens 15 Sekunden', () => {
+    expect(IDLE_NOTICE_DURATION_MS).toBe(15_000)
+  })
+
+  it('steht bis kurz vor Ablauf und ist mit Ablauf weg', async () => {
+    const { component, load } = idleSetup()
+    await load()
+    expect(component.showIdleLogoutNotice()).toBe(true)
+
+    vi.advanceTimersByTime(IDLE_NOTICE_DURATION_MS - 1)
+    expect(component.showIdleLogoutNotice()).toBe(true)
+
+    vi.advanceTimersByTime(1)
+    expect(component.idleLogoutNotice()).toBe(false)
+    expect(component.showIdleLogoutNotice()).toBe(false)
+  })
+
+  it('nimmt den Abbruch-Satz aus #941 mit', async () => {
+    const { component, load } = idleSetup({ endInterrupted: true })
+    await load()
+    expect(component.idleLogoutInterrupted()).toBe(true)
+
+    vi.advanceTimersByTime(IDLE_NOTICE_DURATION_MS)
+
+    expect(component.idleLogoutInterrupted()).toBe(false)
+  })
+
+  it('zaehlt die Ladephase nicht mit', async () => {
+    const { component, load } = idleSetup()
+    // Solange `loading` laeuft, ist das Banner unsichtbar — die Zeit darf nicht ablaufen.
+    vi.advanceTimersByTime(IDLE_NOTICE_DURATION_MS)
+    expect(component.idleLogoutNotice()).toBe(true)
+
+    await load()
+    vi.advanceTimersByTime(IDLE_NOTICE_DURATION_MS - 1)
+
+    expect(component.showIdleLogoutNotice()).toBe(true)
+  })
+
+  it('startet bei Schrittwechseln nicht neu', async () => {
+    const { component, load } = idleSetup()
+    await load()
+    vi.advanceTimersByTime(10_000)
+
+    component.selectUser(component.posUsers()[0] as never)
+    component.currentStep.set('change-pin')
+    component.backToUsers()
+    vi.advanceTimersByTime(IDLE_NOTICE_DURATION_MS - 10_000)
+
+    expect(component.idleLogoutNotice()).toBe(false)
+  })
+
+  it('startet bei erneutem Laden nicht neu', async () => {
+    const { component, load } = idleSetup()
+    await load()
+    vi.advanceTimersByTime(10_000)
+
+    await load()
+    // Der Balken setzt an der verstrichenen Stelle fort, statt von vorn zu laufen.
+    expect(component['idleNoticeAnimationDelayMs']()).toBe(-10_000)
+    vi.advanceTimersByTime(IDLE_NOTICE_DURATION_MS - 10_000)
+
+    expect(component.idleLogoutNotice()).toBe(false)
+  })
+
+  it('startet ohne Inaktivitaets-Logout keinen Timer', async () => {
+    const { component, load } = idleSetup({ endReason: null })
+    component.idleLogoutNotice.set(false)
+    await load()
+
+    expect(vi.getTimerCount()).toBe(0)
+    expect(component.showIdleLogoutNotice()).toBe(false)
+  })
 })
 
 // Bediener-Token (panary/panary-core#619, ADR 0053, Schritt 3): Der PIN-Login legt

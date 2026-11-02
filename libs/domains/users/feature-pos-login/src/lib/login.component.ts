@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   HostListener,
   inject,
   OnInit,
@@ -60,6 +61,13 @@ const CONNECTION_TIMEOUT_MS = 15_000
 /** Taktung des Zustands-Pollings waehrend des Wartens. */
 const CONNECTION_POLL_INTERVAL_MS = 100
 
+/**
+ * Wie lange der Hinweis nach einem Inaktivitaets-Logout stehen bleibt (panary/panary-core#1170).
+ * Gezaehlt ab dem ersten Sichtbarwerden, nicht ab `ngOnInit`: Der Schritt `loading`
+ * kann selbst bis `CONNECTION_TIMEOUT_MS` dauern und haette den Hinweis sonst aufgezehrt.
+ */
+export const IDLE_NOTICE_DURATION_MS = 15_000
+
 /** Phasen innerhalb des erzwungenen PIN-Wechsels. */
 type ChangePinPhase = 'new' | 'confirm'
 
@@ -93,6 +101,7 @@ export class LoginComponent implements OnInit {
   readonly #translateService = inject(TranslateService)
   readonly #outbox = inject(OFFLINE_OUTBOX, { optional: true })
   readonly #posSession = inject(PosSessionService)
+  readonly #destroyRef = inject(DestroyRef)
   readonly languages = LANGUAGES
   //#endregion
 
@@ -123,6 +132,21 @@ export class LoginComponent implements OnInit {
     const step = this.currentStep()
     return this.idleLogoutNotice() && (step === 'select-user' || step === 'enter-pin')
   })
+
+  /** Zeitpunkt (ms), zu dem der Hinweis erstmals sichtbar wurde; `null` = Ablauf noch nicht gestartet. */
+  readonly #idleNoticeShownAt: WritableSignal<number | null> = signal(null)
+
+  /**
+   * Startversatz der Balken-Animation: negativ um die schon verstrichene Zeit. Blendet ein
+   * Schrittwechsel das Banner aus und wieder ein, setzt der Balken an der richtigen Stelle
+   * fort, statt von vorn zu laufen.
+   */
+  protected idleNoticeAnimationDelayMs(): number {
+    const shownAt = this.#idleNoticeShownAt()
+    return shownAt === null ? 0 : -Math.min(Date.now() - shownAt, IDLE_NOTICE_DURATION_MS)
+  }
+
+  protected readonly idleNoticeDurationMs = IDLE_NOTICE_DURATION_MS
 
   // Erzwungener PIN-Wechsel (mustChangePosPin)
   readonly changePinPhase: WritableSignal<ChangePinPhase> = signal('new')
@@ -284,6 +308,7 @@ export class LoginComponent implements OnInit {
       await this.loadPosUsers()
 
       this.currentStep.set(this.#resolveEntryStep())
+      this.#armIdleNoticeTimer()
     } catch (error) {
       console.error('Failed to connect or load users:', error)
       this.errorMessage.set(
@@ -473,6 +498,24 @@ export class LoginComponent implements OnInit {
    */
   protected onReverified(): void {
     this.currentStep.set(this.#resolveEntryStep())
+    this.#armIdleNoticeTimer()
+  }
+
+  /**
+   * Startet den Ablauf des Inaktivitaets-Hinweises, sobald er zum ersten Mal sichtbar ist
+   * (panary/panary-core#1170). Genau einmal: Spaetere Schrittwechsel und ein erneutes
+   * Laden (`retry`) starten ihn nicht neu, der Timer laeuft auch bei ausgeblendetem Banner
+   * weiter. Imperativ statt per `effect`, weil die Specs ohne Template und Change Detection
+   * laufen und Effects dort nicht geflusht werden.
+   */
+  #armIdleNoticeTimer(): void {
+    if (this.#idleNoticeShownAt() !== null || !this.showIdleLogoutNotice()) return
+    this.#idleNoticeShownAt.set(Date.now())
+    const timer = setTimeout(() => {
+      this.idleLogoutNotice.set(false)
+      this.idleLogoutInterrupted.set(false)
+    }, IDLE_NOTICE_DURATION_MS)
+    this.#destroyRef.onDestroy(() => clearTimeout(timer))
   }
 
   //#endregion

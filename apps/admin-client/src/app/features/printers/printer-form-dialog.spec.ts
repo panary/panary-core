@@ -59,7 +59,8 @@ async function render(data: PrinterFormData | null) {
   async function type(id: string, value: string) {
     const field = el.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)!
     field.value = value
-    field.dispatchEvent(new Event(field instanceof HTMLSelectElement ? 'change' : 'input'))
+    // Auch die Auswahl im `<select>` feuert im Browser `input`; darauf hört `[formField]`.
+    field.dispatchEvent(new Event('input'))
     await fixture.whenStable()
   }
   async function submit() {

@@ -199,6 +199,8 @@ describe('CloudConnectionComponent — Eingabefelder im Template', () => {
       lastCloudContactAgeMin: signal<number | null>(null),
       offlineModeActive: signal(false),
       offlineModeRemainingMin: signal<number | null>(null),
+      nextExpectedSyncAt: signal<string | null>(null),
+      syncMode: signal('auto'),
     }
     await TestBed.configureTestingModule({
       imports: [CloudConnectionComponent, TranslateModule.forRoot()],
@@ -213,14 +215,21 @@ describe('CloudConnectionComponent — Eingabefelder im Template', () => {
       ],
     }).compileComponents()
     const fixture = TestBed.createComponent(CloudConnectionComponent)
-    await fixture.whenStable()
+    // Zoneless wartet `whenStable` nicht auf die Mock-Promises der Ladekette (find → Standortname).
+    async function settle() {
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve))
+        await fixture.whenStable()
+      }
+    }
+    await settle()
     const el = fixture.nativeElement as HTMLElement
     async function type(field: HTMLInputElement, value: string) {
       field.value = value
       field.dispatchEvent(new Event('input'))
       await fixture.whenStable()
     }
-    return { fixture, el, api, type }
+    return { fixture, el, api, type, settle }
   }
 
   it('gibt die Prüfung erst mit sechsstelligem Code frei und schickt die getippten Werte', async () => {
@@ -248,13 +257,13 @@ describe('CloudConnectionComponent — Eingabefelder im Template', () => {
   })
 
   it('zeigt das gespeicherte Intervall und speichert das getippte beim Verlassen', async () => {
-    const { fixture, el, api, type } = await render({})
+    const { el, api, type, settle } = await render({})
     const interval = el.querySelector<HTMLInputElement>('#syncIntervalSec')!
     expect(interval.value).toBe('300')
 
     await type(interval, '600')
     interval.dispatchEvent(new Event('blur'))
-    await fixture.whenStable()
+    await settle()
 
     expect(api.patch).toHaveBeenCalledWith('cloud-connection', 'conn-1', { syncMode: 'auto', syncIntervalSec: 600 })
   })

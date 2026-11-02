@@ -263,9 +263,7 @@
               <input
                 type="text"
                 id="manualHub"
-                name="manualHub"
-                [(ngModel)]="manualHubUrl"
-                [maxlength]="manualHubMaxLength"
+                [formField]="setupForm.manualHubUrl"
                 inputmode="url"
                 autocapitalize="off"
                 autocorrect="off"
@@ -361,7 +359,7 @@
             </p>
           }
 
-          <form class="w-full flex flex-col gap-5" (ngSubmit)="submitPairingCode()">
+          <form class="w-full flex flex-col gap-5" [formRoot]="setupForm" (submit)="submitPairingCode()">
             <div class="flex flex-col gap-1.5">
               <label for="pairingCode" class="text-sm font-medium text-ink-muted uppercase tracking-wider">{{
                 'SETUP.PAIRING_CODE' | translate
@@ -369,11 +367,9 @@
               <input
                 type="text"
                 id="pairingCode"
-                name="pairingCode"
-                [(ngModel)]="pairingCode"
+                [formField]="setupForm.pairingCode"
                 inputmode="numeric"
                 autocomplete="one-time-code"
-                maxlength="6"
                 placeholder="••••••"
                 class="w-full bg-surface-input border border-line rounded-control p-4 text-center text-2xl font-mono tracking-[0.5em] text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none placeholder-ink-faint"
               />
@@ -390,9 +386,7 @@
               <input
                 type="text"
                 id="deviceNameCode"
-                name="deviceNameCode"
-                [(ngModel)]="deviceName"
-                [maxlength]="DEVICE_NAME_MAX_LENGTH"
+                [formField]="setupForm.deviceName"
                 class="w-full bg-surface-input border rounded-control p-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none placeholder-ink-faint"
                 [class.border-line]="!getDeviceNameError()"
                 [class.border-danger-line]="getDeviceNameError()"
@@ -409,8 +403,7 @@
               }}</label>
               <select
                 id="deviceTypeCode"
-                name="deviceTypeCode"
-                [(ngModel)]="deviceType"
+                [formField]="setupForm.deviceType"
                 class="w-full h-14 bg-surface-input border border-line rounded-control px-4 text-ink focus:border-accent-ink transition outline-none cursor-pointer appearance-none"
               >
                 @for (type of deviceTypes; track type.value) {
@@ -508,7 +501,7 @@
 
           @if (serverLoginMode() === 'code') {
             <!-- Cloud-Kopplung per Code (bevorzugt): keine Admin-Credentials aufs Gerät. -->
-            <form class="w-full flex flex-col gap-5" (ngSubmit)="submitPairingCode()">
+            <form class="w-full flex flex-col gap-5" [formRoot]="setupForm" (submit)="submitPairingCode()">
               <div class="flex flex-col gap-1.5">
                 <label for="pairingCodeCloud" class="text-sm font-medium text-ink-muted uppercase tracking-wider">{{
                   'SETUP.PAIRING_CODE' | translate
@@ -516,11 +509,9 @@
                 <input
                   type="text"
                   id="pairingCodeCloud"
-                  name="pairingCodeCloud"
-                  [(ngModel)]="pairingCode"
+                  [formField]="setupForm.pairingCode"
                   inputmode="numeric"
                   autocomplete="one-time-code"
-                  maxlength="6"
                   placeholder="••••••"
                   class="w-full bg-surface-input border border-line rounded-control p-4 text-center text-2xl font-mono tracking-[0.5em] text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none placeholder-ink-faint"
                 />
@@ -541,9 +532,7 @@
                 <input
                   type="text"
                   id="deviceNameCloudCode"
-                  name="deviceNameCloudCode"
-                  [(ngModel)]="deviceName"
-                  [maxlength]="DEVICE_NAME_MAX_LENGTH"
+                  [formField]="setupForm.deviceName"
                   class="w-full bg-surface-input border rounded-control p-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none placeholder-ink-faint"
                   [class.border-line]="!getDeviceNameError()"
                   [class.border-danger-line]="getDeviceNameError()"
@@ -560,8 +549,7 @@
                 }}</label>
                 <select
                   id="deviceTypeCloudCode"
-                  name="deviceTypeCloudCode"
-                  [(ngModel)]="deviceType"
+                  [formField]="setupForm.deviceType"
                   class="w-full h-14 bg-surface-input border border-line rounded-control px-4 text-ink focus:border-accent-ink transition outline-none cursor-pointer appearance-none"
                 >
                   @for (type of deviceTypes; track type.value) {
@@ -597,7 +585,7 @@
               {{ 'SETUP.USE_ADMIN_LOGIN' | translate }}
             </button>
           } @else {
-            <form class="w-full flex flex-col gap-5" (ngSubmit)="submitStep1()">
+            <form class="w-full flex flex-col gap-5" [formRoot]="setupForm" (submit)="submitStep1()">
               <div class="flex flex-col gap-1.5">
                 <label for="email" class="text-sm font-medium text-ink-muted uppercase tracking-wider">{{
                   'SETUP.ADMIN_EMAIL' | translate
@@ -605,12 +593,10 @@
                 <input
                   type="email"
                   id="email"
-                  name="email"
-                  [(ngModel)]="email"
+                  [formField]="setupForm.email"
                   class="w-full bg-surface-input border border-line rounded-control p-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none placeholder-ink-faint"
                   placeholder="admin@example.com"
                   autocomplete="email"
-                  required
                 />
               </div>
 
@@ -621,12 +607,10 @@
                 <input
                   type="password"
                   id="password"
-                  name="password"
-                  [(ngModel)]="password"
+                  [formField]="setupForm.password"
                   class="w-full bg-surface-input border border-line rounded-control p-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none placeholder-ink-faint"
                   placeholder="••••••••"
                   autocomplete="current-password"
-                  required
                 />
               </div>
 
@@ -711,18 +695,16 @@
             {{ stepDescriptionKey() | translate }}
           </p>
 
-          <form class="w-full flex flex-col gap-5" (ngSubmit)="submitStep2()">
+          <form class="w-full flex flex-col gap-5" [formRoot]="setupForm" (submit)="submitStep2()">
             <div class="flex flex-col gap-1.5">
               <label for="organization" class="text-sm font-medium text-ink-muted uppercase tracking-wider">{{
                 'SETUP.ORGANIZATION' | translate
               }}</label>
               <select
                 id="organization"
-                name="organization"
-                [(ngModel)]="selectedTenantId"
-                (ngModelChange)="onOrganizationChange()"
+                [formField]="setupForm.selectedTenantId"
+                (change)="onOrganizationChange()"
                 class="w-full h-14 bg-surface-input border border-line rounded-control px-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none cursor-pointer appearance-none"
-                required
               >
                 <option value="">{{ 'SETUP.SELECT_ORG' | translate }}</option>
                 @for (org of organizations(); track org._id) {
@@ -737,11 +719,8 @@
               }}</label>
               <select
                 id="location"
-                name="location"
-                [(ngModel)]="selectedLocationId"
+                [formField]="setupForm.selectedLocationId"
                 class="w-full h-14 bg-surface-input border border-line rounded-control px-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none cursor-pointer appearance-none disabled:bg-surface-panel disabled:cursor-not-allowed"
-                [disabled]="!selectedTenantId()"
-                required
               >
                 <option value="">{{ 'SETUP.SELECT_LOCATION' | translate }}</option>
                 @for (loc of filteredLocations(); track loc._id) {
@@ -799,7 +778,7 @@
             {{ stepDescriptionKey() | translate }}
           </p>
 
-          <form class="w-full flex flex-col gap-5" (ngSubmit)="submitStep3()">
+          <form class="w-full flex flex-col gap-5" [formRoot]="setupForm" (submit)="submitStep3()">
             <div class="flex flex-col gap-1.5">
               <div class="flex justify-between items-center">
                 <label for="deviceName" class="text-sm font-medium text-ink-muted uppercase tracking-wider">{{
@@ -810,14 +789,11 @@
               <input
                 type="text"
                 id="deviceName"
-                name="deviceName"
-                [(ngModel)]="deviceName"
-                [maxlength]="DEVICE_NAME_MAX_LENGTH"
+                [formField]="setupForm.deviceName"
                 class="w-full bg-surface-input border rounded-control p-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none placeholder-ink-faint"
                 [class.border-line]="!getDeviceNameError()"
                 [class.border-danger-line]="getDeviceNameError()"
                 placeholder="z.B. Kasse 1, Haupteingang"
-                required
               />
               @if (getDeviceNameError(); as nameErr) {
                 <p class="text-xs text-danger-ink">{{ nameErr }}</p>
@@ -832,10 +808,8 @@
               }}</label>
               <select
                 id="deviceType"
-                name="deviceType"
-                [(ngModel)]="deviceType"
+                [formField]="setupForm.deviceType"
                 class="w-full h-14 bg-surface-input border border-line rounded-control px-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none cursor-pointer appearance-none"
-                required
               >
                 @for (type of deviceTypes; track type.value) {
                   <option [value]="type.value">{{ type.label }}</option>
@@ -968,8 +942,7 @@
           <input
             type="url"
             id="customUrl"
-            name="customUrl"
-            [(ngModel)]="customUrlInput"
+            [formField]="setupForm.customUrlInput"
             (keyup.enter)="applyUrlOverride()"
             class="w-full bg-surface-input border border-line rounded-control p-3 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none placeholder-ink-faint"
             placeholder="{{ 'SETUP.CLOUD_URL_OVERRIDE_PLACEHOLDER' | translate }}"

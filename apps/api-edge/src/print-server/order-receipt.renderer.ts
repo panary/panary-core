@@ -138,8 +138,10 @@ export function renderOrderReceipt(
     const width = followUpHead.length * 2 <= cols ? 2 : 1
     enc.align('center').bold(true).size(width, 2).line(followUpHead).size(1, 1).bold(false).align('left')
   } else if (followUpHead) {
+    const tableLine = `Tisch: ${order.table}`
+    const tableWidth = tableLine.length * 2 <= cols ? 2 : 1
     enc.align('center').bold(true).size(1, 2).line('Nachbestellung').size(1, 1).bold(false)
-    enc.align('center').bold(true).size(2, 2).line(`Tisch: ${order.table}`).size(1, 1).bold(false).align('left')
+    enc.align('center').bold(true).size(tableWidth, 2).line(tableLine).size(1, 1).bold(false).align('left')
   } else if (order.table) {
     enc.align('center').bold(true).size(2, 2).line(`Tisch: ${order.table}`).size(1, 1).bold(false).align('left')
   }

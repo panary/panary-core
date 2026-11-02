@@ -14,7 +14,9 @@ Bestellungen eines Tisches. Seit [#1139](https://github.com/panary/panary-core/i
 trennt ein **Besuchszähler** die Gästegruppen, die nacheinander am selben Tisch sitzen:
 `4#1`, `4#2`, … Entscheidung und Begründung:
 [ADR 0063](../adr/0063-nachbestellung-als-neue-bestellung-im-abrechnungskreis.md) Nr. 2 und 4,
-Vorgänger [ADR 0047](../adr/0047-abrechnungskreis-als-pflichtfeld.md).
+Vorgänger [ADR 0047](../adr/0047-abrechnungskreis-als-pflichtfeld.md). Wie eine Nachbestellung in den Kreis
+kommt und ihre Referenz auf die erste Bestellung bekommt:
+[Nachbestellung im Abrechnungskreis](nachbestellung-im-abrechnungskreis.md).
 
 ## Regeln
 

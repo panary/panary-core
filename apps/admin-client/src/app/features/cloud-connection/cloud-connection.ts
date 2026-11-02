@@ -9,7 +9,7 @@ import {
   untracked,
   OnInit,
 } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { form, FormField, max, maxLength, min, pattern, required } from '@angular/forms/signals'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
@@ -121,6 +121,10 @@ const SYNC_MODE_OPTIONS: { value: SyncMode; label: string; description: string }
 // Muss `syncScheduleSchema.times` in @panary/cloud-connection/domain entsprechen.
 const SCHEDULE_TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 const DEFAULT_SCHEDULE_TIME = '22:00'
+// Muss SYNC_INTERVAL_MIN_SEC/SYNC_INTERVAL_MAX_SEC in @panary/cloud-connection/domain entsprechen.
+const SYNC_INTERVAL_MIN_SEC = 60
+const SYNC_INTERVAL_MAX_SEC = 3600
+const PAIRING_CODE_PATTERN = /^\d{6}$/
 
 const LOCAL_TIMEZONE = (() => {
   try {
@@ -160,7 +164,7 @@ const directionLabel = (dir: InitialDirection): string => {
   selector: 'app-cloud-connection',
   standalone: true,
   imports: [
-    FormsModule,
+    FormField,
     RouterLink,
     ConfirmDialogComponent,
     TranslateModule,
@@ -199,11 +203,8 @@ const directionLabel = (dir: InitialDirection): string => {
                     </label>
                     <input
                       id="pairingCode"
-                      [(ngModel)]="pairingCode"
-                      name="pairingCode"
+                      [formField]="pairingForm.pairingCode"
                       type="text"
-                      maxlength="6"
-                      pattern="[0-9]*"
                       inputmode="numeric"
                       placeholder="000000"
                       class="w-full bg-surface-input border border-line-soft rounded-xl p-4
@@ -217,8 +218,7 @@ const directionLabel = (dir: InitialDirection): string => {
                       </label>
                       <input
                         id="cloudUrl"
-                        [(ngModel)]="cloudUrl"
-                        name="cloudUrl"
+                        [formField]="pairingForm.cloudUrl"
                         type="url"
                         class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                                font-mono text-xs"
@@ -230,8 +230,7 @@ const directionLabel = (dir: InitialDirection): string => {
                       </label>
                       <input
                         id="edgeName"
-                        [(ngModel)]="edgeName"
-                        name="edgeName"
+                        [formField]="pairingForm.edgeName"
                         type="text"
                         placeholder="Hauptstandort"
                         class="w-full bg-surface-input border border-line-soft rounded-lg p-3 text-sm"
@@ -252,7 +251,7 @@ const directionLabel = (dir: InitialDirection): string => {
                   <div class="flex items-center gap-3">
                     <button
                       (click)="onRunPreflight()"
-                      [disabled]="preflighting() || pairingCode.length < 6 || !edgeName"
+                      [disabled]="preflighting() || pairingForm().invalid()"
                       class="bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm"
                     >
                       @if (preflighting()) {
@@ -784,8 +783,7 @@ const directionLabel = (dir: InitialDirection): string => {
                 <div class="bg-surface-panel dark:bg-surface-bg/50 border border-line-soft rounded-xl p-4 space-y-3">
                   <p class="text-xs uppercase tracking-wider text-ink-muted">Sync-Verhalten</p>
                   <select
-                    [(ngModel)]="syncMode"
-                    name="syncMode"
+                    [formField]="syncForm.syncMode"
                     (change)="onSyncModeChange()"
                     class="w-full bg-surface-input border border-line-soft rounded-lg p-2 text-sm"
                   >
@@ -793,31 +791,27 @@ const directionLabel = (dir: InitialDirection): string => {
                       <option [value]="opt.value">{{ opt.label }} — {{ opt.description }}</option>
                     }
                   </select>
-                  @if (syncMode === 'auto') {
+                  @if (syncSettings().syncMode === 'auto') {
                     <div class="flex items-center gap-4">
                       <label for="syncIntervalSec" class="text-xs text-ink-muted">Intervall</label>
                       <input
                         id="syncIntervalSec"
                         type="number"
-                        [(ngModel)]="syncIntervalSec"
-                        name="syncIntervalSec"
-                        min="60"
-                        max="3600"
+                        [formField]="syncForm.syncIntervalSec"
                         (blur)="onSaveSyncMode()"
                         class="w-28 bg-surface-input border border-line-soft rounded-lg p-2 text-sm"
                       />
                       <span class="text-xs text-ink-muted">Sekunden</span>
                     </div>
                   }
-                  @if (syncMode === 'scheduled') {
+                  @if (syncSettings().syncMode === 'scheduled') {
                     <div class="space-y-3">
                       <div class="space-y-2">
-                        @for (time of syncScheduleTimes; track $index) {
+                        @for (time of syncForm.syncScheduleTimes; track time) {
                           <div class="flex items-center gap-2">
                             <input
                               type="time"
-                              [(ngModel)]="syncScheduleTimes[$index]"
-                              [name]="'syncScheduleTime-' + $index"
+                              [formField]="time"
                               (change)="onSaveSyncMode()"
                               class="w-32 bg-surface-input border border-line-soft rounded-lg p-2 text-sm"
                             />
@@ -847,8 +841,7 @@ const directionLabel = (dir: InitialDirection): string => {
                         <label for="syncScheduleTimezone" class="text-xs text-ink-muted">Zeitzone</label>
                         <select
                           id="syncScheduleTimezone"
-                          [(ngModel)]="syncScheduleTimezone"
-                          name="syncScheduleTimezone"
+                          [formField]="syncForm.syncScheduleTimezone"
                           (change)="onSaveSyncMode()"
                           class="flex-1 bg-surface-input border border-line-soft rounded-lg p-2 text-sm"
                         >
@@ -859,7 +852,7 @@ const directionLabel = (dir: InitialDirection): string => {
                       </div>
                     </div>
                   }
-                  @if (syncMode === 'scheduled' || syncMode === 'disabled') {
+                  @if (syncSettings().syncMode === 'scheduled' || syncSettings().syncMode === 'disabled') {
                     <p class="text-xs text-ink-muted">
                       Die Cloud-Verbindung wird unabhängig davon regelmäßig gehalten — sonst würde die Kopplung nach 24
                       Stunden ablaufen und ein erneutes Koppeln nötig machen.
@@ -1265,13 +1258,26 @@ export class CloudConnectionComponent implements OnInit {
   selectableUsers = computed(() => this.edgeUsers().filter(u => !u.blocked))
   blockedUsers = computed(() => this.edgeUsers().filter(u => u.blocked))
 
-  cloudUrl = DEFAULT_CLOUD_URL
-  pairingCode = ''
-  edgeName = ''
-  syncMode: SyncMode = 'auto'
-  syncIntervalSec = 300
-  syncScheduleTimes: string[] = []
-  syncScheduleTimezone = LOCAL_TIMEZONE
+  readonly pairing = signal({ cloudUrl: DEFAULT_CLOUD_URL, pairingCode: '', edgeName: '' })
+  readonly pairingForm = form(this.pairing, p => {
+    required(p.cloudUrl)
+    required(p.pairingCode)
+    pattern(p.pairingCode, PAIRING_CODE_PATTERN)
+    maxLength(p.pairingCode, 6)
+    required(p.edgeName)
+  })
+
+  readonly syncSettings = signal<{
+    syncMode: SyncMode
+    syncIntervalSec: number | null
+    syncScheduleTimes: string[]
+    syncScheduleTimezone: string
+  }>({ syncMode: 'auto', syncIntervalSec: 300, syncScheduleTimes: [], syncScheduleTimezone: LOCAL_TIMEZONE })
+  readonly syncForm = form(this.syncSettings, s => {
+    required(s.syncIntervalSec, { when: ({ valueOf }) => valueOf(s.syncMode) === 'auto' })
+    min(s.syncIntervalSec, SYNC_INTERVAL_MIN_SEC)
+    max(s.syncIntervalSec, SYNC_INTERVAL_MAX_SEC)
+  })
 
   // Variante (c): bootstrap-edge-to-cloud wird im UI deaktiviert, wenn die
   // Cloud bereits Stammdaten enthaelt (Cloud ist Quelle der Wahrheit). Cloud-
@@ -1374,8 +1380,11 @@ export class CloudConnectionComponent implements OnInit {
         const conn = result.data[0]
         this.connectionInfo.set(conn)
         this.connectionState.set(conn.pairingStatus)
-        this.cloudUrl = conn.cloudUrl || DEFAULT_CLOUD_URL
-        this.edgeName = conn.edgeName || ''
+        this.pairing.update(v => ({
+          ...v,
+          cloudUrl: conn.cloudUrl || DEFAULT_CLOUD_URL,
+          edgeName: conn.edgeName || '',
+        }))
         this.applySyncSettingsFrom(conn)
         if (conn.bootstrapStatus === 'in-progress') {
           this.wizardStep.set('progress')
@@ -1391,7 +1400,7 @@ export class CloudConnectionComponent implements OnInit {
     } catch {
       // kein Datensatz vorhanden
     }
-    if (!this.edgeName) {
+    if (!this.pairing().edgeName) {
       await this.loadDefaultEdgeName()
     }
     this.loading.set(false)
@@ -1408,14 +1417,14 @@ export class CloudConnectionComponent implements OnInit {
   }
 
   async onRunPreflight() {
-    if (this.pairingCode.length < 6) return
+    if (this.pairingForm().invalid()) return
     this.preflighting.set(true)
     this.errors.set([])
     try {
       const result = await this.api.customMethod<PreflightResult>('cloud-connection', 'preflight', {
-        cloudUrl: this.cloudUrl,
-        pairingCode: this.pairingCode,
-        edgeName: this.edgeName,
+        cloudUrl: this.pairing().cloudUrl,
+        pairingCode: this.pairing().pairingCode,
+        edgeName: this.pairing().edgeName,
       })
       this.preflightResult.set(result)
       // Empfohlene Direction setzen — aber NICHT, falls sie durch Variante (c)
@@ -1539,9 +1548,9 @@ export class CloudConnectionComponent implements OnInit {
     try {
       const cloudInventory = this.preflightResult()?.cloudInventory
       const updated = await this.api.customMethod<CloudConnectionInfo>('cloud-connection', 'startBootstrap', {
-        cloudUrl: this.cloudUrl,
-        pairingCode: this.pairingCode,
-        edgeName: this.edgeName,
+        cloudUrl: this.pairing().cloudUrl,
+        pairingCode: this.pairing().pairingCode,
+        edgeName: this.pairing().edgeName,
         initialDirection: dir,
         confirmDataLoss: this.confirmDataLoss(),
         ...(allowlist ? { bootstrapUserAllowlist: allowlist } : {}),
@@ -1604,17 +1613,19 @@ export class CloudConnectionComponent implements OnInit {
 
   /** Uebernimmt den persistierten Sync-Stand in die Formularfelder. */
   private applySyncSettingsFrom(conn: CloudConnectionInfo) {
-    this.syncMode = conn.syncMode ?? 'auto'
-    this.syncIntervalSec = conn.syncIntervalSec ?? 300
-    this.syncScheduleTimes = [...(conn.syncSchedule?.times ?? [])]
-    this.syncScheduleTimezone = conn.syncSchedule?.timezone || LOCAL_TIMEZONE
+    this.syncSettings.set({
+      syncMode: conn.syncMode ?? 'auto',
+      syncIntervalSec: conn.syncIntervalSec ?? 300,
+      syncScheduleTimes: [...(conn.syncSchedule?.times ?? [])],
+      syncScheduleTimezone: conn.syncSchedule?.timezone || LOCAL_TIMEZONE,
+    })
   }
 
   /** Gueltige, entdoppelte und chronologisch sortierte Uhrzeiten. */
   private normalizedScheduleTimes(): string[] {
     const seen = new Set<string>()
-    return this.syncScheduleTimes
-      .map(time => (time ?? '').trim())
+    return this.syncSettings()
+      .syncScheduleTimes.map(time => (time ?? '').trim())
       .filter(time => SCHEDULE_TIME_PATTERN.test(time) && !seen.has(time) && seen.add(time))
       .sort()
   }
@@ -1623,44 +1634,50 @@ export class CloudConnectionComponent implements OnInit {
     // Vorbelegung statt Fehlermeldung beim Umschalten: „Zeitplan" ohne Uhrzeiten
     // war genau der Zustand, der den Modus funktionsunfaehig machte. Er soll gar
     // nicht erst entstehen koennen.
-    if (this.syncMode === 'scheduled' && this.normalizedScheduleTimes().length === 0) {
-      this.syncScheduleTimes = [DEFAULT_SCHEDULE_TIME]
+    if (this.syncSettings().syncMode === 'scheduled' && this.normalizedScheduleTimes().length === 0) {
+      this.syncSettings.update(v => ({ ...v, syncScheduleTimes: [DEFAULT_SCHEDULE_TIME] }))
     }
     void this.onSaveSyncMode()
   }
 
   addScheduleTime() {
-    this.syncScheduleTimes = [...this.syncScheduleTimes, DEFAULT_SCHEDULE_TIME]
+    this.syncSettings.update(v => ({ ...v, syncScheduleTimes: [...v.syncScheduleTimes, DEFAULT_SCHEDULE_TIME] }))
     this.cdr.markForCheck()
   }
 
   removeScheduleTime(index: number) {
-    if (this.syncMode === 'scheduled' && this.syncScheduleTimes.length <= 1) {
+    if (this.syncSettings().syncMode === 'scheduled' && this.syncSettings().syncScheduleTimes.length <= 1) {
       this.errors.set(['Im Modus „Zeitplan" muss mindestens eine Uhrzeit hinterlegt sein.'])
       this.cdr.markForCheck()
       return
     }
-    this.syncScheduleTimes = this.syncScheduleTimes.filter((_, i) => i !== index)
+    this.syncSettings.update(v => ({ ...v, syncScheduleTimes: v.syncScheduleTimes.filter((_, i) => i !== index) }))
     void this.onSaveSyncMode()
   }
 
   async onSaveSyncMode() {
     const conn = this.connectionInfo()
     if (!conn) return
+    if (this.syncForm.syncIntervalSec().invalid()) {
+      this.errors.set([
+        `Das Intervall muss zwischen ${SYNC_INTERVAL_MIN_SEC} und ${SYNC_INTERVAL_MAX_SEC} Sekunden liegen.`,
+      ])
+      this.cdr.markForCheck()
+      return
+    }
     const times = this.normalizedScheduleTimes()
-    if (this.syncMode === 'scheduled' && times.length === 0) {
+    if (this.syncSettings().syncMode === 'scheduled' && times.length === 0) {
       this.errors.set(['Im Modus „Zeitplan" muss mindestens eine gueltige Uhrzeit hinterlegt sein.'])
       this.cdr.markForCheck()
       return
     }
-    const patch: Record<string, unknown> = {
-      syncMode: this.syncMode,
-      syncIntervalSec: this.syncIntervalSec,
-    }
+    const { syncMode, syncIntervalSec } = this.syncSettings()
+    // Ein leeres Intervall (nur ausserhalb von „Automatisch" erlaubt) bleibt draussen: `null` verletzt das Schema.
+    const patch: Record<string, unknown> = { syncMode, ...(syncIntervalSec != null ? { syncIntervalSec } : {}) }
     // Nur mitschicken, wenn etwas Gueltiges vorliegt — ein leeres times-Array
     // verletzt `minItems: 1` im Schema und wuerde den ganzen Patch kippen.
     if (times.length > 0) {
-      patch['syncSchedule'] = { times, timezone: this.syncScheduleTimezone || LOCAL_TIMEZONE }
+      patch['syncSchedule'] = { times, timezone: this.syncSettings().syncScheduleTimezone || LOCAL_TIMEZONE }
     }
     try {
       this.errors.set([])
@@ -1741,7 +1758,7 @@ export class CloudConnectionComponent implements OnInit {
       this.connectionInfo.set(null)
       this.connectionState.set('disconnected')
       this.wizardStep.set('input')
-      this.pairingCode = ''
+      this.pairing.update(v => ({ ...v, pairingCode: '' }))
     } catch (e: any) {
       this.errors.set(formatApiError(e).split('\n'))
     }
@@ -1756,9 +1773,7 @@ export class CloudConnectionComponent implements OnInit {
     this.connectionInfo.set(null)
     this.connectionState.set('disconnected')
     this.wizardStep.set('input')
-    this.cloudUrl = DEFAULT_CLOUD_URL
-    this.pairingCode = ''
-    this.edgeName = ''
+    this.pairing.set({ cloudUrl: DEFAULT_CLOUD_URL, pairingCode: '', edgeName: '' })
     this.errors.set([])
     // Edge-Name wieder aus der lokalen `locations`-Tabelle als Default befuellen,
     // damit der Wizard nach Reset nicht mit leerem Feld startet.
@@ -1773,7 +1788,7 @@ export class CloudConnectionComponent implements OnInit {
     try {
       const locResult = await this.api.find<{ name: string }>('locations', { $limit: 1 })
       if (locResult.data.length > 0 && locResult.data[0].name) {
-        this.edgeName = locResult.data[0].name
+        this.pairing.update(v => ({ ...v, edgeName: locResult.data[0].name }))
       }
     } catch {
       // Keine Locations verfuegbar — Wizard bleibt mit leerem Feld

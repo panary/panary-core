@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, Router } from '@angular/router'
+import { TranslateModule } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -58,9 +59,9 @@ beforeEach(() => {
 describe('CloudConnectionComponent — Zeitplan', () => {
   it('normalisiert Uhrzeiten: entdoppelt, verwirft Ungültiges, sortiert chronologisch', async () => {
     const { component, api } = setup()
-    component.syncMode = 'scheduled'
-    component.syncScheduleTimes = ['22:00', '06:30', '22:00', '25:99', '']
-    component.syncScheduleTimezone = 'Europe/Berlin'
+    component.syncSettings.update(v => ({ ...v, syncMode: 'scheduled' }))
+    component.syncSettings.update(v => ({ ...v, syncScheduleTimes: ['22:00', '06:30', '22:00', '25:99', ''] }))
+    component.syncSettings.update(v => ({ ...v, syncScheduleTimezone: 'Europe/Berlin' }))
 
     await component.onSaveSyncMode()
 
@@ -72,8 +73,8 @@ describe('CloudConnectionComponent — Zeitplan', () => {
     // Modus funktionsunfähig gemacht. Der Worker fängt ihn inzwischen mit
     // AUTO-Verhalten ab; die UI soll ihn trotzdem nicht erzeugen können.
     const { component, api } = setup()
-    component.syncMode = 'scheduled'
-    component.syncScheduleTimes = ['abc']
+    component.syncSettings.update(v => ({ ...v, syncMode: 'scheduled' }))
+    component.syncSettings.update(v => ({ ...v, syncScheduleTimes: ['abc'] }))
 
     await component.onSaveSyncMode()
 
@@ -83,23 +84,23 @@ describe('CloudConnectionComponent — Zeitplan', () => {
 
   it('belegt beim Umschalten auf „Zeitplan" eine Uhrzeit vor, statt zu meckern', async () => {
     const { component, api } = setup()
-    component.syncMode = 'scheduled'
+    component.syncSettings.update(v => ({ ...v, syncMode: 'scheduled' }))
 
     component.onSyncModeChange()
     await Promise.resolve()
 
-    expect(component.syncScheduleTimes).toEqual(['22:00'])
+    expect(component.syncSettings().syncScheduleTimes).toEqual(['22:00'])
     expect(api.patch).toHaveBeenCalled()
   })
 
   it('lässt die letzte Uhrzeit im Zeitplan-Modus nicht entfernen', () => {
     const { component, api } = setup()
-    component.syncMode = 'scheduled'
-    component.syncScheduleTimes = ['22:00']
+    component.syncSettings.update(v => ({ ...v, syncMode: 'scheduled' }))
+    component.syncSettings.update(v => ({ ...v, syncScheduleTimes: ['22:00'] }))
 
     component.removeScheduleTime(0)
 
-    expect(component.syncScheduleTimes).toEqual(['22:00'])
+    expect(component.syncSettings().syncScheduleTimes).toEqual(['22:00'])
     expect(api.patch).not.toHaveBeenCalled()
     expect(component.errors()).toHaveLength(1)
   })
@@ -108,8 +109,8 @@ describe('CloudConnectionComponent — Zeitplan', () => {
     // Ein leeres times-Array verletzt `minItems: 1` und würde den ganzen Patch
     // kippen — inklusive des syncMode-Wechsels, den der Nutzer eigentlich wollte.
     const { component, api } = setup()
-    component.syncMode = 'manual'
-    component.syncScheduleTimes = []
+    component.syncSettings.update(v => ({ ...v, syncMode: 'manual' }))
+    component.syncSettings.update(v => ({ ...v, syncScheduleTimes: [] }))
 
     await component.onSaveSyncMode()
 
@@ -118,7 +119,7 @@ describe('CloudConnectionComponent — Zeitplan', () => {
 
   it('lädt nach erfolgreichem Speichern neu', async () => {
     const { component, api } = setup()
-    component.syncMode = 'manual'
+    component.syncSettings.update(v => ({ ...v, syncMode: 'manual' }))
 
     await component.onSaveSyncMode()
 
@@ -130,15 +131,132 @@ describe('CloudConnectionComponent — Zeitplan', () => {
       patch: () => Promise.reject(new Error('validation failed')),
       stored: { syncMode: 'auto', syncIntervalSec: 300, syncSchedule: { times: ['03:00'], timezone: 'Europe/Berlin' } },
     })
-    component.syncMode = 'scheduled'
-    component.syncScheduleTimes = ['04:00', '05:00']
+    component.syncSettings.update(v => ({ ...v, syncMode: 'scheduled' }))
+    component.syncSettings.update(v => ({ ...v, syncScheduleTimes: ['04:00', '05:00'] }))
 
     await component.onSaveSyncMode()
 
     // Ohne Rollback bliebe die UI auf Werten stehen, die der Server abgelehnt hat.
-    expect(component.syncMode).toBe('auto')
-    expect(component.syncScheduleTimes).toEqual(['03:00'])
+    expect(component.syncSettings().syncMode).toBe('auto')
+    expect(component.syncSettings().syncScheduleTimes).toEqual(['03:00'])
     expect(component.errors().length).toBeGreaterThan(0)
+  })
+})
+
+// core#1173: Das Sync-Intervall hat Grenzen im Signal-Forms-Schema (wie `SYNC_INTERVAL_MIN_SEC`/`_MAX_SEC`
+// im Domain-Schema). Vorher standen sie nur als HTML-Attribut am Feld und hielten keinen Save auf.
+describe('CloudConnectionComponent — Sync-Intervall', () => {
+  it('speichert ein Intervall unter 60 Sekunden nicht', async () => {
+    const { component, api } = setup()
+    component.syncSettings.update(v => ({ ...v, syncIntervalSec: 30 }))
+
+    await component.onSaveSyncMode()
+
+    expect(api.patch).not.toHaveBeenCalled()
+    expect(component.errors()).toHaveLength(1)
+  })
+
+  it('speichert ein leeres Intervall im Modus „Automatisch" nicht', async () => {
+    const { component, api } = setup()
+    component.syncSettings.update(v => ({ ...v, syncIntervalSec: null }))
+
+    await component.onSaveSyncMode()
+
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('lässt ein leeres Intervall außerhalb von „Automatisch" aus dem Patch', async () => {
+    const { component, api } = setup()
+    component.syncSettings.update(v => ({ ...v, syncMode: 'manual', syncIntervalSec: null }))
+
+    await component.onSaveSyncMode()
+
+    expect(patchBody(api)).toEqual({ syncMode: 'manual' })
+  })
+})
+
+// core#1173: Kopplungs-Assistent und Sync-Einstellungen hängen per `[formField]` am Modell. Geprüft wird
+// über das gerenderte Template, denn genau diese Bindungen gehen beim Umbau still verloren.
+describe('CloudConnectionComponent — Eingabefelder im Template', () => {
+  async function render(stored: Record<string, unknown> | null) {
+    const api = {
+      find: vi.fn((service: string) =>
+        Promise.resolve(
+          service === 'cloud-connection'
+            ? { data: stored ? [{ ...CONNECTION, ...stored }] : [] }
+            : service === 'locations'
+              ? { data: [{ name: 'Hauptfiliale' }] }
+              : { data: [], total: 0 },
+        ),
+      ),
+      patch: vi.fn().mockResolvedValue({}),
+      get: vi.fn().mockResolvedValue({}),
+      customMethod: vi.fn().mockResolvedValue({}),
+    }
+    const connection = {
+      cloudNeedsRePairing: signal(false),
+      cloudUnreachable: signal(false),
+      lastCloudContactAgeMin: signal<number | null>(null),
+      offlineModeActive: signal(false),
+      offlineModeRemainingMin: signal<number | null>(null),
+    }
+    await TestBed.configureTestingModule({
+      imports: [CloudConnectionComponent, TranslateModule.forRoot()],
+      providers: [
+        { provide: ApiService, useValue: api },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: new Map() }, queryParamMap: signal(new Map()) },
+        },
+        { provide: Router, useValue: { navigate: vi.fn() } },
+        { provide: ConnectionService, useValue: connection },
+      ],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(CloudConnectionComponent)
+    await fixture.whenStable()
+    const el = fixture.nativeElement as HTMLElement
+    async function type(field: HTMLInputElement, value: string) {
+      field.value = value
+      field.dispatchEvent(new Event('input'))
+      await fixture.whenStable()
+    }
+    return { fixture, el, api, type }
+  }
+
+  it('gibt die Prüfung erst mit sechsstelligem Code frei und schickt die getippten Werte', async () => {
+    const { el, api, type } = await render(null)
+    const code = el.querySelector<HTMLInputElement>('#pairingCode')!
+    const edgeName = el.querySelector<HTMLInputElement>('#edgeName')!
+    const check = [...el.querySelectorAll<HTMLButtonElement>('button')].find(b =>
+      b.textContent?.includes('Mit Cloud verbinden'),
+    )!
+    expect(edgeName.value).toBe('Hauptfiliale')
+
+    await type(code, '12345')
+    expect(check.disabled).toBe(true)
+    await type(code, '12345a')
+    expect(check.disabled).toBe(true)
+    await type(code, '123456')
+    expect(check.disabled).toBe(false)
+
+    check.click()
+    expect(api.customMethod).toHaveBeenCalledWith(
+      'cloud-connection',
+      'preflight',
+      expect.objectContaining({ pairingCode: '123456', edgeName: 'Hauptfiliale' }),
+    )
+  })
+
+  it('zeigt das gespeicherte Intervall und speichert das getippte beim Verlassen', async () => {
+    const { fixture, el, api, type } = await render({})
+    const interval = el.querySelector<HTMLInputElement>('#syncIntervalSec')!
+    expect(interval.value).toBe('300')
+
+    await type(interval, '600')
+    interval.dispatchEvent(new Event('blur'))
+    await fixture.whenStable()
+
+    expect(api.patch).toHaveBeenCalledWith('cloud-connection', 'conn-1', { syncMode: 'auto', syncIntervalSec: 600 })
   })
 })
 

@@ -9,9 +9,8 @@ import {
   output,
   effect,
   untracked,
-  viewChild,
 } from '@angular/core'
-import { FormsModule, NgForm } from '@angular/forms'
+import { form, FormField, FormRoot, maxLength, minLength, required, type FieldState } from '@angular/forms/signals'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
@@ -78,7 +77,7 @@ type DeviceLookup =
 @Component({
   selector: 'app-apikey-form',
   standalone: true,
-  imports: [FormsModule, ConfirmDialogComponent, TranslateModule],
+  imports: [FormField, FormRoot, ConfirmDialogComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="panelMode() ? 'p-5 max-w-2xl mx-auto space-y-5' : 'p-8 max-w-2xl space-y-6'">
@@ -88,28 +87,23 @@ type DeviceLookup =
       @if (isNew()) {
         <h1 class="text-2xl font-bold tracking-tight">{{ 'APIKEYS.NEW_KEY' | translate }}</h1>
 
-        <form #f="ngForm" (ngSubmit)="onCreate(f)" class="space-y-5">
+        <form [formRoot]="keyForm" (submit)="onCreate()" class="space-y-5">
           <div class="space-y-1">
             <label for="apikeyName" class="text-xs font-medium text-ink-muted uppercase tracking-wider"
               >{{ 'COMMON.NAME' | translate }} *</label
             >
             <input
               id="apikeyName"
-              [(ngModel)]="form.name"
-              name="name"
-              #name="ngModel"
+              [formField]="keyForm.name"
               type="text"
-              required
-              minlength="2"
-              maxlength="80"
               placeholder="z.B. POS Kasse 1"
-              [class]="inputClass(name)"
+              [class]="inputClass(keyForm.name())"
             />
-            @if (name.invalid && name.touched) {
+            @if (keyForm.name().invalid() && keyForm.name().touched()) {
               <p class="text-red-500 dark:text-red-400 text-xs mt-1">
-                @if (name.errors?.['required']) {
+                @if (keyForm.name().getError('required')) {
                   {{ 'APIKEYS.NAME_REQUIRED' | translate }}
-                } @else if (name.errors?.['minlength']) {
+                } @else if (keyForm.name().getError('minLength')) {
                   {{ 'COMMON.MIN_CHARS' | translate: { count: 2 } }}
                 }
               </p>
@@ -122,8 +116,7 @@ type DeviceLookup =
             }}</label>
             <textarea
               id="apikeyDescription"
-              [(ngModel)]="form.description"
-              name="description"
+              [formField]="keyForm.description"
               rows="2"
               placeholder="Optionale Beschreibung des Verwendungszwecks"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
@@ -140,8 +133,7 @@ type DeviceLookup =
               >
               <select
                 id="apikeyRole"
-                [(ngModel)]="form.role"
-                name="role"
+                [formField]="keyForm.role"
                 class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                        text-ink outline-none"
               >
@@ -156,8 +148,7 @@ type DeviceLookup =
               }}</label>
               <input
                 id="apikeyValidUntil"
-                [(ngModel)]="form.validUntil"
-                name="validUntil"
+                [formField]="keyForm.validUntil"
                 type="date"
                 class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                        text-ink focus:border-ink
@@ -182,7 +173,7 @@ type DeviceLookup =
           <div class="flex gap-3 pt-4">
             <button
               type="submit"
-              [disabled]="saving() || f.invalid"
+              [disabled]="saving() || keyForm().invalid()"
               class="bg-ink text-surface-panel font-bold px-6 py-3 rounded-xl text-sm
                      hover:bg-ink/90 transition
                      disabled:opacity-50 disabled:cursor-not-allowed"
@@ -422,7 +413,6 @@ export class ApikeyFormComponent {
   deviceLookup = signal<DeviceLookup>({ state: 'none' })
   /** Fuer welchen Schluessel der Verwaist-Dialog gerade offen ist. */
   orphanPromptFor = signal<string | null>(null)
-  private formRef = viewChild<NgForm>('f')
 
   /**
    * Schluessel-IDs, fuer die der Verwaist-Dialog in dieser Sitzung schon offen war.
@@ -448,22 +438,26 @@ export class ApikeyFormComponent {
     return this.t.instant('APIKEYS.DELETE_DEVICE_WARNING', { device: lookup.device.name })
   })
 
-  form = {
+  readonly newKey = signal({
     name: '',
     description: '',
     role: DEFAULT_ROLE as string,
     validUntil: '',
-  }
+  })
+  readonly keyForm = form(this.newKey, k => {
+    required(k.name)
+    minLength(k.name, 2)
+    maxLength(k.name, 80)
+  })
 
   // Im Edit-Modus gibt es kein Dirty — nur Create hat ein Formular
   isDirty(): boolean {
-    if (this.isNew()) return !!this.form.name
+    if (this.isNew()) return !!this.newKey().name
     return false
   }
 
   async saveAndContinue(): Promise<boolean> {
-    const f = this.formRef()
-    if (f && this.isNew()) await this.onCreate(f)
+    if (this.isNew()) await this.onCreate()
     return this.errors().length === 0
   }
 
@@ -520,9 +514,9 @@ export class ApikeyFormComponent {
 
   private readonly baseInputClass = 'w-full bg-surface-input border rounded-lg p-3 text-ink focus:ring-1 outline-none'
 
-  inputClass(ctrl: any): string {
-    if (!ctrl || ctrl.pristine) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
-    if (ctrl.invalid) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
+  inputClass(state: FieldState<string>): string {
+    if (!state.dirty()) return `${this.baseInputClass} border-line-soft focus:border-ink focus:ring-ink`
+    if (state.invalid()) return `${this.baseInputClass} border-red-500/50 focus:border-red-400 focus:ring-red-400`
     return `${this.baseInputClass} border-green-500/30 focus:border-green-400 focus:ring-green-400`
   }
 
@@ -537,13 +531,12 @@ export class ApikeyFormComponent {
   }
 
   private async loadApikey(keyId: string | undefined) {
-    this.formRef()?.resetForm()
     this.errors.set([])
     this.confirmingDelete.set(false)
     this.detail.set(null)
     this.deviceLookup.set({ state: 'none' })
     this.orphanPromptFor.set(null)
-    this.form = { name: '', description: '', role: DEFAULT_ROLE, validUntil: '' }
+    this.keyForm().reset({ name: '', description: '', role: DEFAULT_ROLE, validUntil: '' })
 
     if (!keyId || keyId === 'new') {
       this.isNew.set(true)
@@ -607,23 +600,24 @@ export class ApikeyFormComponent {
     await this.onDelete()
   }
 
-  async onCreate(f: NgForm) {
-    if (f.invalid) {
-      Object.values(f.controls).forEach(c => c.markAsTouched())
+  async onCreate() {
+    if (this.keyForm().invalid()) {
+      this.keyForm().markAsTouched()
       return
     }
+    const key = this.newKey()
 
     this.saving.set(true)
     this.errors.set([])
 
     try {
       const data: Record<string, unknown> = {
-        name: this.form.name,
-        description: this.form.description || undefined,
-        role: this.form.role,
+        name: key.name,
+        description: key.description || undefined,
+        role: key.role,
       }
-      if (this.form.validUntil) {
-        data['validUntil'] = new Date(this.form.validUntil).toISOString()
+      if (key.validUntil) {
+        data['validUntil'] = new Date(key.validUntil).toISOString()
       }
 
       const result = await this.api.create<any>('apikeys', data)

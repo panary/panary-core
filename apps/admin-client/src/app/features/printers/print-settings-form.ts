@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { ChangeDetectionStrategy, Component, input } from '@angular/core'
+import { FormField, type FieldTree } from '@angular/forms/signals'
 
 export interface PrintSettingsData {
-  printServerEnabled?: boolean
-  maxNameCharacters: number
+  printServerEnabled: boolean
+  maxNameCharacters: number | null
   separationCharacter: string
-  separationCharacterCount: number
+  separationCharacterCount: number | null
   showDialogAfterOrder: boolean
   backofficePrinter?: string
 }
@@ -13,7 +13,7 @@ export interface PrintSettingsData {
 @Component({
   selector: 'app-print-settings-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-surface-input border border-line-soft rounded-xl p-6">
@@ -28,9 +28,7 @@ export interface PrintSettingsData {
         <!-- Print-Server aktivieren -->
         <label class="flex items-center gap-3 cursor-pointer">
           <input
-            [ngModel]="settings().printServerEnabled ?? true"
-            (ngModelChange)="onFieldChange('printServerEnabled', $event)"
-            name="printServerEnabled"
+            [formField]="settingsForm().printServerEnabled"
             type="checkbox"
             class="w-4 h-4 rounded border-line-strong
                    text-ink focus:ring-ink"
@@ -46,12 +44,8 @@ export interface PrintSettingsData {
             </label>
             <input
               id="maxNameCharacters"
-              [ngModel]="settings().maxNameCharacters"
-              (ngModelChange)="onFieldChange('maxNameCharacters', $event)"
-              name="maxNameCharacters"
+              [formField]="settingsForm().maxNameCharacters"
               type="number"
-              min="10"
-              max="80"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink focus:border-ink
                      focus:ring-1 focus:ring-ink outline-none"
@@ -65,9 +59,7 @@ export interface PrintSettingsData {
             </label>
             <select
               id="separationCharacter"
-              [ngModel]="settings().separationCharacter"
-              (ngModelChange)="onFieldChange('separationCharacter', $event)"
-              name="separationCharacter"
+              [formField]="settingsForm().separationCharacter"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink outline-none"
             >
@@ -86,12 +78,8 @@ export interface PrintSettingsData {
             </label>
             <input
               id="separationCharacterCount"
-              [ngModel]="settings().separationCharacterCount"
-              (ngModelChange)="onFieldChange('separationCharacterCount', $event)"
-              name="separationCharacterCount"
+              [formField]="settingsForm().separationCharacterCount"
               type="number"
-              min="10"
-              max="80"
               class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                      text-ink focus:border-ink
                      focus:ring-1 focus:ring-ink outline-none"
@@ -102,9 +90,7 @@ export interface PrintSettingsData {
         <!-- Druckdialog nach Bestellung -->
         <label class="flex items-center gap-3 cursor-pointer">
           <input
-            [ngModel]="settings().showDialogAfterOrder"
-            (ngModelChange)="onFieldChange('showDialogAfterOrder', $event)"
-            name="showDialogAfterOrder"
+            [formField]="settingsForm().showDialogAfterOrder"
             type="checkbox"
             class="w-4 h-4 rounded border-line-strong
                    text-ink focus:ring-ink"
@@ -116,13 +102,8 @@ export interface PrintSettingsData {
   `,
 })
 export class PrintSettingsFormComponent {
-  settings = input.required<PrintSettingsData>()
+  /** Modell und Schema besitzt die Druckerverwaltung; hier wird nur gebunden. */
+  settingsForm = input.required<FieldTree<PrintSettingsData>>()
   /** Cloud verwaltet die Drucker-Settings (kein Notfall-Modus aktiv). */
   readOnly = input(false)
-  settingsChanged = output<Partial<PrintSettingsData>>()
-
-  onFieldChange(field: string, value: unknown) {
-    if (this.readOnly()) return
-    this.settingsChanged.emit({ [field]: value })
-  }
 }

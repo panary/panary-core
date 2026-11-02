@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core'
+import { form, max, maxLength, min, required } from '@angular/forms/signals'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
@@ -86,17 +87,20 @@ import { formatApiError } from '../../core/error-helper'
         />
 
         <!-- Druckeinstellungen -->
+        <!-- input/change bubbeln aus den Feldern: jede Eingabe nimmt die Gespeichert-Meldung zurueck. -->
         <app-print-settings-form
-          [settings]="printSettings()"
+          [settingsForm]="printSettingsForm"
           [readOnly]="locked()"
-          (settingsChanged)="onPrintSettingsChanged($event)"
+          (input)="saved.set(false)"
+          (change)="saved.set(false)"
         />
 
         <!-- MQTT-Konfiguration -->
         <app-mqtt-settings-form
-          [settings]="mqttSettings()"
+          [settingsForm]="mqttSettingsForm"
           [readOnly]="locked()"
-          (settingsChanged)="onMqttSettingsChanged($event)"
+          (input)="saved.set(false)"
+          (change)="saved.set(false)"
         />
 
         @if (error()) {
@@ -111,7 +115,7 @@ import { formatApiError } from '../../core/error-helper'
         <div class="flex gap-3 pt-2 pb-8">
           <button
             (click)="onSave()"
-            [disabled]="saving() || locked()"
+            [disabled]="saving() || locked() || printSettingsForm().invalid() || mqttSettingsForm().invalid()"
             class="bg-ink text-surface-panel font-bold px-8 py-3 rounded-xl text-sm
                    hover:bg-ink/90 transition disabled:opacity-50"
           >
@@ -157,6 +161,23 @@ export class PrinterManagementComponent implements OnInit {
     mqttServerProtocol: 'ws',
     mqttServerUrl: 'localhost',
     mqttServerPort: 9001,
+  })
+
+  // Grenzen wie `printSettings` in @panary/locations/domain (location.schema.ts).
+  readonly printSettingsForm = form(this.printSettings, s => {
+    required(s.maxNameCharacters)
+    min(s.maxNameCharacters, 1)
+    max(s.maxNameCharacters, 200)
+    maxLength(s.separationCharacter, 4)
+    required(s.separationCharacterCount)
+    min(s.separationCharacterCount, 0)
+    max(s.separationCharacterCount, 200)
+  })
+  readonly mqttSettingsForm = form(this.mqttSettings, s => {
+    required(s.mqttServerUrl)
+    required(s.mqttServerPort)
+    min(s.mqttServerPort, 1)
+    max(s.mqttServerPort, 65535)
   })
 
   /**
@@ -265,17 +286,8 @@ export class PrinterManagementComponent implements OnInit {
     }
   }
 
-  onPrintSettingsChanged(changes: Partial<PrintSettingsData>) {
-    this.printSettings.update(current => ({ ...current, ...changes }))
-    this.saved.set(false)
-  }
-
-  onMqttSettingsChanged(changes: Partial<MqttSettingsData>) {
-    this.mqttSettings.update(current => ({ ...current, ...changes }))
-    this.saved.set(false)
-  }
-
   async onSave() {
+    if (this.printSettingsForm().invalid() || this.mqttSettingsForm().invalid()) return
     await this.persistSettings()
   }
 

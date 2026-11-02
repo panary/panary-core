@@ -157,6 +157,24 @@ Signal im Root-Service, nicht im `sessionStorage`, denn `logout()` leert den.
 Nach einem Reload fehlt er, und das ist gewollt: Dann gibt es auch keinen
 abgebrochenen Dialog mehr, auf den der Hinweis passen würde.
 
+Der Hinweis blendet sich nach **15 Sekunden** von selbst aus
+(`IDLE_NOTICE_DURATION_MS`, [#1170](https://github.com/panary/panary-core/issues/1170)),
+zusammen mit dem Satz zum abgebrochenen Dialog (#941). Gezählt wird ab dem ersten
+Sichtbarwerden in `select-user`/`enter-pin`, nicht ab `ngOnInit`: Der Schritt
+`loading` darf selbst bis zu 15 Sekunden dauern und hätte die Anzeige sonst
+aufgezehrt. Der Timer startet genau einmal; ein Schrittwechsel (etwa in den
+PIN-Wechsel und zurück) oder ein erneutes Laden startet ihn nicht neu. Ein
+Ablaufbalken am unteren Rand des Banners zeigt die Restzeit: eine CSS-Animation
+über die volle Dauer, deren negativer Startversatz die schon verstrichene Zeit
+abbildet, sodass der Balken nach einem Wiedereinblenden an der richtigen Stelle
+weiterläuft. Der Timer wird imperativ gestartet, nicht per `effect`, weil die
+Login-Specs ohne Template und Change Detection laufen.
+
+Abwägung: Der Login erscheint direkt nach dem Logout, oft wenn niemand am Gerät
+steht. Wer nach mehr als 15 Sekunden zurückkommt, sieht den Hinweis nicht mehr.
+Das ist gewollt. Stört es im Betrieb, wäre die Alternative, den Ablauf erst mit
+der ersten Interaktion auf der Login-Seite zu starten.
+
 Bewusst **nicht** eingefroren wird die Frist bei offenem Freigabe-Dialog. Ein
 vergessener Dialog hielte die Sitzung sonst offen. Seit core#1064 gilt das auch für
 eine angefangene Bestellung (siehe oben).

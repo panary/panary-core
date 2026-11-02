@@ -1,17 +1,17 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core'
+import { FormField, type FieldTree } from '@angular/forms/signals'
 import mqtt from 'mqtt'
 
 export interface MqttSettingsData {
   mqttServerProtocol: string
   mqttServerUrl: string
-  mqttServerPort: number
+  mqttServerPort: number | null
 }
 
 @Component({
   selector: 'app-mqtt-settings-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-surface-input border border-line-soft rounded-xl p-6">
@@ -67,9 +67,7 @@ export interface MqttSettingsData {
           >
           <select
             id="mqttProtocol"
-            [ngModel]="settings().mqttServerProtocol"
-            (ngModelChange)="onFieldChange('mqttServerProtocol', $event)"
-            name="mqttServerProtocol"
+            [formField]="settingsForm().mqttServerProtocol"
             class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                    text-ink outline-none"
           >
@@ -85,9 +83,7 @@ export interface MqttSettingsData {
           >
           <input
             id="mqttServerUrl"
-            [ngModel]="settings().mqttServerUrl"
-            (ngModelChange)="onFieldChange('mqttServerUrl', $event)"
-            name="mqttServerUrl"
+            [formField]="settingsForm().mqttServerUrl"
             type="text"
             placeholder="localhost"
             class="w-full bg-surface-input border border-line-soft rounded-lg p-3
@@ -101,12 +97,8 @@ export interface MqttSettingsData {
           <label for="mqttPort" class="text-xs font-medium text-ink-muted uppercase tracking-wider">Port</label>
           <input
             id="mqttPort"
-            [ngModel]="settings().mqttServerPort"
-            (ngModelChange)="onFieldChange('mqttServerPort', $event)"
-            name="mqttServerPort"
+            [formField]="settingsForm().mqttServerPort"
             type="number"
-            min="1"
-            max="65535"
             placeholder="9001"
             class="w-full bg-surface-input border border-line-soft rounded-lg p-3
                    text-ink focus:border-ink
@@ -118,23 +110,18 @@ export interface MqttSettingsData {
   `,
 })
 export class MqttSettingsFormComponent {
-  settings = input.required<MqttSettingsData>()
+  /** Modell und Schema besitzt die Druckerverwaltung; hier wird nur gebunden. */
+  settingsForm = input.required<FieldTree<MqttSettingsData>>()
   /** Cloud verwaltet die Drucker-Settings (kein Notfall-Modus aktiv). */
   readOnly = input(false)
-  settingsChanged = output<Partial<MqttSettingsData>>()
 
   testing = signal(false)
   testResult = signal<'success' | 'error' | null>(null)
   testError = signal('')
 
-  onFieldChange(field: string, value: unknown) {
-    if (this.readOnly()) return
-    this.settingsChanged.emit({ [field]: value })
-  }
-
   testConnection() {
-    const s = this.settings()
-    if (!s.mqttServerUrl || !s.mqttServerPort) {
+    const s = this.settingsForm()().value()
+    if (this.settingsForm()().invalid()) {
       this.testResult.set('error')
       this.testError.set('Server-URL und Port muessen ausgefuellt sein.')
       return

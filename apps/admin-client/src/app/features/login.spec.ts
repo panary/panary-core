@@ -47,6 +47,12 @@ describe('LoginComponent – Formular', () => {
     expect(submitButton().disabled).toBe(false)
   })
 
+  it('sperrt den Absende-Knopf bei Passwort ohne E-Mail', async () => {
+    const { type, submitButton } = await render()
+    await type('login-password', 'geheim')
+    expect(submitButton().disabled).toBe(true)
+  })
+
   it('schickt die getippten Werte an den AuthService und fängt den nativen Submit ab', async () => {
     const { fixture, type, formEl, login, navigate } = await render()
     await type('login-email', 'chef@example.com')

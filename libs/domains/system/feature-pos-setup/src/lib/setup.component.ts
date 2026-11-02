@@ -110,11 +110,14 @@ export class SetupComponent {
       customUrlInput: '',
     }),
     s => {
+      // `required` zusaetzlich zur Trim-Pruefung: `[formField]` setzt daraus das `required`-Attribut fuer Screenreader.
+      required(s.email)
       validate(s.email, ({ value }) => (value().trim() ? undefined : { kind: 'required' }))
       required(s.password)
       required(s.selectedTenantId)
       required(s.selectedLocationId)
       disabled(s.selectedLocationId, ({ valueOf }) => !valueOf(s.selectedTenantId))
+      required(s.deviceName)
       maxLength(s.deviceName, this.DEVICE_NAME_MAX_LENGTH)
       validate(s.deviceName, ({ value }) => {
         const name = value().trim()
@@ -559,6 +562,7 @@ export class SetupComponent {
   }
 
   isStep2Valid(): boolean {
+    // Die Filiale direkt pruefen: Ohne Organisation ist sie gesperrt, und ein gesperrtes Feld zaehlt als gueltig.
     return !this.setupForm.selectedTenantId().invalid() && this.selectedLocationId().length > 0
   }
 

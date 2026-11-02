@@ -276,6 +276,10 @@ export class AccountFormComponent {
   Der eigene Handler hängt an `(submit)`, nicht an `(ngSubmit)`.
 - **Kein `[disabled]` an einem Element mit `[formField]`.** Deaktivierung gehört ins Schema (`disabled(p.feld, …)`).
   Buttons sind keine Felder und dürfen `[disabled]` tragen.
+- **Ein Formular über mehrere Komponenten** (Einstellungs-Kachel in einer Verwaltungsseite): Die Seite besitzt
+  Modell und `form()`, das Kind bekommt den Feldbaum als `input.required<FieldTree<T>>()` und bindet
+  `[formField]="settingsForm().feld"`. Kein `output` je Feld; eine Reaktion auf Eingaben hängt die Seite per
+  `(input)`/`(change)` an das Kind-Element, die DOM-Events steigen dorthin auf.
 - **Reaktion auf Eingaben** über `computed()` oder `linkedSignal()` auf dem Modell, nicht über ein `effect()`
   mit Signal-Writes (§2.1). Beispiel: eine Auswahl, die beim Tippen im Suchfeld verfällt, ist ein
   `linkedSignal({ source: suchbegriff, computation: () => null })`.

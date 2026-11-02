@@ -391,3 +391,47 @@ describe('PosStaffService (core#832)', () => {
     expect(service.currentUser()).toBeUndefined()
   })
 })
+
+/**
+ * `userId` ist der einzige Weg zur ID für die Monogramm-Farbe von Rail-Avatar und Avatar-Menü (core#963, core#1012).
+ * Der gespeicherte Bediener steht bewusst NICHT in `users()`: Nur so greift der Rückfall auf `pos_current_user`.
+ */
+function setupUserId(authUser: { _id: string } | undefined, stored: string | null) {
+  const storage = new Map<string, string>()
+  if (stored !== null) storage.set('pos_current_user', stored)
+  vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null })
+  onTestFinished(() => {
+    vi.unstubAllGlobals()
+  })
+  const injector = Injector.create({
+    providers: [
+      { provide: UserService, useValue: { currentUser: signal(authUser), users: signal([]) } },
+      { provide: AuthService, useValue: { fullName: signal('Unknown User') } },
+      { provide: KasseDraftRegistry, useValue: new KasseDraftRegistry() },
+      { provide: PosSessionService, useValue: { isOffline: signal(false), endSession: vi.fn() } },
+      { provide: TenantSuspensionService, useValue: { suspended: signal(false) } },
+      { provide: NotificationService, useValue: new NotificationService() },
+      { provide: PosHandednessService, useValue: { effective: () => 'left', choose: vi.fn() } },
+      { provide: TranslateService, useValue: { instant: (key: string) => key } },
+    ],
+  })
+  return runInInjectionContext(injector, () => new PosStaffService())
+}
+
+describe('PosStaffService.userId (core#1012)', () => {
+  it('liefert die ID des geladenen Users, auch wenn pos_current_user eine andere trägt', () => {
+    const service = setupUserId({ _id: 'u-olga' }, JSON.stringify({ _id: 'u-max' }))
+    expect(service.userId()).toBe('u-olga')
+  })
+
+  it('fällt ohne geladenen User auf die ID aus pos_current_user zurück', () => {
+    const service = setupUserId(undefined, JSON.stringify({ _id: 'u-max', firstName: 'Max' }))
+    expect(service.userId()).toBe('u-max')
+  })
+
+  it('liefert undefined, wenn weder User noch pos_current_user da sind', () => {
+    expect(setupUserId(undefined, null).userId()).toBeUndefined()
+    // Ein kaputter Eintrag zählt wie keiner.
+    expect(setupUserId(undefined, '{kaputt').userId()).toBeUndefined()
+  })
+})

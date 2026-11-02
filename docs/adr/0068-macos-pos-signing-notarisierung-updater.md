@@ -66,6 +66,10 @@ beweist Signatur und Notarisierung vor dem Tag. Den minisign-Schlüssel bekommt 
   macOS-Eintrag. Danach auch `release-macos` neu starten.
 - Ein lokaler `pnpm tauri build` auf dem Mac braucht jetzt `TAURI_SIGNING_PRIVATE_KEY` oder
   `--config '{"bundle":{"createUpdaterArtifacts":false}}'`, wie unter Windows.
+- `build-pos.yml` läuft von jedem Branch. Wer Schreibrecht hat, kann dort die Workflow-Datei
+  ändern und an Developer-ID-Zertifikat und Notarisierungs-Passwort kommen. Das wird bewusst in
+  Kauf genommen: Schreibrecht hat nur Michael. Kommen weitere Personen dazu, gehören die
+  Apple-Secrets in ein GitHub-Environment mit Branch-Schutz.
 - Das Apple-Developer-Konto kostet 99 USD im Jahr. Das Zertifikat läuft nach fünf Jahren ab,
   ein abgelaufenes stoppt den Job an der Signaturprüfung.
 - Einrichtung Schritt für Schritt:

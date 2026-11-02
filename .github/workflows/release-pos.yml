@@ -330,6 +330,56 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Direkt nach dem Checkout: ein fehlendes Signing soll nicht erst nach
+      # Install und Angular-Build auffallen.
+      # Vor dem Bitwarden-Step: fehlt eine ID, entstuende dort eine Zeile
+      # " > APPLE_..." und die Action scheiterte mit einer nichtssagenden Meldung.
+      - name: Apple-Signing eingerichtet?
+        env:
+          ID_CERTIFICATE: ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE }}
+          ID_CERTIFICATE_PASSWORD: ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE_PASSWORD }}
+          ID_SIGNING_IDENTITY: ${{ vars.BWS_ID_POS_APPLE_SIGNING_IDENTITY }}
+          ID_APPLE_ID: ${{ vars.BWS_ID_POS_APPLE_ID }}
+          ID_PASSWORD: ${{ vars.BWS_ID_POS_APPLE_PASSWORD }}
+          ID_TEAM_ID: ${{ vars.BWS_ID_POS_APPLE_TEAM_ID }}
+        run: |
+          missing=()
+          for v in CERTIFICATE CERTIFICATE_PASSWORD SIGNING_IDENTITY APPLE_ID PASSWORD TEAM_ID; do
+            n="ID_$v"; [ -n "${!n}" ] || missing+=("BWS_ID_POS_APPLE_${v#APPLE_}")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Apple-Signing nicht eingerichtet — Repo-Variablen fehlen: ${missing[*]}. Ohne Developer-ID-Signatur und Notarisierung wird kein macOS-Bundle gebaut (core#1229, docs/integrations/tauri-update-server-einrichtung.md)."
+            exit 1
+          fi
+
+      - name: Bitwarden Secrets laden
+        uses: bitwarden/sm-action@27c0c9dcab679d7250dbab91227c85b49ffa5e0f # v3.0.0
+        with:
+          access_token: ${{ secrets.BW_ACCESS_TOKEN }}
+          base_url: https://tresor.ratke.info
+          secrets: |
+            dd793c0b-6aa8-4b66-98e8-b41a0188f86b > TAURI_SIGNING_PRIVATE_KEY
+            ba98581b-4221-40ac-907c-b41a0189001d > TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+            ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE }} > APPLE_CERTIFICATE
+            ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE_PASSWORD }} > APPLE_CERTIFICATE_PASSWORD
+            ${{ vars.BWS_ID_POS_APPLE_SIGNING_IDENTITY }} > APPLE_SIGNING_IDENTITY
+            ${{ vars.BWS_ID_POS_APPLE_ID }} > APPLE_ID
+            ${{ vars.BWS_ID_POS_APPLE_PASSWORD }} > APPLE_PASSWORD
+            ${{ vars.BWS_ID_POS_APPLE_TEAM_ID }} > APPLE_TEAM_ID
+
+      # Ein leerer Bitwarden-Eintrag kaeme sonst als leere Variable an, und das
+      # Tauri-CLI ueberspringt Signatur bzw. Notarisierung dann nur mit Warnung.
+      - name: Signing-Secrets vollstaendig?
+        run: |
+          missing=()
+          for v in TAURI_SIGNING_PRIVATE_KEY APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!v:-}" ] || missing+=("$v")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Leer aus Bitwarden: ${missing[*]} — Eintraege pruefen, kein unsignierter Build."
+            exit 1
+          fi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
@@ -405,65 +455,17 @@ jobs:
           fi
           echo "Angular build OK: $(ls dist/apps/pos-client/browser/ | wc -l) files"
 
+      # Das Tauri-CLI importiert APPLE_CERTIFICATE (Base64 der .p12) selbst in
+      # einen temporaeren Schluesselbund, signiert mit APPLE_SIGNING_IDENTITY,
+      # notarisiert ueber APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID und heftet das
+      # Ticket an. Das .app.tar.gz fuer den Updater entsteht danach aus dem
+      # notarisierten .app. Die Variablen kommen aus dem Bitwarden-Step als Env.
       # Ohne tauri-action: das Release existiert dank `needs` bereits, es fehlt
       # nur noch das Artefakt. Ein zweiter tauri-action-Lauf wuerde hier nur
       # Release-Verwaltung duplizieren.
       # cd zwingend: das Tauri-CLI sucht src-tauri relativ zum CWD, und das
       # ist bei `run:` das Repo-Root (deshalb macht auch das npm-Skript
       # `tauri:build` diesen Wechsel).
-      # Vor dem Bitwarden-Step: fehlt eine ID, entstuende dort eine Zeile
-      # " > APPLE_..." und die Action scheiterte mit einer nichtssagenden Meldung.
-      - name: Apple-Signing eingerichtet?
-        env:
-          ID_CERTIFICATE: ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE }}
-          ID_CERTIFICATE_PASSWORD: ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE_PASSWORD }}
-          ID_SIGNING_IDENTITY: ${{ vars.BWS_ID_POS_APPLE_SIGNING_IDENTITY }}
-          ID_APPLE_ID: ${{ vars.BWS_ID_POS_APPLE_ID }}
-          ID_PASSWORD: ${{ vars.BWS_ID_POS_APPLE_PASSWORD }}
-          ID_TEAM_ID: ${{ vars.BWS_ID_POS_APPLE_TEAM_ID }}
-        run: |
-          missing=()
-          for v in CERTIFICATE CERTIFICATE_PASSWORD SIGNING_IDENTITY APPLE_ID PASSWORD TEAM_ID; do
-            n="ID_$v"; [ -n "${!n}" ] || missing+=("BWS_ID_POS_APPLE_${v#APPLE_}")
-          done
-          if [ ${#missing[@]} -gt 0 ]; then
-            echo "::error::Apple-Signing nicht eingerichtet — Repo-Variablen fehlen: ${missing[*]}. Ohne Developer-ID-Signatur und Notarisierung wird kein macOS-Bundle gebaut (core#1229, docs/integrations/tauri-update-server-einrichtung.md)."
-            exit 1
-          fi
-
-      - name: Bitwarden Secrets laden
-        uses: bitwarden/sm-action@27c0c9dcab679d7250dbab91227c85b49ffa5e0f # v3.0.0
-        with:
-          access_token: ${{ secrets.BW_ACCESS_TOKEN }}
-          base_url: https://tresor.ratke.info
-          secrets: |
-            dd793c0b-6aa8-4b66-98e8-b41a0188f86b > TAURI_SIGNING_PRIVATE_KEY
-            ba98581b-4221-40ac-907c-b41a0189001d > TAURI_SIGNING_PRIVATE_KEY_PASSWORD
-            ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE }} > APPLE_CERTIFICATE
-            ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE_PASSWORD }} > APPLE_CERTIFICATE_PASSWORD
-            ${{ vars.BWS_ID_POS_APPLE_SIGNING_IDENTITY }} > APPLE_SIGNING_IDENTITY
-            ${{ vars.BWS_ID_POS_APPLE_ID }} > APPLE_ID
-            ${{ vars.BWS_ID_POS_APPLE_PASSWORD }} > APPLE_PASSWORD
-            ${{ vars.BWS_ID_POS_APPLE_TEAM_ID }} > APPLE_TEAM_ID
-
-      # Ein leerer Bitwarden-Eintrag kaeme sonst als leere Variable an, und das
-      # Tauri-CLI ueberspringt Signatur bzw. Notarisierung dann nur mit Warnung.
-      - name: Signing-Secrets vollstaendig?
-        run: |
-          missing=()
-          for v in TAURI_SIGNING_PRIVATE_KEY APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
-            [ -n "${!v:-}" ] || missing+=("$v")
-          done
-          if [ ${#missing[@]} -gt 0 ]; then
-            echo "::error::Leer aus Bitwarden: ${missing[*]} — Eintraege pruefen, kein unsignierter Build."
-            exit 1
-          fi
-
-      # Das Tauri-CLI importiert APPLE_CERTIFICATE (Base64 der .p12) selbst in
-      # einen temporaeren Schluesselbund, signiert mit APPLE_SIGNING_IDENTITY,
-      # notarisiert ueber APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID und heftet das
-      # Ticket an. Das .app.tar.gz fuer den Updater entsteht danach aus dem
-      # notarisierten .app. Die Variablen kommen aus dem Bitwarden-Step als Env.
       - name: Build Tauri (macOS Bundle)
         run: cd apps/pos-client && pnpm tauri build --target aarch64-apple-darwin
 
@@ -477,7 +479,10 @@ jobs:
           APP="${apps[0]:-}"
           [ -n "$APP" ] || { echo "ERROR: kein .app im Bundle gefunden"; exit 1; }
           codesign --verify --deep --strict --verbose=2 "$APP"
-          codesign -dv --verbose=4 "$APP" 2>&1 | grep -q '^Authority=Developer ID Application' \
+          # Erst in eine Variable: grep -q in der Pipe beendet sich beim ersten Treffer,
+          # codesign bekaeme unter pipefail SIGPIPE und der Step wuerde grundlos rot.
+          details=$(codesign -dv --verbose=4 "$APP" 2>&1)
+          grep -q '^Authority=Developer ID Application' <<<"$details" \
             || { echo "ERROR: $APP traegt keine Developer-ID-Signatur"; exit 1; }
           xcrun stapler validate "$APP"
           spctl --assess --type execute --verbose=4 "$APP"
@@ -523,8 +528,10 @@ jobs:
           VERSION="${TAG#pos-v}"
 
           shopt -s nullglob
-          sigs=(apps/pos-client/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig)
-          cp "${sigs[0]}" updater-macos.sig
+          tars=(apps/pos-client/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz)
+          SIG_PATH="${tars[0]:-}.sig"
+          [ -f "$SIG_PATH" ] || { echo "ERROR: keine .app.tar.gz.sig im Bundle gefunden"; exit 1; }
+          cp "$SIG_PATH" updater-macos.sig
 
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern latest.json --output latest.windows.json
           jq -e --arg ver "$VERSION" '.version == $ver and (.platforms["windows-x86_64"].signature | length > 0)' latest.windows.json >/dev/null \
@@ -540,8 +547,8 @@ jobs:
             latest.windows.json > latest.json
 
           jq -e --slurpfile alt latest.windows.json \
-            '.version == $alt[0].version and .platforms["windows-x86_64"] == $alt[0].platforms["windows-x86_64"]' latest.json >/dev/null \
-            || { echo "ERROR: Windows-Eintrag wuerde sich aendern — latest.json bleibt unveraendert"; exit 1; }
+            'del(.platforms["darwin-aarch64"], .platforms["darwin-aarch64-app"]) == $alt[0]' latest.json >/dev/null \
+            || { echo "ERROR: ausser darwin-aarch64 wuerde sich etwas aendern — latest.json bleibt unveraendert"; exit 1; }
 
           echo "--- latest.json ---"; cat latest.json
           gh release upload "$TAG" latest.json --repo "$GITHUB_REPOSITORY" --clobber

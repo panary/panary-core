@@ -16,7 +16,7 @@ Panary Core is a modern, offline-first point-of-sale and ERP platform built for 
 - **Multi-Tenant & Multi-Location** — Built-in tenant isolation with role-based access control across locations.
 - **Touch-Optimized POS** — Designed for Sunmi D3 tablets and similar touch-first hardware.
 - **Product-First Data Model** — Unified product table handling standard items, modifiers, and bundles.
-- **Native Desktop App** — Tauri-based builds for Windows (NSIS installer, auto-updating) and macOS (Apple Silicon `.dmg`, manual update).
+- **Native Desktop App** — Tauri-based builds for Windows (NSIS installer, auto-updating) and macOS (Apple Silicon `.dmg`, Developer-ID-signed and notarized, auto-updating).
 - **Admin Dashboard** — Web-based admin interface for managing products, orders, users, and locations.
 - **20+ Domain Libraries** — Orders, products, customers, working times, recipes, devices, and more.
 - **Wide Event Logging** — Structured canonical log lines with full business context per request.
@@ -192,10 +192,10 @@ Ein `pnpm release` bumpt die Version einmal, erstellt beide Tags (`v26.4.X` + `p
 
 Für einen **Testbuild ohne Release** — etwa um die App auf einem Mac auszuprobieren — nicht
 taggen, sondern `build-pos.yml` per Workflow-Dispatch starten: baut von jedem Branch,
-ohne Versions-Bump und ohne den produktiven Updater-Rollout auszulösen. Das heruntergeladene
-macOS-Bundle ist nur ad-hoc signiert und braucht einmalig
-`xattr -dr com.apple.quarantine "/Applications/Panary Terminal.app"` (oder Rechtsklick →
-Öffnen). Details: [ADR 0014](docs/adr/0014-pos-build-plattformen.md).
+ohne Versions-Bump und ohne den produktiven Updater-Rollout auszulösen. Das macOS-Bundle ist
+mit Developer-ID signiert und notarisiert, sobald das Apple-Signing eingerichtet ist — ohne
+bricht der macOS-Job ab. Details: [ADR 0014](docs/adr/0014-pos-build-plattformen.md),
+[ADR 0068](docs/adr/0068-macos-pos-signing-notarisierung-updater.md).
 
 ### Installation auf Zielsystemen
 

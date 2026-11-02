@@ -4385,6 +4385,13 @@ describe('Kasse — Hinweis auf fehlenden Geschäftstag (core#1171)', () => {
     expect(component.businessDayHint()).toBe('open-in-admin')
   })
 
+  it('ohne Filiale kein Hinweis: das Sperr-Overlay steht, der Hinweis läge unsichtbar darunter', () => {
+    const { component } = setup({ tier: 'cloud-direct', activeLocation: signal<unknown>(undefined) })
+
+    expect(component.blockingReason()).not.toBeNull()
+    expect(component.businessDayHint()).toBeNull()
+  })
+
   it('Edge gepairt mit Offline-Override ohne Tag: kein Hinweis, die Edge rotiert selbst', () => {
     const { component } = setup({
       tier: 'edge-with-cloud',

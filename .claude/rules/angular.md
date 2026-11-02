@@ -281,7 +281,9 @@ export class AccountFormComponent {
   Schema statt als Attribut ans Element.
 - **Ein Eingabefeld ohne Formular** (Suchfeld, Inline-Umbenennung mit eigenem Handler) braucht kein `form()`:
   `[value]="signal()"` plus `(input)="handler(ref.value)"` über eine Template-Referenz (`#ref`). `$event`
-  bleibt dabei untypisiert, die Referenz nicht.
+  bleibt dabei untypisiert, die Referenz nicht. Grenze: `[value]` schreibt nur, wenn sich der Wert seit der
+  letzten Change Detection geändert hat. Ein Feld, das zwischen zwei CD-Läufen getippt und im Code wieder
+  geleert wird, behält den Text. Muss das sicher sitzen, gehört das Feld in ein `form()`.
 - **Listen** (Öffnungszeiten je Tag, Ausnahmen) validieren per `applyEach(liste, eintrag => …)`. Der
   Feldbaum eines Arrays ist iterierbar: `@for (eintrag of form; track eintrag)`, Werte über
   `eintrag.feld().value()`, Index-Zugriff im Code über `form[i].feld().value.set(…)`. Bedingte Pflicht:

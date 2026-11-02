@@ -80,7 +80,9 @@ describe('OpeningHoursComponent – Formular', () => {
     await change(timeInputs()[0], '09:30')
 
     expect(api.patch).toHaveBeenCalledTimes(1)
-    const [, , body] = api.patch.mock.calls[0]
+    // Signal Forms hängt an Array-Einträge Symbol-Schlüssel zur Identitätsverfolgung. Über HTTP geht
+    // die JSON-Form, und die lässt Symbole weg — also wird genau die verglichen.
+    const body = JSON.parse(JSON.stringify(api.patch.mock.calls[0][2]))
     expect(body.settings.openingHoursSettings.regular[1]).toEqual({
       day: 1,
       open: '09:30',

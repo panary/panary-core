@@ -374,6 +374,10 @@ describe('TableSettingsComponent — Eingabefelder im Template', () => {
     const { fixture, api, tableLabel } = await render()
     tableLabel.value = 'T7'
     tableLabel.dispatchEvent(new Event('input'))
+    // Zwischen Tippen und Enter läuft im Browser eine Change Detection. Erst danach ist 'T7' der
+    // gebundene Wert, und das Leeren auf '' wird ein DOM-Write (`[value]` vergleicht mit dem zuletzt
+    // gebundenen Wert, nicht mit dem Feld).
+    await fixture.whenStable()
     tableLabel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
     await fixture.whenStable()
 

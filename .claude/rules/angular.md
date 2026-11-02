@@ -223,11 +223,11 @@ Browser-APIs, die einen Secure Context verlangen — `navigator.clipboard` ist `
 **Signal Forms (`@angular/forms/signals`) sind Pflicht** für jedes neue und jedes geänderte Formular
 ([ADR 0064](../../docs/adr/0064-signal-forms-als-formular-standard.md), panary/panary-core#1017).
 
-| Form                                           | Stand                                                                                                                                                                        |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signal Forms                                   | Standard                                                                                                                                                                     |
-| Reactive Forms (`FormGroup`, `FormBuilder`, …) | 🚫 im Code nicht mehr vorhanden, nicht neu einführen                                                                                                                         |
-| Template-driven (`FormsModule`, `ngModel`)     | Admin-Client umgestellt (panary/panary-core#1173); Bestand nur noch in POS-Libs bis panary/panary-core#1174. Wer eine dieser Dateien ändert, stellt das berührte Formular um |
+| Form                                           | Stand                                                                                                                         |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Signal Forms                                   | Standard                                                                                                                      |
+| Reactive Forms (`FormGroup`, `FormBuilder`, …) | 🚫 im Code nicht mehr vorhanden, nicht neu einführen                                                                          |
+| Template-driven (`FormsModule`, `ngModel`)     | 🚫 im Code nicht mehr vorhanden (panary/panary-core#1173 Admin-Client, panary/panary-core#1174 POS-Libs), nicht neu einführen |
 
 ```typescript
 import { email, form, FormField, FormRoot, minLength, required, validate } from '@angular/forms/signals'
@@ -292,6 +292,10 @@ export class AccountFormComponent {
   Modell und `form()`, das Kind bekommt den Feldbaum als `input.required<FieldTree<T>>()` und bindet
   `[formField]="settingsForm().feld"`. Kein `output` je Feld; eine Reaktion auf Eingaben hängt die Seite per
   `(input)`/`(change)` an das Kind-Element, die DOM-Events steigen dorthin auf.
+- **Bestehende Signale unter ein Formular legen**, ohne jeden Aufrufer umzuschreiben: Das Modell ist ein
+  zusammengesetztes `signal({...})` in `form()`, und die alten Namen werden zu dessen Feld-Signalen,
+  `readonly email = this.setupForm.email().value` (ein `WritableSignal`). `email()` und `email.set(…)` bleiben
+  gültig. Vorlage: `feature-pos-setup/setup.component.ts`.
 - **Reaktion auf Eingaben** über `computed()` oder `linkedSignal()` auf dem Modell, nicht über ein `effect()`
   mit Signal-Writes (§2.1). Beispiel: eine Auswahl, die beim Tippen im Suchfeld verfällt, ist ein
   `linkedSignal({ source: suchbegriff, computation: () => null })`.

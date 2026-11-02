@@ -5,7 +5,7 @@ description: 'ADR zur Formular-API in panary-core: Signal Forms (`@angular/forms
 tags: [angular, frontend, forms, setup-client, admin-client, pos]
 status: stable
 decision: accepted
-implementation: 'Reactive Forms umgestellt in panary/panary-core#1017; template-driven im Admin-Client umgestellt in #1173, in den POS-Libs offen in #1174'
+implementation: 'Reactive Forms umgestellt in panary/panary-core#1017; template-driven umgestellt im Admin-Client (#1173) und in den POS-Libs (#1174)'
 generated: { by: claude-code/opus-5.5, at: 2026-10-28T01:30:00Z }
 sources:
   - { id: issue-1017, resource: 'https://github.com/panary/panary-core/issues/1017', title: 'Formulare auf Signal Forms umstellen und Formular-Regel anpassen' }

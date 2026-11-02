@@ -104,6 +104,14 @@ describe('ProductFormComponent – Formular', () => {
     expect(saveButton().disabled).toBe(true)
   })
 
+  it('meldet „Speichern und weiter" bei ungültigem Preis als gescheitert', async () => {
+    const { fixture, type, api } = await render('p-1')
+    await type('#productPrice', '')
+
+    expect(await fixture.componentInstance.saveAndContinue()).toBe(false)
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
   it('sperrt eine Höchstauswahl unter 1 in einer Optionsgruppe', async () => {
     const { type, saveButton } = await render('p-1')
     await type('#optGroupMax-0', '0')

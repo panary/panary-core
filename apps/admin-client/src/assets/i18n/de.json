@@ -332,6 +332,7 @@
     "NO_PRODUCTS": "Keine Produkte",
     "NOT_FOUND": "Produkt nicht gefunden",
     "NAME_ACRONYM_REQUIRED": "Name und Kürzel sind erforderlich",
+    "FORM_INVALID": "Bitte Preis, MwSt. und Optionsgruppen prüfen – ein Wert ist leer oder außerhalb des erlaubten Bereichs.",
     "ACRONYM": "Kürzel",
     "PRICE": "Preis",
     "TYPE": "Typ",

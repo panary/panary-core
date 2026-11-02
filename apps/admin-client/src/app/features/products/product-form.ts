@@ -1004,7 +1004,11 @@ export class ProductFormComponent implements OnInit {
       this.error.set(this.t.instant('PRODUCTS.NAME_ACRONYM_REQUIRED'))
       return
     }
-    if (this.productForm().invalid() || this.optionGroupsForm().invalid()) return
+    // Nicht still abbrechen: `saveAndContinue` liest `error()`, sonst navigierte der Dirty-Dialog ohne Speichern weiter.
+    if (this.productForm().invalid() || this.optionGroupsForm().invalid()) {
+      this.error.set(this.t.instant('PRODUCTS.FORM_INVALID'))
+      return
+    }
     this.saving.set(true)
     this.error.set(null)
 

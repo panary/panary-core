@@ -332,6 +332,7 @@
     "NO_PRODUCTS": "No products",
     "NOT_FOUND": "Product not found",
     "NAME_ACRONYM_REQUIRED": "Name and acronym are required",
+    "FORM_INVALID": "Please check price, VAT and option groups – a value is empty or out of range.",
     "ACRONYM": "Acronym",
     "PRICE": "Price",
     "TYPE": "Type",

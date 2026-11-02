@@ -111,9 +111,9 @@ Die Version in `apps/pos-client/src-tauri/tauri.conf.json` ist die **Source of T
 }
 ```
 
-Zusätzlich synchronisieren:
-- `apps/pos-client/src/app/app.config.ts` → `appVersion: '2026.4.0'`
-- `libs/domains/users/feature-pos-login/src/lib/login.component.html` → Footer-Versionstext
+Die in der App angezeigte Version (`APP_CONFIG.appVersion`) muss nicht von Hand nachgezogen werden:
+`apps/pos-client/src/app/app.config.ts` liest sie aus `version` der Root-`package.json`, und der Login zeigt sie
+nur noch im Footer links unten (panary/panary-core#1169).
 
 ### Tag erstellen und pushen
 

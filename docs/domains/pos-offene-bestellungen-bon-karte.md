@@ -69,7 +69,8 @@ Bestellungen, zeigt „Offen“ **eine Kreis-Karte** statt mehrerer Bons.
 Ein Tipp auf die Kreis-Karte klappt sie auf: Die Einzelbestellungen folgen dahinter als gewohnte Bon-Karten, mit allen
 Aktionen (Abschließen, Split, Rabatt …). Die Kreis-Karte selbst hat nur Aktionen, die den ganzen Kreis betreffen: Über der Karte steht seit
 [core#1140](https://github.com/panary/panary-core/issues/1140) „Nachbestellen“, an einer Einzelkarte mit Tisch steht es im
-Aktionsmenü ([Nachbestellung im Abrechnungskreis](nachbestellung-im-abrechnungskreis.md)). Die Karte selbst ist der
+Aktionsmenü ([Nachbestellung im Abrechnungskreis](nachbestellung-im-abrechnungskreis.md)). Daneben steht seit
+[core#1142](https://github.com/panary/panary-core/issues/1142) „Tisch kassieren“ ([Tisch kassieren](tisch-kassieren.md)). Die Karte selbst ist der
 Aufklapp-Button, die Aktionen sitzen deshalb in der Zeile darüber.
 
 ### Regeln

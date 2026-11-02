@@ -95,4 +95,4 @@ Positionen der neuen Bestellung. Fällt die Abfrage aus, druckt der Bon ohne Ken
   bisherige erste. Referenzen sind append-only (ADR 0048) und werden nicht umgeschrieben.
 - **Kassenbetrieb.** Die Nachbestellung führt wie jede Barbestellung in die Bezahlansicht;
   „Offen lassen“ hält sie für den Tisch offen. Ein Zahlablauf über den ganzen Kreis ist
-  [#1142](https://github.com/panary/panary-core/issues/1142).
+  [Tisch kassieren](tisch-kassieren.md).

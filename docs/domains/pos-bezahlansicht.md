@@ -58,6 +58,10 @@ ruft `OrderCheckoutService.payCash` (inkl. Manager-PIN-Freigabe bei `BD_6004`), 
 Dialog, die Bestellung bleibt offen. Der Bestellbetrieb schließt wie vorher ohne Zahlung ab. Es gibt bewusst
 keine Navigation: Der Warenkorb der Kasse bleibt unberührt.
 
+Dritter Einstieg seit [core#1142](https://github.com/panary/panary-core/issues/1142): „Tisch kassieren“ an der
+Kreis-Karte öffnet denselben Dialog mit der Summe aller offenen Bestellungen des Kreises und kassiert sie der Reihe
+nach über `OrderCheckoutService.payCashCircle` ([Tisch kassieren](tisch-kassieren.md)).
+
 ## Fehlerfälle
 
 | Fall | Ergebnis |

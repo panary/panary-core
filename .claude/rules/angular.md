@@ -223,11 +223,11 @@ Browser-APIs, die einen Secure Context verlangen — `navigator.clipboard` ist `
 **Signal Forms (`@angular/forms/signals`) sind Pflicht** für jedes neue und jedes geänderte Formular
 ([ADR 0064](../../docs/adr/0064-signal-forms-als-formular-standard.md), panary/panary-core#1017).
 
-| Form                                           | Stand                                                                                                                                                                |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signal Forms                                   | Standard                                                                                                                                                             |
-| Reactive Forms (`FormGroup`, `FormBuilder`, …) | 🚫 im Code nicht mehr vorhanden, nicht neu einführen                                                                                                                 |
-| Template-driven (`FormsModule`, `ngModel`)     | Bestand bis zur Umstellung (panary/panary-core#1173 Admin-Client, panary/panary-core#1174 POS-Libs). Wer eine dieser Dateien ändert, stellt das berührte Formular um |
+| Form                                           | Stand                                                                                                                                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signal Forms                                   | Standard                                                                                                                                                                     |
+| Reactive Forms (`FormGroup`, `FormBuilder`, …) | 🚫 im Code nicht mehr vorhanden, nicht neu einführen                                                                                                                         |
+| Template-driven (`FormsModule`, `ngModel`)     | Admin-Client umgestellt (panary/panary-core#1173); Bestand nur noch in POS-Libs bis panary/panary-core#1174. Wer eine dieser Dateien ändert, stellt das berührte Formular um |
 
 ```typescript
 import { email, form, FormField, FormRoot, minLength, required, validate } from '@angular/forms/signals'

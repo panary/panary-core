@@ -158,11 +158,58 @@ jobs:
           fi
           echo "Angular build OK: $(ls dist/apps/pos-client/browser/ | wc -l) files"
 
-      # Kein --config-Override noetig (anders als beim Windows-Job): die
-      # committete tauri.macos.conf.json wird vom Tauri-CLI beim Bauen auf macOS
-      # automatisch per JSON Merge Patch ueber die tauri.conf.json gelegt und
-      # setzt dort createUpdaterArtifacts auf false. Der Signing-Key bleibt
-      # damit auch hier dem Release-Workflow vorbehalten.
+      # Gleiche Signing-Kette wie release-macos (core#1229), damit ein Dispatch
+      # vor dem pos-v*-Tag Developer-ID-Signatur und Notarisierung beweist. Den
+      # Updater-Schluessel bekommt dieser Workflow weiterhin nicht (Least-
+      # Privilege, siehe Windows-Job) — das .app.tar.gz zeigt erst das Release.
+      - name: Apple-Signing eingerichtet?
+        env:
+          ID_CERTIFICATE: ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE }}
+          ID_CERTIFICATE_PASSWORD: ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE_PASSWORD }}
+          ID_SIGNING_IDENTITY: ${{ vars.BWS_ID_POS_APPLE_SIGNING_IDENTITY }}
+          ID_APPLE_ID: ${{ vars.BWS_ID_POS_APPLE_ID }}
+          ID_PASSWORD: ${{ vars.BWS_ID_POS_APPLE_PASSWORD }}
+          ID_TEAM_ID: ${{ vars.BWS_ID_POS_APPLE_TEAM_ID }}
+        run: |
+          missing=()
+          for v in CERTIFICATE CERTIFICATE_PASSWORD SIGNING_IDENTITY APPLE_ID PASSWORD TEAM_ID; do
+            n="ID_$v"; [ -n "${!n}" ] || missing+=("BWS_ID_POS_APPLE_${v#APPLE_}")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Apple-Signing nicht eingerichtet — Repo-Variablen fehlen: ${missing[*]}. Ohne Developer-ID-Signatur und Notarisierung wird kein macOS-Bundle gebaut (core#1229, docs/integrations/tauri-update-server-einrichtung.md)."
+            exit 1
+          fi
+
+      - name: Bitwarden Secrets laden
+        uses: bitwarden/sm-action@27c0c9dcab679d7250dbab91227c85b49ffa5e0f # v3.0.0
+        with:
+          access_token: ${{ secrets.BW_ACCESS_TOKEN }}
+          base_url: https://tresor.ratke.info
+          secrets: |
+            ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE }} > APPLE_CERTIFICATE
+            ${{ vars.BWS_ID_POS_APPLE_CERTIFICATE_PASSWORD }} > APPLE_CERTIFICATE_PASSWORD
+            ${{ vars.BWS_ID_POS_APPLE_SIGNING_IDENTITY }} > APPLE_SIGNING_IDENTITY
+            ${{ vars.BWS_ID_POS_APPLE_ID }} > APPLE_ID
+            ${{ vars.BWS_ID_POS_APPLE_PASSWORD }} > APPLE_PASSWORD
+            ${{ vars.BWS_ID_POS_APPLE_TEAM_ID }} > APPLE_TEAM_ID
+
+      - name: Signing-Secrets vollstaendig?
+        run: |
+          missing=()
+          for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!v:-}" ] || missing+=("$v")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Leer aus Bitwarden: ${missing[*]} — Eintraege pruefen, kein unsignierter Build."
+            exit 1
+          fi
+
+      # Die committete tauri.macos.conf.json setzt createUpdaterArtifacts seit
+      # core#1229 auf true; ohne Updater-Schluessel braeche der Build ab. Override
+      # als Datei aus demselben Grund wie im Windows-Job (string-argv-Quoting).
+      - name: Tauri-Config-Override (Updater-Artefakte deaktivieren)
+        run: printf '%s' '{"bundle":{"createUpdaterArtifacts":false}}' > apps/pos-client/src-tauri/ci-no-updater.conf.json
+
       - name: Build Tauri (macOS Bundle)
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
@@ -170,7 +217,20 @@ jobs:
         with:
           projectPath: apps/pos-client
           tauriScript: pnpm tauri
-          args: --target aarch64-apple-darwin
+          args: --target aarch64-apple-darwin --config ${{ github.workspace }}/apps/pos-client/src-tauri/ci-no-updater.conf.json
+
+      - name: Signatur und Notarisierung pruefen
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apps=(apps/pos-client/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app)
+          APP="${apps[0]:-}"
+          [ -n "$APP" ] || { echo "ERROR: kein .app im Bundle gefunden"; exit 1; }
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -dv --verbose=4 "$APP" 2>&1 | grep -q '^Authority=Developer ID Application' \
+            || { echo "ERROR: $APP traegt keine Developer-ID-Signatur"; exit 1; }
+          xcrun stapler validate "$APP"
+          spctl --assess --type execute --verbose=4 "$APP"
 
       # Nur das .dmg, nicht das .app: upload-artifact zippt ohne Executable-Bits
       # und ohne Symlinks — ein so uebertragenes .app-Bundle startet auf dem

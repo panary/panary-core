@@ -28,3 +28,29 @@
     transform: translateX(4px);
   }
 }
+
+/*
+ * Ablaufbalken des Inaktivitaets-Hinweises (panary/panary-core#1170): eine Animation ueber
+ * die volle Dauer statt eines Signals je Tick. Dauer und Startversatz setzt das Template.
+ */
+@keyframes idleNoticeElapse {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.idle-notice-bar {
+  transform-origin: left;
+  animation-name: idleNoticeElapse;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .idle-notice-bar {
+    animation: none;
+  }
+}

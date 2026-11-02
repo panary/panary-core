@@ -1,3 +1,5 @@
+// JIT-Compiler zuerst laden: @angular/forms/signals zieht das partial-compiled @angular/common.
+import '@angular/compiler'
 import { describe, expect, it } from 'vitest'
 import {
   APP_ID,

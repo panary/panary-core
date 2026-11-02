@@ -52,6 +52,8 @@ describe('PrinterManagementComponent — Schema der Einstellungen', () => {
 
     expect(component.mqttSettingsForm().invalid()).toBe(true)
     expect(api.patch).not.toHaveBeenCalled()
+    // Ohne Guard liefe `persistSettings` los und meldete „Settings nicht geladen".
+    expect(component.error()).toBe('')
   })
 
   it('sperrt eine leere Server-URL', () => {

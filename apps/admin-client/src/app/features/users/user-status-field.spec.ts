@@ -25,6 +25,8 @@ function setup(loaded: Record<string, unknown> = {}) {
   const api = {
     get: vi.fn().mockResolvedValue({
       _id: 'u-other',
+      // Jedes Konto hat einen Loginnamen; seit core#1173 prueft `onSave` das Schema selbst.
+      loginname: 'olga',
       firstName: 'Olga',
       lastName: 'Owner',
       role: 'tenant:owner',

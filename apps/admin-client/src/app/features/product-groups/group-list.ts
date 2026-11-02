@@ -8,7 +8,6 @@ import {
   viewChild,
   ElementRef,
 } from '@angular/core'
-import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { getApiErrorCode } from '../../core/error-helper'
@@ -49,7 +48,6 @@ interface ProductGroup {
   imports: [
     GroupFormComponent,
     ConfirmDialogComponent,
-    FormsModule,
     GroupWizardComponent,
     TranslateModule,
     CloudManagedBannerComponent,
@@ -309,8 +307,8 @@ interface ProductGroup {
               <input
                 #searchInputRef
                 type="text"
-                [ngModel]="searchText()"
-                (ngModelChange)="onSearchInput($event)"
+                [value]="searchText()"
+                (input)="onSearchInput(searchInputRef.value)"
                 (keydown)="onSearchKeydown($event)"
                 (focus)="onSearchFocus()"
                 (blur)="onSearchBlur()"

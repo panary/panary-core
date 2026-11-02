@@ -9,7 +9,6 @@ import {
   viewChild,
   ElementRef,
 } from '@angular/core'
-import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { CloudManagedBannerComponent } from '../../core/cloud-managed-banner'
@@ -38,7 +37,6 @@ interface SearchCommand {
   imports: [
     ProductFormComponent,
     ConfirmDialogComponent,
-    FormsModule,
     ProductWizardComponent,
     TranslateModule,
     CloudManagedBannerComponent,
@@ -307,8 +305,8 @@ interface SearchCommand {
               <input
                 #searchInputRef
                 type="text"
-                [ngModel]="searchText()"
-                (ngModelChange)="onSearchInput($event)"
+                [value]="searchText()"
+                (input)="onSearchInput(searchInputRef.value)"
                 (keydown)="onSearchKeydown($event)"
                 (focus)="onSearchFocus()"
                 (blur)="onSearchBlur()"

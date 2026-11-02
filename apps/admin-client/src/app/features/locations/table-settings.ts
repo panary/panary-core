@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core'
-import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { uuidv7 } from 'uuidv7'
 
@@ -46,7 +45,7 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
 @Component({
   selector: 'app-table-settings',
   standalone: true,
-  imports: [FormsModule, TranslateModule, CloudManagedBannerComponent],
+  imports: [TranslateModule, CloudManagedBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-2xl space-y-4 h-full overflow-y-auto">
@@ -142,8 +141,9 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
             <div class="border border-line-soft rounded-lg p-3 space-y-3">
               <div class="flex items-center gap-2">
                 <input
-                  [ngModel]="room.name"
-                  (ngModelChange)="onRoomNameInput(room.id, $event)"
+                  #roomNameInput
+                  [value]="room.name"
+                  (input)="onRoomNameInput(room.id, roomNameInput.value)"
                   (change)="commitRoomName(room.id)"
                   [name]="'room-' + room.id"
                   type="text"
@@ -171,8 +171,9 @@ const readLabel = (entry: string | TableEntry): string => (typeof entry === 'str
 
               <div class="flex items-center gap-2">
                 <input
-                  [ngModel]="pendingLabel(room.id)"
-                  (ngModelChange)="setPendingTable(room.id, $event)"
+                  #tableLabelInput
+                  [value]="pendingLabel(room.id)"
+                  (input)="setPendingTable(room.id, tableLabelInput.value)"
                   [name]="'table-' + room.id"
                   type="text"
                   placeholder="{{ 'LOCATION.TABLES_ADD_PLACEHOLDER' | translate }}"

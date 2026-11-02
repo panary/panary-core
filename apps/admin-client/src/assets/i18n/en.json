@@ -115,7 +115,8 @@
     "EXCEPTIONS": "Exceptions (Holidays, Closures)",
     "ADD_EXCEPTION": "Add exception",
     "NO_EXCEPTIONS": "No exceptions configured",
-    "LOAD_ERROR": "Could not load opening hours."
+    "LOAD_ERROR": "Could not load opening hours.",
+    "TIME_REQUIRED": "Please enter date, opening and closing time – incomplete entries are not saved."
   },
   "CLOUD_MANAGED": {
     "TITLE": "This location is managed in the cloud.",

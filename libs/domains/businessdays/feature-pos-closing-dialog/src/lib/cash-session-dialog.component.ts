@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { formatEurCents } from '@panary/shared/util-helpers'
-import { FormsModule } from '@angular/forms'
+import { form, FormField, maxLength, min, required, validate } from '@angular/forms/signals'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -37,7 +37,7 @@ function denomLabel(cents: number): string {
   selector: 'app-cash-session-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatDialogModule, TranslateModule, FormsModule],
+  imports: [MatDialogModule, TranslateModule, FormField],
   template: `
     <h2 mat-dialog-title>{{ isCloseMode() ? 'Kasse schließen' : 'Kasse eröffnen' }}</h2>
     <mat-dialog-content class="text-sm space-y-3">
@@ -49,12 +49,13 @@ function denomLabel(cents: number): string {
               <label class="flex items-center justify-between gap-2 border border-line rounded-lg px-2 py-1">
                 <span class="text-xs text-ink-muted dark:text-ink w-14">{{ label(cents) }}</span>
                 <input
+                  #countInput
                   type="number"
                   min="0"
                   step="1"
                   inputmode="numeric"
-                  [ngModel]="countFor(cents)"
-                  (ngModelChange)="setCount(cents, $event)"
+                  [value]="countFor(cents)"
+                  (input)="setCount(cents, countInput.valueAsNumber)"
                   class="border border-line-strong rounded-md px-2 py-1 w-20 text-right bg-surface-input"
                 />
               </label>
@@ -69,8 +70,7 @@ function denomLabel(cents: number): string {
             <span class="text-xs text-ink-muted">Bezeichnung der Kasse</span>
             <input
               type="text"
-              maxlength="80"
-              [(ngModel)]="label_"
+              [formField]="openForm.label"
               placeholder="z. B. Kasse 1"
               class="border border-line-strong rounded-xl px-3 py-2 bg-surface-input"
             />
@@ -80,8 +80,7 @@ function denomLabel(cents: number): string {
             <input
               type="number"
               step="0.01"
-              min="0"
-              [(ngModel)]="openingFloatEuros"
+              [formField]="openForm.openingFloatEuros"
               class="border border-line-strong rounded-xl px-3 py-2 bg-surface-input"
             />
           </label>
@@ -131,8 +130,13 @@ export class CashSessionDialogComponent {
   protected resultSession: CashSession | null = null
 
   // Eröffnen-Modus
-  protected label_ = this.data.defaultLabel ?? ''
-  protected openingFloatEuros: number | null = null
+  protected readonly opening = signal({ label: this.data.defaultLabel ?? '', openingFloatEuros: null as number | null })
+  protected readonly openForm = form(this.opening, o => {
+    validate(o.label, ({ value }) => (value().trim() ? undefined : { kind: 'required' }))
+    maxLength(o.label, 80)
+    required(o.openingFloatEuros)
+    min(o.openingFloatEuros, 0)
+  })
 
   // Schließen-Modus
   protected readonly counts = signal<DenominationCounts>({})
@@ -140,10 +144,8 @@ export class CashSessionDialogComponent {
   protected readonly isCloseMode = computed(() => !!this.data.session)
   protected readonly countedEuros = computed(() => formatEurCents(sumDenominationCounts(this.counts())))
 
-  protected readonly canSubmit = computed(() => {
-    if (this.isCloseMode()) return true
-    return this.label_.trim().length > 0 && this.openingFloatEuros !== null && this.openingFloatEuros >= 0
-  })
+  // Vorher las dieses computed die einfachen Felder `label_`/`openingFloatEuros` und verfolgte sie nicht.
+  protected readonly canSubmit = computed(() => this.isCloseMode() || !this.openForm().invalid())
 
   protected label(cents: number): string {
     return denomLabel(cents)
@@ -154,6 +156,7 @@ export class CashSessionDialogComponent {
   }
 
   protected setCount(cents: number, value: number | null): void {
+    // Ein leeres Zahlenfeld liefert per `valueAsNumber` NaN; das zaehlt wie 0.
     const next: DenominationCounts = { ...this.counts() }
     const key = `d_${cents}` as keyof DenominationCounts
     if (value && value > 0) next[key] = Math.floor(value)
@@ -162,6 +165,7 @@ export class CashSessionDialogComponent {
   }
 
   async submit(): Promise<void> {
+    if (!this.canSubmit()) return
     this.phase.set('submitting')
     this.errorMessage.set(null)
     try {
@@ -173,8 +177,8 @@ export class CashSessionDialogComponent {
       } else {
         this.resultSession = await this.cashSessionService.openSession({
           businessDayId: this.data.businessDayId,
-          label: this.label_.trim(),
-          openingFloatCents: Math.round((this.openingFloatEuros ?? 0) * 100),
+          label: this.opening().label.trim(),
+          openingFloatCents: Math.round((this.opening().openingFloatEuros ?? 0) * 100),
         })
       }
       this.phase.set('submitted')

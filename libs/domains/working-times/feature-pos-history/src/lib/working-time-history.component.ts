@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { DatePipe } from '@angular/common'
-import { FormsModule } from '@angular/forms'
 import { WorkingTime } from '@panary/working-times/domain'
 import { WorkingTimeService } from '@panary/working-times/data-access'
 import { UserService } from '@panary/users/data-access'
@@ -22,7 +21,7 @@ export interface DailySummary {
 @Component({
   selector: 'lib-working-time-history',
   standalone: true,
-  imports: [IconComponent, PageHeaderComponent, DatePipe, FormsModule, TranslateModule],
+  imports: [IconComponent, PageHeaderComponent, DatePipe, TranslateModule],
   templateUrl: './working-time-history.component.html',
   styleUrl: './working-time-history.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -63,7 +63,15 @@ async function render() {
     await fixture.whenStable()
   }
 
-  return { el, api, timeInputs, change }
+  /** Checkboxen in Dokumentreihenfolge: So–Sa (angehakt = geöffnet), danach „Geschlossen" der Ausnahme. */
+  const checkboxes = () => [...el.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
+  async function click(box: HTMLInputElement) {
+    box.click()
+    await fixture.whenStable()
+  }
+  const dateInput = () => el.querySelector<HTMLInputElement>('input[type="date"]')!
+
+  return { el, api, timeInputs, change, checkboxes, click, dateInput }
 }
 
 describe('OpeningHoursComponent – Formular', () => {
@@ -110,6 +118,39 @@ describe('OpeningHoursComponent – Formular', () => {
       open: '08:00',
       close: '14:00',
     })
+  })
+
+  it('öffnet einen geschlossenen Tag per Checkbox und speichert das', async () => {
+    const { checkboxes, click, api, timeInputs } = await render()
+    await click(checkboxes()[0])
+
+    const body = JSON.parse(JSON.stringify(api.patch.mock.calls[0][2]))
+    expect(body.settings.openingHoursSettings.regular[0]).toEqual({
+      day: 0,
+      open: '08:00',
+      close: '18:00',
+      closed: false,
+    })
+    // Sonntag zeigt jetzt seine Zeitfelder: 7 Tage × 2 + Ausnahme × 2
+    expect(timeInputs()).toHaveLength(16)
+  })
+
+  it('schließt eine Ausnahme per Checkbox und speichert das über ihren Datensatz', async () => {
+    const { checkboxes, click, api } = await render()
+    await click(checkboxes()[7])
+
+    expect(api.patch).toHaveBeenCalledWith(
+      'opening-hour-exceptions',
+      'exc-1',
+      expect.objectContaining({ closed: true }),
+    )
+  })
+
+  it('speichert eine Ausnahme mit geleertem Datum nicht', async () => {
+    const { dateInput, change, api } = await render()
+    await change(dateInput(), '')
+
+    expect(api.patch).not.toHaveBeenCalled()
   })
 
   it('speichert eine Ausnahme mit geleerter Uhrzeit nicht', async () => {

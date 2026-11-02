@@ -1,6 +1,6 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { TranslateService } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -146,5 +146,62 @@ describe('PagerSettingsComponent', () => {
 
     expect(component.pagers()).toEqual([1, 2])
     expect(api.patch).not.toHaveBeenCalled()
+  })
+})
+
+// core#1173: Die Zahlenfelder hängen per `[formField]` am Modell. Geprüft wird über das gerenderte
+// Template, denn diese Bindung prüfen die Handler-Tests oben nicht.
+describe('PagerSettingsComponent — Eingabefelder im Template', () => {
+  async function render() {
+    const api = {
+      find: vi.fn().mockResolvedValue({
+        data: [{ _id: 'loc-1', settings: { pagerSettings: { enabled: true, pagers: [1, 2] } } }],
+      }),
+      patch: vi.fn().mockResolvedValue({}),
+    }
+    const connection = {
+      healthLoaded: signal(true),
+      cloudPaired: signal(false),
+      emergencyOverrideActive: signal(false),
+      emergencyOverrideSinceMin: signal<number | null>(null),
+      cloudUnreachable: signal(false),
+      cloudContactUnknown: signal(false),
+      refreshHealth: vi.fn().mockResolvedValue(undefined),
+    }
+    await TestBed.configureTestingModule({
+      imports: [PagerSettingsComponent, TranslateModule.forRoot()],
+      providers: [
+        CloudManagedService,
+        { provide: ApiService, useValue: api },
+        { provide: ConnectionService, useValue: connection },
+      ],
+    }).compileComponents()
+    const fixture = TestBed.createComponent(PagerSettingsComponent)
+    await fixture.whenStable()
+    const el = fixture.nativeElement as HTMLElement
+    const [newPager, batchCount] = [...el.querySelectorAll<HTMLInputElement>('input[type="number"]')]
+    return { fixture, api, newPager, batchCount }
+  }
+
+  it('legt die getippte Pager-Nummer per Enter an und leert das Feld', async () => {
+    const { fixture, api, newPager } = await render()
+    newPager.value = '9'
+    newPager.dispatchEvent(new Event('input'))
+    await fixture.whenStable()
+    newPager.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.pagers()).toEqual([1, 2, 9])
+    expect(api.patch).toHaveBeenCalledTimes(1)
+    expect(newPager.value).toBe('')
+  })
+
+  it('übernimmt die getippte Anzahl der Sammelanlage ins Modell', async () => {
+    const { fixture, batchCount } = await render()
+    batchCount.value = '4'
+    batchCount.dispatchEvent(new Event('input'))
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.pagerInput().batchCount).toBe(4)
   })
 })

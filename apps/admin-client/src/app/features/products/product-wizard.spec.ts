@@ -1,7 +1,7 @@
 // core#1173: Der Produkt-Assistent läuft auf Signal Forms. Geprüft wird über das gerenderte Template der
 // Eingabeschritte Name, Preis und eigenes Kürzel: Leere Eingaben sperren den Schritt, gültige landen im Produkt.
 import { TestBed } from '@angular/core/testing'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiService } from '../../core/api.service'
 import { ProductWizardComponent } from './product-wizard'
@@ -24,6 +24,11 @@ async function render(step: number) {
   const arrow = () => [...el.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent?.trim() === '→')!
   return { fixture, el, type, arrow }
 }
+
+// jsdom kennt kein `scrollIntoView`; der Assistent scrollt nach jedem Schritt zum neuen Block.
+beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+})
 
 describe('ProductWizardComponent – Eingabeschritte', () => {
   it('Name: sperrt bei nur Leerzeichen und übernimmt den getippten per Enter', async () => {

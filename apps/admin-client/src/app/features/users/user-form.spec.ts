@@ -65,6 +65,12 @@ describe('UserFormComponent – Formular', () => {
     expect(saveButton().disabled).toBe(false)
   })
 
+  it('Neuanlage: sperrt mit Passwort, aber ohne Loginname', async () => {
+    const { type, saveButton } = await render('new')
+    await type('userPassword', 'geheim')
+    expect(saveButton().disabled).toBe(true)
+  })
+
   it('Bearbeiten: zeigt den geladenen Loginnamen und verlangt kein Passwort', async () => {
     const { el, saveButton } = await render('u-other')
     expect(el.querySelector<HTMLInputElement>('#userLoginname')!.value).toBe('olga')

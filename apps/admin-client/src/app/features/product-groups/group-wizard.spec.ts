@@ -1,7 +1,7 @@
 // core#1173: Der Gruppen-Assistent läuft auf Signal Forms. Geprüft wird über das gerenderte Template der
 // beiden Eingabeschritte: Name (leer oder nur Leerzeichen sperrt „Weiter") und eigene MwSt.-Sätze (0–100).
 import { TestBed } from '@angular/core/testing'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiService } from '../../core/api.service'
 import { GroupWizardComponent } from './group-wizard'
@@ -25,6 +25,11 @@ async function render(step: number) {
     [...el.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent?.trim() === text)!
   return { fixture, el, type, button }
 }
+
+// jsdom kennt kein `scrollIntoView`; der Assistent scrollt nach jedem Schritt zum neuen Block.
+beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+})
 
 describe('GroupWizardComponent – Eingabeschritte', () => {
   it('Name: sperrt „Weiter" bei leerem Namen oder nur Leerzeichen und übernimmt den getippten', async () => {

@@ -1,0 +1,1 @@
+* **Update**: `.claude/rules/security.md` hält die Array-Body-Regel fest: Gates bauen nie allein auf `'feld' in data`, `rejectArrayBody` deckt Custom Methods und Koa-Routen nicht ab (§3, §11). §4 nennt `update` und `patch` jetzt als gescopte Operationen, wie `multi-tenancy.hook.ts` sie behandelt.

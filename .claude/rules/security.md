@@ -68,6 +68,7 @@ additiver Pro-User-Grant (`grant:<resource>:<action>` im `user.permissions`-Arra
      `preflight` → READ, `convert` → UPDATE)
    - **Unbekannte Custom-Methods** fallen auf den Methodennamen als Action zurück —
      das matcht nur `MANAGE`-Regeln. **Jede neue Custom-Method MUSS gemappt werden.**
+     Custom Methods laufen zudem **nicht** durch `rejectArrayBody` (siehe §11): Body selbst als Objekt prüfen.
 5. Prüfung: `hasEffectivePermission(role, permissions, resource, action)` —
    Matrix-Regel ODER Grant. Es gibt **keine `SYSTEM`-Wildcard** (eine
    `{ resource: SYSTEM }`-Regel matcht nur den Pfad `system`, nichts anderes).
@@ -102,7 +103,7 @@ Details/ADR: `docs/security/edge-authorize-hybrid-rbac.md`.
 - `data.tenantId = user.tenantId` wird erzwungen (nicht überschreibbar).
 - Bei `isolateLocation: true`: `data.locationId = user.locationId` wenn nicht explizit gesetzt.
 
-**READ-Operationen** (`find`, `get`, `remove`) — Scoping:
+**Scoping-Operationen** (`find`, `get`, `remove`, `update`, `patch`) — Query-Filter (`multi-tenancy.hook.ts`):
 
 - `query.tenantId = user.tenantId` wird immer gesetzt (harter Filter auf DB-Ebene).
 - Bei `isolateLocation: true`:
@@ -258,3 +259,4 @@ Vor dem Implementieren eines neuen Services prüfen:
 - [ ] Neue Ressource in `AppResource` definiert und in `RolePermissions`-Matrix eingetragen?
 - [ ] `docs/security/rollen-matrix.md` neu erzeugt (§7)? Sonst wird `users-domain:test` rot.
 - [ ] Kein roher SQL/Mongo-Query im Service (nur Feathers Adapter API)?
+- [ ] Gates und Hooks bauen nie allein auf `'feld' in data`? Für einen Array-Body (`[{…}]`) ist das immer `false`, das Gate wird übersprungen. `rejectArrayBody` (`apps/api-edge/src/hooks/reject-array-body.hook.ts`, Registrierung in `apps/api-edge/src/app.ts`) läuft als App-Hook vor allen Service-Hooks und weist `patch`/`update` immer ab, `create` nur ohne `allowsMulti('create')`. **Nicht abgedeckt sind Custom Methods und Koa-Routen:** Der Hook kehrt bei jeder anderen Methode sofort zurück, Koa-Routen (z. B. `device-pairing.ts`) laufen nicht durch `app.hooks`. Sie prüfen den Body selbst als Objekt (`Array.isArray` → `BadRequest`); Custom Methods außerdem im Mapping aus §3. Gate: `reject-array-body.hook.spec.ts`.

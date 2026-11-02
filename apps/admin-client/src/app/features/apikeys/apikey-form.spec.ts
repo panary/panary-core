@@ -35,8 +35,10 @@ async function render() {
     await fixture.whenStable()
   }
   async function submit() {
-    el.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+    const event = new Event('submit', { cancelable: true })
+    el.querySelector('form')!.dispatchEvent(event)
     await fixture.whenStable()
+    return event
   }
   const submitButton = () => el.querySelector<HTMLButtonElement>('button[type="submit"]')!
 
@@ -68,8 +70,10 @@ describe('ApikeyFormComponent – Anlege-Formular', () => {
     const { type, submit, api } = await render()
     await type('apikeyName', 'Kasse 1')
     await type('apikeyDescription', 'Theke vorne')
-    await submit()
+    const event = await submit()
 
+    // `[formRoot]` fängt den nativen Submit ab; ohne ihn lüde der Browser die Seite neu.
+    expect(event.defaultPrevented).toBe(true)
     expect(api.create).toHaveBeenCalledWith('apikeys', {
       name: 'Kasse 1',
       description: 'Theke vorne',

@@ -71,7 +71,8 @@ Tauri fiel still auf die langsamere `postMessage`-Schnittstelle zurück. Beide Q
 jetzt in der gemeinsamen CSP eingetragen — additiv und damit ohne Wirkung auf den
 Windows-Pfad.
 
-**3. Ad-hoc-Signierung (`signingIdentity: "-"`) als Zwischenstand.**
+**3. Ad-hoc-Signierung (`signingIdentity: "-"`) als Zwischenstand.** *Abgelöst durch
+[ADR 0068](0068-macos-pos-signing-notarisierung-updater.md).*
 Es existiert kein Apple-Developer-Zertifikat. Ad-hoc ist auf Apple Silicon der richtige
 Zwischenschritt: das Bundle wird vollständig gesiegelt (`codesign --verify --deep --strict`
 läuft durch), Hardened Runtime ist per Tauri-Default aktiv. Gatekeeper bewertet das Ergebnis
@@ -84,7 +85,8 @@ erreicht. Ein Testbuild für den Mac darf das nicht auslösen. Der Dispatch-Work
 (`build-pos.yml`) ist deshalb das primäre Vehikel: beliebiger Branch, kein Tag, kein
 Versions-Bump. `release-pos.yml` hängt das Bundle zusätzlich ans reguläre Release.
 
-**5. Kein Updater-Pfad auf macOS (vorerst).**
+**5. Kein Updater-Pfad auf macOS (vorerst).** *Abgelöst durch
+[ADR 0068](0068-macos-pos-signing-notarisierung-updater.md).*
 `createUpdaterArtifacts` ist in der macOS-Config `false`. Damit braucht der macOS-Job keinen
 Signing-Key — der bleibt dem Windows-Release-Job vorbehalten (Least-Privilege), und
 `latest.json` bleibt unverändert Windows-only. Der Update-Check der App fängt den fehlenden

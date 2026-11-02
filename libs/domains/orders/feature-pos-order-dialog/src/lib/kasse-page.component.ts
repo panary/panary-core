@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@
 import { Router } from '@angular/router'
 import { ReturnAfterOrderService } from '@panary/shared/data-access'
 import { KasseCloseReason, OrderDialogComponent } from './order-dialog.component'
+import { KasseReorderHandoff } from './kasse-reorder-handoff'
 
 /** Ziel von „Übersicht" und dem Verwerfen der Bestellung. */
 export const KASSE_EXIT_URL = '/dashboard'
@@ -31,7 +32,12 @@ export function kasseOrigin(url: string | null | undefined): string | null {
   host: { class: 'block h-full w-full p-2' },
   template: `
     @for (n of [run()]; track n) {
-      <app-order-dialog class="block h-full" [isFollowUp]="n > 0" (closed)="onClosed($event)" />
+      <app-order-dialog
+        class="block h-full"
+        [isFollowUp]="n > 0"
+        [reorder]="reorderFor(n)"
+        (closed)="onClosed($event)"
+      />
     }
   `,
 })
@@ -42,6 +48,17 @@ export class KassePageComponent {
   /** Wo die Kasse geöffnet wurde; zum Zeitpunkt des Routings noch in `previousNavigation` (core#974). */
   readonly #origin = kasseOrigin(this.#router.currentNavigation?.()?.previousNavigation?.finalUrl?.toString())
   private readonly order = viewChild(OrderDialogComponent)
+
+  /**
+   * Nachbestellung aus „Offen" (core#1140), nur für die erste Bestellung dieser Kasse: Bleibt man nach dem Abschicken
+   * in der Kasse, ist die nächste Bestellung eine neue und nicht wieder die des Tisches. Einmal genommen, damit ein
+   * Neuladen oder Zurück die Vorbelegung nicht wiederbelebt (`KasseReorderHandoff`).
+   */
+  readonly #reorder = inject(KasseReorderHandoff).take()
+
+  protected reorderFor(run: number) {
+    return run === 0 ? this.#reorder : null
+  }
 
   /** Laufende Nummer der Bestellung — jeder Wechsel baut die Kasse frisch auf. */
   protected readonly run = signal(0)

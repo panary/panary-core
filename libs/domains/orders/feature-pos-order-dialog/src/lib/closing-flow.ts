@@ -17,13 +17,19 @@ const LABELS: Record<ClosingStep, string> = { pager: 'Pager', table: 'Tisch', ti
 
 /**
  * Die Folge, wie die Kasse sie durchläuft: Die Tischwahl erreicht man nur über einen gewählten Pager
- * (`setPagerSubbuttons`), die Fertigungszeit fragt nur Außer Haus (#343).
+ * (`setPagerSubbuttons`), die Fertigungszeit fragt nur Außer Haus (#343). Eine Nachbestellung bringt ihren Tisch
+ * mit (`tablePreset`, core#1140): Dann fragt die Kette ihn nicht.
  */
-export function closingSteps(options: { showPagers: boolean; showTables: boolean; takeOut: boolean }): ClosingStep[] {
+export function closingSteps(options: {
+  showPagers: boolean
+  showTables: boolean
+  takeOut: boolean
+  tablePreset?: boolean
+}): ClosingStep[] {
   const steps: ClosingStep[] = []
   if (options.showPagers) {
     steps.push('pager')
-    if (options.showTables) steps.push('table')
+    if (options.showTables && !options.tablePreset) steps.push('table')
   }
   if (options.takeOut) steps.push('time')
   return steps

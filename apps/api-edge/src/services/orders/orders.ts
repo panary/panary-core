@@ -50,6 +50,7 @@ import { applyAutomaticDiscounts } from '../../hooks/apply-automatic-discounts'
 import { checkMultiOperation } from '../../hooks/check-multi-operation'
 import { createOrderInteractions } from '../../hooks/create-order-interactions'
 import { recordCancellationReference } from '../../hooks/record-cancellation-reference'
+import { recordFollowUpReference } from '../../hooks/record-follow-up-reference.hook'
 import { recordOrderPatchInteraction } from '../../hooks/record-order-patch-interaction'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
@@ -254,7 +255,12 @@ export const orders = (app: Application) => {
         // (idempotent, nie blockierend) — stellt genau einen Beleg pro Order aus.
         issueReceipt,
       ],
-      create: [createOrderInteractions()],
+      create: [
+        createOrderInteractions(),
+        // Nachbestellung im Kreis: Referenz `Transaktion` auf die erste Bestellung (ADR 0063,
+        // core#1140). Awaited, nie blockierend — `/print-order` liest sie direkt danach.
+        recordFollowUpReference(),
+      ],
       // Vorgangs-Referenz beim Storno (DSFinV-K Bon_Referenzen, Tz. 4.2.2).
       // NACH jsonHooks.after in `all`, damit der Hook die Order mit geparsten
       // Feldern sieht. Nie blockierend — siehe Hook-Kopf.

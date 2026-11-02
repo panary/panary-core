@@ -14,6 +14,13 @@ describe('closingSteps — Folge der Abschlusskette (core#1069)', () => {
     expect(closingSteps({ showPagers: true, showTables: true, takeOut: false })).toEqual(['pager', 'table'])
   })
 
+  it('fragt den Tisch einer Nachbestellung nicht, er ist vorbelegt (core#1140)', () => {
+    expect(closingSteps({ showPagers: true, showTables: true, takeOut: true, tablePreset: true })).toEqual([
+      'pager',
+      'time',
+    ])
+  })
+
   it('kennt den Tisch nur nach dem Pager, wie die Kasse ihn erreicht', () => {
     expect(closingSteps({ showPagers: false, showTables: true, takeOut: true })).toEqual(['time'])
   })

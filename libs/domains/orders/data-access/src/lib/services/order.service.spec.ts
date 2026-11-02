@@ -222,6 +222,24 @@ describe('OrderService.createOrder — Abrechnungskreis', () => {
     expect('settlementScope' in createCalls[0].payload).toBe(false)
   })
 
+  it('schickt den Kreis einer Nachbestellung online mit (core#1140)', async () => {
+    // Ohne ihn leitete der Edge aus `table` ab und traefe einen alten Besuch-0-Kreis nicht.
+    const { service, createCalls } = setup()
+
+    await service.createOrder({ ...baseInput, table: '3', settlementScope: '3' })
+
+    expect(createCalls[0].payload['settlementScope']).toBe('3')
+  })
+
+  it('offline gewinnt der Kreis der Nachbestellung gegen die lokale Ableitung (core#1140)', async () => {
+    const { service, enqueued, upserted } = setup({ offline: true })
+
+    await service.createOrder({ ...baseInput, table: '3', settlementScope: '3#4' })
+
+    expect((upserted[0].rows[0] as { settlementScope: string }).settlementScope).toBe('3#4')
+    expect((enqueued[0]['payload'] as { settlementScope: string }).settlementScope).toBe('3#4')
+  })
+
   it('setzt offline den Tisch mit Besuch als Abrechnungskreis — in Cache UND Outbox', async () => {
     // Offline gibt es keinen Server, der stempeln koennte, und die Order wird
     // bis zum Replay lokal angezeigt.

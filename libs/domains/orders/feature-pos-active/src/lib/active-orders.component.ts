@@ -12,12 +12,14 @@ import {
 import { formatEur, formatEurCents } from '@panary/shared/util-helpers'
 import { CommonModule } from '@angular/common'
 import { MatDialog } from '@angular/material/dialog'
+import { Router } from '@angular/router'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { uuidv7 } from 'uuidv7'
 import {
   CASH_PAYMENT_DIALOG_CONFIG,
   CashPaymentDialogComponent,
   type CashPaymentDialogData,
+  KasseReorderHandoff,
 } from '@panary/orders/feature-pos-order-dialog'
 import {
   calculateModifierPrice,
@@ -39,6 +41,8 @@ import {
   fromCents,
   groupModifiersByComponent,
   groupOpenOrdersBySettlementScope,
+  kasseReorderFor,
+  type KasseReorder,
   openOrderCircleTotalCents,
   isSyntheticSettlementScope,
   type AppliedDiscount,
@@ -90,6 +94,8 @@ interface OrderCardVm {
   totalFormatted: string
   itemsPaddingClass: string
   itemsGapClass: string
+  /** Vorbelegung für „Nachbestellen" (core#1140); `null` ohne Tisch oder mit synthetischem Kreis. */
+  reorder: KasseReorder | null
 }
 
 /** Kreis-Karte (core#1141): eine Karte je Abrechnungskreis mit mindestens zwei offenen Bestellungen. */
@@ -103,6 +109,7 @@ interface CircleCardVm {
   firstRecordingDate: string
   elapsedMinutes: number
   expanded: boolean
+  reorder: KasseReorder | null
 }
 
 interface OrderEntryVm {
@@ -150,6 +157,8 @@ export class ActiveOrdersComponent {
   #corporateCustomerService = inject(CorporateCustomerService)
   #discountService = inject(DiscountService)
   #translate = inject(TranslateService)
+  #router = inject(Router)
+  #reorderHandoff = inject(KasseReorderHandoff)
 
   // Sort orders by recordingDate descending (Newest first).
   // Spread zwingend: ordersActive() ist ein memoisiertes computed — in-place sort
@@ -212,6 +221,7 @@ export class ActiveOrdersComponent {
         firstRecordingDate: entry.firstRecordingDate,
         elapsedMinutes: Number.isFinite(elapsedMs) ? Math.max(0, Math.floor(elapsedMs / 60_000)) : 0,
         expanded: isExpanded,
+        reorder: kasseReorderFor(entry),
       })
       if (isExpanded) {
         for (const order of entry.orders) {
@@ -335,6 +345,21 @@ export class ActiveOrdersComponent {
     } catch {
       // Speicher gesperrt: Zoom gilt dann nur bis zum Neuladen
     }
+  }
+
+  /**
+   * Nachbestellen (ADR 0063 Nr. 1 und 6, core#1140): öffnet die Kasse mit Tisch und Kreis der offenen Bestellung. Die
+   * Positionen kommen in eine neue Bestellung, nie an die bestehende.
+   */
+  reorder(preset: KasseReorder) {
+    this.#reorderHandoff.offer(preset)
+    // Kommt die Kasse nicht zustande (Sperre, Guard), darf die Vorbelegung nicht an der nächsten Kasse kleben.
+    void this.#router.navigate(['/kasse']).then(
+      navigated => {
+        if (!navigated) this.#reorderHandoff.take()
+      },
+      () => this.#reorderHandoff.take(),
+    )
   }
 
   toggleCircle(key: string) {
@@ -809,6 +834,7 @@ export class ActiveOrdersComponent {
       // ngClass-Ternär-Logik im Template)
       itemsPaddingClass: count === 1 ? 'px-4 py-10' : count === 2 ? 'px-4 py-6' : 'p-4',
       itemsGapClass: count === 1 ? 'gap-4' : count === 2 ? 'gap-3.5' : 'gap-3',
+      reorder: kasseReorderFor(order),
     }
   }
 

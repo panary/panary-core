@@ -505,6 +505,19 @@
         </div>
       }
     </div>
+    <!-- Nachbestellung (core#1140): Tisch und Kreis stehen fest, die Abschlusskette fragt den Tisch nicht. Die Zeile
+         sagt dem Bediener, an welchen Tisch die Bestellung geht, bevor er „Bestellen“ tippt. -->
+    @if (reorder(); as preset) {
+      <div
+        class="mx-3 mb-2 flex shrink-0 items-center gap-3 rounded-card border border-line bg-surface-elevated px-4 py-2 text-sm font-semibold text-ink"
+        data-testid="reorder-banner"
+      >
+        <lib-icon name="table" class="shrink-0" style="font-size: 1.25rem" />
+        <span class="min-w-0 flex-1 truncate">{{
+          'ORDER_DIALOG.REORDER_BANNER' | translate: { table: preset.table }
+        }}</span>
+      </div>
+    }
     <!-- Solange das Anpassen-Sheet offen ist, entfällt das Raster darunter (bis core#909 stand es im @else des Sheets). -->
     <!-- Ansichtswechsel (core#1069): Der Inhalt hängt an `viewKey` und wird bei jedem Wechsel neu aufgebaut — so gleitet
          er von der Rasterseite herein (order-dialog.component.scss). Ein Tipp in derselben Ansicht ändert den

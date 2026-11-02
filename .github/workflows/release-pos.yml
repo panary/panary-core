@@ -515,7 +515,8 @@ jobs:
           gh release upload "$GITHUB_REF_NAME" "$TAR_PATH" "$TAR_PATH.sig" --repo "$GITHUB_REPOSITORY" --clobber
 
       # Erweitert das Manifest des Windows-Jobs, ersetzt es nie. Hochgeladen wird
-      # nur, wenn Version und windows-x86_64 vorher wie nachher identisch sind —
+      # nur, wenn ausser den beiden darwin-Keys alles vorher wie nachher identisch
+      # ist (auch beim Neustart, wenn darwin-aarch64 schon drinsteht) —
       # sonst bleibt das bestehende latest.json stehen und der Job wird rot.
       # Beide Keys: der Updater sucht zuerst darwin-aarch64-app, dann darwin-aarch64.
       # Asset-Name vom Release gelesen (GitHub normalisiert den productName).
@@ -547,7 +548,7 @@ jobs:
             latest.windows.json > latest.json
 
           jq -e --slurpfile alt latest.windows.json \
-            'del(.platforms["darwin-aarch64"], .platforms["darwin-aarch64-app"]) == $alt[0]' latest.json >/dev/null \
+            'def ohne_mac: del(.platforms["darwin-aarch64"], .platforms["darwin-aarch64-app"]); ohne_mac == ($alt[0] | ohne_mac)' latest.json >/dev/null \
             || { echo "ERROR: ausser darwin-aarch64 wuerde sich etwas aendern — latest.json bleibt unveraendert"; exit 1; }
 
           echo "--- latest.json ---"; cat latest.json

@@ -5,6 +5,7 @@ import { lastValueFrom, map } from 'rxjs'
 import { ThemeServiceService, UiScaleService } from '@panary/shared/data-access-theme'
 import { UiDensity, type UiDensityLevel } from '@panary/devices/domain'
 import { POS_PIN_LENGTH } from '@panary/users/domain'
+import { EMPTY_PIN_CHANGE, pinChangeError, pinChangeSchema, type PinChange } from './pin-change-form'
 import { LocationService } from '@panary/locations/data-access'
 import {
   ConnectionService,
@@ -18,7 +19,7 @@ import type { OfflineOutboxRejectedEntry } from '@panary/shared-common'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { KioskService, LogService } from '@panary/shared/data-access-updater'
 import { DeviceAssignmentService } from '@panary/devices/data-access'
-import { FormsModule } from '@angular/forms'
+import { form, FormField } from '@angular/forms/signals'
 import { ActivatedRoute, Router } from '@angular/router'
 import { toSignal } from '@angular/core/rxjs-interop'
 
@@ -80,7 +81,7 @@ function isSettingsSection(value: string | null): value is SettingsSection {
     IconComponent,
     PageHeaderComponent,
     CommonModule,
-    FormsModule,
+    FormField,
     MatTooltipModule,
     TranslateModule,
     UnpairDeviceDialogComponent,
@@ -159,9 +160,8 @@ export class SettingsComponent implements OnInit {
 
   // User State
   currentUser = signal<any>(null)
-  currentPin = signal('')
-  newPin = signal('')
-  confirmPin = signal('')
+  readonly pinChange = signal<PinChange>({ ...EMPTY_PIN_CHANGE })
+  readonly pinForm = form(this.pinChange, p => pinChangeSchema(p, POS_PIN_LENGTH))
   pinError = signal<string | null>(null)
   isSaving = signal(false)
   saveMessage = signal<string | null>(null)
@@ -359,25 +359,12 @@ export class SettingsComponent implements OnInit {
     this.pinError.set(null)
     this.saveMessage.set(null)
 
-    if (this.currentPin().length !== POS_PIN_LENGTH) {
-      this.pinError.set(this.translateService.instant('SETTINGS.PIN_CURRENT_REQUIRED'))
+    const invalid = pinChangeError(this.pinForm)
+    if (invalid) {
+      this.pinError.set(this.translateService.instant(invalid, { length: POS_PIN_LENGTH }))
       return
     }
-
-    if (this.newPin().length !== POS_PIN_LENGTH) {
-      this.pinError.set(this.translateService.instant('SETTINGS.PIN_LENGTH_EXACT', { length: POS_PIN_LENGTH }))
-      return
-    }
-
-    if (this.newPin() !== this.confirmPin()) {
-      this.pinError.set(this.translateService.instant('SETTINGS.PIN_MISMATCH'))
-      return
-    }
-
-    if (this.newPin() === this.currentPin()) {
-      this.pinError.set(this.translateService.instant('SETTINGS.PIN_SAME_AS_OLD'))
-      return
-    }
+    const { currentPin, newPin } = this.pinChange()
 
     const user = this.currentUser()
     if (!user || !user._id) return
@@ -392,12 +379,10 @@ export class SettingsComponent implements OnInit {
         this.connectionService.usersService as unknown as {
           changePin: (d: { userId: string; currentPin: string; newPin: string }) => Promise<unknown>
         }
-      ).changePin({ userId: user._id, currentPin: this.currentPin(), newPin: this.newPin() })
+      ).changePin({ userId: user._id, currentPin, newPin })
 
       this.saveMessage.set(this.translateService.instant('SETTINGS.PIN_CHANGED'))
-      this.currentPin.set('')
-      this.newPin.set('')
-      this.confirmPin.set('')
+      this.pinForm().reset({ ...EMPTY_PIN_CHANGE })
     } catch (error: any) {
       const code = error?.code
       if (code === 401) {

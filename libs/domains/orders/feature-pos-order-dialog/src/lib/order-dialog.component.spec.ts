@@ -72,6 +72,10 @@ interface SetupOptions {
   connectionStatus?: string
   /** `ConnectionService.tier()` — Standard: Kasse am Edge (cloud#1429). */
   tier?: 'cloud-direct' | 'standalone' | 'edge-with-cloud' | 'unknown'
+  /** `ConnectionService.cloudPaired()` — Standard: nicht gepairt, also kein Geschäftstag-Hinweis (core#1171). */
+  cloudPaired?: boolean
+  /** `ConnectionService.healthLoaded()` — Standard: Betriebsart bekannt. */
+  healthLoaded?: boolean
   /** `posHandedness` des angemeldeten Mitarbeiters — fehlt es, gilt links (core#829). */
   posHandedness?: 'left' | 'right'
   /** `locationService.activeLocation` — Standard: Filiale schon geladen. Ein Signal spielt das Nachladen nach (core#868). */
@@ -243,6 +247,14 @@ function setup(options: SetupOptions = {}) {
             options.activeLocation ??
             (() => ({ _id: 'loc-1', settings: {}, operationMode: options.operationMode ?? 'orders-only' })),
           currentBusinessDay: { businessDayId: 'bd-1', date: '2026-08-14' },
+          // Spielt den lokalen Zeiger nach (core#1171), wenn der Test die Filiale als Signal übergibt.
+          setCurrentBusinessDayLocally: (day: { _id?: unknown; date?: string }) => {
+            const active = options.activeLocation as (() => unknown) & { set?: (value: unknown) => void }
+            active?.set?.({
+              ...(active() as object),
+              currentBusinessDay: { businessDayId: String(day._id), date: day.date },
+            })
+          },
         },
       },
       {
@@ -327,6 +339,9 @@ function setup(options: SetupOptions = {}) {
         useValue: {
           systemMode: () => 'connected',
           tier: () => options.tier ?? 'edge-with-cloud',
+          healthLoaded: () => options.healthLoaded ?? true,
+          cloudPaired: () => options.cloudPaired ?? false,
+          offlineModeActive: () => false,
           connectionState: () => ({ status: options.connectionStatus ?? 'authenticated' }),
         },
       },
@@ -4349,5 +4364,64 @@ describe('OrderDialog — Extras je Menü-Komponente im Warenkorb (core#1218)', 
     expect(groups.main).toHaveLength(3)
     expect(groups.sideDish).toEqual([])
     expect(groups.drink).toEqual([])
+  })
+})
+
+describe('Kasse — Hinweis auf fehlenden Geschäftstag (core#1171)', () => {
+  const ohneTag = () => signal<unknown>({ _id: 'loc-1', settings: {}, operationMode: 'orders-only' })
+
+  it('cloud-direkt ohne Tag: Hinweis mit Eröffnen am Gerät, die Kasse bleibt bedienbar', () => {
+    const { component } = setup({ tier: 'cloud-direct', activeLocation: ohneTag() })
+
+    expect(component.businessDayHint()).toBe('open-here')
+    expect(component.blockingReason()).toBeNull()
+  })
+
+  it('Edge gepairt ohne Tag: Hinweis auf den Cloud-Admin', () => {
+    const { component } = setup({ tier: 'edge-with-cloud', cloudPaired: true, activeLocation: ohneTag() })
+
+    expect(component.businessDayHint()).toBe('open-in-admin')
+  })
+
+  it('Standalone-Edge ohne Tag: kein Hinweis, die erste Bestellung legt den Tag an', () => {
+    const { component } = setup({ tier: 'standalone', activeLocation: ohneTag() })
+
+    expect(component.businessDayHint()).toBeNull()
+  })
+
+  it('kein Hinweis, solange die Betriebsart unbekannt ist oder das Gerät offline', () => {
+    expect(
+      setup({ tier: 'cloud-direct', healthLoaded: false, activeLocation: ohneTag() }).component.businessDayHint(),
+    ).toBeNull()
+    expect(
+      setup({
+        tier: 'cloud-direct',
+        connectionStatus: 'disconnected',
+        activeLocation: ohneTag(),
+      }).component.businessDayHint(),
+    ).toBeNull()
+  })
+
+  it('„Tag eröffnen" öffnet den Eröffnungsdialog und setzt danach den Zeiger lokal — der Hinweis verschwindet', async () => {
+    const activeLocation = ohneTag()
+    const { component, openedDialogs, dialogResult } = setup({ tier: 'cloud-direct', activeLocation })
+    dialogResult.value = { _id: 'bd-neu', date: '2026-11-02' }
+
+    await component.openBusinessDayFromHint()
+
+    expect(openedDialogs).toEqual([
+      { data: { locationId: 'loc-1', operationMode: 'orders-only' }, disableClose: undefined },
+    ])
+    expect(component.businessDayHint()).toBeNull()
+  })
+
+  it('abgebrochener Eröffnungsdialog: der Hinweis bleibt', async () => {
+    const activeLocation = ohneTag()
+    const { component, dialogResult } = setup({ tier: 'cloud-direct', activeLocation })
+    dialogResult.value = null
+
+    await component.openBusinessDayFromHint()
+
+    expect(component.businessDayHint()).toBe('open-here')
   })
 })

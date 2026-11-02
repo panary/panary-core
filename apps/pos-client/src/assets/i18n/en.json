@@ -745,6 +745,9 @@
     "SIDE_DISH": "Side dish",
     "DRINK": "Drink",
     "ENTERPRISE_ONLY": "Enterprise version only",
+    "BUSINESS_DAY_HINT_OPEN_HERE": "No business day open — the order will be rejected on submit.",
+    "BUSINESS_DAY_HINT_ADMIN": "No business day open — please open it in the Cloud Admin, otherwise the order will be rejected.",
+    "BUSINESS_DAY_HINT_ACTION": "Open day",
     "ORDER_NOT_POSSIBLE": "Order not possible"
   },
   "PRE_ORDER_DIALOG": {

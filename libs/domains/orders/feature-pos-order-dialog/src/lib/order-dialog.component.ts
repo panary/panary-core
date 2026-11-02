@@ -147,11 +147,15 @@ import { type CustomizeOptionEvent, ProductCustomizePanelComponent } from './pro
 import { CashPaymentComponent } from './cash-payment.component'
 import {
   ensureClosedDayApproval,
+  OpeningDialogComponent,
+  type OpeningDialogData,
   promptCashSessionAuthorization,
   promptClosedDayApprovalFromError,
   type CashSessionPromptLocation,
 } from '@panary/businessdays/feature-pos-closing-dialog'
 import { BusinessDayService } from '@panary/businessdays/data-access'
+import { LocationOperationMode } from '@panary/locations/domain'
+import { businessDayHint } from './business-day-hint'
 import {
   BoardSelection,
   nextBoardSelection,
@@ -737,13 +741,50 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * ist (core#828), lädt ein Neuladen auf `/kasse` die Komponente, bevor der Standort da ist. Ein in
    * `ngOnInit` gesetzter Wert blieb dann für immer stehen (core#868).
    *
-   * Im Standalone-Modus (Edge-Server) wird der Geschäftstag automatisch verwaltet; der Backend-Hook
-   * erstellt bei Bedarf transparent einen neuen. Blockiert wird deshalb nur, solange kein Standort
-   * geladen ist — ein fehlender Geschäftstag entsteht beim ersten Order.
+   * Blockiert wird nur, solange kein Standort geladen ist. Ein fehlender Geschäftstag sperrt nicht: Am
+   * Standalone-Edge (oder mit Offline-Override) entsteht er beim ersten Order. Gepairt und cloud-direkt lehnt
+   * der Server das Absenden ab — darauf weist vorher `businessDayHint` hin (core#1171).
    */
   readonly blockingReason = computed<string | null>(() =>
     this.locationService.activeLocation() ? null : 'Standort konnte nicht geladen werden.',
   )
+
+  /** Nicht sperrender Hinweis auf einen fehlenden Geschäftstag, Regeln in `business-day-hint.ts` (core#1171). */
+  readonly businessDayHint = computed(() => {
+    const location = this.locationService.activeLocation() as
+      { currentBusinessDay?: { businessDayId?: string } | null } | undefined
+    const status = this.#connectionService.connectionState().status
+    return businessDayHint({
+      healthLoaded: this.#connectionService.healthLoaded(),
+      tier: this.#connectionService.tier(),
+      cloudPaired: this.#connectionService.cloudPaired(),
+      offlineOverrideActive: this.#connectionService.offlineModeActive(),
+      online: status === 'connected' || status === 'authenticated',
+      locationLoaded: !!location,
+      businessDayOpen: !!location?.currentBusinessDay?.businessDayId,
+    })
+  })
+
+  /**
+   * „Tag eröffnen" aus dem Hinweis: derselbe Dialog wie im Mehr-Menü. Danach den Zeiger sofort lokal setzen —
+   * ob das Location-Patch der Cloud den cloud-direkten POS erreicht, ist nicht gesichert.
+   */
+  async openBusinessDayFromHint(): Promise<void> {
+    const location = this.locationService.activeLocation() as { _id?: string; operationMode?: string } | undefined
+    const data: OpeningDialogData = {
+      locationId: location?._id ?? null,
+      operationMode:
+        location?.operationMode === LocationOperationMode.ORDERS_ONLY
+          ? LocationOperationMode.ORDERS_ONLY
+          : LocationOperationMode.POS_CASHIER,
+    }
+    const opened = await firstValueFrom(
+      this.matDialog
+        .open(OpeningDialogComponent, { width: '30rem', maxWidth: '92vw', maxHeight: '90vh', data })
+        .afterClosed(),
+    )
+    if (opened) this.locationService.setCurrentBusinessDayLocally(opened as { _id?: unknown; date?: string })
+  }
 
   /**
    * Die Bestellung ist beendet — abgeschickt, als Vorbestellung angelegt oder verworfen.

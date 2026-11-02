@@ -273,8 +273,14 @@ export class PrinterFormDialogComponent {
 
   onSave() {
     if (this.printerForm().invalid()) return
-    const { port, ...rest } = this.printer()
-    const result: PrinterFormData = { ...rest, ...(port != null ? { port } : {}) }
+    // Leere optionale Felder fallen weg, wie sie ein Bestandsdrucker ohne sie mitbrachte.
+    const { port, ip, mqttTopic, ...rest } = this.printer()
+    const result: PrinterFormData = {
+      ...rest,
+      ...(ip ? { ip } : {}),
+      ...(port != null ? { port } : {}),
+      ...(mqttTopic ? { mqttTopic } : {}),
+    }
     this.dialogRef.close(result)
   }
 

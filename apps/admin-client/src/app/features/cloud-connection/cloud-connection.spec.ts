@@ -165,6 +165,20 @@ describe('CloudConnectionComponent — Sync-Intervall', () => {
     expect(api.patch).not.toHaveBeenCalled()
   })
 
+  it('ein ungültiges Intervall sperrt den Wechsel auf „Zeitplan" nicht', async () => {
+    const { component, api } = setup()
+    component.syncSettings.update(v => ({
+      ...v,
+      syncMode: 'scheduled',
+      syncIntervalSec: 30,
+      syncScheduleTimes: ['22:00'],
+    }))
+
+    await component.onSaveSyncMode()
+
+    expect(api.patch).toHaveBeenCalledTimes(1)
+  })
+
   it('lässt ein leeres Intervall außerhalb von „Automatisch" aus dem Patch', async () => {
     const { component, api } = setup()
     component.syncSettings.update(v => ({ ...v, syncMode: 'manual', syncIntervalSec: null }))
@@ -254,6 +268,22 @@ describe('CloudConnectionComponent — Eingabefelder im Template', () => {
       'preflight',
       expect.objectContaining({ pairingCode: '123456', edgeName: 'Hauptfiliale' }),
     )
+  })
+
+  it('sperrt die Prüfung bei leerem Edge-Namen oder leerer Cloud-URL', async () => {
+    const { el, type } = await render(null)
+    const check = [...el.querySelectorAll<HTMLButtonElement>('button')].find(b =>
+      b.textContent?.includes('Mit Cloud verbinden'),
+    )!
+    await type(el.querySelector<HTMLInputElement>('#pairingCode')!, '123456')
+    expect(check.disabled).toBe(false)
+
+    await type(el.querySelector<HTMLInputElement>('#edgeName')!, '')
+    expect(check.disabled).toBe(true)
+
+    await type(el.querySelector<HTMLInputElement>('#edgeName')!, 'Filiale')
+    await type(el.querySelector<HTMLInputElement>('#cloudUrl')!, '')
+    expect(check.disabled).toBe(true)
   })
 
   it('zeigt das gespeicherte Intervall und speichert das getippte beim Verlassen', async () => {

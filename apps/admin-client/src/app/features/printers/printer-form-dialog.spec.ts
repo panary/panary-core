@@ -84,6 +84,12 @@ describe('PrinterFormDialogComponent — Formular (core#1173)', () => {
     expect(saveButton().disabled).toBe(false)
   })
 
+  it('schließt den Dialog bei ungültigem Formular auch per Submit nicht', async () => {
+    const { submit, close } = await render(null)
+    await submit()
+    expect(close).not.toHaveBeenCalled()
+  })
+
   it('verlangt beim MQTT-Drucker keine IP', async () => {
     const { type, saveButton } = await render(null)
     await type('printerName', 'Küche')
@@ -101,5 +107,7 @@ describe('PrinterFormDialogComponent — Formular (core#1173)', () => {
     expect(result.name).toBe('Küche hinten')
     expect(result.ip).toBe('192.168.1.50')
     expect('port' in result).toBe(false)
+    // Ein Netzwerkdrucker ohne MQTT-Topic bekommt keinen leeren String dazu.
+    expect('mqttTopic' in result).toBe(false)
   })
 })

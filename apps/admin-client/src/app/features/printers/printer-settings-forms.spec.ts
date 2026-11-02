@@ -93,6 +93,7 @@ describe('Einstellungs-Kinder — Bindung im Template', () => {
     await fixture.whenStable()
 
     expect(model()).toEqual({ mqttServerProtocol: 'ws', mqttServerUrl: 'broker.lan', mqttServerPort: 1884 })
+    expect(port.value).toBe('1884')
   })
 
   it('MQTT: der Verbindungstest meldet ein ungültiges Formular, statt zu verbinden', async () => {

@@ -57,13 +57,28 @@ describe('ApikeyFormComponent – Anlege-Formular', () => {
     expect(submitButton().disabled).toBe(false)
   })
 
+  it('sperrt mehr als 80 Zeichen', async () => {
+    const { type, submitButton } = await render()
+    await type('apikeyName', 'K'.repeat(81))
+    expect(submitButton().disabled).toBe(true)
+  })
+
   it('zeigt die Mindestlänge erst nach Berührung und Eingabe', async () => {
     const { el, fixture, type } = await render()
     await type('apikeyName', 'K')
+    expect(el.textContent).not.toContain('COMMON.MIN_CHARS')
     el.querySelector('#apikeyName')!.dispatchEvent(new Event('blur'))
     await fixture.whenStable()
 
     expect(el.textContent).toContain('COMMON.MIN_CHARS')
+  })
+
+  it('markiert beim Absenden eines ungültigen Formulars alle Felder und zeigt den Fehler', async () => {
+    const { el, submit, api } = await render()
+    await submit()
+
+    expect(api.create).not.toHaveBeenCalled()
+    expect(el.textContent).toContain('APIKEYS.NAME_REQUIRED')
   })
 
   it('schickt die getippten Werte im create', async () => {

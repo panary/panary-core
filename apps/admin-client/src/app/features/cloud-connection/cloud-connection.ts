@@ -9,7 +9,7 @@ import {
   untracked,
   OnInit,
 } from '@angular/core'
-import { form, FormField, max, maxLength, min, pattern, required } from '@angular/forms/signals'
+import { applyWhen, form, FormField, max, maxLength, min, pattern, required } from '@angular/forms/signals'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
@@ -1274,9 +1274,16 @@ export class CloudConnectionComponent implements OnInit {
     syncScheduleTimezone: string
   }>({ syncMode: 'auto', syncIntervalSec: 300, syncScheduleTimes: [], syncScheduleTimezone: LOCAL_TIMEZONE })
   readonly syncForm = form(this.syncSettings, s => {
-    required(s.syncIntervalSec, { when: ({ valueOf }) => valueOf(s.syncMode) === 'auto' })
-    min(s.syncIntervalSec, SYNC_INTERVAL_MIN_SEC)
-    max(s.syncIntervalSec, SYNC_INTERVAL_MAX_SEC)
+    // Das Intervall ist nur im Modus „Automatisch" sichtbar; ausgeblendet darf es keinen Save sperren.
+    applyWhen(
+      s,
+      ({ valueOf }) => valueOf(s.syncMode) === 'auto',
+      auto => {
+        required(auto.syncIntervalSec)
+        min(auto.syncIntervalSec, SYNC_INTERVAL_MIN_SEC)
+        max(auto.syncIntervalSec, SYNC_INTERVAL_MAX_SEC)
+      },
+    )
   })
 
   // Variante (c): bootstrap-edge-to-cloud wird im UI deaktiviert, wenn die

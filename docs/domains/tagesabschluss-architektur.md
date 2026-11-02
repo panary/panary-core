@@ -198,8 +198,8 @@ Bestellung (`completed`, `unclaimed`, `aborted`) ab: `400 Bad Request`, `data.co
 - **400 statt 409:** Die POS-Outbox quittiert 409 still als „schon vorhanden". Eine offline kassierte
   Zahlung, die auf eine inzwischen anderswo abgeschlossene Bestellung trifft, landet mit 400 als
   abgelehnter Eintrag beim Bediener, statt spurlos zu verschwinden.
-- **Rennen:** Externe Zahlungs-Patches laufen hinter einem Prozess-Mutex (Around-Hook), sonst lesen
-  zwei gleichzeitige Kassiervorgänge beide „offen".
+- **Rennen:** Externe Zahlungs-Patches derselben Bestellung laufen hinter einem Mutex je Bestellung
+  (Around-Hook), sonst lesen zwei gleichzeitige Kassiervorgänge beide „offen".
 - **Frei bleiben** interne Aufrufe (Sync-Apply, Worker) sowie Storno und Nichtabholung — beide
   schicken kein `payment`.
 

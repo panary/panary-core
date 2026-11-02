@@ -7,7 +7,9 @@
       />
       <input
         type="text"
-        [(ngModel)]="searchQuery"
+        #searchInput
+        [value]="searchQuery()"
+        (input)="searchQuery.set(searchInput.value)"
         (keyup.enter)="fetchOrders()"
         [placeholder]="'HISTORY.SEARCH_PLACEHOLDER' | translate"
         class="w-full h-11 pl-10 pr-3 rounded-xl bg-surface-input border border-line-soft outline-none focus:ring-2 focus:ring-accent-line transition-all text-ink text-sm placeholder:text-ink-faint"

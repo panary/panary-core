@@ -28,7 +28,6 @@ import { ConfirmDialogComponent, type ConfirmDialogData, EurPipe, IconComponent 
 import { MatMenuModule } from '@angular/material/menu'
 import { A11yModule } from '@angular/cdk/a11y'
 import { NotificationService, type NotificationRef } from '@panary/shared/ui-notifications'
-import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 // UUID als String-Alias (node:crypto UUID ist ein branded type – für Migration vereinfacht)
 type UUID = string
@@ -230,7 +229,6 @@ const CUSTOMER_NOTICE = {
     AbsPipe,
     CommonModule,
     EurPipe,
-    FormsModule,
     MatMenuModule,
     CashPaymentComponent,
     ProductCustomizePanelComponent,

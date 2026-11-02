@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked, WritableSignal } from '@angular/core'
 import { Router } from '@angular/router'
 import { CommonModule } from '@angular/common'
-import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import {
   calculateOrderTotal,
@@ -23,7 +22,7 @@ type TimeRange = 'today' | 'yesterday' | 'week' | 'custom'
 @Component({
   selector: 'lib-order-history',
   standalone: true,
-  imports: [IconComponent, CommonModule, EurPipe, FormsModule, TranslateModule, PageHeaderComponent, PosSplitComponent],
+  imports: [IconComponent, CommonModule, EurPipe, TranslateModule, PageHeaderComponent, PosSplitComponent],
   templateUrl: './order-history.component.html',
   styleUrls: ['./order-history.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

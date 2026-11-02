@@ -244,8 +244,12 @@ describe('Offene Bestellungen — Nachbestellen (core#1140)', () => {
     expect(overlay).toMatch(/data-testid="order-reorder"/)
   })
 
-  it('die Vorbelegung kommt aus dem Domain-Helfer und reist als Navigations-State zur Kasse', () => {
+  it('die Vorbelegung kommt aus dem Domain-Helfer und reist per Einmal-Übergabe zur Kasse', () => {
     expect(component.match(/reorder: kasseReorderFor\(/g)).toHaveLength(2)
-    expect(component).toMatch(/navigate\(\['\/kasse'\], \{ state: \{ \[KASSE_REORDER_STATE_KEY\]: preset \} \}\)/)
+    const reorder = component.slice(component.indexOf('  reorder(preset'), component.indexOf('  toggleCircle('))
+    expect(reorder).toMatch(/#reorderHandoff\.offer\(preset\)/)
+    expect(reorder).not.toMatch(/state:/)
+    // Scheitert die Navigation, wird die Vorbelegung wieder genommen.
+    expect(reorder.match(/#reorderHandoff\.take\(\)/g)).toHaveLength(2)
   })
 })

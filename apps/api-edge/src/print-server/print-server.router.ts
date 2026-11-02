@@ -163,7 +163,7 @@ const routes: Route[] = [
         // (#346). Die Schleife samt Fehlerbehandlung liegt in `print-job.builder.ts`
         // neben dem generischen Druckpfad, damit die beiden nicht wieder
         // auseinanderlaufen.
-        const followUp = await isFollowUpOrder(app, orderId)
+        const followUp = await isFollowUpOrder(app, order as { _id: string; tenantId?: string | null })
         ctx.body = await executeOrderReceiptJob({ order, location, orderId, deviceName, followUp }, printers)
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
@@ -213,20 +213,24 @@ export function createPrintServerMiddleware(app: Application): Middleware {
 }
 
 /**
- * Lädt die Location des Users. Fällt auf die erste Location zurück
- * (Edge-Server hat typischerweise nur eine Location).
- */
-/**
  * Ist die Bestellung eine Nachbestellung im Kreis ihres Tisches (Referenz `Transaktion`,
  * ADR 0063, core#1140)? Faellt die Abfrage aus, druckt der Bon wie bisher: Ein fehlendes
  * Wort im Kopf ist besser als ein ausgebliebener Kuechenbon.
  */
-async function isFollowUpOrder(app: Application, orderId: string): Promise<boolean> {
+async function isFollowUpOrder(app: Application, order: { _id: string; tenantId?: string | null }): Promise<boolean> {
+  const orderId = order._id
   try {
     const refs = (await app.service('order-references').find({
       provider: undefined,
       paginate: false,
-      query: { targetOrderId: orderId, refType: OrderReferenceType.TRANSAKTION, $limit: 1, $select: ['_id'] },
+      query: {
+        // `tenantId` zuerst: Die Indizes von `order-references` beginnen damit.
+        tenantId: order.tenantId,
+        targetOrderId: orderId,
+        refType: OrderReferenceType.TRANSAKTION,
+        $limit: 1,
+        $select: ['_id'],
+      },
     } as any)) as unknown[]
     return Array.isArray(refs) && refs.length > 0
   } catch (error) {
@@ -240,6 +244,10 @@ async function isFollowUpOrder(app: Application, orderId: string): Promise<boole
   }
 }
 
+/**
+ * Lädt die Location des Users. Fällt auf die erste Location zurück
+ * (Edge-Server hat typischerweise nur eine Location).
+ */
 async function loadLocationForUser(app: Application, user: Record<string, unknown>): Promise<Record<string, unknown>> {
   let location: Record<string, unknown> | undefined
 

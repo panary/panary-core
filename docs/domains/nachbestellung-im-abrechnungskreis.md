@@ -23,9 +23,11 @@ entsteht und wann er schließt: [Abrechnungskreis mit Besuchszähler](abrechnung
 2. **Nur mit Tisch.** Ohne Tisch oder mit synthetischem Kreis (`auto:…`) fehlt die Aktion: Es gibt
    keinen Kreis, an den sich anhängen ließe. Die Regel steht einmal, in `kasseReorderFor()`
    (`libs/domains/orders/domain/src/lib/reorder.ts`).
-3. **Vorbelegung.** Die Liste navigiert nach `/kasse` und gibt `{ table, settlementScope }` im
-   **Navigations-State** mit (Schlüssel `KASSE_REORDER_STATE_KEY`). Nicht in der URL: Ein Neuladen
-   der Kasse soll keinen Tisch wiederbeleben. `KassePageComponent` reicht die Vorbelegung nur an die
+3. **Vorbelegung.** Die Liste legt `{ table, settlementScope }` in `KasseReorderHandoff` ab und
+   navigiert nach `/kasse`; die Kasse nimmt den Wert beim Aufbau genau einmal (`take()`). Weder URL
+   noch Navigations-State: Den legt der Router in `history.state` und stellt ihn bei Neuladen und
+   Zurück wieder her, die Kasse buchte dann still wieder an Tisch 4. Scheitert die Navigation, nimmt
+   die Liste den Wert selbst zurück. `KassePageComponent` reicht die Vorbelegung nur an die
    **erste** Bestellung der Kasse weiter; bleibt man nach dem Abschicken in der Kasse, ist die nächste
    Bestellung wieder eine gewöhnliche.
 4. **Im Bestelldialog** zeigt eine Zeile über dem Raster „Nachbestellung · Tisch 4“. Die Abschlusskette
@@ -79,7 +81,8 @@ nach dem Anlegen `/print-order` aufruft und der Bon die Referenz liest.
 `/print-order` (`print-server.router.ts`) fragt `order-references` nach `targetOrderId` und
 `refType: Transaktion` und reicht `followUp` an `renderOrderReceipt`. Statt „Tisch: 4“ steht dann
 **„Nachbestellung · Tisch 4“** im Kopf, auf Küchen- und Vollbon. Doppelte Breite nur, solange die
-Zeile passt; sonst einfache Breite statt Umbruch. Der Bon enthält wie jeder Bestellbon nur die
+Zeile passt, sonst einfache Breite. Passt sie auch so nicht (langes Label auf 58 mm), stehen
+„Nachbestellung“ und „Tisch: …“ in zwei Zeilen statt eines Umbruchs mitten im Label. Der Bon enthält wie jeder Bestellbon nur die
 Positionen der neuen Bestellung. Fällt die Abfrage aus, druckt der Bon ohne Kennzeichnung
 (`print.order_follow_up_lookup_failed`).
 

@@ -1040,12 +1040,25 @@ describe('order-receipt.renderer — Nachbestellung (core#1140)', () => {
     expect(text).not.toContain('Nachbestellung')
   })
 
-  it('bricht die Kopfzeile auf 58 mm nicht um, sie wird schmaler statt umzubrechen', () => {
+  it('wird auf 58 mm einfach breit, solange die Kopfzeile in 32 Zeichen passt', () => {
     const zeilen = decodeEscPosLines(
-      renderOrderReceipt(tischOrder('Terrasse 12'), location, { paperWidth: '58mm', followUp: true }),
+      renderOrderReceipt(tischOrder('12'), location, { paperWidth: '58mm', followUp: true }),
       30,
     )
-    expect(zeilen.filter(z => z.text.includes('Nachbestellung'))).toHaveLength(1)
-    expect(zeilen.some(z => /Nachbestellung . Tisch Terrasse 12/.test(z.text))).toBe(true)
+    const kopf = zeilen.filter(z => z.text.includes('Nachbestellung'))
+    expect(kopf).toHaveLength(1)
+    expect(kopf[0].text.trim()).toMatch(/^Nachbestellung . Tisch 12$/)
+    // 58 mm = 32 Font-A-Spalten à 12 Dots. Doppelte Breite haette 2 × 25 Zeichen gebraucht.
+    expect(kopf[0].contentDots).toBeLessThanOrEqual(32 * 12)
+  })
+
+  it('teilt die Kopfzeile auf zwei Zeilen, wenn sie auch einfach breit nicht passt', () => {
+    const zeilen = decodeEscPosLines(
+      renderOrderReceipt(tischOrder('Terrasse am Fenster'), location, { paperWidth: '58mm', followUp: true }),
+      30,
+    ).map(z => z.text.trim())
+    expect(zeilen).toContain('Nachbestellung')
+    expect(zeilen).toContain('Tisch: Terrasse am Fenster')
+    expect(zeilen.some(z => z.includes('Nachbestellung ·'))).toBe(false)
   })
 })

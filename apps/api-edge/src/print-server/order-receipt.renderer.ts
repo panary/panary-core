@@ -130,11 +130,16 @@ export function renderOrderReceipt(
 
   // Tisch / Pager. Bei einer Nachbestellung sagt die Kopfzeile beides: Die Kueche kocht nur die
   // neuen Positionen und bringt sie an den Tisch, der schon isst (core#1140). Doppelte Breite nur,
-  // solange die Zeile passt — ein Umbruch mitten im Tisch-Label waere schlechter als kleinere Schrift.
-  if (order.table && followUp) {
-    const head = `Nachbestellung · Tisch ${order.table}`
-    const width = head.length * 2 <= cols ? 2 : 1
-    enc.align('center').bold(true).size(width, 2).line(head).size(1, 1).bold(false).align('left')
+  // solange die Zeile passt. Passt sie auch einfach breit nicht (langes Tisch-Label auf 58 mm),
+  // stehen „Nachbestellung" und der Tisch in zwei Zeilen — ein Umbruch mitten im Label waere
+  // schlechter lesbar als beides.
+  const followUpHead = order.table && followUp ? `Nachbestellung · Tisch ${order.table}` : null
+  if (followUpHead && followUpHead.length <= cols) {
+    const width = followUpHead.length * 2 <= cols ? 2 : 1
+    enc.align('center').bold(true).size(width, 2).line(followUpHead).size(1, 1).bold(false).align('left')
+  } else if (followUpHead) {
+    enc.align('center').bold(true).size(1, 2).line('Nachbestellung').size(1, 1).bold(false)
+    enc.align('center').bold(true).size(2, 2).line(`Tisch: ${order.table}`).size(1, 1).bold(false).align('left')
   } else if (order.table) {
     enc.align('center').bold(true).size(2, 2).line(`Tisch: ${order.table}`).size(1, 1).bold(false).align('left')
   }

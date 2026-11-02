@@ -10,19 +10,19 @@ import { ReturnAfterOrderService, TenantSuspensionService } from '@panary/shared
 import { KASSE_EXIT_URL, KassePageComponent, kasseOrigin } from './kasse-page.component'
 import { kasseBookingGuard, kasseLeaveGuard } from './kasse.guards'
 import { KasseDraftRegistry } from './kasse-draft-registry'
+import { KasseReorderHandoff } from './kasse-reorder-handoff'
 
-function setup(navigationSucceeds = true, previousUrl?: string, returnEnabled = true, navigationState?: unknown) {
+function setup(
+  navigationSucceeds = true,
+  previousUrl?: string,
+  returnEnabled = true,
+  handoff = new KasseReorderHandoff(),
+) {
   const navigations: string[] = []
   const suspended = signal(false)
   const notifications = new NotificationService()
   const router = {
-    currentNavigation: () =>
-      previousUrl || navigationState
-        ? {
-            ...(previousUrl ? { previousNavigation: { finalUrl: previousUrl } } : {}),
-            extras: { state: navigationState },
-          }
-        : null,
+    currentNavigation: () => (previousUrl ? { previousNavigation: { finalUrl: previousUrl } } : null),
     navigateByUrl: (url: string) => {
       navigations.push(url)
       return Promise.resolve(navigationSucceeds)
@@ -36,6 +36,7 @@ function setup(navigationSucceeds = true, previousUrl?: string, returnEnabled = 
       { provide: ReturnAfterOrderService, useValue: { enabled: () => returnEnabled } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
       { provide: NotificationService, useValue: notifications },
+      { provide: KasseReorderHandoff, useValue: handoff },
     ],
   })
   return { injector, navigations, suspended, notifications }
@@ -75,20 +76,21 @@ describe('KassePageComponent — Nachbestellung (core#1140)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     runInInjectionContext(injector, () => new KassePageComponent()) as any
 
-  it('reicht Tisch und Kreis aus dem Navigations-State nur an die erste Bestellung', () => {
-    const { injector } = setup(true, '/orders/active', false, {
-      kasseReorder: { table: '4', settlementScope: '4#1' },
-    })
-    const page = pageOf(injector)
+  it('reicht Tisch und Kreis nur an die erste Bestellung', () => {
+    const handoff = new KasseReorderHandoff()
+    handoff.offer({ table: '4', settlementScope: '4#1' })
+    const page = pageOf(setup(true, '/orders/active', false, handoff).injector)
 
     expect(page.reorderFor(0)).toEqual({ table: '4', settlementScope: '4#1' })
     expect(page.reorderFor(1)).toBeNull()
   })
 
-  it('ohne Navigations-State (Neuladen, Rail) ist nichts vorbelegt', () => {
-    const { injector } = setup(true, '/orders/active')
+  it('nimmt die Vorbelegung genau einmal: Eine zweite Kasse (Neuladen, Zurück, Rail) ist leer', () => {
+    const handoff = new KasseReorderHandoff()
+    handoff.offer({ table: '4', settlementScope: '4#1' })
+    pageOf(setup(true, '/orders/active', false, handoff).injector)
 
-    expect(pageOf(injector).reorderFor(0)).toBeNull()
+    expect(pageOf(setup(true, '/orders/active', false, handoff).injector).reorderFor(0)).toBeNull()
   })
 })
 

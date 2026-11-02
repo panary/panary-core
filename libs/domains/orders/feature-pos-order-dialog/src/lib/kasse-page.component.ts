@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core'
 import { Router } from '@angular/router'
-import { kasseReorderFromState } from '@panary/orders/domain'
 import { ReturnAfterOrderService } from '@panary/shared/data-access'
 import { KasseCloseReason, OrderDialogComponent } from './order-dialog.component'
+import { KasseReorderHandoff } from './kasse-reorder-handoff'
 
 /** Ziel von „Übersicht" und dem Verwerfen der Bestellung. */
 export const KASSE_EXIT_URL = '/dashboard'
@@ -51,10 +51,10 @@ export class KassePageComponent {
 
   /**
    * Nachbestellung aus „Offen" (core#1140), nur für die erste Bestellung dieser Kasse: Bleibt man nach dem Abschicken
-   * in der Kasse, ist die nächste Bestellung eine neue und nicht wieder die des Tisches. Aus dem Navigations-State und
-   * nicht aus der URL, damit ein Neuladen die Vorbelegung nicht wiederbelebt.
+   * in der Kasse, ist die nächste Bestellung eine neue und nicht wieder die des Tisches. Einmal genommen, damit ein
+   * Neuladen oder Zurück die Vorbelegung nicht wiederbelebt (`KasseReorderHandoff`).
    */
-  readonly #reorder = kasseReorderFromState(this.#router.currentNavigation?.()?.extras?.state)
+  readonly #reorder = inject(KasseReorderHandoff).take()
 
   protected reorderFor(run: number) {
     return run === 0 ? this.#reorder : null

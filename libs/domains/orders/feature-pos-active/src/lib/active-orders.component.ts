@@ -19,6 +19,7 @@ import {
   CASH_PAYMENT_DIALOG_CONFIG,
   CashPaymentDialogComponent,
   type CashPaymentDialogData,
+  KasseReorderHandoff,
 } from '@panary/orders/feature-pos-order-dialog'
 import {
   calculateModifierPrice,
@@ -40,7 +41,6 @@ import {
   fromCents,
   groupModifiersByComponent,
   groupOpenOrdersBySettlementScope,
-  KASSE_REORDER_STATE_KEY,
   kasseReorderFor,
   type KasseReorder,
   openOrderCircleTotalCents,
@@ -158,6 +158,7 @@ export class ActiveOrdersComponent {
   #discountService = inject(DiscountService)
   #translate = inject(TranslateService)
   #router = inject(Router)
+  #reorderHandoff = inject(KasseReorderHandoff)
 
   // Sort orders by recordingDate descending (Newest first).
   // Spread zwingend: ordersActive() ist ein memoisiertes computed — in-place sort
@@ -351,7 +352,14 @@ export class ActiveOrdersComponent {
    * Positionen kommen in eine neue Bestellung, nie an die bestehende.
    */
   reorder(preset: KasseReorder) {
-    void this.#router.navigate(['/kasse'], { state: { [KASSE_REORDER_STATE_KEY]: preset } })
+    this.#reorderHandoff.offer(preset)
+    // Kommt die Kasse nicht zustande (Sperre, Guard), darf die Vorbelegung nicht an der nächsten Kasse kleben.
+    void this.#router.navigate(['/kasse']).then(
+      navigated => {
+        if (!navigated) this.#reorderHandoff.take()
+      },
+      () => this.#reorderHandoff.take(),
+    )
   }
 
   toggleCircle(key: string) {

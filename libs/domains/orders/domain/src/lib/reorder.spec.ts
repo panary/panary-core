@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { KASSE_REORDER_STATE_KEY, kasseReorderFor, kasseReorderFromState } from './reorder'
+import { kasseReorderFor } from './reorder'
 
 describe('kasseReorderFor (core#1140)', () => {
   it('nimmt Tisch und Kreis einer Tisch-Bestellung', () => {
@@ -18,19 +18,5 @@ describe('kasseReorderFor (core#1140)', () => {
   it('bietet bei synthetischem oder fehlendem Kreis nichts an', () => {
     expect(kasseReorderFor({ table: '4', settlementScope: 'auto:0192-abc' })).toBeNull()
     expect(kasseReorderFor({ table: '4', settlementScope: null })).toBeNull()
-  })
-})
-
-describe('kasseReorderFromState (core#1140)', () => {
-  it('liest die Vorbelegung unter ihrem Schlüssel', () => {
-    const state = { navigationId: 3, [KASSE_REORDER_STATE_KEY]: { table: '4', settlementScope: '4#1' } }
-    expect(kasseReorderFromState(state)).toEqual({ table: '4', settlementScope: '4#1' })
-  })
-
-  it('verwirft fehlenden, fremden und unvollständigen State', () => {
-    expect(kasseReorderFromState(undefined)).toBeNull()
-    expect(kasseReorderFromState({ navigationId: 1 })).toBeNull()
-    expect(kasseReorderFromState({ [KASSE_REORDER_STATE_KEY]: { table: 4, settlementScope: '4#1' } })).toBeNull()
-    expect(kasseReorderFromState({ [KASSE_REORDER_STATE_KEY]: { table: '4', settlementScope: 'auto:x' } })).toBeNull()
   })
 })

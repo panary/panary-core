@@ -215,3 +215,37 @@ describe('LocationService — Effect beim Start (core#644)', () => {
     expect(service.activeLocation()).toEqual({ _id: 'loc-1', name: 'Online-Stand' })
   })
 })
+
+describe('LocationService.setCurrentBusinessDayLocally (core#1171)', () => {
+  it('setzt den Zeiger der aktiven Filiale auf den eben eröffneten Tag, die übrigen Felder bleiben', async () => {
+    const { service } = setup()
+    await service.restoreActiveLocationFromCache()
+
+    service.setCurrentBusinessDayLocally({ _id: 'bd-neu', date: '2026-11-02' })
+
+    expect(service.activeLocation()).toEqual({
+      ...CACHED_LOCATION,
+      currentBusinessDay: { businessDayId: 'bd-neu', date: '2026-11-02' },
+    })
+  })
+
+  it('ohne aktive Filiale bleibt sie leer', () => {
+    const { service } = setup({ cached: undefined })
+    service.setCurrentBusinessDayLocally({ _id: 'bd-neu', date: '2026-11-02' })
+    expect(service.activeLocation()).toBeUndefined()
+  })
+
+  it('ohne Tag-Kennung bleibt die Filiale, wie sie ist', async () => {
+    const { service } = setup()
+    await service.restoreActiveLocationFromCache()
+    service.setCurrentBusinessDayLocally({ date: '2026-11-02' })
+    expect(service.activeLocation()).toEqual(CACHED_LOCATION)
+  })
+
+  it('ohne Datum bleibt die Filiale, wie sie ist', async () => {
+    const { service } = setup()
+    await service.restoreActiveLocationFromCache()
+    service.setCurrentBusinessDayLocally({ _id: 'bd-neu' })
+    expect(service.activeLocation()).toEqual(CACHED_LOCATION)
+  })
+})

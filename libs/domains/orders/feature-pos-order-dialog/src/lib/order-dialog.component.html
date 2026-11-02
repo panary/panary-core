@@ -476,6 +476,35 @@
 
   <!-- ═══════════════ RASTER ═══════════════ -->
   <div class="kasse__grid flex flex-col min-h-0 mr-3 relative">
+    <!-- Fehlender Geschäftstag (core#1171): Hinweis im Fluss über dem Raster, sperrt nichts. Das Absenden scheitert
+         ohne Tag weiter mit der Server-Meldung. Der Knopf nur cloud-direkt, gepairt eröffnet der Cloud-Admin. Die
+         Live-Region steht immer (wie `kasse__notice`), damit ein Screenreader auch den ersten Hinweis liest. -->
+    <div class="shrink-0" role="status" aria-live="polite" data-testid="business-day-hint">
+      @if (businessDayHint(); as hint) {
+        <div
+          class="mx-3 mb-2 flex items-center gap-3 rounded-card border border-warn-line bg-warn-soft px-4 py-2 text-sm text-warn-ink"
+        >
+          <lib-icon name="warning" class="shrink-0" style="font-size: 1.25rem" />
+          <span class="min-w-0 flex-1 font-semibold">
+            {{
+              (hint === 'open-here'
+                ? 'ORDER_DIALOG.BUSINESS_DAY_HINT_OPEN_HERE'
+                : 'ORDER_DIALOG.BUSINESS_DAY_HINT_ADMIN'
+              ) | translate
+            }}
+          </span>
+          @if (hint === 'open-here') {
+            <button
+              type="button"
+              class="pnry-touch h-10 shrink-0 rounded-control bg-action px-4 font-bold text-on-action active:scale-[0.97] transition-transform"
+              (click)="openBusinessDayFromHint()"
+            >
+              {{ 'ORDER_DIALOG.BUSINESS_DAY_HINT_ACTION' | translate }}
+            </button>
+          }
+        </div>
+      }
+    </div>
     <!-- Solange das Anpassen-Sheet offen ist, entfällt das Raster darunter (bis core#909 stand es im @else des Sheets). -->
     <!-- Ansichtswechsel (core#1069): Der Inhalt hängt an `viewKey` und wird bei jedem Wechsel neu aufgebaut — so gleitet
          er von der Rasterseite herein (order-dialog.component.scss). Ein Tipp in derselben Ansicht ändert den

@@ -1,7 +1,7 @@
 ---
 type: Domain Concept
 title: POS-Kasse als Route /kasse
-description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen und Abmelden nachfragt, warum der Auto-Logout eine angefangene Bestellung verwirft (core#1064) und wie sie ein Neuladen auf /kasse übersteht.'
+description: 'Warum die Kasse seit core#828 eine Route statt eines MatDialogs ist, wie sie nach jeder Bestellung frisch startet, wer beim Verlassen und Abmelden nachfragt, warum der Auto-Logout eine angefangene Bestellung verwirft (core#1064) wie sie ein Neuladen auf /kasse übersteht und wann sie vor einem fehlenden Geschäftstag warnt (core#1171).'
 tags: [orders, pos, ui, routing]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-25T22:40:00Z }
@@ -116,7 +116,8 @@ nicht geladen werden" wurde bis [core#868](https://github.com/panary/panary-core
 
 `blockingReason` ist deshalb ein `computed()` aus `activeLocation()`: Der Blocker steht, solange kein
 Standort geladen ist, und verschwindet, sobald er eintrifft. Fällt der Standort weg, kommt er wieder.
-Ein fehlender Geschäftstag blockiert weiterhin nicht, den legt der Edge beim ersten Order an.
+Ein fehlender Geschäftstag blockiert weiterhin nicht. Am Standalone-Edge legt ihn die erste Bestellung an, sonst
+weist der Hinweis unten darauf hin.
 
 Zwei weitere Werte las der Konstruktor einmal und hielten deshalb den Stand „ohne Standort"
 ([core#878](https://github.com/panary/panary-core/issues/878)): die Vorbelegung des Kanals (sonst Telefon statt
@@ -124,6 +125,35 @@ Kasse im Kassenbetrieb) und die Pauschalpreise für Beilage und Getränk (sonst 
 `linkedSignal` über den Betriebsmodus. Als Quelle dient ein `computed`, kein Funktionsliteral: Ein Refresh des
 Standorts mit gleichem Modus setzt die Wahl des Kassierers so nicht zurück. Die Preise sind Getter auf den
 Standort.
+
+## Hinweis auf fehlenden Geschäftstag (core#1171)
+
+Am cloud-direkten POS lehnte die Cloud eine fertig aufgebaute Bestellung erst beim Absenden ab („kein
+Geschäftstag eröffnet"). Seit [core#1171](https://github.com/panary/panary-core/issues/1171) steht über dem
+Raster vorher ein Hinweis. Er sperrt nichts: Das Absenden scheitert ohne Tag wie bisher mit der Server-Meldung.
+
+Die Entscheidung liegt als reine Funktion in
+[`business-day-hint.ts`](../../libs/domains/orders/feature-pos-order-dialog/src/lib/business-day-hint.ts) und spiegelt
+den Server:
+
+| Lage | Hinweis | Warum |
+|---|---|---|
+| cloud-direkt (`tier() === 'cloud-direct'`), kein Tag | mit Knopf „Tag eröffnen" | Die Cloud eröffnet keinen Tag von selbst, `openDay` am Gerät geht |
+| Edge, Pairing `connected`, kein Offline-Override, kein Tag | nur Text „im Cloud-Admin eröffnen" | Die Edge rotiert dann nicht und lehnt externes `openDay` ab (`guardCloudManagedLifecycle`) |
+| Edge ohne Pairing oder mit Offline-Override | keiner | Die erste Bestellung legt den Tag an (`restrict-order-to-business-day.ts`) |
+| `/health` noch nicht geladen, Filiale nicht geladen, offline, Tag offen | keiner | Betriebsart unbekannt, Sperr-Overlay steht, Outbox, bzw. nichts zu tun |
+
+Maßgeblich ist der Pairing-Status (`cloudPaired()`), nicht `systemMode`, wie in der Edge selbst. „Tag offen"
+ist dasselbe Prädikat wie beim Mehr-Menü-Eintrag (`currentBusinessDay.businessDayId`). Der Knopf öffnet den
+`OpeningDialogComponent` wie das Mehr-Menü. Danach setzt `LocationService.setCurrentBusinessDayLocally()` den
+Zeiger sofort lokal: Die Cloud patcht `location.currentBusinessDay` nur fehlertolerant, und ob das Patch-Event den
+cloud-direkten POS erreicht, ist nicht gesichert. Ein späteres Realtime-Update überschreibt den Wert.
+
+Nicht abgedeckt: Ruhetage (an der Edge prüft `assertClosedDayApproved` auch standalone und mit Override, die
+Bestellung scheitert dort ohne Hinweis; cloud-direkt siehe panary/panary-cloud#1507), ein Tag, der zwar existiert,
+aber zu alt ist (`BUSINESS_DAY_TOO_OLD`, `BUSINESS_DAY_OPEN_TOO_LONG`), der Fall, dass POS-Zeiger und das
+Cloud-Gate (`businessdays` mit `status: 'open'`) kurz auseinanderlaufen, und die Text-Variante am gepairten Edge
+außerhalb des Unit-Tests.
 
 ## Mandantensperre
 

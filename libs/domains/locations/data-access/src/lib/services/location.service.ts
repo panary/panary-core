@@ -237,6 +237,20 @@ export class LocationService extends BaseService<Location> {
   /** PUBLIC METHODS */
 
   /**
+   * Setzt den Zeiger auf den eben am Gerät eröffneten Geschäftstag sofort lokal (panary/panary-core#1171).
+   * Die Cloud patcht `location.currentBusinessDay` nach `openDay` nur fehlertolerant, und ob das Patch-Event den
+   * cloud-direkten POS erreicht, ist offen. Ein späteres Realtime-Update überschreibt den Wert mit dem Server-Stand.
+   */
+  setCurrentBusinessDayLocally(businessDay: { _id?: unknown; date?: string }): void {
+    const active = this.#activeLocation()
+    if (!active || !businessDay._id || !businessDay.date) return
+    this.#activeLocation.set({
+      ...active,
+      currentBusinessDay: { businessDayId: String(businessDay._id), date: businessDay.date },
+    })
+  }
+
+  /**
    * Setzt die aktive Location des gekoppelten Geräts aus dem Offline-Cache, solange
    * keine authentifizierte Verbindung besteht (core#644). Ein Online-Stand hat Vorrang:
    * Ist `activeLocation` schon gesetzt oder die Verbindung inzwischen authentifiziert,

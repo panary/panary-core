@@ -250,6 +250,11 @@ export class ActiveOrdersComponent {
   protected readonly isCashierMode = computed(() => this.#isCashierMode())
   protected readonly isSyntheticSettlementScope = isSyntheticSettlementScope
 
+  /** Das Kürzel „T“ passt nur zu Tischnummern, nicht zu Namen wie „Terrasse am Fenster“. */
+  protected tableChipLabel(table: string): string {
+    return /^\d+$/.test(table) ? `T${table}` : table
+  }
+
   zoomLevel: WritableSignal<number> = signal(readStoredZoom())
   selectedOrderId: WritableSignal<string | null> = signal(null)
 

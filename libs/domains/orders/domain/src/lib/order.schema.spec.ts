@@ -3,6 +3,7 @@ import { Value } from '@sinclair/typebox/value'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import {
+  creationContextSchema,
   genericLineItemSchema,
   lineComponentSchema,
   modifierLineItemSchema,
@@ -252,5 +253,23 @@ describe('orderQuerySchema — Dot-Felder innerhalb von $or', () => {
 
   it('lehnt ein unbekanntes Feld innerhalb von $or weiterhin ab', () => {
     expect(Value.Check(orderQuerySchema, { $or: [{ nichtVorhanden: 'x' }] })).toBe(false)
+  })
+})
+
+describe('creationContextSchema — Geraetename als Snapshot (#1303)', () => {
+  const createdBy = UUID.line
+  const createdVia = UUID.group
+
+  it('nimmt createdViaName neben createdVia an', () => {
+    expect(Value.Check(creationContextSchema, { createdBy, createdVia, createdViaName: 'Kasse 1' })).toBe(true)
+  })
+
+  it('bleibt ohne createdViaName gueltig (Bestandsorders)', () => {
+    expect(Value.Check(creationContextSchema, { createdBy, createdVia })).toBe(true)
+  })
+
+  it('lehnt einen Namen ueber 100 Zeichen ab — dieselbe Grenze wie device.name', () => {
+    expect(Value.Check(creationContextSchema, { createdBy, createdViaName: 'x'.repeat(100) })).toBe(true)
+    expect(Value.Check(creationContextSchema, { createdBy, createdViaName: 'x'.repeat(101) })).toBe(false)
   })
 })

@@ -157,7 +157,19 @@ export function createOrderSplitMethod(app: Application) {
       // Der Riegel von `assignSettlementScope()` darf die Teilbestellung nicht in
       // einen anderen Besuch umsetzen: Eine `unclaimed`-Quelle hat ihren Kreis
       // geschlossen, und der Split ist eine Umbuchung INNERHALB dieses Kreises.
-      { ...params, inheritSettlementScope: true },
+      //
+      // Geraet und Geraetename erbt der Teilbeleg von der Quelle (#1303): Er gehoert
+      // zum urspruenglichen Bon, nicht zur Kasse, die teilt. Ueber `params`, weil der
+      // Resolver Body-Werte in einer Geraete-Session verwirft. Der Bediener
+      // (`createdBy`) bleibt der, der teilt.
+      {
+        ...params,
+        inheritSettlementScope: true,
+        inheritCreationDevice: {
+          createdVia: source.creationContext?.createdVia,
+          createdViaName: source.creationContext?.createdViaName,
+        },
+      },
     )) as Order
 
     // --- Quelle: Gegenbuchung anhaengen ---

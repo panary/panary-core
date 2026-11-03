@@ -118,6 +118,9 @@ export class CashPaymentDialogComponent {
       if (result === 'closed-day-declined') {
         this.#notifications.warning(this.#translate.instant('CLOSED_DAY.DECLINED'))
       }
+      if (result === 'timeout') {
+        this.#notifications.warning(this.#translate.instant('ORDER_DIALOG.PAYMENT_TIMEOUT'), { sticky: true })
+      }
       // `failed`: `handleError` hat schon gemeldet, die Ansicht bleibt für einen neuen Versuch stehen.
     } finally {
       this.paying.set(false)

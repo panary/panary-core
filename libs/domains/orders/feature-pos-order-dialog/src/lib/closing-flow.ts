@@ -16,8 +16,8 @@ export interface ClosingStepView {
 const LABELS: Record<ClosingStep, string> = { pager: 'Pager', table: 'Tisch', time: 'Zeit' }
 
 /**
- * Die Folge, wie die Kasse sie durchläuft: Die Tischwahl erreicht man nur über einen gewählten Pager
- * (`setPagerSubbuttons`), die Fertigungszeit fragt nur Außer Haus (#343). Eine Nachbestellung bringt ihren Tisch
+ * Die Folge, wie die Kasse sie durchläuft: Die Tischwahl fragt jede Filiale mit aktiven Tischen, mit oder ohne Pager
+ * (core#1308), die Fertigungszeit fragt nur Außer Haus (#343). Eine Nachbestellung bringt ihren Tisch
  * mit (`tablePreset`, core#1140): Dann fragt die Kette ihn nicht.
  */
 export function closingSteps(options: {
@@ -27,10 +27,8 @@ export function closingSteps(options: {
   tablePreset?: boolean
 }): ClosingStep[] {
   const steps: ClosingStep[] = []
-  if (options.showPagers) {
-    steps.push('pager')
-    if (options.showTables && !options.tablePreset) steps.push('table')
-  }
+  if (options.showPagers) steps.push('pager')
+  if (options.showTables && !options.tablePreset) steps.push('table')
   if (options.takeOut) steps.push('time')
   return steps
 }

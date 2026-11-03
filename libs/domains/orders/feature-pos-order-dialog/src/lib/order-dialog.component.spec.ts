@@ -3728,8 +3728,20 @@ describe('Kasse — Schrittkopf und Ansichtswechsel (core#1069)', () => {
     component.selectDineLocation('OUTSIDE')
     expect(states(component)).toEqual(['pager:current', 'table:next', 'time:next'])
     byName(component.functionButtons, 'KEIN PAGER').callback()
+    expect(states(component)).toEqual(['pager:done', 'table:current', 'time:next'])
+    byName(component.functionButtons, 'KEIN TISCH').callback()
 
     expect(states(component)).toEqual(['pager:done', 'table:done', 'time:current'])
+  })
+
+  it('fragt den Tisch auch nach „KEIN PAGER" (core#1308)', () => {
+    const component = chain()
+    component.selectDineLocation('INSIDE')
+
+    byName(component.functionButtons, 'KEIN PAGER').callback()
+
+    expect(states(component)).toEqual(['pager:done', 'table:current'])
+    expect(byName(component.productButtons, '3').kindLabel).toBe('Tisch')
   })
 
   it('vergisst den Pager bei „KEIN PAGER", auch wenn er schon gewählt war', () => {

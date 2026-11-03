@@ -21,8 +21,8 @@ describe('closingSteps — Folge der Abschlusskette (core#1069)', () => {
     ])
   })
 
-  it('kennt den Tisch nur nach dem Pager, wie die Kasse ihn erreicht', () => {
-    expect(closingSteps({ showPagers: false, showTables: true, takeOut: true })).toEqual(['time'])
+  it('fragt den Tisch auch ohne Pager (core#1308)', () => {
+    expect(closingSteps({ showPagers: false, showTables: true, takeOut: true })).toEqual(['table', 'time'])
   })
 })
 

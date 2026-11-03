@@ -1270,6 +1270,15 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.locationService.showPagers) {
       this.setPagerSubbuttons()
     } else {
+      this.#continueAfterPager()
+    }
+  }
+
+  /** Nach der Pager-Wahl (oder ohne Pager): Tisch fragen, wo Tische aktiv sind, sonst weiter zur Fertigungszeit. */
+  #continueAfterPager(): void {
+    if (this.locationService.showTables && !this.reorder()) {
+      this.setTableSubbuttons()
+    } else {
       this.setProductionTimeSubbuttons()
     }
   }
@@ -1390,7 +1399,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       iconName: 'arrow-right',
       callback: () => {
         this._pager = undefined
-        this.setProductionTimeSubbuttons()
+        this.#continueAfterPager()
       },
     })
     this.locationService.pagers.forEach((pager, index) => {
@@ -1409,11 +1418,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         isFunctionButton: true,
         callback: () => {
           this._pager = pager
-          if (this.locationService.showTables && !this.reorder()) {
-            this.setTableSubbuttons()
-          } else {
-            this.setProductionTimeSubbuttons()
-          }
+          this.#continueAfterPager()
         },
       })
     })

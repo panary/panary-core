@@ -733,6 +733,7 @@
     "PAYMENT_COLLECT": "Bar kassieren",
     "PAYMENT_KEEP_OPEN": "Offen lassen",
     "PAYMENT_CASH_SESSION_DECLINED": "Kasse nicht freigegeben. Die Bestellung bleibt offen.",
+    "PAYMENT_TIMEOUT": "Keine Antwort vom Server. Bitte in „Offen“ prüfen, ob die Bestellung gebucht wurde.",
     "STAFF_MEAL": "Personalessen",
     "CORPORATE_CUSTOMER": "Firmenkunde",
     "SHOW_PRICES": "Preise einblenden",

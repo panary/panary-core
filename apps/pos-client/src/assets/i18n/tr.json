@@ -733,6 +733,7 @@
     "PAYMENT_COLLECT": "Nakit tahsil et",
     "PAYMENT_KEEP_OPEN": "Açık bırak",
     "PAYMENT_CASH_SESSION_DECLINED": "Kasa onaylanmadı. Sipariş açık kalır.",
+    "PAYMENT_TIMEOUT": "Sunucudan yanıt yok. Siparişin kaydedilip kaydedilmediğini “Açık” bölümünden kontrol edin.",
     "STAFF_MEAL": "Personel yemeği",
     "CORPORATE_CUSTOMER": "Kurumsal müşteri",
     "SHOW_PRICES": "Fiyatları göster",

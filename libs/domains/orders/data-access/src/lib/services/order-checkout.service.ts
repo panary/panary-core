@@ -25,10 +25,27 @@ export interface PayCashInput {
 /**
  * `paid` — bezahlt und abgeschlossen. `cash-session-declined` — die Freigabe kam nicht zustande.
  * `closed-day-declined` — am Ruhetag wurde nicht freigegeben.
+ * `timeout` — die Edge hat nicht geantwortet; ob gebucht wurde, ist offen, die Meldung dafür kommt vom Aufrufer.
  * `failed` — der Server hat abgelehnt (die Fehler-Notification kommt schon aus `handleError`). Nur `BD_6004` und
  * `BD_6010` beim ersten Auftreten bleiben still, weil der jeweilige Freigabe-Dialog die Lage erklärt.
  */
-export type PayCashResult = 'paid' | 'cash-session-declined' | 'closed-day-declined' | 'failed'
+export type PayCashResult = 'paid' | 'cash-session-declined' | 'closed-day-declined' | 'failed' | 'timeout'
+
+/** So lange wartet der Zahlablauf auf die Antwort der Edge, bevor er aufgibt (core#1309). */
+export const PAY_TIMEOUT_MS = 20_000
+
+class PayTimeoutError extends Error {}
+
+/**
+ * Ein Socket-Aufruf, dessen Ack ausbleibt (verlorene Anfrage, Edge fällt vor der Antwort aus), wartet sonst endlos:
+ * Der Bezahldialog bliebe offen, bis die Kasse neu geladen wird. Die Anfrage selbst lässt sich nicht abbrechen — ob
+ * die Buchung doch durchging, klärt die frische Lesung vor dem nächsten Versuch (`payCashCircle`).
+ */
+const withTimeout = <T>(call: Promise<T>, ms: number = PAY_TIMEOUT_MS): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new PayTimeoutError('Keine Antwort der Edge')), ms)
+    call.then(resolve, reject).finally(() => clearTimeout(timer))
+  })
 
 /** Eingabe für „Tisch kassieren“: die Zahlliste aus `tableCheckoutPlan`, die Summen in Euro wie bei `payCash`. */
 export interface PayCashCircleInput extends Omit<PayCashInput, 'orderId' | 'total'> {
@@ -103,9 +120,10 @@ export class OrderCheckoutService {
         (expectCashSession && isCashSessionRequired(err)) || (expectClosedDay && isLocationClosedToday(err))
       const params = expectCashSession || expectClosedDay ? { isExpectedError: expected } : undefined
       try {
-        await this.#orders.patch(input.orderId, payload, params)
+        await withTimeout(this.#orders.patch(input.orderId, payload, params))
         return 'paid'
       } catch (err) {
+        if (err instanceof PayTimeoutError) return 'timeout'
         if (!expected(err)) return 'failed'
         if (isLocationClosedToday(err)) {
           askedClosedDay = true
@@ -144,9 +162,9 @@ export class OrderCheckoutService {
     for (const [index, order] of input.orders.entries()) {
       let status: string | undefined
       try {
-        status = (await this.#orders.get(order.orderId))?.status
-      } catch {
-        return stopAt(index, 'failed')
+        status = (await withTimeout(this.#orders.get(order.orderId)))?.status
+      } catch (err) {
+        return stopAt(index, err instanceof PayTimeoutError ? 'timeout' : 'failed')
       }
       if (!isOrderOpen(status)) {
         skipped.push(order.orderId)

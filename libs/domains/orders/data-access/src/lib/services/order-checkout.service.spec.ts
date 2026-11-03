@@ -1,8 +1,8 @@
 import '@angular/compiler'
 import { Injector, runInInjectionContext } from '@angular/core'
 import { OrderStatus, PaymentState, TransactionMethod } from '@panary/orders/domain'
-import { describe, expect, it, vi } from 'vitest'
-import { buildCashPayment, isCashSessionRequired, OrderCheckoutService } from './order-checkout.service'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { buildCashPayment, isCashSessionRequired, OrderCheckoutService, PAY_TIMEOUT_MS } from './order-checkout.service'
 import { OrderService } from './order.service'
 
 const CASH_SESSION_ERROR = { data: { code: 'BD_6004' } }
@@ -263,5 +263,43 @@ describe('OrderCheckoutService.payCashCircle — Tisch kassieren (core#1142)', (
 
     expect(outcome).toEqual({ result: 'failed', paid: ['o-1'], skipped: [], remaining: ['o-2'] })
     expect(patched.map(c => c.id)).toEqual(['o-1'])
+  })
+})
+
+// core#1309: Ein ausbleibendes Ack ließ den Bezahldialog endlos offen.
+describe('OrderCheckoutService — Timeout ohne Antwort der Edge (core#1309)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('payCash gibt nach dem Timeout `timeout` zurück, statt endlos zu warten', async () => {
+    vi.useFakeTimers()
+    const patch = vi.fn(() => new Promise<never>(() => undefined))
+    const injector = Injector.create({ providers: [{ provide: OrderService, useValue: { patch } }] })
+    const service = runInInjectionContext(injector, () => new OrderCheckoutService())
+
+    const result = service.payCash(input())
+    await vi.advanceTimersByTimeAsync(PAY_TIMEOUT_MS)
+
+    await expect(result).resolves.toBe('timeout')
+  })
+
+  it('payCashCircle hält bei ausbleibender Antwort an und nennt den Rest', async () => {
+    vi.useFakeTimers()
+    const patch = vi.fn(async () => ({}))
+    const get = vi.fn((id: string) =>
+      id === 'o-1' ? Promise.resolve({ status: 'active' }) : new Promise<never>(() => undefined),
+    )
+    const injector = Injector.create({ providers: [{ provide: OrderService, useValue: { patch, get } }] })
+    const service = runInInjectionContext(injector, () => new OrderCheckoutService())
+
+    const outcome = service.payCashCircle({
+      ...input(),
+      orders: [
+        { orderId: 'o-1', total: 5 },
+        { orderId: 'o-2', total: 7 },
+      ],
+    } as never)
+    await vi.advanceTimersByTimeAsync(PAY_TIMEOUT_MS)
+
+    await expect(outcome).resolves.toEqual({ result: 'timeout', paid: ['o-1'], skipped: [], remaining: ['o-2'] })
   })
 })

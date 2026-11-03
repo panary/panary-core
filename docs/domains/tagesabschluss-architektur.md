@@ -181,6 +181,28 @@ Bis panary/panary-core#133 rechnete [`cash-reconciliation.ts`](../../libs/domain
 
 ---
 
+## Gebuchte Zahlung einer abgeschlossenen Bestellung ist fest
+
+Die Pro-Kassierer-Abstimmung liest `payment.transactions[].performedBy` der abgeschlossenen
+Bestellungen. Bis panary/panary-core#1300 ersetzte ein zweiter Patch `{ payment, status: 'completed' }`
+— etwa wenn zwei Kassen dieselbe Bestellung aus einer veralteten Liste kassieren — die gebuchte
+Zahlung samt Kassierer: Der Gast zahlte einmal, gezählt wurde bei der zweiten Lade.
+
+Seither lehnt der Edge jede **externe** Änderung von `payment` auf einer nicht mehr offenen
+Bestellung (`completed`, `unclaimed`, `aborted`) ab: `400 Bad Request`, `data.code` `ORDER_7001`
+(`ORDER_ALREADY_SETTLED`), [lock-settled-order-payment.hook.ts](../../apps/api-edge/src/hooks/lock-settled-order-payment.hook.ts).
+
+- **Dieselbe Zahlung noch einmal** (verlorene Antwort, Wiederholung nach der Kassen-Freigabe) geht
+  durch: Gleich heißt dieselben Transaktions-`_id`s. `payment` fällt dann aus dem Patch, der
+  gespeicherte Stand bleibt.
+- **400 statt 409:** Die POS-Outbox quittiert 409 still als „schon vorhanden". Eine offline kassierte
+  Zahlung, die auf eine inzwischen anderswo abgeschlossene Bestellung trifft, landet mit 400 als
+  abgelehnter Eintrag beim Bediener, statt spurlos zu verschwinden.
+- **Rennen:** Externe Zahlungs-Patches derselben Bestellung laufen hinter einem Mutex je Bestellung
+  (Around-Hook), sonst lesen zwei gleichzeitige Kassiervorgänge beide „offen".
+- **Frei bleiben** interne Aufrufe (Sync-Apply, Worker) sowie Storno und Nichtabholung — beide
+  schicken kein `payment`.
+
 ## Kassenladen: höchstens eine offene je Kassierer und Tag
 
 Im `pos-cashier`-Modus bucht `restrictOrderToCashSession` jede Barzahlung auf die offene Lade

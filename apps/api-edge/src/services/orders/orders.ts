@@ -54,6 +54,7 @@ import { recordFollowUpReference } from '../../hooks/record-follow-up-reference.
 import { recordOrderPatchInteraction } from '../../hooks/record-order-patch-interaction'
 import { signOrderTseCancel, signOrderTseFinish, signOrderTseStart } from '../../hooks/sign-order-tse.hook'
 import { validateOrderStatusTransition } from '../../hooks/validate-order-status-transition.hook'
+import { lockSettledOrderPayment, serializeOrderPaymentPatch } from '../../hooks/lock-settled-order-payment.hook'
 import { requireOrderCancelAuthorization } from '../../hooks/require-order-cancel-authorization.hook'
 import { attributeOrderOperators } from '../../hooks/attribute-order-operators.hook'
 import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
@@ -151,6 +152,7 @@ export const orders = (app: Application) => {
         schemaHooks.resolveExternal(orderExternalResolver),
         schemaHooks.resolveResult(orderResolver),
       ],
+      patch: [serializeOrderPaymentPatch],
     },
     before: {
       all: [schemaHooks.validateQuery(orderQueryValidator), schemaHooks.resolveQuery(orderQueryResolver)],
@@ -204,6 +206,8 @@ export const orders = (app: Application) => {
         // Vorwärts-Übergänge (inkl. COMPLETED → UNCLAIMED/ABORTED), interne
         // (kein provider) und Same-Status-Patches passieren.
         validateOrderStatusTransition,
+        // Gebuchte Zahlung einer abgeschlossenen Bestellung ist fest (#1300) — vor jeder Nebenwirkung.
+        lockSettledOrderPayment,
         // Storno von Geräten nur mit Bediener-Token eines Managers/Inhabers
         // (#619, ADR 0053). Vor Kassen- und TSE-Hooks: Ein abgelehnter Storno
         // hinterlässt keine fiskalische Nebenwirkung.

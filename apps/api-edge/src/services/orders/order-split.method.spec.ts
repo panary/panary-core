@@ -314,6 +314,13 @@ describe('orders.split — Schreibpfad', () => {
     expect(created.dailySequenceNumber).toBe(0)
   })
 
+  it('gibt dem Teilbeleg den teilenden Bediener als Rueckfall mit, nie die Geraete-UUID (#1311)', async () => {
+    const h = makeApp()
+    await call(h.app, { orderId: 'order-quelle', lineItems: [{ lineItemRowId: 'l2' }], performedBy: 'bediener-1' })
+
+    expect(h.orderCreate.mock.calls[0][0].creationContext).toEqual({ createdBy: 'bediener-1' })
+  })
+
   it('stempelt businessDayId NICHT selbst — die Zielbestellung erbt restrictOrderToBusinessDay()', async () => {
     const h = makeApp()
     await call(h.app, { orderId: 'order-quelle', lineItems: [{ lineItemRowId: 'l2' }] })

@@ -140,13 +140,17 @@ export const orderDataResolver = resolve<Order, HookContext<OrderService>>({
   creationContext: async (value, data, context) => {
     // Geraet (#619, ADR 0053): Bediener aus dem Token, sonst der Body-Wert als
     // „unbelegt“. Vorher stand hier die Geraete-UUID — kein Mensch.
-    const deviceOperator = isDeviceSession((context.params as any)?.user)
+    const isDevice = isDeviceSession((context.params as any)?.user)
+    const deviceOperator = isDevice
       ? attributedOperatorId(context.params, value?.createdBy, {
           service: 'orders',
           field: 'creationContext.createdBy',
         })
       : undefined
-    const rawUserId: string | undefined = deviceOperator || (context.params as any)?.user?._id || value?.createdBy
+    // Eine Geraete-Session faellt nie auf `params.user._id` zurueck: Das ist `device:<uuid>`, kein Mensch (#1311).
+    const rawUserId: string | undefined = isDevice
+      ? deviceOperator
+      : (context.params as any)?.user?._id || value?.createdBy
     const device = await resolveCreationDevice(value, context)
 
     if (!rawUserId && !device.createdVia) {

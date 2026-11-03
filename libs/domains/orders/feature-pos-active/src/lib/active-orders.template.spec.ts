@@ -288,3 +288,14 @@ describe('Offene Bestellungen — Tisch kassieren (core#1142)', () => {
     expect(checkout).toMatch(/catch \{[\s\S]*?return\s*\}/)
   })
 })
+
+// core#1310: Der Tisch-Chip hängte „T" fest an, auch an Namen („TTerrasse am Fenster").
+describe('Offene Bestellungen — Tisch-Chip (core#1310)', () => {
+  it('das Kürzel T steht nur vor Tischnummern', () => {
+    const template = read('./active-orders.component.html')
+    const component = read('./active-orders.component.ts')
+    expect(template).not.toMatch(/T\{\{ order\.table \}\}/)
+    expect(template).toMatch(/\{\{ tableChipLabel\(order\.table\) \}\}/)
+    expect(component).toMatch(/\/\^\\d\+\$\/\.test\(table\) \? `T\$\{table\}` : table/)
+  })
+})

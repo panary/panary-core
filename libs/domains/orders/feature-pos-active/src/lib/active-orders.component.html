@@ -437,7 +437,7 @@
                         }
                         @if (order.table) {
                           <span class="bg-line-soft text-ink-muted dark:text-ink px-2 py-0.5 rounded text-xs font-bold">
-                            T{{ order.table }}
+                            {{ tableChipLabel(order.table) }}
                           </span>
                         } @else if (order.settlementScope && !isSyntheticSettlementScope(order.settlementScope)) {
                           <!--

@@ -141,6 +141,9 @@ export function createOrderSplitMethod(app: Application) {
         // neu abgeleitet.
         settlementScope: source.settlementScope,
         table: source.table ?? null,
+        // Der Bediener, der teilt — Rueckfall, wenn das Geraet kein gueltiges Bediener-Token mitbringt (#1311).
+        // Mit Token schlaegt dieses den Body-Wert; nie die Geraete-UUID.
+        creationContext: { createdBy: data.performedBy ?? source.creationContext?.createdBy },
         lineItems: plan.targetLineItems,
         appliedDiscounts: plan.targetAppliedDiscounts,
         // `taxSnapshot` schreibt `calculateTaxDetails` — bewusst EIN Schreiber.

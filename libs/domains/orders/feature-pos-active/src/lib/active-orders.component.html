@@ -42,8 +42,10 @@
                  Einzelbestellungen als gewohnte Karten direkt dahinter. -->
             <div [style.zoom]="zoomLevel()" class="flex flex-col gap-2 w-80 shrink-0">
               <!-- Aktionen des Kreises über der Karte: Die Karte selbst ist ein Button (Aufklappen). Zwei Tasten teilen
-                   sich die Kartenbreite, deshalb ohne Icon: Mit Icon liefen sie über die 20rem der Karte hinaus. -->
-              <div class="flex-none h-12 flex items-center justify-end gap-2">
+                   sich die Kartenbreite, deshalb ohne Icon: Mit Icon liefen sie über die 20rem der Karte hinaus.
+                   Höhe wie die Zeile der Einzelkarte (core#1316): `pnry-touch` statt fest `h-12`, sonst ragten die
+                   Knöpfe heraus und die Kreis-Karte begann höher als ihre Nachbarn. -->
+              <div class="flex-none pnry-touch flex items-center justify-end gap-2">
                 @if (entry.reorder; as preset) {
                   <button
                     type="button"
@@ -104,7 +106,7 @@
             <!-- Karten-Wrapper: Buttons oben, Karte darunter — passt sich Inhalt an -->
             <div [style.zoom]="zoomLevel()" class="flex flex-col gap-2 w-80 shrink-0">
               <!-- ── Aktions-Schaltflächen (über der Karte, schwebend) ── -->
-              <div class="flex-none flex items-center gap-2 px-4">
+              <div class="flex-none pnry-touch flex items-center gap-2 px-4">
                 <button
                   class="pnry-touch hover-morph-btn flex items-center justify-center bg-surface-elevated text-ink-muted dark:text-ink w-12 h-12 rounded-xl border border-line hover:bg-line transition-colors shadow-sm"
                   (click)="printOrder($event, order)"

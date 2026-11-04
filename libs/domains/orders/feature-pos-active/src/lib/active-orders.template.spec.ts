@@ -299,3 +299,30 @@ describe('Offene Bestellungen — Tisch-Chip (core#1310)', () => {
     expect(component).toMatch(/\/\^\\d\+\$\/\.test\(table\) \? `T\$\{table\}` : table/)
   })
 })
+
+// core#1316: Die Aktionszeile über der Kreis-Karte hatte fest `h-12` (48 px), ihre Knöpfe sind mit `pnry-touch` aber
+// 56 px hoch. Die Zeile der Einzelkarte wuchs auf 56 px, die Kreis-Karte begann deshalb 8 px höher als ihre Nachbarn.
+describe('Offene Bestellungen — Aktionszeilen gleich hoch (core#1316)', () => {
+  const template = read('./active-orders.component.html')
+  const circle = template.slice(template.indexOf(`entry.kind === 'circle'`), template.indexOf('@let vm = entry.vm'))
+  const single = template.slice(template.indexOf('@let vm = entry.vm'))
+  // Die Aktionszeile ist das erste <div> nach dem Karten-Wrapper (`w-80 shrink-0`).
+  const rowClasses = (part: string) => {
+    const afterWrapper = part.slice(part.indexOf('w-80 shrink-0'))
+    const match = afterWrapper.slice(afterWrapper.indexOf('>') + 1).match(/<div class="([^"]*)"/)
+    return (match?.[1] ?? '').split(/\s+/)
+  }
+
+  it('beide Zeilen tragen die Touch-Mindesthöhe ihrer Knöpfe und keine feste Höhe', () => {
+    for (const classes of [rowClasses(circle), rowClasses(single)]) {
+      expect(classes).toContain('flex-none')
+      expect(classes).toContain('pnry-touch')
+      expect(classes.filter(c => /^(h|max-h)-/.test(c))).toEqual([])
+    }
+  })
+
+  it('die Höhenklassen beider Zeilen sind dieselben', () => {
+    const height = (classes: string[]) => classes.filter(c => /^(pnry-touch|min-h-|h-|max-h-|py-)/.test(c)).sort()
+    expect(height(rowClasses(circle))).toEqual(height(rowClasses(single)))
+  })
+})

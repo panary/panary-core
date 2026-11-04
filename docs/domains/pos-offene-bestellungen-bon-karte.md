@@ -71,7 +71,9 @@ Aktionen (Abschließen, Split, Rabatt …). Die Kreis-Karte selbst hat nur Aktio
 [core#1140](https://github.com/panary/panary-core/issues/1140) „Nachbestellen“, an einer Einzelkarte mit Tisch steht es im
 Aktionsmenü ([Nachbestellung im Abrechnungskreis](nachbestellung-im-abrechnungskreis.md)). Daneben steht seit
 [core#1142](https://github.com/panary/panary-core/issues/1142) „Tisch kassieren“ ([Tisch kassieren](tisch-kassieren.md)). Die Karte selbst ist der
-Aufklapp-Button, die Aktionen sitzen deshalb in der Zeile darüber.
+Aufklapp-Button, die Aktionen sitzen deshalb in der Zeile darüber. Diese Zeile ist so hoch wie die Aktionszeile einer
+Einzelkarte: Beide tragen die Touch-Mindesthöhe `pnry-touch` ihrer Knöpfe und keine feste Höhe, damit alle Karten einer
+Reihe bündig beginnen, bei jedem Zoom ([core#1316](https://github.com/panary/panary-core/issues/1316)).
 
 ### Regeln
 

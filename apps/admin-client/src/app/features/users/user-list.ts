@@ -138,7 +138,7 @@ interface User {
             </button>
             <div class="flex-1"></div>
             <button
-              (click)="selectedId.set(null)"
+              (click)="tryClose()"
               class="text-ink-faint hover:text-ink w-8 h-8
                      flex items-center justify-center rounded-lg
                      hover:bg-line-soft transition text-sm"

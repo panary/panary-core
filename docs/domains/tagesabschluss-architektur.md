@@ -66,6 +66,17 @@ status: 'audited'               ← Manager hat Plombe im Admin-Dashboard gesetz
 | `openDay({ locationId?, openingFloatCents? })` | POS bei Schichtbeginn | Neuer BusinessDay mit `status='open'`. Verhindert Mehrfach-Eröffnung pro Location. Den operationMode-Snapshot setzt der Create-Resolver (s. o.), nicht diese Methode — sonst gäbe es zwei Ableitungen derselben Sache, und die über `create` wäre die schwächere. |
 | `closeDay({ businessDayId, countedClosingFloatCents?, cashDropsCents?, payoutsCents?, physicalCounts? })` | POS bei Tagesende | 1. Prüft `sync-outbox` auf pending Einträge — Hard-Block bei Backlog. 2. Setzt `status='closing-requested'`, `closedAt`, `closedBy`. 3. HTTP-POST an Cloud-Service `business-day-reports.startClosing`. |
 
+**Endbestand ohne Kasse (panary/panary-core#1323).** Im Kassenbetrieb (`pos-cashier`) verlangt die Cloud beim
+`closeDay` entweder mindestens eine Kassen-Session des Tages oder `countedClosingFloatCents`. Am Cloud-direkt-POS ist
+die Kassenlade ausgeblendet, eine Kasse entsteht dort erst beim ersten Bar-Kassieren. Ein Tag ohne Verkauf ließ sich
+deshalb nicht schließen. Der POS-Abschlussdialog
+([`closing-dialog.component.ts`](../../libs/domains/businessdays/feature-pos-closing-dialog/src/lib/closing-dialog.component.ts))
+schließt zuerst wie bisher ohne Bestand ab. Lehnt die Cloud genau mit dieser Meldung ab, fragt er den gezählten
+Endbestand in Euro ab (Vorgabe 0, negativ oder unlesbar sperrt) und schickt ihn beim zweiten Absenden in Cent mit.
+Selbst zählen kann der POS die Kassen nicht: Er sieht als Kassierer nur seine eigenen (`restrictCashSessionToOwner`),
+die Cloud zählt alle Kassen des Tages. Erkannt wird die Ablehnung am Meldungstext; ändert die Cloud ihn, erscheint
+wieder der rohe Fehler.
+
 ### Registrierung am POS-Client
 
 Der POS ruft die Lifecycle-Methoden als Custom-Methods am Feathers-Socket-Client auf. Dort existiert

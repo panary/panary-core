@@ -319,7 +319,7 @@ export class GroupFormComponent implements OnInit {
 
   id = input<string>()
   panelMode = input(false)
-  saved = output<void>()
+  saved = output<string | void>()
   closed = output<void>()
 
   isNew = signal(true)
@@ -553,8 +553,10 @@ export class GroupFormComponent implements OnInit {
       data.excluded = !!data.excluded
       if (!data.acronym) delete data.acronym
 
+      let createdId: string | undefined
       if (this.isNew()) {
-        await this.api.create('product-groups', data)
+        const created = await this.api.create<any>('product-groups', data)
+        createdId = created?._id
       } else {
         await this.api.patch('product-groups', this.id()!, data)
       }
@@ -562,7 +564,8 @@ export class GroupFormComponent implements OnInit {
       this.savedSuccess.set(true)
       this.cdr.markForCheck()
       // Tabelle sofort aktualisieren
-      if (this.panelMode()) this.saved.emit()
+      // Die Liste öffnet die neue Gruppe; sonst stünde das Formular weiter auf „Neu“ mit den alten Werten.
+      if (this.panelMode()) this.saved.emit(createdId)
       // Animation nach 2s zurücksetzen
       setTimeout(() => {
         this.savedSuccess.set(false)

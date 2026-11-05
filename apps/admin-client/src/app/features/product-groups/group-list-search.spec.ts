@@ -76,3 +76,24 @@ describe('GroupListComponent – Suchfeld', () => {
     expect(search.value).toBe('')
   })
 })
+
+// core#1337: Nach dem Anlegen öffnet die Liste den neuen Datensatz, statt das Formular auf „Neu“ stehen zu lassen.
+describe('GroupListComponent – nach dem Speichern', () => {
+  it('öffnet die neu angelegte Gruppe', async () => {
+    const { component } = await render()
+    component.selectedId.set('new')
+
+    await component.onItemSaved('x-new')
+
+    expect(component.selectedId()).toBe('x-new')
+  })
+
+  it('bleibt beim Ändern auf dem bearbeiteten Datensatz', async () => {
+    const { component } = await render()
+    component.selectedId.set('x-1')
+
+    await component.onItemSaved()
+
+    expect(component.selectedId()).toBe('x-1')
+  })
+})

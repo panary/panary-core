@@ -697,20 +697,15 @@
 
           <form class="w-full flex flex-col gap-5" [formRoot]="setupForm" (submit)="submitStep2()">
             <div class="flex flex-col gap-1.5">
-              <label for="organization" class="text-sm font-medium text-ink-muted uppercase tracking-wider">{{
+              <span class="text-sm font-medium text-ink-muted uppercase tracking-wider">{{
                 'SETUP.ORGANIZATION' | translate
-              }}</label>
-              <select
-                id="organization"
-                [formField]="setupForm.selectedTenantId"
-                (change)="onOrganizationChange()"
-                class="w-full h-14 bg-surface-input border border-line rounded-control px-4 text-ink focus:border-accent-ink focus:ring-1 focus:ring-accent-ink transition outline-none cursor-pointer appearance-none"
+              }}</span>
+              <p
+                data-testid="setup-organization"
+                class="w-full min-h-14 flex items-center bg-surface-panel border border-line rounded-control px-4 text-ink"
               >
-                <option value="">{{ 'SETUP.SELECT_ORG' | translate }}</option>
-                @for (org of organizations(); track org._id) {
-                  <option [value]="org._id">{{ org.name }}</option>
-                }
-              </select>
+                {{ selectedOrganization()?.name ?? '–' }}
+              </p>
             </div>
 
             <div class="flex flex-col gap-1.5">
@@ -727,9 +722,6 @@
                   <option [value]="loc._id">{{ loc.name }}</option>
                 }
               </select>
-              @if (!selectedTenantId()) {
-                <p class="text-xs text-ink-faint">{{ 'SETUP.SELECT_ORG_FIRST' | translate }}</p>
-              }
             </div>
 
             <div class="flex gap-3 mt-4">

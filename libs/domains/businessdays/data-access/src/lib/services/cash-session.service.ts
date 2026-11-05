@@ -80,19 +80,6 @@ export class CashSessionService extends BaseService<CashSession> {
     return (list[0] as CashSession | undefined) ?? null
   }
 
-  /** Kasse eröffnen (Standard-CRUD create — Resolver stempelt _id/status/openedBy/openedAt). */
-  async openSession(input: {
-    businessDayId: string
-    label: string
-    openingFloatCents: number
-    openedBy?: string
-  }): Promise<CashSession> {
-    this.#ownOpenEchoUntil = Date.now() + OWN_OPEN_ECHO_MS
-    // Server-Resolver stempeln _id/status/openedBy/openedAt + abgeleitete Felder —
-    // daher genügt das minimale Create-Shape (Cast über die strikte Omit-Signatur).
-    return (await this.create(input as unknown as Omit<CashSession, '_id' | 'locationId' | 'tenantId'>)) as CashSession
-  }
-
   /**
    * Manager-autorisierte Kassen-Eröffnung am POS. Ruft die Edge-Custom-Method
    * `openAuthorized` direkt auf — der Server verifiziert den Manager-PIN +

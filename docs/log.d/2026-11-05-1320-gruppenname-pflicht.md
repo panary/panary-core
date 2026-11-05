@@ -1,0 +1,2 @@
+* **Fix**: Admin-Client, Produktformular: Der Name einer Optionsgruppe ist jetzt Pflicht, wie der Stern am Feld verspricht. Leer oder nur Leerzeichen sperrt „Speichern“. Vorher fiel eine unbenannte Gruppe beim Speichern still weg, samt ihrer Optionen; der Filter dafür ist entfernt (panary/panary-core#1320).
+* **Update**: Test-First: `product-form.spec.ts` vor dem Fix 2 rot (`expected false to be true` beim gesperrten Knopf, `expected true to be false` bei „Speichern und weiter“), danach 8/8 grün.

@@ -1,0 +1,1 @@
+* **Update**: [POS-Pairing-Wizard](../domains/pos-pairing-wizard.md): Titel und Untertitel des Schritts `select-org` heißen jetzt „Standort wählen“ und „Wählen Sie den Standort für dieses Gerät.“ (de/en/tr, panary/panary-core#1329). Seit panary/panary-core#1326 wird dort nur noch der Standort gewählt.

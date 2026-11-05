@@ -1,15 +1,7 @@
 // JIT-Compiler zuerst laden: @angular/material ist partial-compiled (siehe pre-order-quick-dialog.spec).
 import '@angular/compiler'
 import { describe, expect, it, vi } from 'vitest'
-import {
-  APP_ID,
-  createEnvironmentInjector,
-  type EnvironmentInjector,
-  Injector,
-  runInInjectionContext,
-  ɵChangeDetectionScheduler as ChangeDetectionScheduler,
-  ɵEffectScheduler as EffectScheduler,
-} from '@angular/core'
+import { createEnvironmentInjector, type EnvironmentInjector, Injector, runInInjectionContext } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { CashSessionService } from '@panary/businessdays/data-access'
 import { CashSessionDialogComponent, type CashSessionDialogData } from './cash-session-dialog.component'
@@ -19,15 +11,8 @@ import { CashSessionDialogComponent, type CashSessionDialogData } from './cash-s
 
 function setup(data: Partial<CashSessionDialogData>) {
   const closeSession = vi.fn().mockResolvedValue({ _id: 'cs-1' })
-  // `form()` braucht AppId und die beiden Scheduler, die sonst die Plattform stellt.
   const injector = createEnvironmentInjector(
     [
-      { provide: ChangeDetectionScheduler, useValue: { notify: () => undefined, runningTick: false } },
-      {
-        provide: EffectScheduler,
-        useValue: { add: () => undefined, schedule: () => undefined, remove: () => undefined, flush: () => undefined },
-      },
-      { provide: APP_ID, useValue: 'test' },
       { provide: MatDialogRef, useValue: { close: vi.fn() } },
       { provide: MAT_DIALOG_DATA, useValue: { businessDayId: 'bd-1', ...data } },
       { provide: CashSessionService, useValue: { closeSession } },
@@ -48,5 +33,15 @@ describe('CashSessionDialogComponent – Schließen', () => {
     await dialog.submit()
 
     expect(closeSession).toHaveBeenCalledWith('cs-1', { denominationCounts: { d_200: 3 } })
+  })
+
+  it('schickt bei doppeltem Absenden nur einmal', async () => {
+    const { dialog, closeSession } = setup({ session: { _id: 'cs-1' } as never })
+
+    const first = dialog.submit()
+    await dialog.submit()
+    await first
+
+    expect(closeSession).toHaveBeenCalledTimes(1)
   })
 })

@@ -1,0 +1,2 @@
+* **Fix**: Admin-Client: Der Dialog „Ungespeicherte Änderungen“ (Produkte, API-Schlüssel, Produktgruppen, Benutzer) zieht Titel, Frage und Knöpfe aus i18n (`COMMON.UNSAVED_TITLE`, `COMMON.UNSAVED_MESSAGE`, `COMMON.DISCARD`, de/en/tr) statt aus deutschen Defaults in `confirm-dialog.ts` und Literalen in der Produktliste (panary/panary-core#1319).
+* **Update**: Test-First: `confirm-dialog.spec.ts` vor dem Fix 2 rot (`expected 'Ungespeicherte Änderungen | Möchten S…' to be 'Unsaved changes | …'` bzw. `'Kaydedilmemiş değişiklikler | …'`), Deutsch grün; danach 3/3 grün.

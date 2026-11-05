@@ -195,7 +195,10 @@
     "FILTER_BY_STATUS": "Nach Status filtern",
     "FILTER_BY_TYPE": "Nach Produkttyp filtern",
     "CONFIRM": "Bestätigen",
-    "ACTIONS": "Aktionen"
+    "ACTIONS": "Aktionen",
+    "UNSAVED_TITLE": "Ungespeicherte Änderungen",
+    "UNSAVED_MESSAGE": "Möchten Sie die Änderungen speichern?",
+    "DISCARD": "Verwerfen"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Plattform-Admin",

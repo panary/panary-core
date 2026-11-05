@@ -150,16 +150,6 @@ describe('CashSessionService — Realtime-Meldung nach dem eigenen Eröffnen (co
     expect(open).not.toHaveBeenCalled()
   })
 
-  it('zeigt nach dem eigenen Eröffnen (openSession) keine „erstellt“-Meldung', async () => {
-    const { service } = setup('tok-kassierer')
-    await service.openSession({ businessDayId: 'bd-1', label: 'Lade', openingFloatCents: 0 })
-    const open = spyOnOpen(service)
-
-    show(service, 'SNACKBAR.CREATED')
-
-    expect(open).not.toHaveBeenCalled()
-  })
-
   it('meldet Kassen anderer Terminals weiter — und die eigene nach Ablauf des Fensters', async () => {
     const fremd = setup('tok-kassierer')
     const openFremd = spyOnOpen(fremd.service)

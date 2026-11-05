@@ -23,7 +23,9 @@ import { TranslatePipe } from '@ngx-translate/core'
         (keydown.enter)="$event.stopPropagation()"
       >
         <p class="text-ink text-sm font-medium mb-1">{{ title() || ('COMMON.UNSAVED_TITLE' | translate) }}</p>
-        <p class="text-ink-muted text-sm" [class.mb-6]="!warning()">{{ message() || ('COMMON.UNSAVED_MESSAGE' | translate) }}</p>
+        <p class="text-ink-muted text-sm" [class.mb-6]="!warning()">
+          {{ message() || ('COMMON.UNSAVED_MESSAGE' | translate) }}
+        </p>
         @if (warning()) {
           <p class="text-amber-600 dark:text-amber-400 text-sm mt-3 mb-6 flex items-start gap-1.5">
             <span class="shrink-0 mt-0.5" aria-hidden="true">&#9888;</span>

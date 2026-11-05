@@ -14,7 +14,9 @@ const LANGS: Record<string, TranslationObject> = { de, en, tr }
 const i18n = (lang: string) => LANGS[lang]
 
 async function render(lang: string) {
-  await TestBed.configureTestingModule({ imports: [ConfirmDialogComponent, TranslateModule.forRoot()] }).compileComponents()
+  await TestBed.configureTestingModule({
+    imports: [ConfirmDialogComponent, TranslateModule.forRoot()],
+  }).compileComponents()
   const translate = TestBed.inject(TranslateService)
   translate.setTranslation(lang, i18n(lang))
   translate.use(lang)

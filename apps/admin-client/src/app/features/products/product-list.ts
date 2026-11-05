@@ -511,11 +511,7 @@ interface SearchCommand {
       <!-- Dirty-Check Dialog -->
       @if (pendingNavAction) {
         <app-confirm-dialog
-          title="Ungespeicherte Änderungen"
-          message="Möchten Sie die Änderungen speichern?"
-          confirmLabel="Speichern"
-          dismissLabel="Verwerfen"
-          cancelLabel="Abbrechen"
+          [cancelLabel]="'COMMON.CANCEL' | translate"
           (confirmed)="onDialogSave()"
           (dismissed)="onDialogDiscard()"
           (cancelled)="onDialogCancel()"

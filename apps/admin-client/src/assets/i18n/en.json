@@ -195,7 +195,10 @@
     "FILTER_BY_STATUS": "Filter by status",
     "FILTER_BY_TYPE": "Filter by product type",
     "CONFIRM": "Confirm",
-    "ACTIONS": "Actions"
+    "ACTIONS": "Actions",
+    "UNSAVED_TITLE": "Unsaved changes",
+    "UNSAVED_MESSAGE": "Do you want to save your changes?",
+    "DISCARD": "Discard"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Platform Admin",

@@ -195,7 +195,10 @@
     "FILTER_BY_STATUS": "Duruma göre filtrele",
     "FILTER_BY_TYPE": "Ürün türüne göre filtrele",
     "CONFIRM": "Onayla",
-    "ACTIONS": "İşlemler"
+    "ACTIONS": "İşlemler",
+    "UNSAVED_TITLE": "Kaydedilmemiş değişiklikler",
+    "UNSAVED_MESSAGE": "Değişiklikleri kaydetmek istiyor musunuz?",
+    "DISCARD": "Yoksay"
   },
   "ROLES": {
     "PLATFORM_OWNER": "Platform Yöneticisi",

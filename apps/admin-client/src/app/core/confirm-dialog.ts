@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
+import { TranslatePipe } from '@ngx-translate/core'
 
 @Component({
   selector: 'app-confirm-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-shell/40 dark:bg-shell/60 backdrop-blur-sm"
@@ -20,8 +22,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
         (click)="$event.stopPropagation()"
         (keydown.enter)="$event.stopPropagation()"
       >
-        <p class="text-ink text-sm font-medium mb-1">{{ title() }}</p>
-        <p class="text-ink-muted text-sm" [class.mb-6]="!warning()">{{ message() }}</p>
+        <p class="text-ink text-sm font-medium mb-1">{{ title() || ('COMMON.UNSAVED_TITLE' | translate) }}</p>
+        <p class="text-ink-muted text-sm" [class.mb-6]="!warning()">{{ message() || ('COMMON.UNSAVED_MESSAGE' | translate) }}</p>
         @if (warning()) {
           <p class="text-amber-600 dark:text-amber-400 text-sm mt-3 mb-6 flex items-start gap-1.5">
             <span class="shrink-0 mt-0.5" aria-hidden="true">&#9888;</span>
@@ -35,14 +37,14 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
             class="flex-1 bg-ink text-surface-panel font-bold py-2.5 rounded-xl text-sm
                    hover:bg-ink/90 transition"
           >
-            {{ confirmLabel() }}
+            {{ confirmLabel() || ('COMMON.SAVE' | translate) }}
           </button>
           <button
             (click)="dismissed.emit()"
             class="flex-1 bg-line-soft text-ink-muted dark:text-ink font-medium py-2.5
                    rounded-xl text-sm hover:bg-line transition"
           >
-            {{ dismissLabel() }}
+            {{ dismissLabel() || ('COMMON.DISCARD' | translate) }}
           </button>
           @if (cancelLabel()) {
             <button
@@ -71,10 +73,11 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   `,
 })
 export class ConfirmDialogComponent {
-  title = input('Ungespeicherte Änderungen')
-  message = input('Möchten Sie die Änderungen speichern?')
-  confirmLabel = input('Speichern')
-  dismissLabel = input('Verwerfen')
+  // Leer = Texte des Dirty-Dialogs aus i18n (core#1319); feste Literale blieben in en/tr deutsch.
+  title = input('')
+  message = input('')
+  confirmLabel = input('')
+  dismissLabel = input('')
   cancelLabel = input('')
   /**
    * Optionaler, optisch abgesetzter Warnhinweis unter der Message — fuer Folgen,

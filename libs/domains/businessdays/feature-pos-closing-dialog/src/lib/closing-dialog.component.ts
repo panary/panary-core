@@ -3,7 +3,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { TranslateModule } from '@ngx-translate/core'
 
 import { BusinessDay, BusinessDayOperationMode } from '@panary/businessdays/domain'
-import { BusinessDayService, CashSessionService } from '@panary/businessdays/data-access'
+import { BusinessDayService } from '@panary/businessdays/data-access'
 
 export interface ClosingDialogData {
   businessDay: BusinessDay
@@ -11,12 +11,15 @@ export interface ClosingDialogData {
 
 type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
 
+/** Teil der Cloud-Meldung aus `businessdays.class.ts` (closeDay), wenn im Kassenbetrieb weder Kasse noch Bestand da ist. */
+const MISSING_FLOAT_MARKER = 'countedClosingFloatCents ist Pflicht'
+
 /**
  * POS-Tagesabschluss-Dialog.
  *
  * - Mode 'orders-only': einfache Bestaetigung; ruft closeDay() ohne Cash-Count
- * - Mode 'pos-cashier': Kassen werden je Kassierer geschlossen. Gab es am Tag keine Kasse, fragt der Dialog den
- *   gezaehlten Endbestand ab (Vorgabe 0 €), denn ohne Session verlangt die Cloud ihn (core#1323)
+ * - Mode 'pos-cashier': Kassen werden je Kassierer geschlossen. Lehnt die Cloud ab, weil der Tag keine Kasse hatte,
+ *   fragt der Dialog den gezaehlten Endbestand ab (Vorgabe 0 €) und schickt ihn beim zweiten Absenden mit (core#1323)
  *
  * Der Aggregations-Fortschritt selbst laeuft in der Cloud — der POS bekommt
  * nach Trigger ein 'closing-requested'-Status zurueck und der Manager kann
@@ -35,8 +38,8 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
       @if (phase() === 'input') {
         @if (needsCountedFloat()) {
           <p>
-            Heute wurde keine Kasse geführt. Bitte zählen Sie den Bestand der Kassenlade und tragen Sie ihn ein, bevor
-            Sie den Tag abschließen.
+            Heute wurde keine Kasse geführt. Bitte zählen Sie den Bestand der Kassenlade und tragen Sie ihn ein, dann
+            schließen Sie den Tag erneut ab.
           </p>
           <label class="block space-y-1">
             <span class="text-xs font-medium">Gezählter Endbestand (€)</span>
@@ -45,13 +48,13 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
               data-testid="closing-counted-float"
               type="text"
               inputmode="decimal"
-              class="w-full border rounded-xl px-3 h-12 text-base"
+              class="w-full border border-line-strong bg-surface-input rounded-xl px-3 h-12 text-base"
               [value]="countedFloatInput()"
               (input)="setCountedFloat(floatInput.value)"
             />
           </label>
           @if (countedFloatInvalid()) {
-            <p class="text-red-600 text-xs">Bitte einen Betrag ab 0 eingeben, z. B. 0 oder 12,50.</p>
+            <p class="text-danger-ink text-xs">Bitte einen Betrag ab 0 eingeben, z. B. 0 oder 12,50.</p>
           }
         } @else if (isPosCashier()) {
           <p>
@@ -92,7 +95,7 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
         </button>
         <button
           class="bg-blue-600 text-white rounded-xl px-4 h-10 disabled:opacity-50"
-          [disabled]="phase() === 'submitting' || sessionsLoading() || countedFloatInvalid()"
+          [disabled]="phase() === 'submitting' || countedFloatInvalid()"
           (click)="submit()"
         >
           {{ 'CLOSING.SUBMIT' | translate }}
@@ -104,7 +107,6 @@ type DialogPhase = 'input' | 'submitting' | 'submitted' | 'failed'
 export class ClosingDialogComponent {
   private dialogRef = inject(MatDialogRef<ClosingDialogComponent>)
   private businessDayService = inject(BusinessDayService)
-  private cashSessionService = inject(CashSessionService)
   protected readonly data = inject<ClosingDialogData>(MAT_DIALOG_DATA)
 
   protected readonly phase = signal<DialogPhase>('input')
@@ -114,28 +116,14 @@ export class ClosingDialogComponent {
     () => this.data.businessDay.operationMode === BusinessDayOperationMode.POS_CASHIER,
   )
 
-  /** null = unbekannt (lädt noch oder Laden scheiterte); dann bleibt der Abschluss wie bisher ohne Bestand. */
-  private readonly sessionCount = signal<number | null>(null)
-  protected readonly sessionsLoading = signal(false)
-  protected readonly needsCountedFloat = computed(() => this.isPosCashier() && this.sessionCount() === 0)
+  /**
+   * Erst wenn die Cloud den Abschluss mangels Kasse ablehnt. Der POS kann das nicht selbst feststellen: Er sieht als
+   * Kassierer nur die eigenen Kassen (`restrictCashSessionToOwner`), die Cloud zählt alle Kassen des Tages.
+   */
+  protected readonly needsCountedFloat = signal(false)
   protected readonly countedFloatInput = signal('0')
   private readonly countedFloatCents = computed(() => parseEuroToCents(this.countedFloatInput()))
   protected readonly countedFloatInvalid = computed(() => this.needsCountedFloat() && this.countedFloatCents() === null)
-
-  /** Für Aufrufer und Specs: erfüllt, sobald feststeht, ob der Tag Kassen hatte. */
-  readonly sessionsLoaded: Promise<void> = this.isPosCashier() ? this.loadSessionCount() : Promise.resolve()
-
-  private async loadSessionCount(): Promise<void> {
-    this.sessionsLoading.set(true)
-    try {
-      const sessions = await this.cashSessionService.loadForBusinessDay(this.data.businessDay._id)
-      this.sessionCount.set(sessions.length)
-    } catch (err) {
-      console.error('closing-dialog: Kassen des Tages nicht ladbar', err)
-    } finally {
-      this.sessionsLoading.set(false)
-    }
-  }
 
   setCountedFloat(raw: string): void {
     this.countedFloatInput.set(raw)
@@ -155,8 +143,14 @@ export class ClosingDialogComponent {
       })
       this.phase.set('submitted')
     } catch (err) {
+      const message = (err as Error).message ?? ''
+      if (this.isPosCashier() && !this.needsCountedFloat() && message.includes(MISSING_FLOAT_MARKER)) {
+        this.needsCountedFloat.set(true)
+        this.phase.set('input')
+        return
+      }
       this.phase.set('failed')
-      this.errorMessage.set((err as Error).message ?? 'Tagesabschluss fehlgeschlagen')
+      this.errorMessage.set(message || 'Tagesabschluss fehlgeschlagen')
     }
   }
 

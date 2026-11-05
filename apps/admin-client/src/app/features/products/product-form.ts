@@ -11,7 +11,7 @@ import {
   effect,
   untracked,
 } from '@angular/core'
-import { applyEach, form, FormField, FormRoot, maxLength, min, required } from '@angular/forms/signals'
+import { applyEach, form, FormField, FormRoot, maxLength, min, required, validate } from '@angular/forms/signals'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
@@ -714,9 +714,10 @@ export class ProductFormComponent implements OnInit {
     required(p.taxInside)
     required(p.taxOutside)
   })
-  /** Gruppen ohne Namen fallen beim Speichern weg (unten), deshalb ist der Name hier keine Pflicht. */
+  // Der Name ist Pflicht (core#1320): Vorher fiel eine unbenannte Gruppe beim Speichern still weg, samt Optionen.
   readonly optionGroupsForm = form(this.optionGroups, groups =>
     applyEach(groups, g => {
+      validate(g.name, ({ value }) => (value().trim() ? undefined : { kind: 'required' }))
       min(g.minSelections, 0)
       min(g.maxSelections, 1)
       min(g.freeQuantity, 0)
@@ -1037,9 +1038,6 @@ export class ProductFormComponent implements OnInit {
             ...(o.isDefault ? { isDefault: true } : {}),
           })),
       }))
-
-      // Leere Gruppen ohne Namen entfernen
-      data.optionGroups = data.optionGroups.filter((g: any) => g.name)
 
       if (this.isNew()) {
         const created = await this.api.create<any>('products', data)

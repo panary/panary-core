@@ -134,6 +134,18 @@ describe('ProductFormComponent – Formular', () => {
     expect(saveButton().disabled).toBe(false)
   })
 
+  it('zeigt am Feld und im Gruppenkopf, warum Speichern gesperrt ist', async () => {
+    const { el, type } = await render('p-1')
+    const hint = () => el.querySelector('[data-testid="opt-group-name-error-0"]')
+    const header = () => el.querySelector('[data-testid="opt-group-title-0"]')!
+    expect(hint()).toBeNull()
+    expect(header().classList.contains('text-red-500')).toBe(false)
+
+    await type('#optGroupName-0', ' ')
+    expect(hint()?.textContent?.trim()).toBe('PRODUCTS.GROUP_NAME_REQUIRED')
+    expect(header().classList.contains('text-red-500')).toBe(true)
+  })
+
   it('verwirft eine neue, unbenannte Gruppe nicht still, sondern speichert gar nicht', async () => {
     const { fixture, api } = await render('p-1')
     fixture.componentInstance.addGroup()

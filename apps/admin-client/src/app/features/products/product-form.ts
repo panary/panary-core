@@ -363,7 +363,11 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                   (keydown.enter)="toggleCollapse(group.id)"
                 >
                   <span class="text-ink-faint text-xs w-4">{{ isCollapsed(group.id) ? '▶' : '▼' }}</span>
-                  <span class="flex-1 text-sm font-medium text-ink truncate">
+                  <span
+                    [attr.data-testid]="'opt-group-title-' + gi"
+                    class="flex-1 text-sm font-medium text-ink truncate"
+                    [class.text-red-500]="groupField.name().invalid()"
+                  >
                     {{ group.name || ('PRODUCTS.UNNAMED_GROUP' | translate) }}
                   </span>
                   <span class="text-xs text-ink-faint dark:text-line-strong"
@@ -392,6 +396,14 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                         placeholder="z.B. Saucen & Dips"
                         class="${INPUT_SM}"
                       />
+                      @if (groupField.name().invalid()) {
+                        <p
+                          [attr.data-testid]="'opt-group-name-error-' + gi"
+                          class="text-red-500 dark:text-red-400 text-xs"
+                        >
+                          {{ 'PRODUCTS.GROUP_NAME_REQUIRED' | translate }}
+                        </p>
+                      }
                     </div>
 
                     <!-- Min / Max / Gratis -->
@@ -715,6 +727,7 @@ export class ProductFormComponent implements OnInit {
     required(p.taxOutside)
   })
   // Der Name ist Pflicht (core#1320): Vorher fiel eine unbenannte Gruppe beim Speichern still weg, samt Optionen.
+  // `validate` statt `required`, weil auch ein Name nur aus Leerzeichen leer ist.
   readonly optionGroupsForm = form(this.optionGroups, groups =>
     applyEach(groups, g => {
       validate(g.name, ({ value }) => (value().trim() ? undefined : { kind: 'required' }))

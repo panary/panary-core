@@ -348,6 +348,7 @@
     "GROUP": "Grup",
     "UNNAMED_GROUP": "İsimsiz Grup",
     "GROUP_NAME": "Grup Adı",
+    "GROUP_NAME_REQUIRED": "Lütfen bir grup adı girin.",
     "MIN_SELECTION": "Min. Seçim",
     "MAX_SELECTION": "Maks. Seçim",
     "FREE_QUANTITY": "Ücretsiz Adet",

@@ -348,6 +348,7 @@
     "GROUP": "Group",
     "UNNAMED_GROUP": "Unnamed Group",
     "GROUP_NAME": "Group Name",
+    "GROUP_NAME_REQUIRED": "Please enter a group name.",
     "MIN_SELECTION": "Min. Selection",
     "MAX_SELECTION": "Max. Selection",
     "FREE_QUANTITY": "Free Quantity",

@@ -10,7 +10,7 @@ import {
   ElementRef,
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { disabled, form, FormField, FormRoot, maxLength, required, validate } from '@angular/forms/signals'
+import { form, FormField, FormRoot, maxLength, required, validate } from '@angular/forms/signals'
 import {
   AdminLoginMembership,
   AdminLoginRejection,
@@ -116,7 +116,6 @@ export class SetupComponent {
       required(s.password)
       required(s.selectedTenantId)
       required(s.selectedLocationId)
-      disabled(s.selectedLocationId, ({ valueOf }) => !valueOf(s.selectedTenantId))
       required(s.deviceName)
       maxLength(s.deviceName, this.DEVICE_NAME_MAX_LENGTH)
       validate(s.deviceName, ({ value }) => {
@@ -204,6 +203,11 @@ export class SetupComponent {
       status === 'registering'
     )
   })
+
+  // Die Organisation steht nach dem Login fest: Jeder Anmeldeweg liefert höchstens eine (core#1326).
+  readonly selectedOrganization = computed(
+    () => this.organizations().find(org => org._id === this.selectedTenantId()) ?? null,
+  )
 
   readonly filteredLocations = computed(() => {
     const orgId = this.selectedTenantId()
@@ -562,7 +566,6 @@ export class SetupComponent {
   }
 
   isStep2Valid(): boolean {
-    // Die Filiale direkt pruefen: Ohne Organisation ist sie gesperrt, und ein gesperrtes Feld zaehlt als gueltig.
     return !this.setupForm.selectedTenantId().invalid() && this.selectedLocationId().length > 0
   }
 
@@ -607,7 +610,7 @@ export class SetupComponent {
         const orgs = this.organizations()
         if (orgs.length === 1) {
           this.selectedTenantId.set(orgs[0]._id)
-          this.onOrganizationChange()
+          this.#preselectLocation()
         }
         break
       }
@@ -635,7 +638,7 @@ export class SetupComponent {
     this.loginRejection.set(rejection)
   }
 
-  onOrganizationChange(): void {
+  #preselectLocation(): void {
     this.selectedLocationId.set('')
     const locs = this.filteredLocations()
     if (locs.length === 1) {

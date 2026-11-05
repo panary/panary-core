@@ -42,6 +42,13 @@ welcome ──► [Cloud]  ─────────────────�
 Der nachgelagerte Teil (`select-org` → `device-info` → `registerDevice`) bleibt
 gegenüber dem alten Setup unverändert und wird wiederverwendet.
 
+In `select-org` wird die Organisation **angezeigt, nicht gewählt** (seit
+[#1326](https://github.com/panary/panary-core/issues/1326)). Jeder Anmeldeweg liefert höchstens
+eine: Ein Mandanten-Konto sieht nur den eigenen Mandanten, ein Konto mit mehreren
+Mitgliedschaften wählt die Mitgliedschaft schon beim Login, die Edge kennt einen Mandanten, und
+ein Plattform-Konto erhält von der Cloud auf `organizations` ein 403 ohne Impersonation. Gewählt
+wird nur noch die Filiale; bei genau einer ist sie vorbelegt.
+
 ### `server-login`: Code oder Admin-Login (`serverLoginMode`)
 
 Der Schritt hat zwei Formulare, umgeschaltet über das Signal `serverLoginMode`:

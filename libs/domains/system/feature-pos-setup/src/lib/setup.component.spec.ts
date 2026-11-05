@@ -239,14 +239,11 @@ describe('SetupComponent — Hub-Pfad', () => {
   })
 })
 
-describe('SetupComponent — Organisationswahl', () => {
-  it('zeigt nach dem Wechsel zwischen zwei Organisationen deren Filialen (core#765)', async () => {
-    const orgs = [
-      { _id: 't1', name: 'Backstube' },
-      { _id: 't2', name: 'Café Hafen' },
-    ]
+describe('SetupComponent — Organisation', () => {
+  // core#1326: Jeder Anmeldeweg liefert höchstens eine Organisation; sie wird angezeigt, nicht gewählt.
+  it('übernimmt die Organisation und lässt bei mehreren Filialen die Wahl offen', async () => {
+    const orgs = [{ _id: 't2', name: 'Café Hafen' }]
     const locs = [
-      { _id: 'l1', name: 'Altstadt', tenantId: 't1' },
       { _id: 'l2', name: 'Hafen Nord', tenantId: 't2' },
       { _id: 'l3', name: 'Hafen Süd', tenantId: 't2' },
     ]
@@ -256,21 +253,14 @@ describe('SetupComponent — Organisationswahl', () => {
     fillAdminForm(component)
     await component.submitStep1()
 
-    // Das Template liest die Liste schon bei leerer Auswahl — genau dann hing sie früher fest.
     expect(component.currentStep()).toBe('select-org')
-    expect(component.filteredLocations()).toEqual([])
-
-    component.selectedTenantId.set('t2')
-    component.onOrganizationChange()
-
+    expect(component.selectedOrganization()).toEqual({ _id: 't2', name: 'Café Hafen' })
     expect(component.filteredLocations().map(loc => loc._id)).toEqual(['l2', 'l3'])
     expect(component.selectedLocationId()).toBe('')
+    expect(component.isStep2Valid()).toBe(false)
 
-    component.selectedTenantId.set('t1')
-    component.onOrganizationChange()
-
-    expect(component.filteredLocations().map(loc => loc._id)).toEqual(['l1'])
-    expect(component.selectedLocationId()).toBe('l1')
+    component.selectedLocationId.set('l3')
+    expect(component.isStep2Valid()).toBe(true)
   })
 })
 
@@ -297,16 +287,6 @@ describe('SetupComponent — Formular-Schema', () => {
     expect(component.isStep1Valid()).toBe(true)
     component.password.set('')
     expect(component.isStep1Valid()).toBe(false)
-  })
-
-  it('sperrt die Filiale, solange keine Organisation gewählt ist', () => {
-    const { component } = setup()
-    expect(component.setupForm.selectedLocationId().disabled()).toBe(true)
-    component.selectedTenantId.set('t-1')
-    expect(component.setupForm.selectedLocationId().disabled()).toBe(false)
-    expect(component.isStep2Valid()).toBe(false)
-    component.selectedLocationId.set('l-1')
-    expect(component.isStep2Valid()).toBe(true)
   })
 
   it('verlangt die Organisation auch bei gesetzter Filiale', () => {

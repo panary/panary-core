@@ -83,7 +83,7 @@ describe('ProductListComponent – Suchfeld', () => {
 
 // core#1337: Nach dem Anlegen öffnet die Liste den neuen Datensatz, statt das Formular auf „Neu“ stehen zu lassen.
 describe('ProductListComponent – nach dem Speichern', () => {
-  it('öffnet die neu angelegte Produkt', async () => {
+  it('öffnet das neu angelegte Produkt', async () => {
     const { component } = await render()
     component.selectedId.set('new')
 

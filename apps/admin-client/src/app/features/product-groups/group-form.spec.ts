@@ -94,4 +94,23 @@ describe('GroupFormComponent – Formular', () => {
 
     expect(api.patch).toHaveBeenCalledWith('product-groups', 'g-1', expect.objectContaining({ name: 'Burger & Wraps' }))
   })
+
+  // core#1337: Ohne die neue ID blieb das Panel auf „Neu“ stehen, und die nächste Gruppe hing an die Werte an.
+  it('meldet nach dem Anlegen die neue ID an die Liste', async () => {
+    const { fixture, api, type, el } = await render('new')
+    api.create.mockResolvedValue({ _id: 'g-new' })
+    fixture.componentRef.setInput('panelMode', true)
+    const emitted: unknown[] = []
+    fixture.componentInstance.saved.subscribe(value => emitted.push(value))
+
+    await type('groupName', 'Getränke')
+    el.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+    for (let i = 0; i < 3; i++) {
+      await new Promise(resolve => setTimeout(resolve))
+      await fixture.whenStable()
+    }
+
+    expect(api.create).toHaveBeenCalledTimes(1)
+    expect(emitted).toEqual(['g-new'])
+  })
 })

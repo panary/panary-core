@@ -509,7 +509,7 @@ interface ProductGroup {
               #formRef
               [id]="selectedId()!"
               [panelMode]="true"
-              (saved)="onItemSaved()"
+              (saved)="onItemSaved($event)"
               (closed)="tryClose()"
             />
           </div>
@@ -724,8 +724,9 @@ export class GroupListComponent implements OnInit {
     this.pendingNavAction = null
   }
 
-  async onItemSaved() {
+  async onItemSaved(createdId?: string | void) {
     await this.loadGroups()
+    if (createdId) this.selectedId.set(createdId)
   }
 
   async onWizardSaved() {

@@ -637,7 +637,7 @@ export class ProductFormComponent implements OnInit {
 
   id = input<string>()
   panelMode = input(false)
-  saved = output<void>()
+  saved = output<string | void>()
   closed = output<void>()
 
   isNew = signal(true)
@@ -1052,8 +1052,10 @@ export class ProductFormComponent implements OnInit {
           })),
       }))
 
+      let createdId: string | undefined
       if (this.isNew()) {
         const created = await this.api.create<any>('products', data)
+        createdId = created?._id
         // Neues Produkt sofort in die lokale Liste aufnehmen (für Option-Picker)
         this.allProducts.update(list => [
           ...list,
@@ -1085,7 +1087,8 @@ export class ProductFormComponent implements OnInit {
       this.originalHash = objectHash({ ...this.product(), og: this.optionGroups() })
       this.savedSuccess.set(true)
       this.cdr.markForCheck()
-      if (this.panelMode()) this.saved.emit()
+      // Die Liste öffnet das neue Produkt; sonst stünde das Formular weiter auf „Neu“ mit den alten Werten.
+      if (this.panelMode()) this.saved.emit(createdId)
       setTimeout(() => {
         this.savedSuccess.set(false)
         this.cdr.markForCheck()

@@ -181,4 +181,31 @@ describe('ProductFormComponent – Formular', () => {
     expect(before.options).toHaveLength(1)
     expect(after.options).toHaveLength(2)
   })
+
+  // core#1337: Ohne die neue ID blieb das Panel auf „Neu“ stehen, und das nächste Produkt hing an die Werte an.
+  it('meldet nach dem Anlegen die neue ID an die Liste', async () => {
+    const { fixture, api, type, submit } = await render('new')
+    fixture.componentRef.setInput('panelMode', true)
+    const emitted: unknown[] = []
+    fixture.componentInstance.saved.subscribe(value => emitted.push(value))
+
+    await type('#productName', 'Cola')
+    await type('#productAcronym', 'CO')
+    await type('#productPrice', '3')
+    await submit()
+
+    expect(api.create).toHaveBeenCalledTimes(1)
+    expect(emitted).toEqual(['p-new'])
+  })
+
+  it('meldet beim Ändern eines bestehenden Produkts keine ID', async () => {
+    const { fixture, submit } = await render('p-1')
+    fixture.componentRef.setInput('panelMode', true)
+    const emitted: unknown[] = []
+    fixture.componentInstance.saved.subscribe(value => emitted.push(value))
+
+    await submit()
+
+    expect(emitted).toEqual([undefined])
+  })
 })

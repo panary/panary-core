@@ -501,7 +501,7 @@ interface SearchCommand {
               #formRef
               [id]="selectedId()!"
               [panelMode]="true"
-              (saved)="onItemSaved()"
+              (saved)="onItemSaved($event)"
               (closed)="tryClose()"
             />
           </div>
@@ -889,8 +889,9 @@ export class ProductListComponent implements OnInit {
     this.pendingNavAction = null
   }
 
-  async onItemSaved() {
+  async onItemSaved(createdId?: string | void) {
     await this.loadProducts()
+    if (createdId) this.selectedId.set(createdId)
   }
 
   async onWizardSaved() {

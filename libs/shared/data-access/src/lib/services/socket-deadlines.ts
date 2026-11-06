@@ -58,7 +58,8 @@ export const applySocketDeadline = (service: unknown, path: string): void => {
   service.send = function (this: SendingService, method: string, ...args: unknown[]) {
     const ms = socketDeadlineMs(path, method)
     // `send` liest das Flag synchron im Promise-Executor und emittiert sofort; socket.io setzt es danach zurück.
-    // Dazwischen kann kein anderer Aufruf das Flag verbrauchen.
+    // Dazwischen kann kein anderer Aufruf das Flag verbrauchen. Das setzt voraus, dass die Socket-Option `retries`
+    // aus bleibt (dort setzt socket.io das Flag anders zurück) und `send` nicht vor dem `emit` wirft.
     this.connection.timeout(ms)
     return send.call(this, method, ...args).catch((error: unknown) => {
       throw toDeadlineError(error, path, method, ms)

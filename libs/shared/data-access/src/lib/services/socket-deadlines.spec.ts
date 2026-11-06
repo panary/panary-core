@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { feathers } from '@feathersjs/feathers'
 import socketio from '@feathersjs/socketio-client'
-import io, { type Socket } from 'socket.io-client'
+import io from 'socket.io-client'
 
 import {
   applySocketDeadline,
@@ -24,6 +24,19 @@ const track = (promise: Promise<unknown>) => {
 }
 
 /**
+ * Interna von socket.io-client 4.8, auf die die Spec bewusst zugreift: Nur der echte Client beweist, dass das Flag
+ * `timeout` das gepufferte Paket entfernt und eine Trennung meldet. Ein socket.io-Update kann diese Spec brechen,
+ * ohne dass die Produktion bricht.
+ */
+interface SocketInternals {
+  sendBuffer: unknown[]
+  connected: boolean
+  packet: (packet: any) => void
+  onack: (packet: { id: number; data: unknown[] }) => void
+  _clearAcks(): void
+}
+
+/**
  * Echter Feathers-Client auf einem echten, nie verbundenen socket.io-Socket: Jeder Aufruf landet im `sendBuffer`
  * und bekommt nie ein Ack, genau wie bei der Edge, die nicht antwortet.
  */
@@ -36,7 +49,7 @@ const buildClient = (withDeadline: boolean) => {
   // `orders` wie im Konstruktor per `use` registriert, `products` entsteht erst über `defaultService`.
   app.use('orders', client.service('orders'), { methods: ['find', 'get', 'create', 'patch', 'split'] })
   app.use('businessdays', client.service('businessdays'), { methods: ['find', 'closeDay'] })
-  return { app: app as any, socket: socket as Socket & { sendBuffer: unknown[]; _clearAcks(): void } }
+  return { app: app as any, socket: socket as unknown as SocketInternals }
 }
 
 describe('socketDeadlineMs', () => {
@@ -81,7 +94,12 @@ describe('applySocketDeadline', () => {
     expect(settled.state).toBe('rejected')
     const error = (settled as { error: any }).error
     expect(error.code).toBe(408)
-    expect(error.data).toEqual({ path: 'orders', method: 'create', timeoutMs: SOCKET_DEFAULT_DEADLINE_MS, reason: 'frist' })
+    expect(error.data).toEqual({
+      path: 'orders',
+      method: 'create',
+      timeoutMs: SOCKET_DEFAULT_DEADLINE_MS,
+      reason: 'frist',
+    })
     expect(isSocketDeadlineError(error)).toBe(true)
     // Nach dem Reconnect darf die schon als gescheitert gemeldete Bestellung nicht mehr rausgehen.
     expect(socket.sendBuffer).toEqual([])
@@ -93,7 +111,10 @@ describe('applySocketDeadline', () => {
     const { app } = buildClient(true)
     const call = track(app.service('products').find({ query: {} }))
     await vi.advanceTimersByTimeAsync(SOCKET_DEFAULT_DEADLINE_MS)
-    expect(call()).toMatchObject({ state: 'rejected', error: { code: 408, data: { path: 'products', method: 'find' } } })
+    expect(call()).toMatchObject({
+      state: 'rejected',
+      error: { code: 408, data: { path: 'products', method: 'find' } },
+    })
   })
 
   it('gibt Custom Methods des Geschäftstags die lange Frist', async () => {
@@ -108,8 +129,8 @@ describe('applySocketDeadline', () => {
   it('meldet eine Trennung nach dem Senden sofort als 503 mit Grund trennung', async () => {
     const { app, socket } = buildClient(true)
     // Verbunden vortäuschen, damit das Paket gesendet statt gepuffert wird; danach die Trennung auslösen.
-    ;(socket as any).connected = true
-    ;(socket as any).packet = vi.fn()
+    socket.connected = true
+    socket.packet = vi.fn()
     const call = track(app.service('orders').patch('o-1', { status: 'paid' }))
     expect(socket.sendBuffer).toEqual([])
 
@@ -124,16 +145,16 @@ describe('applySocketDeadline', () => {
 
   it('lässt eine Antwort und einen Serverfehler unverändert durch', async () => {
     const { app, socket } = buildClient(true)
-    ;(socket as any).connected = true
+    socket.connected = true
     const sent: any[] = []
-    ;(socket as any).packet = (packet: any) => sent.push(packet)
+    socket.packet = (packet: any) => sent.push(packet)
 
     const ok = app.service('orders').get('o-1')
-    ;(socket as any).onack({ id: sent[0].id, data: [null, { _id: 'o-1' }] })
+    socket.onack({ id: sent[0].id, data: [null, { _id: 'o-1' }] })
     await expect(ok).resolves.toEqual({ _id: 'o-1' })
 
     const rejected = app.service('orders').get('o-2')
-    ;(socket as any).onack({ id: sent[1].id, data: [{ name: 'NotFound', message: 'weg', code: 404 }] })
+    socket.onack({ id: sent[1].id, data: [{ name: 'NotFound', message: 'weg', code: 404 }] })
     await expect(rejected).rejects.toMatchObject({ code: 404, message: 'weg' })
     expect(warn).not.toHaveBeenCalled()
   })

@@ -3299,6 +3299,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
         this.#notifications.warning('Kasse nicht freigegeben. Die Bestellung bleibt offen.')
       } else if (result === 'closed-day-declined') {
         this.#notifications.warning(this.translateService.instant('CLOSED_DAY.DECLINED'))
+      } else if (result === 'timeout') {
+        // Ob gebucht wurde, ist offen (Frist oder Trennung, core#1342): quittierpflichtig, wie im Bezahldialog.
+        this.#notifications.warning(this.translateService.instant('ORDER_DIALOG.PAYMENT_TIMEOUT'), { sticky: true })
       }
       // `failed`: `handleError` hat schon gemeldet, die Ansicht bleibt für einen neuen Versuch stehen.
     } finally {

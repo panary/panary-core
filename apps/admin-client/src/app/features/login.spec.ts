@@ -7,9 +7,10 @@ import { TranslateModule } from '@ngx-translate/core'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthService } from '../core/auth.service'
+import { EdgeVersionService } from '../core/edge-version.service'
 import { LoginComponent } from './login'
 
-async function render() {
+async function render(edgeVersion: string | null = null) {
   const login = vi.fn().mockResolvedValue(true)
   const navigate = vi.fn()
   await TestBed.configureTestingModule({
@@ -17,6 +18,7 @@ async function render() {
     providers: [
       { provide: AuthService, useValue: { login } },
       { provide: Router, useValue: { navigate } },
+      { provide: EdgeVersionService, useValue: { load: vi.fn().mockResolvedValue(edgeVersion) } },
     ],
   }).compileComponents()
   const fixture = TestBed.createComponent(LoginComponent)
@@ -32,7 +34,9 @@ async function render() {
   const submitButton = () => el.querySelector<HTMLButtonElement>('button[type="submit"]')!
   const formEl = () => el.querySelector('form')!
 
-  return { fixture, login, navigate, type, submitButton, formEl }
+  const versionLine = () => el.querySelector('[data-testid="login-edge-version"]')
+
+  return { fixture, login, navigate, type, submitButton, formEl, versionLine }
 }
 
 describe('LoginComponent – Formular', () => {
@@ -65,5 +69,20 @@ describe('LoginComponent – Formular', () => {
     expect(event.defaultPrevented).toBe(true)
     expect(login).toHaveBeenCalledWith('chef@example.com', 'geheim')
     expect(navigate).toHaveBeenCalledWith(['/'])
+  })
+})
+
+describe('LoginComponent – Edge-Version', () => {
+  it('zeigt die Version des laufenden Edge-Servers unter dem Formular', async () => {
+    const { versionLine } = await render('26.11.2')
+    expect(versionLine()?.textContent?.trim()).toEqual('v26.11.2')
+  })
+
+  it('zeigt ohne Version keine Zeile, das Formular bleibt bedienbar', async () => {
+    const { versionLine, type, submitButton } = await render(null)
+    expect(versionLine()).toBeNull()
+    await type('login-email', 'chef@example.com')
+    await type('login-password', 'geheim')
+    expect(submitButton().disabled).toBe(false)
   })
 })

@@ -1,11 +1,9 @@
-import { HttpClient } from '@angular/common/http'
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { lastValueFrom } from 'rxjs'
-import { API_BASE_URL } from '../core/api-base-url'
 import { ApiService } from '../core/api.service'
 import { type CloudConnection, type CloudStatus, deriveCloudStatus } from '../core/cloud-status'
 import { DeviceStatusService } from '../core/device-status.service'
+import { EdgeVersionService } from '../core/edge-version.service'
 import { SyncProblemCountService } from '../core/sync-problem-count.service'
 
 export type StatusTone = 'ok' | 'warn' | 'error' | 'neutral'
@@ -89,7 +87,7 @@ const CLOUD_POLL_MS = 60_000
 })
 export class EdgeStatusBarComponent {
   private readonly api = inject(ApiService)
-  private readonly http = inject(HttpClient)
+  private readonly edgeVersion = inject(EdgeVersionService)
   protected readonly syncProblems = inject(SyncProblemCountService)
   protected readonly deviceStatus = inject(DeviceStatusService)
 
@@ -114,8 +112,7 @@ export class EdgeStatusBarComponent {
   }
 
   private async loadVersion(): Promise<void> {
-    const health = await lastValueFrom(this.http.get<{ version?: string }>(`${API_BASE_URL}/health`)).catch(() => null)
-    this.version.set(health?.version ?? null)
+    this.version.set(await this.edgeVersion.load())
   }
 
   protected cloudLabelOf(status: CloudStatus): string {

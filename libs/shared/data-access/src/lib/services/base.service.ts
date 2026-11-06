@@ -409,10 +409,11 @@ export abstract class BaseService<T> {
    */
   async create(
     data: Omit<T, '_id' | 'locationId' | 'tenantId'> | Omit<T, '_id' | 'locationId' | 'tenantId'>[],
-    params: Params = {},
+    params: Params & ExpectedErrorParams = {},
   ): Promise<T | T[]> {
-    const result = await this.service.create(data, withPosOperatorToken(params)).catch((error: unknown) => {
-      this.helper.handleError(this.serviceName, error)
+    const { isExpectedError, ...serviceParams } = params
+    const result = await this.service.create(data, withPosOperatorToken(serviceParams)).catch((error: unknown) => {
+      if (!isExpectedError?.(error)) this.helper.handleError(this.serviceName, error)
       throw error
     })
     this.#cacheUpsert(result)

@@ -451,6 +451,19 @@ describe('OrderService — Bediener-Token', () => {
     )
   })
 
+  it('online: createOrder reicht den Opt-out für erwartete Fehler an BaseService weiter (core#1351)', async () => {
+    const { service } = setup()
+    const baseCreate = vi.spyOn(BaseService.prototype, 'create')
+    onTestFinished(() => {
+      baseCreate.mockRestore()
+    })
+    const isExpectedError = () => true
+
+    await service.createOrder(baseInput, { isExpectedError })
+
+    expect(baseCreate).toHaveBeenCalledExactlyOnceWith(expect.anything(), expect.objectContaining({ isExpectedError }))
+  })
+
   it('offline: createOrder legt das Token der Erfassung in den Outbox-Eintrag', async () => {
     stubOperatorToken('tok-kassierer')
     const { service, enqueued } = setup({ offline: true })

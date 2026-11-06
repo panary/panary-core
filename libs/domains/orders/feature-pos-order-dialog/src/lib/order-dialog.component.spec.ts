@@ -95,6 +95,8 @@ interface SetupOptions {
   createOrderResult?: number | null
   /** Die ersten n Aufrufe von `createOrder` scheitern (Netzfehler) — danach gilt `createOrderResult`. */
   createOrderFailures?: number
+  /** Fehler je Aufruf von `createOrder` (Index = Aufruf); `undefined` an einer Stelle heißt: dieser Aufruf gelingt. */
+  createOrderErrors?: unknown[]
   /** `createOrder` bleibt offen, bis der Test `releaseCreate()` ruft — spielt den Server-Roundtrip nach. */
   holdCreate?: boolean
   /** Die Ruhetag-Vorabfrage antwortet nie (Server ohne `getClosedDayStatus`, core#1216). */
@@ -140,6 +142,10 @@ const product = (id: string, over: Partial<ProductSchema> = {}): ProductSchema =
 
 function setup(options: SetupOptions = {}) {
   const createdOrders: Array<Record<string, unknown>> = []
+  /** Zweites Argument von `createOrder` je Aufruf (`isExpectedError`, core#1351). */
+  const createOptions: Array<{ isExpectedError?: (error: unknown) => boolean } | undefined> = []
+  /** Aufrufe von `OrderService.refreshOrders` — nach dem Übernehmen einer vorhandenen Bestellung (core#1351). */
+  const refreshCalls: number[] = []
   /** Aufrufe von `OrderCheckoutService.payCash` — die Bezahlansicht kassiert nur darüber (core#831). */
   const payCashCalls: Array<Record<string, unknown>> = []
   /** Offene `createOrder`-Aufrufe (`holdCreate`) — je Test eigene Liste (testing.md §10). */
@@ -196,8 +202,12 @@ function setup(options: SetupOptions = {}) {
         provide: OrderService,
         useValue: {
           productionTimes: [0, 5, 10],
-          createOrder: (payload: Record<string, unknown>) => {
+          refreshOrders: () => refreshCalls.push(refreshCalls.length),
+          createOrder: (payload: Record<string, unknown>, opts?: { isExpectedError?: (error: unknown) => boolean }) => {
             createdOrders.push(payload)
+            createOptions.push(opts)
+            const scripted = options.createOrderErrors?.[createdOrders.length - 1]
+            if (scripted !== undefined) return Promise.reject(scripted)
             if (createdOrders.length <= (options.createOrderFailures ?? 0)) {
               return Promise.reject(new Error('Netz'))
             }
@@ -389,6 +399,8 @@ function setup(options: SetupOptions = {}) {
   return {
     component,
     createdOrders,
+    createOptions,
+    refreshCalls,
     payCashCalls,
     releaseCreate: () => heldCreates.splice(0).forEach(release => release()),
     redeemCalls,
@@ -3122,6 +3134,90 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
     expect(component.payment()).not.toBeNull()
     expect(closeCalls).toEqual([])
     expect(component.paying()).toBe(false)
+  })
+
+  describe('Frist beim Anlegen (core#1351)', () => {
+    /** So meldet `applySocketDeadline` eine Frist: `data.reason` ist `frist` oder `trennung`. */
+    const deadline = (reason: 'frist' | 'trennung' = 'frist') =>
+      Object.assign(new Error('Keine Antwort von orders.create'), { code: 408, data: { reason } })
+    /** So lehnt die Edge eine schon vorhandene `_id` ab (`rejectDuplicateOrderId`). */
+    const duplicate = () =>
+      Object.assign(new Error('Diese Bestellung ist bereits angelegt.'), { code: 409, data: { code: 'ORDER_7002' } })
+
+    it('meldet die Frist quittierpflichtig, behält den Warenkorb und schickt beim nächsten Versuch dieselbe ID', async () => {
+      const { component, createdOrders, notices, createOptions } = setup({
+        ...cashier,
+        createOrderErrors: [deadline('trennung')],
+      })
+      component.increaseLineItem(product('p-1'))
+
+      await component.placeOrder()
+
+      expect(notices).toEqual([{ message: 'ORDER_DIALOG.ORDER_TIMEOUT', action: undefined, sticky: true }])
+      expect(component.payment()).toBeNull()
+      expect(component.lineItems).toHaveLength(1)
+      // Die eigene Meldung ersetzt die allgemeine aus `handleError`.
+      expect(createOptions[0]?.isExpectedError?.(deadline())).toBe(true)
+
+      await component.placeOrder()
+
+      expect(createdOrders).toHaveLength(2)
+      expect(createdOrders[1]['_id']).toBe(createdOrders[0]['_id'])
+      expect(component.payment()).toEqual({ orderId: createdOrders[0]['_id'], total: 10 })
+    })
+
+    it('übernimmt die vorhandene Bestellung, wenn die Edge die wiederholte ID mit 409 ablehnt', async () => {
+      const { component, createdOrders, notices, createOptions, refreshCalls, closeCalls } = setup({
+        ...cashier,
+        createOrderErrors: [deadline(), duplicate()],
+      })
+      component.increaseLineItem(product('p-1'))
+      await component.placeOrder()
+
+      await component.placeOrder()
+
+      expect(createOptions[1]?.isExpectedError?.(duplicate())).toBe(true)
+      expect(component.payment()).toEqual({ orderId: createdOrders[0]['_id'], total: 10 })
+      expect(component.lineItems).toEqual([])
+      expect(refreshCalls).toHaveLength(1)
+      expect(notices.map(n => n.message)).toEqual(['ORDER_DIALOG.ORDER_TIMEOUT', 'ORDER_DIALOG.ORDER_ADOPTED'])
+      expect(closeCalls).toEqual([])
+    })
+
+    it('vergibt eine neue ID, wenn der Warenkorb nach der Frist geändert wurde', async () => {
+      const { component, createdOrders } = setup({ ...cashier, createOrderErrors: [deadline()] })
+      component.increaseLineItem(product('p-1'))
+      await component.placeOrder()
+
+      component.increaseLineItem(product('p-2'))
+      await component.placeOrder()
+
+      expect(createdOrders).toHaveLength(2)
+      expect(createdOrders[1]['_id']).not.toBe(createdOrders[0]['_id'])
+    })
+
+    it('behält die ID nach einer Ablehnung des Servers nicht', async () => {
+      const { component, createdOrders, createOptions } = setup({ ...cashier, createOrderErrors: [new Error('Netz')] })
+      component.increaseLineItem(product('p-1'))
+      await component.placeOrder()
+
+      await component.placeOrder()
+
+      expect(createOptions[0]?.isExpectedError?.(new Error('Netz'))).toBe(false)
+      expect(createdOrders[1]['_id']).not.toBe(createdOrders[0]['_id'])
+    })
+
+    it('übernimmt bei einer 409 ohne vorherige Frist nichts und lässt `handleError` melden', async () => {
+      const { component, createOptions, refreshCalls } = setup({ ...cashier, createOrderErrors: [duplicate()] })
+      component.increaseLineItem(product('p-1'))
+
+      await component.placeOrder()
+
+      expect(createOptions[0]?.isExpectedError?.(duplicate())).toBe(false)
+      expect(component.payment()).toBeNull()
+      expect(component.lineItems).toHaveLength(1)
+      expect(refreshCalls).toEqual([])
+    })
   })
 
   it('legt bei zwei schnellen Tipps nur eine Bestellung an, solange das Anlegen läuft', async () => {

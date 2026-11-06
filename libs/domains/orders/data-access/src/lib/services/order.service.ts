@@ -77,7 +77,6 @@ export interface OrderSplitResponse {
   targetOrder: Order
 }
 
-/** Split ohne Serververbindung — der Dialog meldet das statt eines generischen Fehlers. */
 /**
  * Die Edge kennt die mitgeschickte `_id` schon (409, `ORDER_7002`, core#1351): Ein früherer Versuch ist doch
  * angekommen. Der Bestelldialog übernimmt die Bestellung dann, statt eine zweite anzulegen.
@@ -85,6 +84,7 @@ export interface OrderSplitResponse {
 export const isOrderAlreadyExistsError = (error: unknown): boolean =>
   (error as { data?: { code?: unknown } } | null)?.data?.code === AppError.ORDER_ALREADY_EXISTS
 
+/** Split ohne Serververbindung — der Dialog meldet das statt eines generischen Fehlers. */
 export class OrderSplitOfflineError extends Error {
   constructor() {
     super('Bestellungen aufteilen ist nur mit Verbindung zum Server möglich.')

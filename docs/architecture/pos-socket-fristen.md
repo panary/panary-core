@@ -79,13 +79,15 @@ geänderter Warenkorb ist eine andere Bestellung und bekommt eine neue. Lehnt di
 vorherige Frist geht weiter durch `handleError`.
 
 **Edge (`rejectDuplicateOrderId`, around.create am `orders`-Service).** Around-Hooks laufen vor den before-Hooks.
-Bringt der Body eine `_id` mit, die es schon gibt oder die gerade angelegt wird, antwortet die Edge mit `409 Conflict`,
+Bringt der Body eine `_id` mit, die es schon gibt, antwortet die Edge mit `409 Conflict`,
 `data = { code: 'ORDER_7002', orderId }`, ohne Nebenwirkung. Ohne den Hook scheiterte die Wiederholung erst am
 Primärschlüssel, also nach `assignDailySequenceNumber`, `allocateFiscalCounter` und `signOrderTseStart`. Bei aktiver
 TSE blieben eine Lücke in der lückenlosen Fiskal-Vorgangsnummer und eine offene TSE-Transaktion zurück, und der POS
-bekam den rohen SQLite-Fehler als 500. Gegen eine Wiederholung, die eintrifft, während der erste Versuch noch in
-seiner Hook-Kette steckt, hält der Hook die IDs laufender Anlagen in einem Prozess-Set (die Edge ist
-single-process). Sync-Apply (`params.fromSync`) ist ausgenommen.
+bekam den rohen SQLite-Fehler als 500. Trifft die Wiederholung ein, während der erste Versuch noch in seiner
+Hook-Kette steckt, wartet sie auf dessen Ausgang (Prozess-Map laufender Anlagen, die Edge ist single-process): Ist die
+Bestellung danach gespeichert, kommt die 409; ist der erste Versuch gescheitert, läuft die Wiederholung normal. Eine
+sofortige 409 ließe den POS eine Bestellung übernehmen, die es womöglich nie gibt. Sync-Apply (`params.fromSync`)
+ist ausgenommen.
 
 **Offline-Outbox.** Sie war schon vorher sicher: Eine wiederholt gesendete Bestellung stuft `classifyOutboxError`
 bei 409 oder „unique“ als `already-exists` ein, und für `offlineCreated` entfällt der TSE-Start. Der Hook ändert

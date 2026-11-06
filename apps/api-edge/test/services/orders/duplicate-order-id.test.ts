@@ -38,7 +38,11 @@ describe('orders service — doppelte _id', () => {
     bundleNumber: null,
   })
 
-  const createOrder = async (id?: string): Promise<Order> => {
+  const createOrder = async (
+    id?: string,
+    over: Record<string, unknown> = {},
+    params: Record<string, unknown> = {},
+  ): Promise<Order> => {
     const created = (await app.service('orders').create(
       {
         ...(id ? { _id: id } : {}),
@@ -52,8 +56,9 @@ describe('orders service — doppelte _id', () => {
         estimatedDuration: 0,
         remainingTime: 0,
         recordingDate: new Date().toISOString(),
+        ...over,
       } as never,
-      { ...internal, user: { _id: userId, tenantId, locationId } } as never,
+      { ...internal, user: { _id: userId, tenantId, locationId }, ...params } as never,
     )) as Order
 
     onTestFinished(async () => {
@@ -68,8 +73,7 @@ describe('orders service — doppelte _id', () => {
 
   const countWithId = async (id: string): Promise<number> => {
     const rows = (await app.service('orders').find({ ...internal, paginate: false, query: { _id: id } } as never)) as
-      | Order[]
-      | { data: Order[] }
+      Order[] | { data: Order[] }
     return (Array.isArray(rows) ? rows : rows.data).length
   }
 
@@ -150,6 +154,41 @@ describe('orders service — doppelte _id', () => {
     expect(rejected).toHaveLength(1)
     expect((rejected[0].reason as Conflict).data).toEqual({ code: AppError.ORDER_ALREADY_EXISTS, orderId: id })
     expect(await countWithId(id)).toBe(1)
+  })
+
+  it('lässt die Wiederholung durch, wenn der gleichzeitige erste Versuch scheitert', async () => {
+    // Eine sofortige 409 ließe den POS eine Bestellung übernehmen, die es nie gibt.
+    await createOrder()
+    const id = uuidv7()
+
+    const [failed, retried] = await Promise.allSettled([createOrder(id, { status: 'kaputt' }), createOrder(id)])
+
+    expect(failed.status).toBe('rejected')
+    expect((failed as PromiseRejectedResult).reason).not.toBeInstanceOf(Conflict)
+    expect(retried.status).toBe('fulfilled')
+    expect(await countWithId(id)).toBe(1)
+  })
+
+  it('gibt die _id nach einem gescheiterten Versuch für den nächsten frei', async () => {
+    const id = uuidv7()
+    await createOrder(id, { status: 'kaputt' }).catch(() => undefined)
+
+    const retried = await createOrder(id)
+
+    expect(retried._id).toBe(id)
+  })
+
+  it('prüft Sync-Applies nicht: Dort entscheidet der Sync über eine vorhandene _id', async () => {
+    const id = uuidv7()
+    await createOrder(id)
+
+    const error = await createOrder(id, {}, { fromSync: true }).then(
+      () => undefined,
+      (e: unknown) => e,
+    )
+
+    expect(error).toBeDefined()
+    expect(error).not.toBeInstanceOf(Conflict)
   })
 
   it('lässt Bestellungen ohne mitgeschickte _id unverändert durch', async () => {

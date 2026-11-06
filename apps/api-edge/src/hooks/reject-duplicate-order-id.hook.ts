@@ -13,15 +13,17 @@ import type { HookContext, NextFunction } from '../declarations'
 // lückenlosen Fiskal-Vorgangsnummer und eine offene TSE-Transaktion zurück, und der POS bekäme
 // den rohen SQLite-Fehler statt einer 409.
 //
-// Als Around-Hook läuft er vor allen before-Hooks. Der Merker `inFlight` deckt den Fall ab, dass
-// der zweite Versuch eintrifft, während der erste noch in seiner Hook-Kette steckt: Die Zeile steht
-// dann noch nicht in der Tabelle. Der Edge ist single-process, ein Prozess-Set genügt (wie
-// `assign-daily-sequence-number.ts`).
+// Als Around-Hook läuft er vor allen before-Hooks. Trifft die Wiederholung ein, während der erste
+// Versuch noch in seiner Hook-Kette steckt, steht die Zeile noch nicht in der Tabelle. Dann wartet
+// sie auf dessen Ausgang (`inFlight`): Ist die Bestellung danach gespeichert, kommt die 409, und
+// der POS übernimmt sie. Ist der erste Versuch gescheitert, läuft die Wiederholung normal weiter.
+// Eine sofortige 409 ließe den POS eine Bestellung übernehmen, die es womöglich nie gibt. Der Edge
+// ist single-process, eine Prozess-Map genügt (wie `assign-daily-sequence-number.ts`).
 //
 // Sync-Apply (`fromSync`) ist ausgenommen: Dort kommt ein fertiger Stand der Cloud an, und dessen
 // Behandlung entscheidet der Sync, nicht dieser Hook.
 
-const inFlight = new Set<string>()
+const inFlight = new Map<string, Promise<void>>()
 
 const isFromSync = (context: HookContext): boolean => Boolean((context.params as { fromSync?: boolean }).fromSync)
 
@@ -32,25 +34,41 @@ const clientOrderId = (context: HookContext): string | undefined => {
   return typeof id === 'string' && id.length > 0 ? id : undefined
 }
 
-const conflict = (orderId: string): Conflict =>
-  new Conflict(AppErrorMessages[AppError.ORDER_ALREADY_EXISTS], { code: AppError.ORDER_ALREADY_EXISTS, orderId })
+const exists = async (context: HookContext, orderId: string): Promise<boolean> => {
+  const found = (await context.service.find({
+    query: { _id: orderId, $limit: 1, $select: ['_id'] },
+    paginate: false,
+    provider: undefined,
+  })) as Array<{ _id: string }>
+  return Array.isArray(found) && found.length > 0
+}
 
 export const rejectDuplicateOrderId = async (context: HookContext, next: NextFunction): Promise<void> => {
   const orderId = clientOrderId(context)
   if (!orderId || isFromSync(context)) return next()
 
-  // Synchron belegen, bevor irgendetwas awaitet: Zwei gleichzeitige Versuche sähen sonst beide ein leeres Set.
-  if (inFlight.has(orderId)) throw conflict(orderId)
-  inFlight.add(orderId)
+  // Läuft schon ein Versuch mit dieser ID, erst dessen Ausgang abwarten. Die Schleife deckt einen dritten Versuch ab,
+  // der sich zwischen Ende des ersten und Start des zweiten eingereiht hat.
+  for (let running = inFlight.get(orderId); running; running = inFlight.get(orderId)) await running
+
+  // Ab hier synchron belegen, bevor wieder etwas awaitet: Ein gleichzeitiger Versuch wartet dann auf diesen.
+  let settle: () => void = () => undefined
+  inFlight.set(
+    orderId,
+    new Promise<void>(resolve => {
+      settle = resolve
+    }),
+  )
   try {
-    const found = (await context.service.find({
-      query: { _id: orderId, $limit: 1, $select: ['_id'] },
-      paginate: false,
-      provider: undefined,
-    })) as Array<{ _id: string }>
-    if (Array.isArray(found) && found.length > 0) throw conflict(orderId)
+    if (await exists(context, orderId)) {
+      throw new Conflict(AppErrorMessages[AppError.ORDER_ALREADY_EXISTS], {
+        code: AppError.ORDER_ALREADY_EXISTS,
+        orderId,
+      })
+    }
     await next()
   } finally {
     inFlight.delete(orderId)
+    settle()
   }
 }

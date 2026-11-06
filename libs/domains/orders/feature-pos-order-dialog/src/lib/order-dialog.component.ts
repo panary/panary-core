@@ -3294,11 +3294,25 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /**
    * Fingerabdruck des Warenkorbs für die Wiederholung nach einer Frist (core#1351): Positionen, Ort und Rabatte.
-   * Die Reihenfolge der Positionen zählt nicht, `createOrder` sortiert sie ohnehin um.
+   * Die Reihenfolge zählt nicht, `createOrder` sortiert die Positionen ohnehin um. Von den Rabatten fehlen nur die
+   * Felder, die jeder Versuch neu vergibt (`_id`, `appliedAt`); Ziel und Positionsbezug zählen mit, sonst gälte ein
+   * auf eine andere Zeile umgehängter Positionsrabatt als unverändert.
    */
   #cartKey(dineLocation: DineLocation, appliedDiscounts: AppliedDiscount[]): string {
     const lines = this.#lineItems.map(line => JSON.stringify(line)).sort()
-    const discounts = appliedDiscounts.map(d => [d.discountId, d.name, d.valueType, d.valuePercent, d.valueCents])
+    const discounts = appliedDiscounts
+      .map(d =>
+        JSON.stringify([
+          d.discountId,
+          d.name,
+          d.target,
+          d.lineItemId ?? null,
+          d.valueType,
+          d.valuePercent,
+          d.valueCents,
+        ]),
+      )
+      .sort()
     return JSON.stringify({ lines, dineLocation, discounts, table: this._table ?? null, pager: this._pager ?? null })
   }
 

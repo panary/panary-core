@@ -3196,6 +3196,22 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
       expect(createdOrders[1]['_id']).not.toBe(createdOrders[0]['_id'])
     })
 
+    it('vergibt eine neue ID, wenn ein Positionsrabatt nach der Frist auf eine andere Zeile wandert', async () => {
+      const { component, createdOrders } = setup({ ...cashier, createOrderErrors: [deadline()] })
+      component.increaseLineItem(product('p-1'))
+      component.increaseLineItem(product('p-2'))
+      discountLine(component, 0)
+      await component.placeOrder()
+
+      // Gleiche Summe, gleiche Positionen, nur der Rabatt sitzt auf der anderen Zeile.
+      component.lineDiscounts.set({})
+      discountLine(component, 1)
+      await component.placeOrder()
+
+      expect(createdOrders).toHaveLength(2)
+      expect(createdOrders[1]['_id']).not.toBe(createdOrders[0]['_id'])
+    })
+
     it('behält die ID nach einer Ablehnung des Servers nicht', async () => {
       const { component, createdOrders, createOptions } = setup({ ...cashier, createOrderErrors: [new Error('Netz')] })
       component.increaseLineItem(product('p-1'))

@@ -90,7 +90,7 @@ interface SetupOptions {
   /** Standard-Bestellart des Terminals (`DeviceOrderChannelService.channel`), Vorgabe: keine. */
   deviceOrderChannel?: 'pos' | 'telephone' | null
   /** Antwort von `OrderCheckoutService.payCash` — Standard: bezahlt. */
-  payCashResult?: 'paid' | 'cash-session-declined' | 'failed'
+  payCashResult?: 'paid' | 'cash-session-declined' | 'failed' | 'timeout'
   /** Was `OrderService.createOrder` liefert — `null` spielt ein gescheitertes Anlegen nach. */
   createOrderResult?: number | null
   /** Die ersten n Aufrufe von `createOrder` scheitern (Netzfehler) — danach gilt `createOrderResult`. */
@@ -3109,6 +3109,19 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
     expect(notices.map(c => c.message)).toEqual(['Kasse nicht freigegeben. Die Bestellung bleibt offen.'])
     expect(component.payment()).not.toBeNull()
     expect(closeCalls).toEqual([])
+  })
+
+  it('meldet eine ausbleibende Antwort quittierpflichtig und lässt die Bezahlansicht stehen (core#1348)', async () => {
+    const { component, notices, closeCalls } = setup({ ...cashier, payCashResult: 'timeout' })
+    component.increaseLineItem(product('p-1'))
+    await component.placeOrder()
+
+    await component.onCollect()
+
+    expect(notices).toEqual([{ message: 'ORDER_DIALOG.PAYMENT_TIMEOUT', action: undefined, sticky: true }])
+    expect(component.payment()).not.toBeNull()
+    expect(closeCalls).toEqual([])
+    expect(component.paying()).toBe(false)
   })
 
   it('legt bei zwei schnellen Tipps nur eine Bestellung an, solange das Anlegen läuft', async () => {

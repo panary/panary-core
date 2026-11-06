@@ -4,6 +4,7 @@ import { Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { PanaryLogoComponent } from '@panary/shared/ui-common'
 import { AuthService } from '../core/auth.service'
+import { EdgeVersionService } from '../core/edge-version.service'
 
 @Component({
   selector: 'app-login',
@@ -74,6 +75,12 @@ import { AuthService } from '../core/auth.service'
             }
           </button>
         </form>
+
+        @if (edgeVersion(); as version) {
+          <p class="text-center text-xs text-ink-faint font-mono tabular-nums" data-testid="login-edge-version">
+            v{{ version }}
+          </p>
+        }
       </div>
     </div>
   `,
@@ -81,6 +88,7 @@ import { AuthService } from '../core/auth.service'
 export class LoginComponent {
   private auth = inject(AuthService)
   private router = inject(Router)
+  private edgeVersionService = inject(EdgeVersionService)
 
   readonly credentials = signal({ email: '', password: '' })
   readonly loginForm = form(this.credentials, c => {
@@ -89,6 +97,12 @@ export class LoginComponent {
   })
   loading = signal(false)
   error = signal<string | null>(null)
+  /** Version des laufenden Edge-Servers (core#1354): Nach einem Update zeigt ein Neuladen, ob er sie fährt. */
+  readonly edgeVersion = signal<string | null>(null)
+
+  constructor() {
+    void this.edgeVersionService.load().then(version => this.edgeVersion.set(version))
+  }
 
   async onLogin() {
     if (this.loginForm().invalid()) return

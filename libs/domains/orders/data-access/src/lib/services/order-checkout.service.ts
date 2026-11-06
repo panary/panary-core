@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { uuidv7 } from 'uuidv7'
 import { isOrderOpen, OrderStatus, PaymentState, TransactionMethod, type Payment } from '@panary/orders/domain'
+import { isSocketDeadlineError } from '@panary/shared/data-access'
 import { OrderService } from './order.service'
 
 export interface PayCashInput {
@@ -35,6 +36,12 @@ export type PayCashResult = 'paid' | 'cash-session-declined' | 'closed-day-decli
 export const PAY_TIMEOUT_MS = 20_000
 
 class PayTimeoutError extends Error {}
+
+/**
+ * Ob gebucht wurde, ist offen: eigene Frist, Socket-Frist oder Trennung nach dem Senden (core#1342). Ein Socket-Fehler
+ * als `failed` hieße „Server hat abgelehnt“, und der Nutzer kassierte ohne frische Lesung erneut.
+ */
+const isUnanswered = (err: unknown): boolean => err instanceof PayTimeoutError || isSocketDeadlineError(err)
 
 /**
  * Ein Socket-Aufruf, dessen Ack ausbleibt (verlorene Anfrage, Edge fällt vor der Antwort aus), wartet sonst endlos:
@@ -123,7 +130,7 @@ export class OrderCheckoutService {
         await withTimeout(this.#orders.patch(input.orderId, payload, params))
         return 'paid'
       } catch (err) {
-        if (err instanceof PayTimeoutError) return 'timeout'
+        if (isUnanswered(err)) return 'timeout'
         if (!expected(err)) return 'failed'
         if (isLocationClosedToday(err)) {
           askedClosedDay = true
@@ -164,7 +171,7 @@ export class OrderCheckoutService {
       try {
         status = (await withTimeout(this.#orders.get(order.orderId)))?.status
       } catch (err) {
-        return stopAt(index, err instanceof PayTimeoutError ? 'timeout' : 'failed')
+        return stopAt(index, isUnanswered(err) ? 'timeout' : 'failed')
       }
       if (!isOrderOpen(status)) {
         skipped.push(order.orderId)

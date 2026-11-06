@@ -117,9 +117,10 @@ export class DiscountCodeService {
     customerId?: string | null
     amountCents?: number | null
   }): Promise<CodeCheckResult> {
-    // Bewusst nur die Vorprüfung, keine Zeitgrenze: Ein gepufferter Aufruf könnte nach Ablauf doch
-    // noch ankommen und den Code verbrauchen, obwohl die Kasse die Bestellung schon verworfen hat.
-    // Restlücke: Reißt die Verbindung erst während des Aufrufs ab, bleibt er bis zum Reconnect offen.
+    // Bewusst keine eigene Zeitgrenze: Ein gepufferter Aufruf könnte nach Ablauf doch noch ankommen und den Code
+    // verbrauchen, obwohl die Kasse die Bestellung schon verworfen hat. Die Socket-Frist der Kasse (core#1342) begrenzt
+    // den Aufruf trotzdem und nimmt ihn bei Ablauf aus dem Puffer; eine Trennung nach dem Senden lehnt socket.io
+    // sofort ab. Offen bleibt nur ein schon gesendeter Aufruf, den der Edge nach Ablauf der Frist noch verbucht.
     if (this.#isUnreachable()) return { ok: false, reason: CodeProxyReason.CLOUD_UNREACHABLE }
     try {
       return (await this.#service.create({

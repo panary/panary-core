@@ -11,6 +11,7 @@ import { AppConfigService, DeviceConfigService } from '@panary/shared/data-acces
 import { BusinessDaySchema } from '@panary/businessdays/domain'
 import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
 import { CLIENT_SERVICE_METHODS } from './client-service-methods'
+import { applySocketDeadline } from './socket-deadlines'
 
 // Bestehender Export-Pfad: Die Spec von `BusinessDayService` importiert die Liste über den Haupteinstieg.
 export { BUSINESSDAYS_CLIENT_METHODS } from './client-service-methods'
@@ -46,6 +47,9 @@ export type ServiceName = keyof ConnectionService
  */
 const PAIRING_CONNECTED = 'connected'
 const PAIRING_DISCONNECTED = 'disconnected'
+
+/** Kasse mit Geräte-Zugang. Dieselbe Bedingung wählt den Socket-Zweig und die Fristen (panary/panary-core#1342). */
+const isDeviceStrategy = (deviceConfig: any): boolean => Boolean(deviceConfig?.deviceId && deviceConfig?.apiKey)
 
 @Injectable({
   providedIn: 'root',
@@ -592,6 +596,11 @@ export class ConnectionService {
     const socketClient = socketio(this.#socket)
 
     this.#app.configure(socketClient)
+    // Nur die Kasse (Device-Strategie) bekommt Fristen; der Admin-Zweig bleibt unverändert (panary/panary-core#1342).
+    // Als Mixin vor dem ersten `use`, damit auch die erst über `defaultService` entstehenden Services erfasst sind.
+    if (isDeviceStrategy(deviceConfig)) {
+      this.#app.mixins.push((service: unknown, path: string) => applySocketDeadline(service, path))
+    }
     // Die Methodenlisten liegen framework-frei in `client-service-methods.ts`: Die Edge prüft per Spec, dass jede
     // Custom-Method dort existiert (panary/panary-core#1165). Ohne Registrierung ist eine Custom-Method
     // clientseitig unsichtbar.
@@ -792,7 +801,7 @@ export class ConnectionService {
     let url = ''
     let options: any = {}
 
-    if (deviceConfig?.deviceId && deviceConfig?.apiKey) {
+    if (isDeviceStrategy(deviceConfig)) {
       // --- POS DEVICE STRATEGY ---
       url = this.getBaseUrl(deviceConfig.serverUrl)
       console.log(`[Connection] Initializing socket (Device Mode) with URL: ${url}`)

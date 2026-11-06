@@ -1,0 +1,2 @@
+* **Update**: [POS-Socket-Fristen](../architecture/pos-socket-fristen.md) — die Kasse-Ansicht des Bestelldialogs meldet beim Bar-Kassieren eine ausbleibende Antwort (`timeout` aus Frist oder Trennung) quittierpflichtig mit `ORDER_DIALOG.PAYMENT_TIMEOUT`, wie schon der Bezahldialog; vorher blieb sie stumm (panary/panary-core#1348, gefunden im Sichttest panary/panary-core#1347).
+* **Update**: Test-First: 1 rot vor dem Fix (`expected [] to deeply equal [ { …(3) } ]`), danach 555/555 grün.

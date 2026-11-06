@@ -59,7 +59,7 @@ Warum das Flag je Aufruf statt einer globalen `ackTimeout` oder eines Feathers-H
 | `CLOSED_DAY_STATUS_TIMEOUT_MS` (`closed-day-prompt.ts`) | 3 s | kürzer: Die Ruhetag-Abfrage darf das Bestellen nicht aufhalten (#1215) |
 | `CODE_CHECK_TIMEOUT_MS` (`discount-code.service.ts`) | 10 s | kürzer: Die Code-Prüfung ist eine Vorschau beim Tippen |
 | `WRITE_OFF_SAVE_TIMEOUT_MS` (`write-off-error.ts`) | 15 s | kürzer; der Dialog bildet 408 schon auf eine eigene Meldung ab |
-| `PAY_TIMEOUT_MS` (`order-checkout.service.ts`) | 20 s | gleich lang; der Bezahlablauf wertet jetzt auch die Socket-Frist und die Trennung als `timeout` und liest vor dem nächsten Versuch frisch nach |
+| `PAY_TIMEOUT_MS` (`order-checkout.service.ts`) | 20 s | gleich lang; der Bezahlablauf wertet jetzt auch die Socket-Frist und die Trennung als `timeout`. Bezahldialog und Kasse-Ansicht (`onCollect`, seit [#1348](https://github.com/panary/panary-core/issues/1348)) zeigen dann quittierpflichtig `ORDER_DIALOG.PAYMENT_TIMEOUT` |
 
 `DiscountCodeService.redeem` hat bewusst keine eigene Frist (ein später ankommender Aufruf verbrauchte den Code).
 Die Socket-Frist begrenzt ihn trotzdem und nimmt ihn bei Ablauf aus dem Puffer.

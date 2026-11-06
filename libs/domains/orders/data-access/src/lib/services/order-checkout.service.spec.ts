@@ -303,3 +303,27 @@ describe('OrderCheckoutService — Timeout ohne Antwort der Edge (core#1309)', (
     await expect(outcome).resolves.toEqual({ result: 'timeout', paid: ['o-1'], skipped: [], remaining: ['o-2'] })
   })
 })
+
+// core#1342: Die Socket-Frist und die Trennung nach dem Senden lassen offen, ob gebucht wurde.
+describe('OrderCheckoutService — Socket-Frist und Trennung (core#1342)', () => {
+  const socketError = (code: number, reason: 'frist' | 'trennung') => ({
+    code,
+    message: 'keine Antwort',
+    data: { path: 'orders', method: 'patch', timeoutMs: 20_000, reason },
+  })
+
+  it('payCash wertet die Socket-Frist als `timeout`, nicht als Ablehnung', async () => {
+    const { service } = setup([socketError(408, 'frist')])
+    await expect(service.payCash(input())).resolves.toBe('timeout')
+  })
+
+  it('payCash wertet eine Trennung nach dem Senden als `timeout`', async () => {
+    const { service } = setup([socketError(503, 'trennung')])
+    await expect(service.payCash(input())).resolves.toBe('timeout')
+  })
+
+  it('ein gewöhnlicher Serverfehler bleibt `failed`', async () => {
+    const { service } = setup([{ code: 500, message: 'kaputt' }])
+    await expect(service.payCash(input())).resolves.toBe('failed')
+  })
+})

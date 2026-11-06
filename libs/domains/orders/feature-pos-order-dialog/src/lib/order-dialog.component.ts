@@ -3298,7 +3298,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * Felder, die jeder Versuch neu vergibt (`_id`, `appliedAt`); Ziel und Positionsbezug zählen mit, sonst gälte ein
    * auf eine andere Zeile umgehängter Positionsrabatt als unverändert.
    */
-  #cartKey(dineLocation: DineLocation, appliedDiscounts: AppliedDiscount[]): string {
+  #cartKey(
+    dineLocation: (typeof DineLocation)[keyof typeof DineLocation],
+    appliedDiscounts: AppliedDiscount[],
+  ): string {
     const lines = this.#lineItems.map(line => JSON.stringify(line)).sort()
     const discounts = appliedDiscounts
       .map(d =>

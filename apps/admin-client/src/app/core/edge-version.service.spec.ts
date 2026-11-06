@@ -7,7 +7,7 @@ import { API_BASE_URL } from './api-base-url'
 import { EdgeVersionService } from './edge-version.service'
 
 function setup(response: () => ReturnType<HttpClient['get']>) {
-  const get = vi.fn(response)
+  const get = vi.fn<(url: string) => ReturnType<HttpClient['get']>>(response)
   TestBed.configureTestingModule({ providers: [{ provide: HttpClient, useValue: { get } }] })
   return { service: TestBed.inject(EdgeVersionService), get }
 }

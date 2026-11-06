@@ -23,6 +23,7 @@ async function render(edgeVersion: string | null = null) {
   }).compileComponents()
   const fixture = TestBed.createComponent(LoginComponent)
   await fixture.whenStable()
+  fixture.detectChanges()
   const el = fixture.nativeElement as HTMLElement
 
   async function type(id: string, value: string) {

@@ -1,7 +1,6 @@
 import { computed, inject, Injectable, signal, Signal, WritableSignal } from '@angular/core'
 
 import { feathers, Id, Params, Service } from '@feathersjs/feathers'
-import { FeathersError } from '@feathersjs/errors'
 
 import socketio, { SocketService } from '@feathersjs/socketio-client'
 import io, { Socket } from 'socket.io-client'
@@ -777,7 +776,7 @@ export class ConnectionService {
         strategy: 'jwt',
         accessToken: token,
       },
-      (error: FeathersError, newAuthResult: any): void => {
+      (error: { code?: unknown } | null, newAuthResult: any): void => {
         if (error) {
           if (error.code === 401) {
             console.warn('[WS]: Token nicht gültig – Session abgelaufen, Re-Login erforderlich.')
@@ -910,13 +909,15 @@ export class ConnectionService {
           )
           this.deviceConfigService.updateLastSync()
         } else {
-          console.error(`[POS-WS] ✗ Authentication failed:`, data.error)
+          // `data.error` kommt aus einem untypisierten Payload: nur als Code-String in die Zeile.
+          const rejection = typeof data.error === 'string' && data.error ? data.error : 'DEVICE_REJECTED'
+          console.error(`[POS-WS] ✗ Authentication failed:`, rejection)
           this.#isAuthenticated.set(false)
           // Ohne gesetzten Zustand liefe der Login-Screen in denselben
           // 15-Sekunden-Timeout wie bei "Server nicht erreichbar" — der Bediener
           // saehe "Verbindungsfehler", obwohl das Geraet serverseitig abgelehnt
           // wurde. Zwei grundverschiedene Ursachen, eine Meldung.
-          this.#deviceAuthRejection.set(typeof data.error === 'string' && data.error ? data.error : 'DEVICE_REJECTED')
+          this.#deviceAuthRejection.set(rejection)
         }
       })
       .on('device:key-rotated', (data: any) => {

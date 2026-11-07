@@ -180,7 +180,8 @@ export class AuthService {
 
     this.logErrorDetails(httpError)
 
-    return throwError(() => new Error(String(err?.['message'] ?? httpError)))
+    // Bleibt unbehandelt und landet so im Mitschnitt: ohne die URL aus `HttpErrorResponse.message`.
+    return throwError(() => new Error(describeErrorForLog(httpError)))
   }
 
   private logErrorDetails(error: HttpErrorResponse | unknown): void {

@@ -14,6 +14,7 @@ Vor dem Arbeiten die relevanten Rules lesen:
 | `.claude/rules/angular.md`       | Control Flow, Signals, Signal-Inputs/Outputs, DI via `inject()`, Standalone-Architektur                           |
 | `.claude/rules/data-models.md`   | IDs (uuidv7), Datumsformat, TypeBox-Schemas, „Product First"-Prinzip, Domain-Struktur                             |
 | `.claude/rules/logging.md`       | Wide Events, Canonical Log Lines, Business-Kontext, Dev-Format, Sensitive-Daten-Regeln                            |
+| `.claude/rules/pos-logging.md`   | POS-Frontend: jede `console.*`-Zeile landet in der Logdatei — keine PINs, Tokens, Kunden- und Bestelldaten        |
 | `.claude/rules/documentation.md` | OKF-Wiki `/docs`: Struktur, Frontmatter-Profil, ADR-Regeln, Index-/Log-Pflege, Workflows                          |
 
 ---

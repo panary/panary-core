@@ -1,10 +1,21 @@
 import { Injectable } from '@angular/core'
+import { AndroidLogSink, formatAndroidLogLine, type AndroidLogPlugins } from './android-log-sink'
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace'
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 }
+
+// Wie `HubDiscoveryService`: ohne `@capacitor/core`-Import in der Lib.
+function isCapacitor(): boolean {
+  if (typeof window === 'undefined') return false
+  const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }
+  return !!w.Capacitor?.isNativePlatform?.()
+}
+
+/** Logdatei des Android-Wrappers; gesetzt von `installGlobalLogCapture`, modulweit wie `captureInstalled`. */
+let androidSink: AndroidLogSink | null = null
 
 // `withGlobalTauri: true` (tauri.conf.json) stellt `window.__TAURI__.core.invoke`
 // bereit — so vermeiden wir eine zusaetzliche @tauri-apps/api-Abhaengigkeit nur
@@ -32,9 +43,15 @@ function stringify(value: unknown): string {
 }
 
 function writeNativeLog(level: LogLevel, message: string): void {
-  if (!isTauri()) return
-  // Logging darf niemals selbst werfen (sonst Loop ueber console.error-Patch).
-  void tauriInvoke('js_log', { level, message }).catch(() => undefined)
+  if (isTauri()) {
+    // Logging darf niemals selbst werfen (sonst Loop ueber console.error-Patch).
+    void tauriInvoke('js_log', { level, message }).catch(() => undefined)
+    return
+  }
+  // `debug`/`trace` fallen weg wie unter Tauri (`LevelFilter::Info`).
+  if (androidSink && (level === 'error' || level === 'warn' || level === 'info')) {
+    androidSink.write(formatAndroidLogLine(level, message))
+  }
 }
 
 // Modulweit statt je Instanz: `main.ts` installiert vor dem Bootstrap, der Root-Injector baut
@@ -60,13 +77,22 @@ function writeUnlessHandled(event: Event, line: () => string): void {
   }, 0)
 }
 
+export interface LogCaptureOptions {
+  /** Plugins fuer die Logdatei im Capacitor-Android-Wrapper; ohne sie bleibt der Mitschnitt dort aus. */
+  android?: AndroidLogPlugins
+}
+
 /**
  * Faengt globale Fehler + console.error/warn/info ab und spiegelt sie in die native Logdatei.
  * Gehoert in `main.ts` VOR `bootstrapApplication`, damit auch Fehler beim Bootstrap und beim
- * Laden der Konfiguration ankommen. Idempotent, nur im Tauri-Kontext aktiv.
+ * Laden der Konfiguration ankommen. Idempotent, aktiv unter Tauri und im Android-Wrapper.
  */
-export function installGlobalLogCapture(): void {
-  if (captureInstalled || !isTauri() || typeof window === 'undefined') return
+export function installGlobalLogCapture(options: LogCaptureOptions = {}): void {
+  if (captureInstalled || typeof window === 'undefined') return
+  if (!isTauri()) {
+    if (!isCapacitor() || !options.android) return
+    androidSink = new AndroidLogSink(options.android)
+  }
   captureInstalled = true
 
   const origError = console.error.bind(console)
@@ -97,15 +123,19 @@ export function installGlobalLogCapture(): void {
   writeNativeLog('info', 'Panary POS gestartet — natives Logging aktiv')
 }
 
+/** Wie die Logdatei das Geraet verlaesst: Ordner oeffnen (Tauri) oder Teilen-Menue (Android). */
+export type LogExportMode = 'folder' | 'share'
+
 /**
- * Bruecke zum nativen Tauri-Log (tauri-plugin-log → Datei mit Rotation).
+ * Bruecke zur nativen Logdatei: unter Tauri `tauri-plugin-log`, im Android-Wrapper `AndroidLogSink`
+ * (beide mit Rotation).
  *
  * - `error/warn/info/debug`: schreibt eine Zeile in die native Logdatei.
  * - `readLogs()`: liest die Datei fuer die In-App-Ansicht.
- * - `openLogDirectory()`: oeffnet den Log-Ordner im Datei-Explorer (Export).
+ * - `exportLogs()`: oeffnet den Log-Ordner (Tauri) bzw. das Teilen-Menue (Android).
  * - `installGlobalCapture()`: siehe `installGlobalLogCapture()`.
  *
- * Ausserhalb des Tauri-Kontexts (Browser/Dev, admin) sind alle Aufrufe No-Ops.
+ * Ohne Logdatei (Browser/Dev, admin, Android ohne Mitschnitt) sind alle Aufrufe No-Ops.
  */
 @Injectable({ providedIn: 'root' })
 export class LogService {
@@ -122,9 +152,15 @@ export class LogService {
     writeNativeLog('debug', message)
   }
 
+  /** `null`: keine Logdatei auf diesem Geraet, der Bereich „Diagnose & Logs" bleibt aus. */
+  exportMode(): LogExportMode | null {
+    if (isTauri()) return 'folder'
+    return androidSink ? 'share' : null
+  }
+
   /** Liest die native Logdatei (letzte ~200 KB). Leerer String, wenn keine Logs. */
   async readLogs(): Promise<string> {
-    if (!isTauri()) return ''
+    if (!isTauri()) return androidSink ? androidSink.read() : ''
     try {
       return await tauriInvoke<string>('read_logs')
     } catch {
@@ -132,14 +168,17 @@ export class LogService {
     }
   }
 
-  /** Oeffnet das Log-Verzeichnis im Datei-Explorer (fuer „Logs exportieren"). */
-  async openLogDirectory(): Promise<void> {
-    if (!isTauri()) return
-    await tauriInvoke('open_log_dir')
+  /** „Logs exportieren": Log-Ordner im Datei-Explorer (Tauri) bzw. Teilen-Menue mit der Datei (Android). */
+  async exportLogs(): Promise<void> {
+    if (isTauri()) {
+      await tauriInvoke('open_log_dir')
+      return
+    }
+    await androidSink?.share()
   }
 
   /** Delegiert an `installGlobalLogCapture()`; idempotent ueber alle Instanzen. */
-  installGlobalCapture(): void {
-    installGlobalLogCapture()
+  installGlobalCapture(options?: LogCaptureOptions): void {
+    installGlobalLogCapture(options)
   }
 }

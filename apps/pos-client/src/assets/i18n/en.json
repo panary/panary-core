@@ -266,6 +266,8 @@
     "LOGS_EMPTY": "No logs yet.",
     "LOGS_COPIED": "Logs copied to clipboard",
     "LOGS_EXPORT_ERROR": "Could not open the log folder",
+    "LOGS_SHARE": "Export (share)",
+    "LOGS_SHARE_ERROR": "Could not share the log file",
     "INFO_LANGUAGE": "Language",
     "INFO_THEME": "Design",
     "INFO_LOCATION": "Location",

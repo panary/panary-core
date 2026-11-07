@@ -266,6 +266,8 @@
     "LOGS_EMPTY": "Noch keine Protokolle vorhanden.",
     "LOGS_COPIED": "Protokolle in die Zwischenablage kopiert",
     "LOGS_EXPORT_ERROR": "Protokoll-Ordner konnte nicht geöffnet werden",
+    "LOGS_SHARE": "Exportieren (Teilen)",
+    "LOGS_SHARE_ERROR": "Teilen der Protokolldatei fehlgeschlagen",
     "INFO_LANGUAGE": "Sprache",
     "INFO_THEME": "Design",
     "INFO_LOCATION": "Standort",

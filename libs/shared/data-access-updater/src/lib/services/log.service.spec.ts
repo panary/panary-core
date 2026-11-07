@@ -151,3 +151,123 @@ describe('installGlobalLogCapture', () => {
     expect(errorLines(invoke)).toEqual(['window.onerror: Script error. @ :0'])
   })
 })
+
+/** Android-Wrapper: `Capacitor.isNativePlatform()` und Plugins mit Dateien im Speicher. */
+function stubCapacitor(native = true) {
+  const files = new Map<string, string>()
+  const filesystem = {
+    appendFile: vi.fn(async ({ path, data }: { path: string; data: string }) => {
+      files.set(path, (files.get(path) ?? '') + data)
+    }),
+    readFile: vi.fn(async ({ path }: { path: string }) => ({ data: files.get(path) ?? '' })),
+    stat: vi.fn(async ({ path }: { path: string }) => {
+      if (!files.has(path)) throw new Error('fehlt')
+      return { size: files.get(path)?.length ?? 0 }
+    }),
+    rename: vi.fn(async () => undefined),
+    deleteFile: vi.fn(async () => undefined),
+    mkdir: vi.fn(async () => undefined),
+    getUri: vi.fn(async ({ path }: { path: string }) => ({ uri: `file:///data/files/${path}` })),
+  }
+  const share = { share: vi.fn(async () => ({})) }
+  vi.stubGlobal('window', { Capacitor: { isNativePlatform: () => native }, addEventListener: vi.fn() })
+  const lines = () => (files.get('logs/panary-pos.log') ?? '').split('\n').filter(Boolean)
+  return { android: { filesystem, share }, lines }
+}
+
+describe('LogService im Android-Wrapper', () => {
+  const original = { error: console.error, warn: console.warn, info: console.info }
+
+  beforeEach(() => {
+    console.error = vi.fn()
+    console.warn = vi.fn()
+    console.info = vi.fn()
+  })
+
+  afterEach(() => {
+    Object.assign(console, original)
+    vi.unstubAllGlobals()
+  })
+
+  it('schreibt Startzeile und Konsole in die Logdatei und liest sie zurück', async () => {
+    const { android, lines } = stubCapacitor()
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture({ android })
+    console.warn('Edge nicht erreichbar')
+    const service = new LogService()
+
+    const text = await service.readLogs()
+
+    expect(lines().map(l => l.replace(/^\[[^\]]*\]\[[^\]]*\]/, ''))).toEqual([
+      '[webview][INFO] Panary POS gestartet — natives Logging aktiv',
+      '[webview][WARN] Edge nicht erreichbar',
+    ])
+    expect(text).toMatch(/Edge nicht erreichbar\n$/)
+    expect(service.exportMode()).toEqual('share')
+  })
+
+  it('lässt debug weg wie unter Tauri', async () => {
+    const { android, lines } = stubCapacitor()
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture({ android })
+    const service = new LogService()
+    service.debug('nur Entwickler')
+    service.error('Bon nicht gedruckt')
+    await service.readLogs()
+
+    expect(lines().map(l => l.replace(/^\[[^\]]*\]\[[^\]]*\]/, ''))).toEqual([
+      '[webview][INFO] Panary POS gestartet — natives Logging aktiv',
+      '[webview][ERROR] Bon nicht gedruckt',
+    ])
+  })
+
+  it('teilt die Datei über „Logs exportieren"', async () => {
+    const { android } = stubCapacitor()
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture({ android })
+
+    await new LogService().exportLogs()
+
+    expect(android.share.share).toHaveBeenCalledWith({
+      title: 'Panary POS Log',
+      files: ['file:///data/files/logs/panary-pos.log'],
+    })
+  })
+
+  it('bleibt ohne Plugins aus, auch im Wrapper', async () => {
+    stubCapacitor()
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture()
+    const service = new LogService()
+
+    expect(service.exportMode()).toBeNull()
+    expect(await service.readLogs()).toEqual('')
+  })
+
+  it('bleibt im Browser aus, auch wenn log-capture.ts die Plugins übergibt', async () => {
+    const { android } = stubCapacitor(false)
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture({ android })
+    console.error('im Browser')
+    const service = new LogService()
+
+    expect(service.exportMode()).toBeNull()
+    expect(await service.readLogs()).toEqual('')
+    expect(android.filesystem.appendFile).not.toHaveBeenCalled()
+  })
+
+  it('nimmt unter Tauri den Ordner, nicht die Plugins', async () => {
+    const { invoke } = stubTauri()
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    const { android } = stubCapacitor()
+    vi.stubGlobal('window', { ...window, __TAURI_INTERNALS__: {}, __TAURI__: { core: { invoke } } })
+    installGlobalLogCapture({ android })
+    const service = new LogService()
+
+    await service.exportLogs()
+
+    expect(service.exportMode()).toEqual('folder')
+    expect(invoke).toHaveBeenCalledWith('open_log_dir', undefined)
+    expect(android.filesystem.appendFile).not.toHaveBeenCalled()
+  })
+})

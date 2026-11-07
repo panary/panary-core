@@ -1,18 +1,20 @@
 ---
 type: Architecture
-title: 'POS-Logdatei — was hineinkommt, wie Fehler genau einmal landen, Rust-Panics'
-description: 'Der Tauri-POS schreibt Konsole, unbehandelte Webview-Fehler (ab dem ersten Modul, jeden genau einmal) und Rust-Panics ab dem setup-Closure in panary-pos.log.'
-tags: [pos-client, logging, tauri, diagnose]
+title: 'POS-Logdatei — was hineinkommt, wie Fehler genau einmal landen, Rust-Panics, Android-Wrapper'
+description: 'Der Tauri-POS schreibt Konsole, unbehandelte Webview-Fehler (ab dem ersten Modul, jeden genau einmal) und Rust-Panics ab dem setup-Closure in panary-pos.log; der Android-Wrapper (Sunmi) dieselben Webview-Zeilen über @capacitor/filesystem, Export dort per Teilen-Menü.'
+tags: [pos-client, logging, tauri, android, capacitor, diagnose]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-11-07T21:30:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-11-07T23:30:00Z }
 sources:
   - { id: adr-0069, resource: docs/adr/0069-pos-fehlerberichte-bleiben-lokal.md, title: 'ADR 0069 — POS-Fehlerberichte bleiben lokal' }
   - { id: issue-1343, resource: 'https://github.com/panary/panary-core/issues/1343', title: 'panary/panary-core#1343' }
+  - { id: issue-1344, resource: 'https://github.com/panary/panary-core/issues/1344', title: 'panary/panary-core#1344' }
+  - { id: adr-0057, resource: docs/adr/0057-android-wrapper-capacitor-http-scheme.md, title: 'ADR 0057 — Android-Wrapper mit Capacitor' }
 ---
 
 # POS-Logdatei
 
-Der Tauri-POS führt eine Logdatei auf dem Gerät. Sie wird nicht hochgeladen ([ADR 0069](../adr/0069-pos-fehlerberichte-bleiben-lokal.md)),
+Der Tauri-POS und der Android-Wrapper (Sunmi, [ADR 0057](../adr/0057-android-wrapper-capacitor-http-scheme.md)) führen je eine Logdatei auf dem Gerät. Sie wird nicht hochgeladen ([ADR 0069](../adr/0069-pos-fehlerberichte-bleiben-lokal.md)),
 der Betreiber schickt sie über **Einstellungen → Logs exportieren** an den Support. Was darin nie stehen
 darf, regelt `.claude/rules/pos-logging.md`.
 
@@ -24,6 +26,8 @@ darf, regelt `.claude/rules/pos-logging.md`.
 | Schreiber   | `tauri-plugin-log`, Level `Info`, registriert als erstes Plugin in `run()` (`src-tauri/src/lib.rs`) |
 | Deckel      | 5 MB je Datei, eine rotierte Datei (`KeepOne`), zusammen etwa 10 MB                          |
 | Einsehen    | Einstellungen → Logs einsehen (letzte 200 KB, Kommando `read_logs`)                          |
+
+Den Android-Wrapper beschreibt der [eigene Abschnitt](#android-wrapper-sunmi).
 
 ## Quellen
 
@@ -77,6 +81,33 @@ verkettet, sobald der Root-Injector neben dem frühen Aufruf eine eigene Instanz
 den bisherigen Hook, damit stderr erhalten bleibt. Windows-Release-Builds haben kein Konsolenfenster
 (`windows_subsystem = "windows"`), dort war ein Panic vorher unsichtbar.
 
+## Android-Wrapper (Sunmi)
+
+Seit panary/panary-core#1344. Ohne Tauri gibt es keinen Rust-Prozess und kein `tauri-plugin-log`; die Zeilen
+schreibt `AndroidLogSink` (`libs/shared/data-access-updater/src/lib/services/android-log-sink.ts`) über
+`@capacitor/filesystem`. Quellen und Mitschnitt sind dieselben wie oben, ohne die Rust-Zeilen.
+
+| Eigenschaft | Wert                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------ |
+| Name, Ort   | `logs/panary-pos.log` unter `Directory.Data` (`context.filesDir`), app-privat, übersteht Neustarts     |
+| Zeile       | `[JJJJ-MM-TT][hh:mm:ss.mmm][webview][LEVEL] Text`, Zeit in UTC; `debug` fällt weg wie unter Tauri       |
+| Deckel      | 5 MB, danach wird sie zu `logs/panary-pos.1.log` (eine rotierte Datei), zusammen etwa 10 MB             |
+| Einsehen    | Einstellungen → Logs einsehen (letzte 200 KB der aktuellen Datei)                                       |
+| Export      | „Exportieren (Teilen)“ öffnet das Android-Teilen-Menü mit beiden Dateien (`@capacitor/share`)           |
+
+- **Woher die Plugins kommen.** Die Lib importiert kein `@capacitor/*`. `apps/pos-client/src/log-capture.ts`
+  übergibt `Filesystem` und `Share` an `installGlobalLogCapture({ android })`. Die Senke entsteht nur, wenn
+  kein Tauri läuft und `window.Capacitor.isNativePlatform()` wahr ist; im Browser bleiben die Plugins
+  unbenutzt. Die Senke ist modulweit, damit auch die `LogService`-Instanz des Root-Injectors sie sieht.
+- **Schreiben.** Zeilen werden gepuffert und im nächsten Microtask mit einem `appendFile` geschrieben. Die
+  Größe kommt einmal per `stat` und wird danach mitgezählt. Scheitert das Umbenennen beim Rotieren, wird
+  die aktuelle Datei gelöscht: lieber Zeilen verlieren als ohne Deckel weiterwachsen.
+- **Fehler der Senke** werden verschluckt und nie über `console.*` gemeldet, sonst schriebe der
+  Console-Patch sie wieder in die Senke.
+- **Teilen.** `@capacitor/share` reicht die Dateien über den FileProvider `${applicationId}.fileprovider`
+  weiter. Dafür gibt `res/xml/file_paths.xml` den Ordner `logs/` unter `files-path` frei. Schließt der
+  Nutzer das Menü, ist das kein Fehler.
+
 ## Grenzen
 
 - Ein Panic **vor** dem `.setup`-Closure (Plugin-Initialisierung, `.build(…)`) erreicht die Datei nicht,
@@ -85,5 +116,7 @@ den bisherigen Hook, damit stderr erhalten bleibt. Windows-Release-Builds haben 
   prüfen die Formatierung, nicht das Schreiben.
 - Ein Absturz des Webview-Prozesses selbst (WebKit/WebView2) und ein Kill durch das Betriebssystem
   erzeugen weder ein JS-Event noch einen Panic.
-- Außerhalb von Tauri (Browser, Sunmi-Wrapper) ist der Mitschnitt ein No-Op; Sunmi bekommt ein Log mit
-  panary/panary-core#1344.
+- Im Browser ist der Mitschnitt ein No-Op.
+- Android: Was im Puffer steht, wenn das System den Prozess beendet oder die WebView abstürzt, ist
+  verloren — höchstens die Zeilen eines Microtasks. Ob die rotierte Datei auf einem echten Gerät entsteht,
+  prüft nur ein Gerät mit 5 MB Log; die Specs prüfen die Logik gegen ein Dateisystem im Speicher.

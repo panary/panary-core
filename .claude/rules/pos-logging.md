@@ -16,10 +16,11 @@ paths:
 
 `installGlobalLogCapture()` (`libs/shared/data-access-updater`, geladen als erstes Modul von
 `apps/pos-client/src/main.ts`) spiegelt **jedes** `console.error`, `console.warn` und `console.info`
-ungefiltert in die native Logdatei `panary-pos.log`, dazu unbehandelte Fehler und Ablehnungen. Dasselbe
+ungefiltert in die native Logdatei `panary-pos.log` (unter Tauri im App-Log-Verzeichnis, im
+Android-Wrapper unter `Directory.Data/logs/`), dazu unbehandelte Fehler und Ablehnungen. Dasselbe
 gilt für `LogService.error/warn/info` (`debug` fällt am Level `Info` weg). Es gibt keinen Scrubber dazwischen.
 
-Die Datei bleibt auf dem Gerät, wird aber per „Logs exportieren" **von Hand an den Support geschickt**
+Die Datei bleibt auf dem Gerät, wird aber per „Logs exportieren" (Android: Teilen-Menü) **von Hand an den Support geschickt**
 und landet dort in E-Mails und Tickets. Was in `console.*` steht, ist damit eine Aussage gegenüber
 Dritten, keine Entwickler-Notiz. `console.log` und `console.debug` werden nicht gespiegelt, gehören im
 ausgelieferten Code aber trotzdem nicht in Pfade mit den Daten aus §2.

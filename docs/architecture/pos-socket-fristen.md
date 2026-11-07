@@ -1,13 +1,14 @@
 ---
 type: Architecture
 title: 'POS-Socket-Fristen — jeder Aufruf der Kasse endet mit Antwort, Frist oder Trennung'
-description: 'Die Kasse gibt jedem Feathers-Socket-Aufruf eine Frist als socket.io-Flag timeout (20 s, Geschäftstag-Wechsel 120 s). Ablauf wird 408, Trennung nach dem Senden 503, beides mit einer Logzeile ohne Nutzdaten; ein gepufferter Aufruf verfällt mit der Frist.'
+description: 'Die Kasse gibt jedem Feathers-Socket-Aufruf eine Frist als socket.io-Flag timeout (20 s, Geschäftstag-Wechsel 120 s). Ablauf wird 408, Trennung nach dem Senden 503, beides mit einer Logzeile ohne Nutzdaten; ein gepufferter Aufruf verfällt mit der Frist. Bestellen mit Sofortbezahlung behält nach einer Frist die ID, und die Edge lehnt die Wiederholung mit 409 ab, bevor Vorgangsnummer und TSE-Start laufen.'
 tags: [pos-client, socket, feathers, logging, resilience]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-11-06T17:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-11-06T23:45:00Z }
 sources:
   - { id: adr-0069, resource: '../adr/0069-pos-fehlerberichte-bleiben-lokal.md', title: 'ADR 0069' }
   - { id: code, resource: '../../libs/shared/data-access/src/lib/services/socket-deadlines.ts', title: 'socket-deadlines.ts' }
+  - { id: dup-hook, resource: '../../apps/api-edge/src/hooks/reject-duplicate-order-id.hook.ts', title: 'reject-duplicate-order-id.hook.ts' }
 ---
 
 # POS-Socket-Fristen
@@ -61,6 +62,37 @@ Warum das Flag je Aufruf statt einer globalen `ackTimeout` oder eines Feathers-H
 | `WRITE_OFF_SAVE_TIMEOUT_MS` (`write-off-error.ts`) | 15 s | kürzer; der Dialog bildet 408 schon auf eine eigene Meldung ab |
 | `PAY_TIMEOUT_MS` (`order-checkout.service.ts`) | 20 s | gleich lang; der Bezahlablauf wertet jetzt auch die Socket-Frist und die Trennung als `timeout` und liest vor dem nächsten Versuch frisch nach. Bezahldialog und Kasse-Ansicht (`onCollect`, seit [#1348](https://github.com/panary/panary-core/issues/1348)) zeigen dann quittierpflichtig `ORDER_DIALOG.PAYMENT_TIMEOUT` |
 
+## Bestellen nach einer Frist: dieselbe ID, keine zweite Bestellung
+
+Seit [#1351](https://github.com/panary/panary-core/issues/1351). Bricht `orders.create` mit Frist oder Trennung ab,
+kann die Edge die Bestellung trotzdem angelegt haben: Das Paket war schon gesendet. Im Sichttest
+[#1347](https://github.com/panary/panary-core/issues/1347) entstand so beim zweiten Tipp auf „Bezahlen“ eine zweite
+Bestellung, weil der Bestelldialog für jeden Versuch eine neue uuidv7 vergab.
+
+**POS (Bestelldialog, nur Sofortbezahlung).** Bei `isSocketDeadlineError` merkt sich der Dialog die ID zusammen mit
+einem Fingerabdruck des Warenkorbs (Positionen, Ort, Rabatte, Tisch, Pager) und meldet quittierpflichtig
+`ORDER_DIALOG.ORDER_TIMEOUT`. Der nächste Versuch mit **unverändertem** Warenkorb schickt dieselbe ID. Ein
+geänderter Warenkorb ist eine andere Bestellung und bekommt eine neue. Lehnt die Edge die wiederholte ID mit 409
+(`ORDER_7002`) ab, übernimmt der Dialog die vorhandene Bestellung: Liste neu laden, Hinweis
+`ORDER_DIALOG.ORDER_ADOPTED`, weiter in die Bezahlansicht. Beide Fehler meldet der Dialog selbst, deshalb übergibt er
+`createOrder` ein `isExpectedError` (wie `patch` seit #1091), und `handleError` schweigt dazu. Eine 409 ohne
+vorherige Frist geht weiter durch `handleError`.
+
+**Edge (`rejectDuplicateOrderId`, around.create am `orders`-Service).** Around-Hooks laufen vor den before-Hooks.
+Bringt der Body eine `_id` mit, die es schon gibt, antwortet die Edge mit `409 Conflict`,
+`data = { code: 'ORDER_7002', orderId }`, ohne Nebenwirkung. Ohne den Hook scheiterte die Wiederholung erst am
+Primärschlüssel, also nach `assignDailySequenceNumber`, `allocateFiscalCounter` und `signOrderTseStart`. Bei aktiver
+TSE blieben eine Lücke in der lückenlosen Fiskal-Vorgangsnummer und eine offene TSE-Transaktion zurück, und der POS
+bekam den rohen SQLite-Fehler als 500. Trifft die Wiederholung ein, während der erste Versuch noch in seiner
+Hook-Kette steckt, wartet sie auf dessen Ausgang (Prozess-Map laufender Anlagen, die Edge ist single-process): Ist die
+Bestellung danach gespeichert, kommt die 409; ist der erste Versuch gescheitert, läuft die Wiederholung normal. Eine
+sofortige 409 ließe den POS eine Bestellung übernehmen, die es womöglich nie gibt. Sync-Apply (`params.fromSync`)
+ist ausgenommen.
+
+**Offline-Outbox.** Sie war schon vorher sicher: Eine wiederholt gesendete Bestellung stuft `classifyOutboxError`
+bei 409 oder „unique“ als `already-exists` ein, und für `offlineCreated` entfällt der TSE-Start. Der Hook ändert
+dort nur die Antwort (409 statt Primärschlüssel-Fehler), nicht das Ergebnis.
+
 `DiscountCodeService.redeem` hat bewusst keine eigene Frist (ein später ankommender Aufruf verbrauchte den Code).
 Die Socket-Frist begrenzt ihn trotzdem und nimmt ihn bei Ablauf aus dem Puffer.
 
@@ -78,5 +110,17 @@ Edge ruft dabei die Cloud mit eigenen Fristen von 10 s und 30 s (`business-days.
 ## Nicht abgedeckt
 
 Ob die Gegenseite einen schon gesendeten Aufruf nach Ablauf der Frist doch verbucht hat, sagt die Frist nicht; das
-klärt der Aufrufer (Bezahlen liest den Status nach). HTTP-Aufrufe per `fetch`/`HttpClient` (Health, Druck, Auth,
+klärt der Aufrufer (Bezahlen liest den Status nach, Bestellen schickt dieselbe ID).
+
+Beim Bestellen bleiben offen:
+
+- **Ohne Sofortbezahlung** (Bestellbetrieb, Telefon, Personalessen, Firmenkunde) vergibt die Edge die ID. Der Dialog
+  schließt dort sofort, ein Wiederholversuch aus demselben Warenkorb entsteht nicht. Ob nach einer Frist trotzdem
+  doppelt bestellt wird, ist nicht gemessen.
+- **Übernommene Bestellung:** Der Druckdialog nach dem Anlegen öffnet nicht, weil das Anlegen aus Sicht des POS
+  gescheitert ist. Den Bon druckt der Kassierer über „Offen“ nach.
+- **Geänderter Warenkorb nach der Frist:** neue ID. War die erste Bestellung doch angekommen, stehen zwei in „Offen“;
+  darauf weist die Meldung hin.
+- **cloud-direct:** Die Cloud bekommt denselben Body. Ob api-cloud eine doppelte `_id` als 409 meldet, prüft dieser
+  Stand nicht (panary-cloud ist nicht Teil der Änderung). HTTP-Aufrufe per `fetch`/`HttpClient` (Health, Druck, Auth,
 Device-Config) laufen nicht über den Socket und sind nicht erfasst.

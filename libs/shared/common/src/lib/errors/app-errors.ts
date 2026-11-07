@@ -48,6 +48,9 @@ export const AppError = {
   // --- ORDERS (7000-7999) ---
   // Zahlung einer schon abgeschlossenen Bestellung aendern (panary/panary-core#1300).
   ORDER_ALREADY_SETTLED: 'ORDER_7001',
+  // Bestellung mit dieser `_id` gibt es schon, oder sie wird gerade angelegt (panary/panary-core#1351).
+  // Der POS übernimmt sie, statt eine zweite anzulegen.
+  ORDER_ALREADY_EXISTS: 'ORDER_7002',
 
   // --- VALIDATION (4000-4999) ---
   VALIDATION_FAILED: 'VAL_4000',
@@ -99,6 +102,7 @@ export const AppErrorMessages: Record<AppError, string> = {
 
   [AppError.ORDER_ALREADY_SETTLED]:
     'Diese Bestellung ist bereits abgeschlossen. Die gebuchte Zahlung kann nicht mehr geändert werden.',
+  [AppError.ORDER_ALREADY_EXISTS]: 'Diese Bestellung ist bereits angelegt.',
 
   [AppError.VALIDATION_FAILED]: 'Validation failed.',
   [AppError.INVALID_INPUT]: 'Invalid input provided.',

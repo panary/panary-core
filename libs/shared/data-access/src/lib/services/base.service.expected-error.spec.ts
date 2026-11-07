@@ -36,6 +36,9 @@ function setup(serverError: unknown) {
   const patch = vi.fn(async () => {
     throw serverError
   })
+  const create = vi.fn(async () => {
+    throw serverError
+  })
   const injector = Injector.create({
     providers: [
       { provide: ServiceHelper, useValue: { handleError } },
@@ -46,8 +49,8 @@ function setup(serverError: unknown) {
     ],
   })
   // Kein `on` am Mock → BaseService ueberspringt die Socket-Listener.
-  const service = runInInjectionContext(injector, () => new TestService({ patch }))
-  return { service, handleError, patch }
+  const service = runInInjectionContext(injector, () => new TestService({ patch, create }))
+  return { service, handleError, patch, create }
 }
 
 describe('BaseService.patch — erwarteter Fehler ohne Meldung (core#1091)', () => {
@@ -81,5 +84,32 @@ describe('BaseService.patch — erwarteter Fehler ohne Meldung (core#1091)', () 
     await service.patch('1', {}, { query: { a: 1 }, isExpectedError: isExpected }).catch(() => undefined)
 
     expect(patch).toHaveBeenCalledExactlyOnceWith('1', {}, { query: { a: 1 } })
+  })
+})
+
+// core#1351: Der Bestelldialog meldet Frist und doppelte Bestell-ID selbst; die allgemeine Meldung liefe daneben.
+describe('BaseService.create — erwarteter Fehler ohne Meldung (core#1351)', () => {
+  it('meldet den vom Aufrufer erwarteten Fehler nicht und wirft ihn weiter', async () => {
+    const { service, handleError } = setup(EXPECTED)
+
+    await expect(service.create({}, { isExpectedError: isExpected })).rejects.toBe(EXPECTED)
+
+    expect(handleError).not.toHaveBeenCalled()
+  })
+
+  it('meldet jeden anderen Fehler trotz Opt-out', async () => {
+    const { service, handleError } = setup(OTHER)
+
+    await expect(service.create({}, { isExpectedError: isExpected })).rejects.toBe(OTHER)
+
+    expect(handleError).toHaveBeenCalledExactlyOnceWith('testService', OTHER)
+  })
+
+  it('schickt den Opt-out nicht an den Server', async () => {
+    const { service, create } = setup(EXPECTED)
+
+    await service.create({}, { query: { a: 1 }, isExpectedError: isExpected }).catch(() => undefined)
+
+    expect(create).toHaveBeenCalledExactlyOnceWith({}, { query: { a: 1 } })
   })
 })

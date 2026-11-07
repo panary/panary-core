@@ -59,6 +59,7 @@ import { requireOrderCancelAuthorization } from '../../hooks/require-order-cance
 import { attributeOrderOperators } from '../../hooks/attribute-order-operators.hook'
 import { validateStaffMealExclusivity } from '../../hooks/validate-staff-meal-exclusivity.hook'
 import { rejectLegacyDiscount } from '../../hooks/reject-legacy-discount.hook'
+import { rejectDuplicateOrderId } from '../../hooks/reject-duplicate-order-id.hook'
 import { issueReceipt } from '../../hooks/issue-receipt.hook'
 import { ensureIndexes } from '@panary/shared-backend'
 import { createOrderSplitMethod } from './order-split.method'
@@ -152,6 +153,9 @@ export const orders = (app: Application) => {
         schemaHooks.resolveExternal(orderExternalResolver),
         schemaHooks.resolveResult(orderResolver),
       ],
+      // Doppelte `_id` (Wiederholung nach Frist, core#1351) vor jeder Nebenwirkung mit 409 ablehnen:
+      // Around-Hooks laufen vor den before-Hooks, also vor Vorgangsnummer, Fiskalzähler und TSE-Start.
+      create: [rejectDuplicateOrderId],
       patch: [serializeOrderPaymentPatch],
     },
     before: {

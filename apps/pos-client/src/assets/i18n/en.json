@@ -732,6 +732,8 @@
     "PAYMENT_KEEP_OPEN": "Keep open",
     "PAYMENT_CASH_SESSION_DECLINED": "Cash drawer not authorised. The order stays open.",
     "PAYMENT_TIMEOUT": "No response from the server. Please check under “Open” whether the order was booked.",
+    "ORDER_TIMEOUT": "No response from the server. Please check under “Open” whether the order was created. With an unchanged cart, trying again will not create it twice.",
+    "ORDER_ADOPTED": "The order had already been created and is taken over.",
     "STAFF_MEAL": "Staff meal",
     "CORPORATE_CUSTOMER": "Corporate customer",
     "SHOW_PRICES": "Show prices",

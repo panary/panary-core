@@ -57,6 +57,7 @@ import {
   DineLocation,
   getCombinations,
   getUnbundledLineItems,
+  isOrderAlreadyExistsError,
   OrderChannel,
   OrderInteraction,
   OrderInteractionService,
@@ -92,7 +93,7 @@ import { LocationService } from '@panary/locations/data-access'
 import { defaultOrderChannel, toggledOrderChannel, type PosOrderChannel } from './order-channel'
 import { AuthService } from '@panary/auth/data-access'
 import { PosHandednessService, User, UserService } from '@panary/users/data-access'
-import { ConnectionService, TenantSuspensionService } from '@panary/shared/data-access'
+import { ConnectionService, isSocketDeadlineError, TenantSuspensionService } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { DeviceOrderChannelService } from '@panary/devices/data-access'
 import { CorporateCustomer } from '@panary/corporate-customers/domain'
@@ -405,6 +406,14 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
    * nie gab).
    */
   #redeemedForRetry: { orderId: string; applied: AppliedDiscount } | null = null
+
+  /**
+   * Bestellung, deren Anlegen ohne Antwort blieb (Frist oder Trennung, core#1351), mit dem Warenkorb, für den sie
+   * galt. Die Edge hat sie womöglich trotzdem angelegt. Der nächste Versuch mit unverändertem Warenkorb schickt
+   * deshalb dieselbe ID: Die Edge lehnt sie dann mit 409 ab, und der Dialog übernimmt die vorhandene Bestellung,
+   * statt eine zweite anzulegen. Ein geänderter Warenkorb ist eine andere Bestellung und bekommt eine neue ID.
+   */
+  #unansweredOrder: { orderId: string; cart: string } | null = null
 
   /** Ist das die Zeile, die das Sheet gerade anpasst — der Warenkorb markiert sie und pulsiert zweimal kurz. */
   isCustomizeLine(line: OrderLineItem): boolean {
@@ -952,6 +961,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedManualDiscount.set(null)
     this.appliedCodeDiscount.set(null)
     this.#redeemedForRetry = null
+    this.#unansweredOrder = null
     this.lineDiscounts.set({})
   }
 
@@ -3189,28 +3199,38 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Rabattcode-Pfad hat sie schon; sonst wird sie hier vorab vergeben (derselbe Weg wie beim Rabattcode).
     const payNow = this.paysAtCounter()
     const paymentTotal = this.hasDiscountPreview() ? this.discountedTotal() : this.calculateSumPrice()
-    const orderId = payNow ? (preAssignedOrderId ?? uuidv7()) : preAssignedOrderId
+    // Nach einer Frist dieselbe ID wie beim letzten Versuch, solange der Warenkorb gleich ist (core#1351).
+    const cart = this.#cartKey(dineLocation, appliedDiscounts)
+    const unanswered = this.#unansweredOrder?.cart === cart ? this.#unansweredOrder.orderId : undefined
+    const orderId = payNow ? (preAssignedOrderId ?? unanswered ?? uuidv7()) : preAssignedOrderId
+    // Diese beiden Fälle meldet der Dialog selbst; der allgemeine Fehler aus `handleError` ginge daneben.
+    const retrying = orderId !== undefined && orderId === unanswered
+    const isExpectedError = (error: unknown): boolean =>
+      isSocketDeadlineError(error) || (retrying && isOrderAlreadyExistsError(error))
 
-    const created = this.orderService.createOrder({
-      // Nur im Rabattcode- und Bezahl-Fall gesetzt — sonst vergibt der Server (Regelfall).
-      _id: orderId,
-      lineItems: this.#lineItems,
-      orderChannel: this.orderChannel(),
-      customerDetails,
-      pager: this._pager,
-      productionTime: this._productionTime,
-      staffMealDetails,
-      table: this._table,
-      dineLocation,
-      recordingDate: this.#recordingDate,
-      orderInteractions: this.#orderInteractions,
-      // creationContext nur mit gültiger User-uuid bauen — sonst weglassen (Schema:
-      // optional/null), statt ein ungültiges createdBy: '' zu senden, das den
-      // (Offline-)Create an der uuid-Validierung scheitern lässt.
-      creationContext: this._currentUser?._id ? { createdBy: this._currentUser._id.toString() } : undefined,
-      appliedDiscounts: appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
-      settlementScope: reorder?.settlementScope,
-    })
+    const created = this.orderService.createOrder(
+      {
+        // Nur im Rabattcode- und Bezahl-Fall gesetzt — sonst vergibt der Server (Regelfall).
+        _id: orderId,
+        lineItems: this.#lineItems,
+        orderChannel: this.orderChannel(),
+        customerDetails,
+        pager: this._pager,
+        productionTime: this._productionTime,
+        staffMealDetails,
+        table: this._table,
+        dineLocation,
+        recordingDate: this.#recordingDate,
+        orderInteractions: this.#orderInteractions,
+        // creationContext nur mit gültiger User-uuid bauen — sonst weglassen (Schema:
+        // optional/null), statt ein ungültiges createdBy: '' zu senden, das den
+        // (Offline-)Create an der uuid-Validierung scheitern lässt.
+        creationContext: this._currentUser?._id ? { createdBy: this._currentUser._id.toString() } : undefined,
+        appliedDiscounts: appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
+        settlementScope: reorder?.settlementScope,
+      },
+      payNow ? { isExpectedError } : {},
+    )
 
     if (payNow && orderId) {
       // Erst wenn die Bestellung steht: Der Druckdialog öffnet im Service direkt nach dem Anlegen (F1), also vor
@@ -3219,9 +3239,19 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       try {
         const sequence = await created
         if (sequence === null || sequence === undefined) return
-      } catch {
-        return
+      } catch (error) {
+        if (isSocketDeadlineError(error)) {
+          // Das Paket war womöglich schon unterwegs: ID merken und den Kassierer nach „Offen“ schicken (core#1351).
+          this.#unansweredOrder = { orderId, cart }
+          this.#notifications.warning(this.translateService.instant('ORDER_DIALOG.ORDER_TIMEOUT'), { sticky: true })
+          return
+        }
+        if (!(retrying && isOrderAlreadyExistsError(error))) return
+        // Der frühere Versuch ist doch angekommen: diese Bestellung übernehmen und weiter zur Bezahlansicht.
+        this.orderService.refreshOrders()
+        this.#notifications.info(this.translateService.instant('ORDER_DIALOG.ORDER_ADOPTED'))
       }
+      this.#unansweredOrder = null
       this.deleteOrder()
       this.unselectProduct()
       this.payment.set({ orderId, total: paymentTotal })
@@ -3260,6 +3290,33 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       !this._customer &&
       this.#cashierId() !== null
     )
+  }
+
+  /**
+   * Fingerabdruck des Warenkorbs für die Wiederholung nach einer Frist (core#1351): Positionen, Ort und Rabatte.
+   * Die Reihenfolge zählt nicht, `createOrder` sortiert die Positionen ohnehin um. Von den Rabatten fehlen nur die
+   * Felder, die jeder Versuch neu vergibt (`_id`, `appliedAt`); Ziel und Positionsbezug zählen mit, sonst gälte ein
+   * auf eine andere Zeile umgehängter Positionsrabatt als unverändert.
+   */
+  #cartKey(
+    dineLocation: (typeof DineLocation)[keyof typeof DineLocation],
+    appliedDiscounts: AppliedDiscount[],
+  ): string {
+    const lines = this.#lineItems.map(line => JSON.stringify(line)).sort()
+    const discounts = appliedDiscounts
+      .map(d =>
+        JSON.stringify([
+          d.discountId,
+          d.name,
+          d.target,
+          d.lineItemId ?? null,
+          d.valueType,
+          d.valuePercent,
+          d.valueCents,
+        ]),
+      )
+      .sort()
+    return JSON.stringify({ lines, dineLocation, discounts, table: this._table ?? null, pager: this._pager ?? null })
   }
 
   #operationMode(): string | undefined {

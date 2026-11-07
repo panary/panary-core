@@ -28,7 +28,7 @@ import {
   posOperatorTokenOf,
   withPosOperatorToken,
 } from '@panary/shared/data-access'
-import { CacheEntity, ExtendedParams, OfflineOutboxPort } from '@panary/shared-common'
+import { AppError, CacheEntity, ExtendedParams, OfflineOutboxPort } from '@panary/shared-common'
 import { Observer } from 'rxjs'
 import { LocationService } from '@panary/locations/data-access'
 import { uuidv7 } from 'uuidv7'
@@ -76,6 +76,13 @@ export interface OrderSplitResponse {
   sourceOrder: Order
   targetOrder: Order
 }
+
+/**
+ * Die Edge kennt die mitgeschickte `_id` schon (409, `ORDER_7002`, core#1351): Ein früherer Versuch ist doch
+ * angekommen. Der Bestelldialog übernimmt die Bestellung dann, statt eine zweite anzulegen.
+ */
+export const isOrderAlreadyExistsError = (error: unknown): boolean =>
+  (error as { data?: { code?: unknown } } | null)?.data?.code === AppError.ORDER_ALREADY_EXISTS
 
 /** Split ohne Serververbindung — der Dialog meldet das statt eines generischen Fehlers. */
 export class OrderSplitOfflineError extends Error {
@@ -367,8 +374,9 @@ export class OrderService extends BaseService<Order> {
 
   private async createOrderAndOpenPrintDialog(
     newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'createdAt' | 'updatedAt' | 'settlementScope'>,
+    options: ExpectedErrorParams = {},
   ): Promise<number | number[] | undefined | null> {
-    return this.#createOrderRecord(newOrder).then(
+    return this.#createOrderRecord(newOrder, options).then(
       (createdOrder: Order | Order[]): number | number[] | undefined | null => {
         if (!createdOrder) return null
 
@@ -400,6 +408,7 @@ export class OrderService extends BaseService<Order> {
   /** Online → Server; offline → optimistisch in Cache + Outbox (Connect-Tier). */
   async #createOrderRecord(
     newOrder: Omit<Order, '_id' | 'locationId' | 'tenantId' | 'settlementScope'>,
+    options: ExpectedErrorParams = {},
   ): Promise<Order | Order[]> {
     if (this.#shouldQueueOffline()) {
       return this.#enqueueOfflineOrder(newOrder)
@@ -409,7 +418,7 @@ export class OrderService extends BaseService<Order> {
     // dieser Sorte, steht aber nicht in der generischen Signatur — die zu
     // erweitern traefe jeden Service im Workspace. Der Cast sagt dasselbe wie
     // die drei anderen Auslassungen: Das Feld setzt der Server.
-    return this.create(newOrder as Omit<Order, '_id' | 'locationId' | 'tenantId'>)
+    return this.create(newOrder as Omit<Order, '_id' | 'locationId' | 'tenantId'>, options)
   }
 
   #shouldQueueOffline(): boolean {
@@ -556,7 +565,14 @@ export class OrderService extends BaseService<Order> {
   }
 
   /** PUBLIC PROPERTIES */
-  async createOrder(input: CreateOrderInput): Promise<number | number[] | null | undefined> {
+  /**
+   * `isExpectedError` wie bei `patch`: Fehler, die der Aufrufer selbst meldet, gehen nicht zusätzlich durch
+   * `handleError` (Bestelldialog: Frist und doppelte ID, core#1351).
+   */
+  async createOrder(
+    input: CreateOrderInput,
+    options: ExpectedErrorParams = {},
+  ): Promise<number | number[] | null | undefined> {
     this.#ownCreateEchoUntil = Date.now() + OWN_CREATE_ECHO_MS
     const {
       _id,
@@ -620,7 +636,7 @@ export class OrderService extends BaseService<Order> {
 
     this.sortLineItemsByName(order.lineItems)
 
-    return this.createOrderAndOpenPrintDialog(order)
+    return this.createOrderAndOpenPrintDialog(order, options)
   }
 
   private sortLineItemsByName(orderLineItems: OrderLineItem[]): void {

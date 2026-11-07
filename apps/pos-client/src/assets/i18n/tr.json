@@ -732,6 +732,8 @@
     "PAYMENT_KEEP_OPEN": "Açık bırak",
     "PAYMENT_CASH_SESSION_DECLINED": "Kasa onaylanmadı. Sipariş açık kalır.",
     "PAYMENT_TIMEOUT": "Sunucudan yanıt yok. Siparişin kaydedilip kaydedilmediğini “Açık” bölümünden kontrol edin.",
+    "ORDER_TIMEOUT": "Sunucudan yanıt yok. Siparişin oluşturulup oluşturulmadığını “Açık” bölümünden kontrol edin. Sepet değişmediyse tekrar denemek siparişi iki kez oluşturmaz.",
+    "ORDER_ADOPTED": "Sipariş zaten oluşturulmuştu ve devralınıyor.",
     "STAFF_MEAL": "Personel yemeği",
     "CORPORATE_CUSTOMER": "Kurumsal müşteri",
     "SHOW_PRICES": "Fiyatları göster",

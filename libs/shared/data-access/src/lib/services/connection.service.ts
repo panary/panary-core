@@ -12,6 +12,7 @@ import { BusinessDaySchema } from '@panary/businessdays/domain'
 import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
 import { CLIENT_SERVICE_METHODS } from './client-service-methods'
 import { applySocketDeadline } from './socket-deadlines'
+import { describeErrorForLog } from '../utils/log-safe-error'
 
 // Bestehender Export-Pfad: Die Spec von `BusinessDayService` importiert die Liste über den Haupteinstieg.
 export { BUSINESSDAYS_CLIENT_METHODS } from './client-service-methods'
@@ -787,10 +788,12 @@ export class ConnectionService {
             this.socketLogout()
             return
           }
-          console.error('[WS]: Fehler bei Authentifizierung', error)
+          // Der rohe `io.emit`-Callback liefert ein Plain Object samt `data` der Server-Antwort,
+          // kein `Error` — der Mitschnitt schriebe es ganz (pos-logging.md §3).
+          console.error('[WS]: Fehler bei Authentifizierung', describeErrorForLog(error))
           return
         }
-        console.log('[WS]: User "' + newAuthResult.user.loginname + '" authenticated!')
+        console.log(`[WS]: User ${newAuthResult?.user?._id ?? 'unbekannt'} authentifiziert`)
         this.#userSessionExpired.set(false)
         this.#isAuthenticated.set(true)
       },
@@ -893,7 +896,6 @@ export class ConnectionService {
       })
       // POS Device Events
       .on('device:authenticated', (data: any) => {
-        console.log(`[POS-WS] Received device:authenticated event:`, data)
         if (data.success) {
           console.log(`[POS-WS] ✓ Device authenticated!`)
           this.#isAuthenticated.set(true)
@@ -952,12 +954,6 @@ export class ConnectionService {
         this.#isAuthenticated.set(false)
       })
       // Admin/User Events
-      .on('login', (_authResult: any) => {
-        console.log('authResult', _authResult)
-      })
-      .on('logout', (_error: any) => {
-        console.log('unauthorized', _error)
-      })
       .on('connect_error', (error: Error) => {
         console.error(`[WS] Connection error:`, error)
         this.#connectionError.set(error.message)

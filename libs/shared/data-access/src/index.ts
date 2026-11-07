@@ -14,6 +14,7 @@ export * from './lib/services/tenant-suspension.service'
 
 export * from './lib/services/language.service'
 export * from './lib/utils/ensure-loaded'
+export * from './lib/utils/log-safe-error'
 export * from './lib/utils/offline-auto-load'
 export * from './lib/utils/pos-operator-token'
 export * from './lib/utils/service-helper.service'

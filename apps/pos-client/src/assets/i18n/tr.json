@@ -266,6 +266,8 @@
     "LOGS_EMPTY": "Henüz günlük yok.",
     "LOGS_COPIED": "Günlükler panoya kopyalandı",
     "LOGS_EXPORT_ERROR": "Günlük klasörü açılamadı",
+    "LOGS_SHARE": "Dışa aktar (paylaş)",
+    "LOGS_SHARE_ERROR": "Günlük dosyası paylaşılamadı",
     "INFO_LANGUAGE": "Dil",
     "INFO_THEME": "Tasarım",
     "INFO_LOCATION": "Konum",

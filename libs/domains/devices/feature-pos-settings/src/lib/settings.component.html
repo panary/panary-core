@@ -1083,8 +1083,8 @@
               </div>
             }
 
-            <!-- Diagnose & Logs (nur POS/Tauri) -->
-            @if (isDesktop()) {
+            <!-- Diagnose & Logs (Tauri und Android-Wrapper) -->
+            @if (logExportMode) {
               <div class="bg-surface-elevated rounded-2xl border border-line p-6">
                 <h3 class="font-bold text-ink flex items-center gap-2 mb-2">
                   <lib-icon name="bug" class="text-[1.25rem] text-ink-faint" />
@@ -1104,8 +1104,8 @@
                     (click)="exportLogs()"
                     class="flex items-center gap-2 px-4 h-11 rounded-xl bg-surface-input border border-line text-sm font-medium text-ink hover:bg-line-soft transition-colors"
                   >
-                    <lib-icon name="folder-open" class="text-[1.25rem]" />
-                    {{ 'SETTINGS.LOGS_EXPORT' | translate }}
+                    <lib-icon [name]="logExportMode === 'share' ? 'share-network' : 'folder-open'" class="text-[1.25rem]" />
+                    {{ (logExportMode === 'share' ? 'SETTINGS.LOGS_SHARE' : 'SETTINGS.LOGS_EXPORT') | translate }}
                   </button>
                 </div>
 

@@ -150,7 +150,9 @@ export class SettingsComponent implements OnInit {
     return 'SETTINGS.KIOSK_STATUS_ACTIVE'
   })
 
-  // Diagnose & Logs (nur POS/Tauri) — In-App-Ansicht + Export der nativen Logdatei
+  // Diagnose & Logs (Tauri und Android-Wrapper) — In-App-Ansicht + Export der nativen Logdatei
+  /** `null` ohne Logdatei (Browser/Dev/admin); entscheidet auch zwischen „Ordner öffnen" und „Teilen". */
+  protected readonly logExportMode = this.#logService.exportMode()
   showLogs = signal(false)
   logsLoading = signal(false)
   logContent = signal('')
@@ -431,12 +433,13 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  /** Öffnet das Log-Verzeichnis im Datei-Explorer, damit die Datei versendbar ist. */
+  /** Öffnet den Log-Ordner (Tauri) bzw. das Teilen-Menü (Android), damit die Datei versendbar ist. */
   protected async exportLogs(): Promise<void> {
     try {
-      await this.#logService.openLogDirectory()
+      await this.#logService.exportLogs()
     } catch {
-      this.#notifications.error(this.translateService.instant('SETTINGS.LOGS_EXPORT_ERROR'))
+      const key = this.logExportMode === 'share' ? 'SETTINGS.LOGS_SHARE_ERROR' : 'SETTINGS.LOGS_EXPORT_ERROR'
+      this.#notifications.error(this.translateService.instant(key))
     }
   }
 

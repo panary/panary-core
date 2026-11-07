@@ -1,5 +1,7 @@
 export { UpdateService } from './lib/services/update.service'
 export type { UpdateInfo } from './lib/services/update.service'
 export { LogService, installGlobalLogCapture } from './lib/services/log.service'
+export type { LogCaptureOptions, LogExportMode } from './lib/services/log.service'
+export type { AndroidLogPlugins } from './lib/services/android-log-sink'
 export { KioskService } from './lib/services/kiosk.service'
 export type { KioskStatus } from './lib/services/kiosk.service'

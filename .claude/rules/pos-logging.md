@@ -8,7 +8,8 @@ paths:
 
 # Logging-Regeln – POS-Frontend
 
-> Gilt für den POS-Client und die Frontend-Libs, die er lädt. Das Backend (Winston, Wide Events)
+> Gilt für den POS-Client und die Frontend-Libs mit Daten- und Feature-Code (`paths` oben); dort sitzt fast
+> jeder `console.*`-Aufruf, die übrigen Libs des POS halten sich trotzdem daran. Das Backend (Winston, Wide Events)
 > regelt `logging.md`; dessen Regeln gelten hier nicht. Entscheidung: [ADR 0069](../../docs/adr/0069-pos-fehlerberichte-bleiben-lokal.md).
 
 ## 1. Jede Konsolenzeile landet auf der Platte
@@ -16,7 +17,7 @@ paths:
 `installGlobalLogCapture()` (`libs/shared/data-access-updater`, geladen als erstes Modul von
 `apps/pos-client/src/main.ts`) spiegelt **jedes** `console.error`, `console.warn` und `console.info`
 ungefiltert in die native Logdatei `panary-pos.log`, dazu unbehandelte Fehler und Ablehnungen. Dasselbe
-gilt für `LogService.error/warn/info/debug`. Es gibt keinen Scrubber dazwischen.
+gilt für `LogService.error/warn/info` (`debug` fällt am Level `Info` weg). Es gibt keinen Scrubber dazwischen.
 
 Die Datei bleibt auf dem Gerät, wird aber per „Logs exportieren" **von Hand an den Support geschickt**
 und landet dort in E-Mails und Tickets. Was in `console.*` steht, ist damit eine Aussage gegenüber

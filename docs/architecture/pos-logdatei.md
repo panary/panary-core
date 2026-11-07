@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: 'POS-Logdatei — was hineinkommt, wie Fehler genau einmal landen, Rust-Panics'
-description: 'Der Tauri-POS schreibt Konsole, unbehandelte Webview-Fehler und Rust-Panics in panary-pos.log. Der Mitschnitt hängt als erstes Modul vor dem Bootstrap, schreibt einen Fehler nur, wenn Angular ihn nicht schon übernommen hat, und ein Panic-Hook im setup-Closure schreibt Ort und Meldung.'
+description: 'Der Tauri-POS schreibt Konsole, unbehandelte Webview-Fehler (ab dem ersten Modul, jeden genau einmal) und Rust-Panics ab dem setup-Closure in panary-pos.log.'
 tags: [pos-client, logging, tauri, diagnose]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-11-07T21:30:00Z }

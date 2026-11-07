@@ -1104,7 +1104,10 @@
                     (click)="exportLogs()"
                     class="flex items-center gap-2 px-4 h-11 rounded-xl bg-surface-input border border-line text-sm font-medium text-ink hover:bg-line-soft transition-colors"
                   >
-                    <lib-icon [name]="logExportMode === 'share' ? 'share-network' : 'folder-open'" class="text-[1.25rem]" />
+                    <lib-icon
+                      [name]="logExportMode === 'share' ? 'share-network' : 'folder-open'"
+                      class="text-[1.25rem]"
+                    />
                     {{ (logExportMode === 'share' ? 'SETTINGS.LOGS_SHARE' : 'SETTINGS.LOGS_EXPORT') | translate }}
                   </button>
                 </div>

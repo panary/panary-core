@@ -1,3 +1,6 @@
+// Natives Logging vor allem anderen (ADR 0069): So landen auch ein Fehler beim Laden der Module,
+// beim Bootstrap und das `.catch` unten in der Logdatei.
+import './log-capture'
 import { bootstrapApplication } from '@angular/platform-browser'
 import { appConfig } from './app/app.config'
 import { AppComponent } from './app/app'

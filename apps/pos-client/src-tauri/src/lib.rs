@@ -1,4 +1,5 @@
 mod kiosk;
+mod panic_log;
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -250,6 +251,9 @@ pub fn run() {
             kiosk::kiosk_exit
         ])
         .setup(|app| {
+            // Erste Anweisung: Das Log-Plugin haengt schon, und so erreicht auch ein Panic in
+            // `create_main_window` die Logdatei (ADR 0069).
+            panic_log::install();
             use tauri::Manager;
             let state = kiosk::KioskState::load(app.handle());
             let active = state.active();

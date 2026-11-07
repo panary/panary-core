@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import { type CloudBannerActionKind, CloudStatusBannerService, LanguageService } from '@panary/shared/data-access'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
-import { KioskService, LogService, UpdateService } from '@panary/shared/data-access-updater'
+import { KioskService, UpdateService } from '@panary/shared/data-access-updater'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 import { CloudStatusBannerComponent } from '@panary/shared/ui-cloud-status'
 import { NotificationOutletComponent } from '@panary/shared/ui-notifications'
@@ -47,11 +47,6 @@ export class AppComponent {
     // Theme- und Sprach-Service initialisieren — Konstruktoren wenden gespeicherte Einstellungen sofort an
     inject(ThemeServiceService)
     inject(LanguageService)
-
-    // Natives Logging: globale Fehler + console.error/warn in die Logdatei
-    // spiegeln (Feld-Diagnose ohne DevTools). Zuerst, damit auch der
-    // Update-Check und frühe Fehler erfasst werden. No-Op außerhalb Tauri.
-    inject(LogService).installGlobalCapture()
 
     // Kiosk (core#1188): Die Kopplung liegt im localStorage, den die Shell nicht lesen
     // kann. Pairing und Entkoppeln laden die App neu, also meldet dieser Aufruf jede Änderung.

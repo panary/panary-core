@@ -31,38 +31,95 @@ function stringify(value: unknown): string {
   }
 }
 
+function writeNativeLog(level: LogLevel, message: string): void {
+  if (!isTauri()) return
+  // Logging darf niemals selbst werfen (sonst Loop ueber console.error-Patch).
+  void tauriInvoke('js_log', { level, message }).catch(() => undefined)
+}
+
+// Modulweit statt je Instanz: `main.ts` installiert vor dem Bootstrap, der Root-Injector baut
+// spaeter eine eigene `LogService`-Instanz. Ein Flag je Instanz verkettete den Console-Patch
+// dann doppelt, und jede Zeile stuende zweimal in der Datei.
+let captureInstalled = false
+
+/**
+ * Schreibt einen globalen Fehler nur, wenn ihn kein anderer Listener uebernommen hat.
+ *
+ * Nach dem Bootstrap reicht `provideBrowserGlobalErrorListeners()` jedes `error`- und
+ * `unhandledrejection`-Event an den Angular-`ErrorHandler`, der `console.error('ERROR', …)`
+ * ruft — der Console-Patch schreibt das schon mit Stack — und markiert das Event per
+ * `preventDefault()`. Eine eigene Zeile waere die Doppelzeile (ADR 0069).
+ *
+ * Gelesen wird erst per `setTimeout`, also nach dem Dispatch: Dieser Listener haengt seit
+ * `main.ts` vor dem von Angular und laeuft zuerst. Ein Microtask reicht nicht, der Browser
+ * arbeitet die Microtasks schon nach jedem einzelnen Listener ab.
+ */
+function writeUnlessHandled(event: Event, line: () => string): void {
+  setTimeout(() => {
+    if (!event.defaultPrevented) writeNativeLog('error', line())
+  }, 0)
+}
+
+/**
+ * Faengt globale Fehler + console.error/warn/info ab und spiegelt sie in die native Logdatei.
+ * Gehoert in `main.ts` VOR `bootstrapApplication`, damit auch Fehler beim Bootstrap und beim
+ * Laden der Konfiguration ankommen. Idempotent, nur im Tauri-Kontext aktiv.
+ */
+export function installGlobalLogCapture(): void {
+  if (captureInstalled || !isTauri() || typeof window === 'undefined') return
+  captureInstalled = true
+
+  const origError = console.error.bind(console)
+  console.error = (...args: unknown[]): void => {
+    origError(...args)
+    writeNativeLog('error', args.map(stringify).join(' '))
+  }
+  // Nur `info`: Der Logout-Grund (PosSessionService) ist die einzige Spur, warum eine Sitzung endete.
+  const origInfo = console.info.bind(console)
+  console.info = (...args: unknown[]): void => {
+    origInfo(...args)
+    writeNativeLog('info', args.map(stringify).join(' '))
+  }
+  const origWarn = console.warn.bind(console)
+  console.warn = (...args: unknown[]): void => {
+    origWarn(...args)
+    writeNativeLog('warn', args.map(stringify).join(' '))
+  }
+
+  window.addEventListener('error', (e: ErrorEvent) => {
+    // Ohne `e.error` (Cross-Origin-Skript) bleibt nur die Meldung, mit ihm der Stack.
+    writeUnlessHandled(e, () => `window.onerror: ${stringify(e.error ?? e.message)} @ ${e.filename}:${e.lineno}`)
+  })
+  window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
+    writeUnlessHandled(e, () => `unhandledrejection: ${stringify(e.reason)}`)
+  })
+
+  writeNativeLog('info', 'Panary POS gestartet — natives Logging aktiv')
+}
+
 /**
  * Bruecke zum nativen Tauri-Log (tauri-plugin-log → Datei mit Rotation).
  *
  * - `error/warn/info/debug`: schreibt eine Zeile in die native Logdatei.
  * - `readLogs()`: liest die Datei fuer die In-App-Ansicht.
  * - `openLogDirectory()`: oeffnet den Log-Ordner im Datei-Explorer (Export).
- * - `installGlobalCapture()`: spiegelt console.error/warn + globale Fehler in die
- *   Datei, damit Feld-Fehler (z. B. „Failed to fetch") ohne DevTools auffindbar sind.
+ * - `installGlobalCapture()`: siehe `installGlobalLogCapture()`.
  *
  * Ausserhalb des Tauri-Kontexts (Browser/Dev, admin) sind alle Aufrufe No-Ops.
  */
 @Injectable({ providedIn: 'root' })
 export class LogService {
-  #captureInstalled = false
-
   error(message: string): void {
-    this.#write('error', message)
+    writeNativeLog('error', message)
   }
   warn(message: string): void {
-    this.#write('warn', message)
+    writeNativeLog('warn', message)
   }
   info(message: string): void {
-    this.#write('info', message)
+    writeNativeLog('info', message)
   }
   debug(message: string): void {
-    this.#write('debug', message)
-  }
-
-  #write(level: LogLevel, message: string): void {
-    if (!isTauri()) return
-    // Logging darf niemals selbst werfen (sonst Loop ueber console.error-Patch).
-    void tauriInvoke('js_log', { level, message }).catch(() => undefined)
+    writeNativeLog('debug', message)
   }
 
   /** Liest die native Logdatei (letzte ~200 KB). Leerer String, wenn keine Logs. */
@@ -81,38 +138,8 @@ export class LogService {
     await tauriInvoke('open_log_dir')
   }
 
-  /**
-   * Faengt globale Fehler + console.error/warn ab und spiegelt sie in die native
-   * Logdatei. Einmalig beim App-Start aufrufen — nur im Tauri-Kontext aktiv.
-   */
+  /** Delegiert an `installGlobalLogCapture()`; idempotent ueber alle Instanzen. */
   installGlobalCapture(): void {
-    if (this.#captureInstalled || !isTauri() || typeof window === 'undefined') return
-    this.#captureInstalled = true
-
-    const origError = console.error.bind(console)
-    console.error = (...args: unknown[]): void => {
-      origError(...args)
-      this.#write('error', args.map(stringify).join(' '))
-    }
-    // Nur `info`: Der Logout-Grund (PosSessionService) ist die einzige Spur, warum eine Sitzung endete.
-    const origInfo = console.info.bind(console)
-    console.info = (...args: unknown[]): void => {
-      origInfo(...args)
-      this.#write('info', args.map(stringify).join(' '))
-    }
-    const origWarn = console.warn.bind(console)
-    console.warn = (...args: unknown[]): void => {
-      origWarn(...args)
-      this.#write('warn', args.map(stringify).join(' '))
-    }
-
-    window.addEventListener('error', (e: ErrorEvent) => {
-      this.#write('error', `window.onerror: ${e.message} @ ${e.filename}:${e.lineno}`)
-    })
-    window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
-      this.#write('error', `unhandledrejection: ${stringify(e.reason)}`)
-    })
-
-    this.info('Panary POS gestartet — natives Logging aktiv')
+    installGlobalLogCapture()
   }
 }

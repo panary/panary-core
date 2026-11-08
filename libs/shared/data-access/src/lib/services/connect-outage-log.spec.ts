@@ -46,11 +46,43 @@ describe('ConnectOutageLog', () => {
     expect(sink.warn).toHaveBeenCalledTimes(2)
   })
 
+  it('zählt Dauer und Versuche des zweiten Ausfalls von vorn', () => {
+    const { sink, log, advance } = setup()
+    for (let i = 0; i < 5; i++) log.connectError(new Error('websocket error'))
+    advance(60_000)
+    log.connected()
+    advance(100_000)
+    log.connectError(new Error('websocket error'))
+    advance(2000)
+    log.connectError(new Error('websocket error'))
+    advance(1000)
+    log.connected()
+    expect(sink.info).toHaveBeenLastCalledWith('[WS] Wieder verbunden nach 3 s und 2 Versuchen')
+  })
+
+  it('meldet im zweiten Ausfall eine Meldung erneut, die im ersten schon stand', () => {
+    const { sink, log } = setup()
+    log.connectError(new Error('websocket error'))
+    log.connectError(new Error('xhr poll error'))
+    log.connected()
+    log.connectError(new Error('websocket error'))
+    log.connectError(new Error('xhr poll error'))
+    expect(sink.warn).toHaveBeenCalledTimes(4)
+  })
+
   it('schreibt bei geänderter Meldung erneut', () => {
     const { sink, log } = setup()
     log.connectError(new Error('websocket error'))
     log.connectError(new Error('xhr poll error'))
     log.connectError(new Error('xhr poll error'))
+    expect(sink.warn).toHaveBeenCalledTimes(2)
+  })
+
+  it('schreibt bei wechselnden Meldungen (A, B, A, B) jede nur einmal', () => {
+    const { sink, log } = setup()
+    for (let i = 0; i < 10; i++) {
+      log.connectError(new Error(i % 2 ? 'xhr poll error' : 'websocket error'))
+    }
     expect(sink.warn).toHaveBeenCalledTimes(2)
   })
 

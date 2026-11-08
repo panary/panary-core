@@ -120,12 +120,13 @@ jobs:
       - name: Nx-Cache uebernehmen
         shell: bash
         run: |
-          # Bewusst ohne `set -e`: Der Cache beschleunigt nur. Jeder Fehler hier
+          # Bewusst ohne `-e`: Der Cache beschleunigt nur. Jeder Fehler hier
           # (z. B. ein verschobener Nx-Modulpfad nach einem Update) verwirft den
           # Cache mit Warnung, statt den Job rot zu faerben. nullglob, damit ein
           # Glob ohne Treffer leer ist und nicht als Literal-Dateiname weiterlebt;
           # der DB-Suffix (heute -v4) steht deshalb nirgends fest.
-          set -uo pipefail
+          # `shell: bash` startet GitHub als `bash -e -o pipefail`; ohne +e galte -e weiter.
+          set +e -uo pipefail
           shopt -s nullglob
           t=.nx/ci-transfer
           verwerfen() {
@@ -406,9 +407,10 @@ jobs:
         if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
         shell: bash
         run: |
-          # Ohne `set -e` aus demselben Grund wie beim Uebernehmen: Ein Fehler
+          # Ohne `-e` aus demselben Grund wie beim Uebernehmen: Ein Fehler
           # hier kostet den naechsten Lauf Treffer, nicht diesen seine Farbe.
-          set -uo pipefail
+          # `shell: bash` startet GitHub als `bash -e -o pipefail`; ohne +e galte -e weiter.
+          set +e -uo pipefail
           shopt -s nullglob
           t=.nx/ci-transfer
           rm -rf "$t"
@@ -452,7 +454,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -uo pipefail
+          set +e -uo pipefail
           if ! keys="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/caches?ref=refs/heads/main&key=nx-${RUNNER_OS}-&per_page=100" \
             --jq '.actions_caches[] | [.created_at, .id, .key] | @tsv' | sort -r)"; then
             echo "::warning title=Nx-Cache::Cache-Liste nicht abrufbar — nichts geloescht."

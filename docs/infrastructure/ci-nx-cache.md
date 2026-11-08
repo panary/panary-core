@@ -86,8 +86,9 @@ dann `[local cache]` und stellt nichts her. Deshalb werden beide gemeinsam gesic
 gemeinsam übernommen. Findet der Schritt nicht genau eine DB auf jeder Seite, verwirft er beides,
 und der Lauf startet leer.
 
-**Kein Schritt färbt die CI rot.** Herstellen, Übernehmen, Bereitlegen und Aufräumen laufen ohne
-`set -e`. Jeder Fehler (ein verschobener Nx-Modulpfad nach einem Update, eine nicht anlegbare DB,
+**Kein Schritt färbt die CI rot.** Übernehmen, Bereitlegen und Aufräumen schalten `-e` mit
+`set +e` ausdrücklich ab. GitHub startet `shell: bash` als `bash -e -o pipefail`, ein bloßes
+`set -uo pipefail` ließe `-e` also stehen (so im ersten Lauf nach dem Merge gesehen). Jeder Fehler (ein verschobener Nx-Modulpfad nach einem Update, eine nicht anlegbare DB,
 ein Löschversuch mit 404) wird zur `::warning` „Nx-Cache“, und der Lauf geht ohne Cache weiter.
 Lokal nachgestellt mit einem absichtlich falschen Modulpfad: Warnung, Exit 0, `.nx/cache`
 aufgeräumt.

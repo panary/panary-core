@@ -120,3 +120,4 @@ export type Application = FeathersApplication<ServiceTypes, Configuration> & Omi
 
 // The context for hook functions - can be typed with a service class
 export type HookContext<S = any> = FeathersHookContext<Application, S>
+// Wegwerf-Probe fuer panary/panary-core#1378 — dieser PR wird nicht gemergt.

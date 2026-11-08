@@ -1,21 +1,11 @@
 import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
 import { Router } from '@angular/router'
-import { HttpClient, HttpErrorResponse } from '@angular/common/http'
-import { catchError, Observable, throwError } from 'rxjs'
 import { AuthenticationItem } from '@panary/auth/domain'
 import { User, UserSystemRole } from '@panary/users/domain'
-import { httpErrorCodesDE } from '@panary/util-error-handling'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { Id } from '@feathersjs/feathers'
-import { APP_CONFIG, AppConfigService } from '@panary/shared/data-access-config'
-import { clearPosOperatorToken, ConnectionService, describeErrorForLog, errorName } from '@panary/shared/data-access'
-
-type LoginBody = {
-  loginname?: string
-  password?: string
-  strategy: string
-  cardId?: Id
-}
+import { APP_CONFIG } from '@panary/shared/data-access-config'
+import { clearPosOperatorToken, ConnectionService, errorName } from '@panary/shared/data-access'
 
 @Injectable({
   providedIn: 'root',
@@ -25,21 +15,14 @@ export class AuthService {
   static readonly DEFAULT_BOOLEAN = false
   static readonly DEFAULT_UNDEFINED: undefined = undefined
   static readonly DEFAULT_FULL_NAME = 'Unknown User'
-  static readonly AUTH_ROUTE = '/authentication'
 
   /** INJECTION */
   #notificationService: NotificationService = inject(NotificationService)
   #router: Router = inject(Router)
-  #httpClient: HttpClient = inject(HttpClient)
-  #appConfigService: AppConfigService = inject(AppConfigService)
   #connectionService: ConnectionService = inject(ConnectionService)
 
   /** PRIVATE PROPERTIES */
-  // Option 1: Direkt Environment Config (Build-Zeit)
   #appConfig = inject(APP_CONFIG)
-
-  // Option 2: Service mit Runtime Config (Server-geladen)
-  // #configService = inject(AppConfigService)
 
   #authenticationItem: WritableSignal<AuthenticationItem | null> = signal(null)
   #lastLoggedInUser: WritableSignal<string | null | undefined> = signal(null)
@@ -143,147 +126,11 @@ export class AuthService {
   }
 
   /** PRIVATE METHODS */
-  /**
-   * Parses an error object to extract a user-friendly error message.
-   *
-   * @param {HttpErrorResponse | any} error The error object to parse. It can either be a HttpErrorResponse
-   *                                        or any other type containing a message and/or code.
-   * @return {string} A formatted error message string containing the error phrase and description,
-   *                  or a default message in case of an unexpected error.
-   */
-  private parseError(error: HttpErrorResponse | unknown): string {
-    try {
-      const err = error as { code?: number; message?: string }
-      let statusCode = err.code
-      const match = err.message?.match(/: (\d{3})/)
-      if (match) {
-        statusCode = parseInt(match[1], 10)
-      }
-
-      const errorPhrase: string = httpErrorCodesDE.getErrorPhrase(statusCode ?? 0)
-      const errorDescription: string = httpErrorCodesDE.getErrorDescription(statusCode ?? 0)
-      return `${errorPhrase}\n${errorDescription}`
-    } catch {
-      return 'Ein unerwarteter Fehler ist aufgetreten.'
-    }
-  }
-
-  /**
-   * Handles HTTP errors by displaying a notification and logging the error details.
-   *
-   * @param {HttpErrorResponse | any} httpError The HTTP error object or any other error to handle.
-   * @return {Observable<never>} An observable that throws an error with the provided error details.
-   */
-  private handleError(httpError: HttpErrorResponse | unknown): Observable<never> {
-    const err = httpError as Record<string, unknown>
-    this.#notificationService.error(this.parseError(httpError), { title: err?.['name'] as string | undefined })
-
-    this.logErrorDetails(httpError)
-
-    // Bleibt unbehandelt und landet so im Mitschnitt: ohne die URL aus `HttpErrorResponse.message`.
-    return throwError(() => new Error(describeErrorForLog(httpError)))
-  }
-
-  private logErrorDetails(error: HttpErrorResponse | unknown): void {
-    console.error('[AuthService] Anmeldung fehlgeschlagen:', describeErrorForLog(error))
-  }
-
   private validateExploration(exp: number): boolean {
     return exp <= Math.floor(Date.now() / 1000)
   }
 
-  /**
-   * Method to handle user authentication.
-   *
-   * @param body - The request payload for authentication.
-   */
-  private authenticate(body: LoginBody): void {
-    const url = `${this.#appConfigService.apiUrl || this.#appConfig.basicServerUrl}${AuthService.AUTH_ROUTE}`
-
-    this.#httpClient
-      .post<AuthenticationItem>(url, body)
-      .pipe(catchError(this.handleError.bind(this)))
-      .subscribe((authenticationItem: AuthenticationItem): void => {
-        if (!authenticationItem || Object.keys(authenticationItem).length === 0) {
-          this.handleEmptyAuthenticationError(url)
-          return
-        }
-
-        this.handleAuthentication(authenticationItem)
-      })
-  }
-
-  private handleAuthentication(authenticationItem: AuthenticationItem): void {
-    if (authenticationItem.authentication.strategy === 'smartcard') {
-      if (this.isLoggedIn() && authenticationItem.user._id === this.#authenticationItem()?.user._id) {
-        this.#notificationService.info('Sie sind bereits angemeldet')
-        return
-      }
-
-      this.logout(false).then(result => {
-        this.storeAuthentication(authenticationItem)
-
-        const snackBarMessage = `Benutzer ${authenticationItem.user.loginname} erfolgreich angemeldet`
-        this.#notificationService.success(snackBarMessage)
-
-        this.#router.navigateByUrl('/home').then()
-      })
-    } else {
-      this.storeAuthentication(authenticationItem)
-
-      const snackBarMessage = `Benutzer ${authenticationItem.user.loginname} erfolgreich angemeldet`
-      this.#notificationService.success(snackBarMessage)
-
-      this.#router.navigateByUrl('/home').then()
-    }
-  }
-
-  /**
-   * Handles cases where the authentication data returned is invalid or empty.
-   *
-   * @param url - The authentication URL used in the request.
-   */
-  private handleEmptyAuthenticationError(url: string): void {
-    const error = new HttpErrorResponse({
-      error: {
-        code: 401,
-        message: 'Authentication failed: Empty authentication object received',
-        name: 'NotAuthenticated',
-        data: null,
-      },
-      status: 401,
-      statusText: 'Unauthorized',
-      url,
-    })
-    this.handleError(error)
-  }
-
-  /**
-   * Stores authentication details in appropriate locations.
-   *
-   * @param authenticationItem - The AuthenticationItem object returned by the server.
-   */
-  private storeAuthentication(authenticationItem: AuthenticationItem): void {
-    const loginname = authenticationItem.user.loginname
-
-    this.#authenticationItem.set(authenticationItem)
-    this.#lastLoggedInUser.set(loginname)
-
-    sessionStorage.setItem('authenticationItem', JSON.stringify(authenticationItem))
-    localStorage.setItem(this.#appConfig.localStorageLastLoggedInUserKey, loginname!)
-  }
-
   /** PUBLIC METHODS */
-  login(username: string, password: string): void {
-    const loginBody: LoginBody = { loginname: username, password, strategy: 'local' }
-    this.authenticate(loginBody)
-  }
-
-  loginWithSmartcard(cardId: Id): void {
-    const smartCardBody: LoginBody = { strategy: 'smartcard', cardId }
-    this.authenticate(smartCardBody)
-  }
-
   logout(redirect = true): Promise<boolean> {
     console.info('[AuthService] logout() Redirect:', redirect)
     this.#authenticationItem.set(null)

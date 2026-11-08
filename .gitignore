@@ -147,6 +147,7 @@ dist
 # NX
 .nx/cache
 .nx/workspace-data
+.nx/ci-transfer
 nx-cloud.env
 
 # Vite

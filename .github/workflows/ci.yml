@@ -103,6 +103,7 @@ jobs:
       # Push-Laeufe stellen ebenfalls her und sichern danach ergaenzt (rollierend):
       # Ein Push baut nur seine eigenen Aenderungen und hinterliesse sonst einen
       # fast leeren Eintrag.
+      # Gesamtbild: docs/infrastructure/ci-nx-cache.md
       - name: Nx-Cache wiederherstellen
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

@@ -11,6 +11,7 @@ import { BusinessDaySchema } from '@panary/businessdays/domain'
 import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
 import { CLIENT_SERVICE_METHODS } from './client-service-methods'
 import { applySocketDeadline } from './socket-deadlines'
+import { ConnectOutageLog } from './connect-outage-log'
 
 // Bestehender Export-Pfad: Die Spec von `BusinessDayService` importiert die Liste über den Haupteinstieg.
 export { BUSINESSDAYS_CLIENT_METHODS } from './client-service-methods'
@@ -105,6 +106,10 @@ export class ConnectionService {
 
   // Compatibility for POS
   readonly #connectionError: WritableSignal<string | null> = signal(null)
+  readonly #outageLog = new ConnectOutageLog({
+    warn: message => console.warn(message),
+    info: message => console.info(message),
+  })
 
   // Der Server hat die Geraete-Authentifizierung aktiv ABGELEHNT (deaktiviertes
   // oder revoziertes Geraet) — im Unterschied zu `#connectionError`, das reine
@@ -742,6 +747,7 @@ export class ConnectionService {
           connectedAt: new Date().toLocaleString(),
         })
         this.#connectionError.set(null)
+        this.#outageLog.connected()
         // Frischer Handshake laeuft — ein alter Ablehnungsgrund ist damit
         // ueberholt und wird gleich durch ein neues `device:authenticated`
         // ersetzt (Erfolg oder erneute Ablehnung).
@@ -829,7 +835,8 @@ export class ConnectionService {
       })
       // Admin/User Events
       .on('connect_error', (error: Error) => {
-        console.error(`[WS] Connection error:`, error)
+        // Verdichtet (panary/panary-core#1374): ein Ausfall ist erwartet, nicht ein Fehler je Versuch.
+        this.#outageLog.connectError(error)
         this.#connectionError.set(error.message)
       })
 

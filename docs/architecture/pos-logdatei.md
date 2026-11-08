@@ -9,6 +9,7 @@ sources:
   - { id: adr-0069, resource: docs/adr/0069-pos-fehlerberichte-bleiben-lokal.md, title: 'ADR 0069 — POS-Fehlerberichte bleiben lokal' }
   - { id: issue-1343, resource: 'https://github.com/panary/panary-core/issues/1343', title: 'panary/panary-core#1343' }
   - { id: issue-1344, resource: 'https://github.com/panary/panary-core/issues/1344', title: 'panary/panary-core#1344' }
+  - { id: issue-1374, resource: 'https://github.com/panary/panary-core/issues/1374', title: 'panary/panary-core#1374' }
   - { id: issue-1371, resource: 'https://github.com/panary/panary-core/issues/1371', title: 'panary/panary-core#1371' }
   - { id: adr-0057, resource: docs/adr/0057-android-wrapper-capacitor-http-scheme.md, title: 'ADR 0057 — Android-Wrapper mit Capacitor' }
 ---
@@ -50,6 +51,24 @@ Aus dem Rust-Prozess, ohne Präfix `[webview]`:
 | ---------------------------------- | ---------------------------------------------------- |
 | Rust-Panic ab dem `.setup`-Closure | `[panic] Thread '…' bei Datei:Zeile:Spalte: Meldung` |
 | Rust-Code (`log::info!` usw.)      | z. B. `[kiosk] …`                                    |
+
+### Verbindungsausfall: eine kleine, feste Zahl an Zeilen
+
+Ohne erreichbaren Server versucht der Socket es mit `reconnectionAttempts: Infinity` etwa alle 5 s erneut. Eine Zeile je
+Versuch machte gemessen 81 % einer 152-KB-Datei aus und hätte sie nach gut einem Tag allein gefüllt
+(panary/panary-core#1374). `ConnectOutageLog` (`libs/shared/data-access/src/lib/services/connect-outage-log.ts`)
+verdichtet `connect_error` im `ConnectionService`:
+
+| Anlass                                    | Zeile                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| erster Fehler nach einem `connect`        | `[WARN] [WS] Verbindung fehlgeschlagen: <Name>: <Meldung>`          |
+| Meldung ändert sich während des Ausfalls  | dieselbe Zeile noch einmal                                         |
+| Ausfall dauert an                         | höchstens alle 10 min `[WS] Server weiter nicht erreichbar seit …`  |
+| `connect` nach einem Ausfall              | `[INFO] [WS] Wieder verbunden nach <s> s und <n> Versuchen`         |
+
+Die Zeile trägt weder Stack noch `data` (`describeErrorForLog`). Die Statusanzeige (`#connectionError`) bleibt
+unverändert. Ein Ausfall ist am Offline-First-POS erwartet, deshalb `warn` statt `error`. Das Health-Polling
+(`#fetchHealth`) schreibt bei Fehlern nichts und braucht keine Verdichtung.
 
 ## Webview: ab dem ersten Modul, jeder Fehler genau einmal
 

@@ -120,3 +120,14 @@ pos-client 1, setup-client 1). Blockiert ist also nur die **Flag-Form**, nicht d
   `mongodb-memory-server`), und die `beforeEach`-Form fängt dort seit #264 eine **Lint-Regel**
   (`panary/no-shared-spec-recorder`) statt eines Suchbefehls. Gemessen: `api-cloud` über acht
   Seeds je 4057 Tests grün, alle übrigen Projekte unter Seed 1 grün. Kein Gate nötig.
+
+_Korrektur (2026-11-08, [#1375](https://github.com/panary/panary-core/issues/1375)):_ Das Gate ist
+kein Schritt im Job `main` mehr, sondern ein eigener Job `reihenfolge-gate`, der parallel läuft.
+Als letzter Schritt von `main` lief api-edge:test in jedem betroffenen Lauf zweimal hintereinander,
+und die gemessenen Kosten waren nicht mehr die 2:27 min von oben: Zwischen dem 26.10. und dem
+08.11.2026 lief das Gate in 32 von 94 CI-Läufen, im Mittel **5,4 min**, die direkt auf die
+Laufzeit von `main` aufschlugen. Jetzt zählt das Maximum beider Jobs. Der Preis ist ein zweites
+Setup, etwa eine Runner-Minute. Befehl, Seed und `--skip-nx-cache` sind unverändert. Der Job
+braucht kein dist aus `main`, weil api-edge:test kein `dependsOn` hat. Die Rulesets von `main`
+führen keinen Pflicht-Check (Stand 2026-11-08). Den Merge hält wie zuvor der Workbench-Wächter
+(`waechter.sh pr-checks`) auf, denn er wartet jeden Check eines PRs ab.

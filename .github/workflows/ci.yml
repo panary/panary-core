@@ -341,8 +341,10 @@ jobs:
   # @panary/*-Imports loesen ueber tsconfig-Paths auf Quellcode auf.
   # Bewusst OHNE Remote-Cache-Env: Der Lauf ist --skip-nx-cache, ein Cache-Zugriff
   # braechte nichts ausser einem Token mehr in einem weiteren Job.
-  # Der Check heisst `reihenfolge-gate` und muss im Ruleset von main als Pflicht
-  # stehen, sonst merged ein PR trotz rotem Gate (ADR 0038, Korrektur #1375).
+  # Der Check heisst `reihenfolge-gate`. Die Rulesets von main fuehren keinen
+  # Pflicht-Check (Stand 2026-11-08, auch `main` nicht) — den Merge haelt wie bisher
+  # `scripts/waechter.sh pr-checks` im Workbench auf, der JEDEN Check des PRs
+  # abwartet und damit auch diesen Job (ADR 0038, Korrektur #1375).
   reihenfolge-gate:
     runs-on: ubuntu-latest
     # Gemessen ~5–6 min mit api-edge, unter 2 min ohne (nur Setup + affected-Pruefung).

@@ -1,0 +1,1 @@
+* **Update**: Das Reihenfolge-Gate läuft als eigener CI-Job `reihenfolge-gate` parallel zu `main` statt als dessen letzter Schritt. Läufe, die api-edge berühren, sparen damit im Mittel rund 5 Minuten. Die Korrektur steht in [ADR 0038](../adr/0038-shuffle-gate-mit-commit-seed.md) ([#1375](https://github.com/panary/panary-core/issues/1375)).

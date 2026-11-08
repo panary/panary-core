@@ -3,6 +3,7 @@
 /coverage
 /.nx/cache
 /.nx/workspace-data
+/.nx/ci-transfer
 .angular
 
 # OKF-Dokumentations-Wiki: Doku + Referenz-Material nicht durch Prettier umformatieren

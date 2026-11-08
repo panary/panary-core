@@ -46,6 +46,18 @@ jobs:
       # (secrets.X != '' im env-Wert ist erlaubt — gleiches Muster wie HAS_NX_CLOUD.)
       NX_SELF_HOSTED_REMOTE_CACHE_SERVER: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || secrets.NX_CACHE_RO_TOKEN != '') && secrets.NX_CACHE_SERVER_URL || '' }}
       NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && secrets.NX_CACHE_RW_TOKEN || secrets.NX_CACHE_RO_TOKEN }}
+      # --- Lokaler Nx-Cache ueber den GitHub-Actions-Cache (#1376) ---
+      # Nx 23 legt Cache und Task-DB sonst unter ~/.nx/<hash>/ ab, nicht im
+      # Checkout. Mit NX_CACHE_DIRECTORY liegen beide wieder im Workspace
+      # (.nx/cache bzw. .nx/workspace-data) und lassen sich sichern. Bewusst NUR
+      # hier und nicht als `cacheDirectory` in nx.json: Das schaltete lokal das
+      # Cache-Teilen zwischen den Worktrees ab.
+      NX_CACHE_DIRECTORY: .nx/cache
+      # Deckel fuer den rollierenden Cache. Das Kontingent des Repos (10 GB) ist
+      # mit CodeQL-, Rust- und buildkit-Caches schon voll; jeder Nx-Eintrag
+      # verdraengt per LRU fremde Eintraege. Nicht `maxCacheSize` in nx.json, das
+      # deckelte auch den lokal geteilten Cache. Groesse wird im Sicher-Schritt geloggt.
+      NX_MAX_CACHE_SIZE: 1GB
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -82,6 +94,54 @@ jobs:
       # Links → @nx/js:tsc (z. B. shared-backend) findet @panary/users/domain nicht.
       - name: Link @panary/* packages (Standalone-Resolution)
         run: bash tools/scripts/link-core-packages.sh
+
+      # Nx-Cache des juengsten main-Laufs wiederherstellen (#1376). PRs koennen den
+      # Remote-Cache nicht lesen (kein Read-Only-Token, siehe env) und starten sonst
+      # leer: 0 % Treffer in jedem untersuchten PR-Lauf. Der GitHub-Actions-Cache
+      # erlaubt PRs, Eintraege des Basis-Branches zu LESEN, aber nicht dorthin zu
+      # schreiben — kein Vergiftungsweg, auch nicht aus Fork- oder Dependabot-PRs.
+      # Push-Laeufe stellen ebenfalls her und sichern danach ergaenzt (rollierend):
+      # Ein Push baut nur seine eigenen Aenderungen und hinterliesse sonst einen
+      # fast leeren Eintrag.
+      - name: Nx-Cache wiederherstellen
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .nx/ci-transfer
+          key: nx-${{ runner.os }}-${{ github.sha }}
+          restore-keys: nx-${{ runner.os }}-
+
+      # Die Task-DB heisst <Maschinen-ID>-v4.db. Ohne passende DB beantwortet Nx
+      # KEINEN Treffer, auch wenn alle Dateien unter .nx/cache liegen (lokal
+      # nachgestellt: 0/1 ohne, 1/1 mit uebernommener DB). Deshalb wird der Name
+      # nicht geraten: Nx legt seine eigene leere DB an, und deren Inhalt wird
+      # durch die gesicherte ersetzt. Cache und DB gehoeren zusammen — ein
+      # Treffer aus der DB ohne Dateien meldet Erfolg und stellt nichts her.
+      - name: Nx-Cache uebernehmen
+        shell: bash
+        run: |
+          set -euo pipefail
+          t=.nx/ci-transfer
+          if [ ! -d "$t/cache" ] || ! compgen -G "$t/db/*.db" > /dev/null; then
+            echo "Kein gesicherter Nx-Cache — Lauf startet leer."
+            exit 0
+          fi
+          mkdir -p .nx
+          rm -rf .nx/cache
+          mv "$t/cache" .nx/cache
+          node -e "require('nx/src/utils/db-connection').getDbConnection()"
+          neu=(.nx/workspace-data/*-v4.db)
+          alt=("$t"/db/*.db)
+          if [ "${#neu[@]}" -ne 1 ] || [ "${#alt[@]}" -ne 1 ]; then
+            echo "::warning title=Nx-Cache::Erwartet je eine DB, gefunden ${#neu[@]} neu / ${#alt[@]} gesichert — Lauf startet leer."
+            rm -rf .nx/cache "$t"
+            exit 0
+          fi
+          ziel="${neu[0]}"
+          quelle="${alt[0]}"
+          cp "$quelle" "$ziel"
+          rm -f .nx/workspace-data/*-v4.lock .nx/workspace-data/*-v4.db-wal .nx/workspace-data/*-v4.db-shm
+          rm -rf "$t"
+          echo "::notice title=Nx-Cache::$(find .nx/cache -mindepth 1 -maxdepth 1 | wc -l) Eintraege, $(du -sh .nx/cache | cut -f1), DB $(basename "$quelle") -> $(basename "$ziel")"
 
       # `--all`, nicht `--base`: Ein `format:check --base=…` prüft ausschließlich
       # Dateien, die gegen main geändert wurden — auf main selbst also nie. Drift
@@ -328,6 +388,63 @@ jobs:
             exit $?
           fi
           exit 1
+
+      # Nur main-Laeufe sichern (Push und Dispatch auf main), nie ein PR: Ein PR
+      # liest den Eintrag nur. Auch nach einem roten affected-Schritt, denn die
+      # bis dahin gefuellten Eintraege sind gueltig; nicht nach einem Abbruch.
+      - name: Nx-Cache zum Sichern bereitlegen
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          t=.nx/ci-transfer
+          rm -rf "$t"
+          if [ ! -d .nx/cache ] || ! compgen -G ".nx/workspace-data/*-v4.db" > /dev/null; then
+            echo "::warning title=Nx-Cache::Kein Cache oder keine Task-DB — nichts zu sichern."
+            exit 0
+          fi
+          mkdir -p "$t/db"
+          cp -R .nx/cache "$t/cache"
+          cp .nx/workspace-data/*-v4.db "$t/db/"
+          echo "::notice title=Nx-Cache gesichert::$(find "$t/cache" -mindepth 1 -maxdepth 1 | wc -l) Eintraege, $(du -sh "$t" | cut -f1)"
+
+      - name: Nx-Cache sichern
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.nx/ci-transfer/db/*.db') != '' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .nx/ci-transfer
+          key: nx-${{ runner.os }}-${{ github.sha }}
+
+  # Abgeloeste Nx-Cache-Eintraege loeschen (#1376). Jeder main-Lauf legt einen
+  # vollstaendigen Eintrag unter seinem SHA ab; die alten bringen nichts mehr, sie
+  # verdraengen nur fremde Caches aus dem vollen Kontingent. Eigener Job, weil
+  # Loeschen `actions: write` braucht — der Job `main` fuehrt Repo-Code aus und
+  # bekommt das Recht bewusst nicht. Hier laeuft nur die GitHub-API.
+  nx-cache-aufraeumen:
+    needs: main
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Aeltere nx-Eintraege loeschen, den neuesten behalten
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          keys="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/caches?ref=refs/heads/main&key=nx-${RUNNER_OS}-&per_page=100" \
+            --jq '.actions_caches[] | [.created_at, .id, .key] | @tsv' | sort -r)"
+          if [ -z "$keys" ]; then
+            echo "Keine nx-Eintraege auf main."
+            exit 0
+          fi
+          echo "$keys"
+          echo "$keys" | tail -n +2 | while IFS=$'\t' read -r _ id key; do
+            echo "loesche ${key} (${id})"
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/caches/${id}" > /dev/null
+          done
 
   # Reihenfolge-Gate (#301) als eigener Job (#1375). Er laeuft parallel zu `main`
   # statt als dessen letzter Schritt: Bis dahin lief api-edge:test in jedem Lauf,

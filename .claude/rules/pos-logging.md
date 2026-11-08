@@ -19,6 +19,9 @@ paths:
 ungefiltert in die native Logdatei `panary-pos.log` (unter Tauri im App-Log-Verzeichnis, im
 Android-Wrapper unter `Directory.Data/logs/`), dazu unbehandelte Fehler und Ablehnungen. Dasselbe
 gilt für `LogService.error/warn/info` (`debug` fällt am Level `Info` weg). Es gibt keinen Scrubber dazwischen.
+Einzige Ausnahme: Im Android-Wrapper fallen die Fehlermeldungen weg, die die Capacitor-Bridge selbst zu
+fehlgeschlagenen Aufrufen von `Filesystem` und `Share` schreibt, also den Plugins der Logdatei
+([POS-Logdatei](../../docs/architecture/pos-logdatei.md#android-wrapper-sunmi), panary/panary-core#1371).
 
 Die Datei bleibt auf dem Gerät, wird aber per „Logs exportieren" (Android: Teilen-Menü) **von Hand an den Support geschickt**
 und landet dort in E-Mails und Tickets. Was in `console.*` steht, ist damit eine Aussage gegenüber

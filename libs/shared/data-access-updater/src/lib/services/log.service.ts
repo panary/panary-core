@@ -24,9 +24,13 @@ let androidSink: AndroidLogSink | null = null
  */
 const SINK_BRIDGE_RESULT = /^%cresult %c(Filesystem|Share)\./
 
-/** Je offener Konsolengruppe: Ist sie eine Ergebnisgruppe der Senken-Plugins? */
+/**
+ * Je offener Konsolengruppe: Ist sie eine Ergebnisgruppe der Senken-Plugins? Entscheidend ist nur die
+ * innerste: Die Bridge ruft `console.error` direkt darin; eine nie geschlossene Gruppe weiter aussen
+ * verschluckt so keine spaeteren Fehler.
+ */
 const consoleGroups: boolean[] = []
-const insideSinkBridgeResult = (): boolean => consoleGroups.includes(true)
+const insideSinkBridgeResult = (): boolean => consoleGroups[consoleGroups.length - 1] === true
 
 /**
  * Haelt die Bridge-Meldungen der Senke aus der Datei (panary/panary-core#1371). Sonst stuende jeder

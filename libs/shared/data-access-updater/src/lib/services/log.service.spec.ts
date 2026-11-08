@@ -224,6 +224,24 @@ describe('LogService im Android-Wrapper', () => {
     ])
   })
 
+  it('schreibt einen Fehler in einer eigenen Gruppe innerhalb einer Senken-Ergebnisgruppe', async () => {
+    const { android, lines } = stubCapacitor()
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture({ android })
+
+    console.groupCollapsed('%cresult %cFilesystem.stat (#9)', 'color: red', 'font-weight: bold')
+    console.group('Bon')
+    console.error('Bon nicht gedruckt')
+    console.groupEnd()
+    console.groupEnd()
+    await new LogService().readLogs()
+
+    expect(withoutTime(lines())).toEqual([
+      '[webview][INFO] Panary POS gestartet — natives Logging aktiv',
+      '[webview][ERROR] Bon nicht gedruckt',
+    ])
+  })
+
   it('schreibt Bridge-Fehler anderer Plugins weiter in die Datei', async () => {
     const { android, lines } = stubCapacitor()
     const { installGlobalLogCapture, LogService } = await loadModule()

@@ -206,7 +206,9 @@ gh run view <run-id> --repo panary/panary-core --attempt <n> --log | awk '
 `gh run view --log` zeigt ESC als `^[`, daher das `gsub`. Der Step-Name lautet in älteren Logs
 durchgehend `UNKNOWN STEP` — gezählt wird deshalb an der Gruppe, nicht am Schritt. Das
 Reihenfolge-Gate schreibt keine Gruppe, die letzte Gruppe eines Laufs gehört also immer zum
-affected-Schritt.
+affected-Schritt. Daran ändert auch nichts, dass das Gate seit
+[#1375](https://github.com/panary/panary-core/issues/1375) ein eigener Job ist und `--log` beide
+Jobs aneinanderhängt.
 
 Die Regel dahinter gilt über die CI hinaus: **Die Ausgabe eines Node-CLIs, das mit
 `process.exit()` endet, nie durch eine Pipe lesen, wenn man ihren Schluss braucht** — weder

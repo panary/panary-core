@@ -168,8 +168,8 @@ wie ein Produktionsbug. `uuidv7` ist zugleich das ID-Format des Produktivcodes.
 muss die Ausgangszahl **im** Test genommen werden. Eine im `beforeAll` gemessene Baseline gilt nur
 so lange, wie kein Test davor an der Zählung dreht — genau die Annahme, die der Shuffle bricht.
 
-**Das Gate.** In der CI läuft ein zusätzlicher Schritt
-(`.github/workflows/ci.yml`, „Reihenfolge-Gate"): derselbe api-edge-Lauf mit
+**Das Gate.** In der CI läuft ein eigener Job parallel zu `main`
+(`.github/workflows/ci.yml`, Job `reihenfolge-gate`, seit #1375): derselbe api-edge-Lauf mit
 `--sequence.shuffle` und einem aus `github.sha` abgeleiteten Seed. Zwei Eigenschaften, ohne die
 er still blind wäre — beide in [ADR 0038](../../docs/adr/0038-shuffle-gate-mit-commit-seed.md)
 begründet:

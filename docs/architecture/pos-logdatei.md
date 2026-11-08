@@ -4,11 +4,12 @@ title: 'POS-Logdatei — was hineinkommt, wie Fehler genau einmal landen, Rust-P
 description: 'Der Tauri-POS schreibt Konsole, unbehandelte Webview-Fehler (ab dem ersten Modul, jeden genau einmal) und Rust-Panics ab dem setup-Closure in panary-pos.log; der Android-Wrapper (Sunmi) dieselben Webview-Zeilen über @capacitor/filesystem, Export dort per Teilen-Menü.'
 tags: [pos-client, logging, tauri, android, capacitor, diagnose]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-11-07T23:30:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-11-08T11:30:00Z }
 sources:
   - { id: adr-0069, resource: docs/adr/0069-pos-fehlerberichte-bleiben-lokal.md, title: 'ADR 0069 — POS-Fehlerberichte bleiben lokal' }
   - { id: issue-1343, resource: 'https://github.com/panary/panary-core/issues/1343', title: 'panary/panary-core#1343' }
   - { id: issue-1344, resource: 'https://github.com/panary/panary-core/issues/1344', title: 'panary/panary-core#1344' }
+  - { id: issue-1371, resource: 'https://github.com/panary/panary-core/issues/1371', title: 'panary/panary-core#1371' }
   - { id: adr-0057, resource: docs/adr/0057-android-wrapper-capacitor-http-scheme.md, title: 'ADR 0057 — Android-Wrapper mit Capacitor' }
 ---
 
@@ -104,6 +105,15 @@ schreibt `AndroidLogSink` (`libs/shared/data-access-updater/src/lib/services/and
   die aktuelle Datei gelöscht: lieber Zeilen verlieren als ohne Deckel weiterwachsen.
 - **Fehler der Senke** werden verschluckt und nie über `console.*` gemeldet, sonst schriebe der
   Console-Patch sie wieder in die Senke.
+- **Bridge-Meldungen der Senke bleiben draußen** (panary/panary-core#1371). In Debug-Builds, und die Sunmi
+  läuft mit Debug-APKs, loggt die Capacitor-Bridge jeden fehlgeschlagenen Plugin-Aufruf selbst:
+  `console.groupCollapsed('%cresult %c<Plugin>.<Methode> (#id)')`, `console.error(result.error)`,
+  `console.groupEnd()` (`native-bridge.js`, `createLogFromNative`). Für `Filesystem` und `Share` stand so
+  jeder erwartete Fehlschlag in der Datei (`stat` vor dem ersten Schreiben, `stat` auf die fehlende
+  rotierte Datei, `Share canceled`). Ein dauerhaft scheiterndes `appendFile` erzeugte sich so ohne Ende
+  neue Zeilen. Der Mitschnitt verfolgt deshalb die Konsolengruppen und spiegelt ein `console.error`
+  innerhalb einer solchen Gruppe dieser beiden Plugins nicht. Bridge-Fehler anderer Plugins
+  (z. B. `CapacitorHttp`) stehen weiter in der Datei.
 - **Teilen.** `@capacitor/share` reicht die Dateien über den FileProvider `${applicationId}.fileprovider`
   weiter. Dafür gibt `res/xml/file_paths.xml` den Ordner `logs/` unter `files-path` frei. Schließt der
   Nutzer das Menü, ist das kein Fehler.

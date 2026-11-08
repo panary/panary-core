@@ -329,6 +329,49 @@ jobs:
           fi
           exit 1
 
+  # Reihenfolge-Gate (#301) als eigener Job (#1375). Er laeuft parallel zu `main`
+  # statt als dessen letzter Schritt: Bis dahin lief api-edge:test in jedem Lauf,
+  # der api-edge beruehrt, zweimal HINTEREINANDER — erst im affected-Schritt, dann
+  # hier. Gemessen 26.10.–08.11.2026: Gate in 32 von 94 Laeufen, im Mittel 5,4 min,
+  # die direkt auf die Laufzeit von `main` aufgeschlagen sind. Jetzt zaehlt das
+  # Maximum beider Jobs, nicht ihre Summe; der Preis ist ein zweites Setup (~1 min
+  # Runner-Zeit, fuer das oeffentliche Repo kostenlos).
+  #
+  # Kein dist aus `main` noetig: api-edge:test hat kein dependsOn, die
+  # @panary/*-Imports loesen ueber tsconfig-Paths auf Quellcode auf.
+  # Bewusst OHNE Remote-Cache-Env: Der Lauf ist --skip-nx-cache, ein Cache-Zugriff
+  # braechte nichts ausser einem Token mehr in einem weiteren Job.
+  # Der Check heisst `reihenfolge-gate` und muss im Ruleset von main als Pflicht
+  # stehen, sonst merged ein PR trotz rotem Gate (ADR 0038, Korrektur #1375).
+  reihenfolge-gate:
+    runs-on: ubuntu-latest
+    # Gemessen ~5–6 min mit api-edge, unter 2 min ohne (nur Setup + affected-Pruefung).
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      # Setup wie im Job `main` — Begruendungen dort.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Derive affected SHAs
+        uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5
+
+      - name: Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Link @panary/* packages (Standalone-Resolution)
+        run: bash tools/scripts/link-core-packages.sh
+
       # Reihenfolge-Gate (#301): derselbe api-edge-Lauf, aber mit gemischter
       # Datei- UND Testreihenfolge. Alle Suiten unter apps/api-edge/test/ teilen
       # sich EINE SQLite-Datei (vitest.config.mts) — wer seinen Datensatz im
@@ -355,8 +398,9 @@ jobs:
       # Bewusst NUR api-edge und nur, wenn es betroffen ist: Es ist das einzige
       # Projekt mit einer geteilten, ueber den Lauf hinaus lebenden Ressource,
       # und eine neue Kopplung kann nur aus einer Aenderung kommen, die api-edge
-      # betrifft. Gemessene Kosten: 2:27 min auf dem Runner (erster Lauf in PR
-      # #302), lokal ~1,5 min — ohne Cache, das ist der Preis fuers Messen.
+      # betrifft. Gemessene Kosten: anfangs 2:27 min auf dem Runner (erster Lauf
+      # in PR #302), inzwischen im Mittel 5,4 min (26.10.–08.11.2026) — ohne
+      # Cache, das ist der Preis fuers Messen. Seit #1375 laeuft das parallel.
       - name: Reihenfolge-Gate (api-edge, --sequence.shuffle)
         shell: bash
         run: |

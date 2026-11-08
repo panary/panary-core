@@ -108,7 +108,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .nx/ci-transfer
-          key: nx-${{ runner.os }}-${{ github.sha }}
+          key: nx-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: nx-${{ runner.os }}-
 
       # Die Task-DB heisst <Maschinen-ID>-v4.db. Ohne passende DB beantwortet Nx
@@ -120,27 +120,36 @@ jobs:
       - name: Nx-Cache uebernehmen
         shell: bash
         run: |
-          set -euo pipefail
+          # Bewusst ohne `set -e`: Der Cache beschleunigt nur. Jeder Fehler hier
+          # (z. B. ein verschobener Nx-Modulpfad nach einem Update) verwirft den
+          # Cache mit Warnung, statt den Job rot zu faerben. nullglob, damit ein
+          # Glob ohne Treffer leer ist und nicht als Literal-Dateiname weiterlebt;
+          # der DB-Suffix (heute -v4) steht deshalb nirgends fest.
+          set -uo pipefail
+          shopt -s nullglob
           t=.nx/ci-transfer
-          if [ ! -d "$t/cache" ] || ! compgen -G "$t/db/*.db" > /dev/null; then
+          verwerfen() {
+            echo "::warning title=Nx-Cache::$1 — Lauf startet leer."
+            rm -rf .nx/cache "$t" .nx/workspace-data/*.db .nx/workspace-data/*.db-* .nx/workspace-data/*.lock
+            exit 0
+          }
+          alt=("$t"/db/*.db)
+          if [ ! -d "$t/cache" ] || [ "${#alt[@]}" -eq 0 ]; then
             echo "Kein gesicherter Nx-Cache — Lauf startet leer."
             exit 0
           fi
-          mkdir -p .nx
-          rm -rf .nx/cache
-          mv "$t/cache" .nx/cache
-          node -e "require('nx/src/utils/db-connection').getDbConnection()"
-          neu=(.nx/workspace-data/*-v4.db)
-          alt=("$t"/db/*.db)
-          if [ "${#neu[@]}" -ne 1 ] || [ "${#alt[@]}" -ne 1 ]; then
-            echo "::warning title=Nx-Cache::Erwartet je eine DB, gefunden ${#neu[@]} neu / ${#alt[@]} gesichert — Lauf startet leer."
-            rm -rf .nx/cache "$t"
-            exit 0
+          [ "${#alt[@]}" -eq 1 ] || verwerfen "${#alt[@]} gesicherte DBs statt einer"
+          mkdir -p .nx/workspace-data || verwerfen "mkdir .nx/workspace-data"
+          if ! { rm -rf .nx/cache && mv "$t/cache" .nx/cache; }; then
+            verwerfen "Cache-Verzeichnis nicht uebernommen"
           fi
+          node -e "require('nx/src/utils/db-connection').getDbConnection()" || verwerfen "Nx hat keine Task-DB angelegt"
+          neu=(.nx/workspace-data/*.db)
+          [ "${#neu[@]}" -eq 1 ] || verwerfen "${#neu[@]} neu angelegte DBs statt einer"
           ziel="${neu[0]}"
           quelle="${alt[0]}"
-          cp "$quelle" "$ziel"
-          rm -f .nx/workspace-data/*-v4.lock .nx/workspace-data/*-v4.db-wal .nx/workspace-data/*-v4.db-shm
+          cp "$quelle" "$ziel" || verwerfen "DB nicht kopiert"
+          rm -f .nx/workspace-data/*.lock .nx/workspace-data/*.db-wal .nx/workspace-data/*.db-shm
           rm -rf "$t"
           echo "::notice title=Nx-Cache::$(find .nx/cache -mindepth 1 -maxdepth 1 | wc -l) Eintraege, $(du -sh .nx/cache | cut -f1), DB $(basename "$quelle") -> $(basename "$ziel")"
 
@@ -397,24 +406,33 @@ jobs:
         if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
         shell: bash
         run: |
-          set -euo pipefail
+          # Ohne `set -e` aus demselben Grund wie beim Uebernehmen: Ein Fehler
+          # hier kostet den naechsten Lauf Treffer, nicht diesen seine Farbe.
+          set -uo pipefail
+          shopt -s nullglob
           t=.nx/ci-transfer
           rm -rf "$t"
-          if [ ! -d .nx/cache ] || ! compgen -G ".nx/workspace-data/*-v4.db" > /dev/null; then
-            echo "::warning title=Nx-Cache::Kein Cache oder keine Task-DB — nichts zu sichern."
+          dbs=(.nx/workspace-data/*.db)
+          if [ ! -d .nx/cache ] || [ "${#dbs[@]}" -ne 1 ]; then
+            echo "::warning title=Nx-Cache::Kein Cache oder nicht genau eine Task-DB (${#dbs[@]}) — nichts zu sichern."
             exit 0
           fi
-          mkdir -p "$t/db"
-          cp -R .nx/cache "$t/cache"
-          cp .nx/workspace-data/*-v4.db "$t/db/"
-          echo "::notice title=Nx-Cache gesichert::$(find "$t/cache" -mindepth 1 -maxdepth 1 | wc -l) Eintraege, $(du -sh "$t" | cut -f1)"
+          if mkdir -p "$t/db" && cp -R .nx/cache "$t/cache" && cp "${dbs[0]}" "$t/db/"; then
+            echo "::notice title=Nx-Cache gesichert::$(find "$t/cache" -mindepth 1 -maxdepth 1 | wc -l) Eintraege, $(du -sh "$t" | cut -f1)"
+          else
+            echo "::warning title=Nx-Cache::Bereitlegen fehlgeschlagen — nichts zu sichern."
+            rm -rf "$t"
+          fi
 
       - name: Nx-Cache sichern
         if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.nx/ci-transfer/db/*.db') != '' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .nx/ci-transfer
-          key: nx-${{ runner.os }}-${{ github.sha }}
+          # run_id/attempt im Schluessel: Ein Re-Run desselben SHA findet sonst
+          # einen belegten Schluessel, `save` ueberspringt mit Warnung, und der
+          # ergaenzte Cache ginge verloren. Herstellen nimmt per Praefix den neuesten.
+          key: nx-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
 
   # Abgeloeste Nx-Cache-Eintraege loeschen (#1376). Jeder main-Lauf legt einen
   # vollstaendigen Eintrag unter seinem SHA ab; die alten bringen nichts mehr, sie
@@ -434,9 +452,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          keys="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/caches?ref=refs/heads/main&key=nx-${RUNNER_OS}-&per_page=100" \
-            --jq '.actions_caches[] | [.created_at, .id, .key] | @tsv' | sort -r)"
+          set -uo pipefail
+          if ! keys="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/caches?ref=refs/heads/main&key=nx-${RUNNER_OS}-&per_page=100" \
+            --jq '.actions_caches[] | [.created_at, .id, .key] | @tsv' | sort -r)"; then
+            echo "::warning title=Nx-Cache::Cache-Liste nicht abrufbar — nichts geloescht."
+            exit 0
+          fi
           if [ -z "$keys" ]; then
             echo "Keine nx-Eintraege auf main."
             exit 0
@@ -444,7 +465,9 @@ jobs:
           echo "$keys"
           echo "$keys" | tail -n +2 | while IFS=$'\t' read -r _ id key; do
             echo "loesche ${key} (${id})"
-            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/caches/${id}" > /dev/null
+            # 404 = schon weg (parallel geloescht oder verdraengt), kein Fehler.
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/caches/${id}" > /dev/null \
+              || echo "::warning title=Nx-Cache::${key} nicht geloescht."
           done
 
   # Reihenfolge-Gate (#301) als eigener Job (#1375). Er laeuft parallel zu `main`

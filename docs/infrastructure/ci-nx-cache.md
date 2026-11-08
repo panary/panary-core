@@ -38,9 +38,11 @@ Ohne den Actions-Cache meldete deshalb jeder untersuchte PR-Lauf (26.10.–08.11
 
 ## Der GitHub-Actions-Cache als Lesepfad
 
-Ein PR darf Cache-Einträge seines Basis-Branches lesen, schreibt aber nur in seinen eigenen
-Bereich, und den nutzt dieser Workflow nicht. Ein Vergiftungsweg entsteht so nicht, auch nicht
-aus Fork- oder Dependabot-PRs.
+Ein PR darf Cache-Einträge seines Basis-Branches und des Default-Branches lesen. Schreiben kann
+er nur in seinen eigenen Bereich (`refs/pull/…`), und von dort liest kein `main`-Lauf. Ein
+Vergiftungsweg entsteht so nicht, auch nicht aus Fork- oder Dependabot-PRs. Dass ein PR keinen
+`nx-*`-Eintrag anlegt, regeln die `if`-Bedingungen der Sicher-Schritte. Das Recht dazu hätte er
+im eigenen Bereich, der Pnpm-Cache von `setup-node` nutzt es bei geändertem Lockfile auch.
 
 1. **`NX_CACHE_DIRECTORY=.nx/cache`** im Job-Env. Nx 23 legt Cache und Task-DB sonst unter
    `~/.nx/<hash>/` ab, außerhalb des Checkouts. Mit der Variablen liegen beide wieder im Workspace
@@ -51,7 +53,9 @@ aus Fork- oder Dependabot-PRs.
 3. **Übernehmen:** Die Cache-Dateien kommen nach `.nx/cache`, danach wird die Task-DB übernommen
    (siehe unten).
 4. **Sichern** (nur `main`, auch nach rotem affected-Schritt, nicht nach Abbruch): Cache und DB
-   kommen nach `.nx/ci-transfer`, `actions/cache/save` legt sie unter `nx-Linux-<sha>` ab. Weil der
+   kommen nach `.nx/ci-transfer`, `actions/cache/save` legt sie unter
+   `nx-Linux-<sha>-<run_id>-<attempt>` ab. Lauf-ID und Versuch stehen im Schlüssel, weil ein
+   Re-Run desselben SHA sonst einen belegten Schlüssel fände und nichts sichern würde. Weil der
    Lauf vorher den letzten Stand hergestellt hat, wächst der Eintrag über die Läufe. Ein Push
    baut nur seine eigenen Änderungen und hinterließe ohne Herstellen einen fast leeren Eintrag.
 5. **Aufräumen:** Der Job `nx-cache-aufraeumen` löscht alle `nx-Linux-*`-Einträge auf `main`
@@ -61,8 +65,9 @@ aus Fork- oder Dependabot-PRs.
 ## Die Task-DB und die Maschinen-ID
 
 Nx beantwortet einen Treffer aus seiner SQLite-Task-DB. Die Dateien unter `.nx/cache/<hash>/`
-allein genügen nicht. Die DB heißt `<Maschinen-ID>-v4.db`, und die ID stammt aus der Maschine
-(Linux: `/etc/machine-id`). Ein anderer Runner sucht also eine andere Datei.
+allein genügen nicht. Die DB heißt `<Maschinen-ID>-v4.db` (Nx 23.3.1). Die ID liest Nx unter Linux
+aus `/var/lib/dbus/machine-id` bzw. `/etc/machine-id`, notfalls aus dem Hostnamen. Ein anderer
+Runner sucht also womöglich eine andere Datei.
 
 Den Namen rät der Übernahme-Schritt deshalb nicht. Er lässt Nx seine eigene, leere DB anlegen
 (`getDbConnection()` aus `nx/src/utils/db-connection`) und ersetzt deren Inhalt durch die
@@ -73,10 +78,19 @@ gesicherte DB. Lokal nachgestellt mit `design-tokens:typecheck`:
 | Cache-Dateien da, DB von einem anderen Namen übernommen | `Cache: 1/1 hit (100%)` |
 | Cache-Dateien da, nur die frisch angelegte leere DB | `Cache: 0/1 hit (0%)` |
 
+Der Schritt kennt auch den Suffix nicht (`*.db` mit `nullglob`). Ein Nx-Update auf `-v5` lässt
+ihn deshalb nicht still eine Datei mit Literal-Namen anlegen.
+
 Cache und DB gehören zusammen. Eine DB ohne die Dateien wäre schlimmer als gar nichts: Nx meldet
 dann `[local cache]` und stellt nichts her. Deshalb werden beide gemeinsam gesichert und
 gemeinsam übernommen. Findet der Schritt nicht genau eine DB auf jeder Seite, verwirft er beides,
 und der Lauf startet leer.
+
+**Kein Schritt färbt die CI rot.** Herstellen, Übernehmen, Bereitlegen und Aufräumen laufen ohne
+`set -e`. Jeder Fehler (ein verschobener Nx-Modulpfad nach einem Update, eine nicht anlegbare DB,
+ein Löschversuch mit 404) wird zur `::warning` „Nx-Cache“, und der Lauf geht ohne Cache weiter.
+Lokal nachgestellt mit einem absichtlich falschen Modulpfad: Warnung, Exit 0, `.nx/cache`
+aufgeräumt.
 
 ## Größe und Kontingent
 
@@ -99,12 +113,17 @@ genutzten Rust-Caches.
   `Cache: 0/…`.
 - **Treffer ohne Dateien** melden Exit 0. Die Übernahme ist darauf ausgelegt, das zu verhindern.
   Belegt ist es nur stichprobenhaft über Tasks, die einen `[local cache]`-Build voraussetzen.
-- **Fork-PRs** profitieren nur, wenn ihr Basis-Stand einen Eintrag hat. Ein PR gegen einen
-  anderen Branch als `main` findet keinen.
+- **Fork-PRs** profitieren nur, wenn es auf `main` einen Eintrag gibt.
 - Die ersten Läufe nach der Einführung sind dünn. Erst der rollierende Cache sammelt die
-  `^build`-Ergebnisse der unbetroffenen Libs an. Ein `workflow_dispatch` auf `main` baut alle
-  Projekte (`run-many`) und füllt den Eintrag auf einen Schlag. Vom Feature-Branch aus ist ein
-  Dispatch tabu: Er bekäme das RW-Token des Remote-Caches.
+  `^build`-Ergebnisse der unbetroffenen Libs an. Ein `workflow_dispatch` hilft dabei kaum: Er
+  fährt nur `run-many -t lint`, also keine `test`-, `typecheck`- oder `build`-Einträge. Vom
+  Feature-Branch aus ist ein Dispatch ohnehin tabu, denn er bekäme das RW-Token des Remote-Caches.
+- **`NX_MAX_CACHE_SIZE`** wird von Nx akzeptiert. Wann die native Schicht bei Überschreitung
+  verdrängt, ist am JS-Code nicht zu sehen. Ob der Eintrag unter 1 GB bleibt, zeigt erst die
+  Notice über mehrere Läufe.
+- **Die Shell-Logik ist nicht als Spec getestet**, nur lokal mit den Fällen oben nachgestellt. Sie
+  steht inline im Workflow, und belegt wird sie über die Verifikation nach dem Merge
+  ([#1376](https://github.com/panary/panary-core/issues/1376)).
 
 ## Siehe auch
 

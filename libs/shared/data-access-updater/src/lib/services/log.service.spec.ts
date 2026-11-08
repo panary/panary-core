@@ -240,9 +240,11 @@ describe('LogService im Android-Wrapper', () => {
 
   it('läuft nicht im Kreis, wenn appendFile dauerhaft scheitert und die Bridge das meldet', async () => {
     const { android } = stubCapacitor()
+    let calls = 0
     android.filesystem.appendFile.mockImplementation(async () => {
       const error = { message: 'No space left on device' }
-      bridgeLogsFailure('Filesystem', 'appendFile', error)
+      // Gedeckelt, damit eine Rückkopplung als Zusicherung scheitert statt den Worker endlos zu beschäftigen.
+      if (++calls <= 5) bridgeLogsFailure('Filesystem', 'appendFile', error)
       throw error
     })
     const { installGlobalLogCapture, LogService } = await loadModule()

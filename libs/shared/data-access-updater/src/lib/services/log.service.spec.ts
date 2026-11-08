@@ -175,18 +175,85 @@ function stubCapacitor(native = true) {
   return { android: { filesystem, share }, lines }
 }
 
+/** Was `createLogFromNative` der Capacitor-Bridge in Debug-Builds bei einem fehlgeschlagenen Aufruf tut. */
+function bridgeLogsFailure(plugin: string, method: string, error: unknown): void {
+  console.groupCollapsed(`%cresult %c${plugin}.${method} (#7)`, 'color: red', 'font-weight: bold')
+  console.error(error)
+  console.groupEnd()
+}
+
 describe('LogService im Android-Wrapper', () => {
-  const original = { error: console.error, warn: console.warn, info: console.info }
+  const original = {
+    error: console.error,
+    warn: console.warn,
+    info: console.info,
+    group: console.group,
+    groupCollapsed: console.groupCollapsed,
+    groupEnd: console.groupEnd,
+  }
 
   beforeEach(() => {
     console.error = vi.fn()
     console.warn = vi.fn()
     console.info = vi.fn()
+    console.group = vi.fn()
+    console.groupCollapsed = vi.fn()
+    console.groupEnd = vi.fn()
   })
 
   afterEach(() => {
     Object.assign(console, original)
     vi.unstubAllGlobals()
+  })
+
+  const withoutTime = (lines: string[]) => lines.map(l => l.replace(/^\[[^\]]*\]\[[^\]]*\]/, ''))
+
+  it('schreibt Bridge-Fehler der Senken-Plugins nicht in die Datei, Fehler danach schon (#1371)', async () => {
+    const { android, lines } = stubCapacitor()
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture({ android })
+
+    bridgeLogsFailure('Filesystem', 'stat', { message: "'stat' failed", code: 'OS-PLUG-FILE-0008' })
+    bridgeLogsFailure('Share', 'share', { message: 'Share canceled' })
+    console.error('Bon nicht gedruckt')
+    await new LogService().readLogs()
+
+    expect(withoutTime(lines())).toEqual([
+      '[webview][INFO] Panary POS gestartet — natives Logging aktiv',
+      '[webview][ERROR] Bon nicht gedruckt',
+    ])
+  })
+
+  it('schreibt Bridge-Fehler anderer Plugins weiter in die Datei', async () => {
+    const { android, lines } = stubCapacitor()
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture({ android })
+
+    bridgeLogsFailure('CapacitorHttp', 'request', { message: 'Timeout' })
+    await new LogService().readLogs()
+
+    expect(withoutTime(lines())).toEqual([
+      '[webview][INFO] Panary POS gestartet — natives Logging aktiv',
+      '[webview][ERROR] {"message":"Timeout"}',
+    ])
+  })
+
+  it('läuft nicht im Kreis, wenn appendFile dauerhaft scheitert und die Bridge das meldet', async () => {
+    const { android } = stubCapacitor()
+    android.filesystem.appendFile.mockImplementation(async () => {
+      const error = { message: 'No space left on device' }
+      bridgeLogsFailure('Filesystem', 'appendFile', error)
+      throw error
+    })
+    const { installGlobalLogCapture, LogService } = await loadModule()
+    installGlobalLogCapture({ android })
+    const service = new LogService()
+
+    await service.readLogs()
+    await service.readLogs()
+
+    // Startzeile: ein Versuch. Mit Rückkopplung erzeugte jeder Fehlschlag die nächste Zeile.
+    expect(android.filesystem.appendFile).toHaveBeenCalledTimes(1)
   })
 
   it('schreibt Startzeile und Konsole in die Logdatei und liest sie zurück', async () => {

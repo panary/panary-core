@@ -17,6 +17,40 @@ function isCapacitor(): boolean {
 /** Logdatei des Android-Wrappers; gesetzt von `installGlobalLogCapture`, modulweit wie `captureInstalled`. */
 let androidSink: AndroidLogSink | null = null
 
+/**
+ * Ergebnisgruppe, die die Capacitor-Bridge in Debug-Builds um jeden Plugin-Aufruf legt
+ * (`native-bridge.js`, `createLogFromNative`): `groupCollapsed('%cresult %c<Plugin>.<Methode> (#id)')`,
+ * bei Fehlschlag `console.error(result.error)`, dann `groupEnd()`. Gilt nur fuer die Plugins der Senke.
+ */
+const SINK_BRIDGE_RESULT = /^%cresult %c(Filesystem|Share)\./
+
+/** Je offener Konsolengruppe: Ist sie eine Ergebnisgruppe der Senken-Plugins? */
+const consoleGroups: boolean[] = []
+const insideSinkBridgeResult = (): boolean => consoleGroups.includes(true)
+
+/**
+ * Haelt die Bridge-Meldungen der Senke aus der Datei (panary/panary-core#1371). Sonst stuende jeder
+ * erwartete Fehlschlag darin (`stat` vor dem ersten Schreiben, `Share canceled`), und ein dauerhaft
+ * scheiterndes `appendFile` schriebe ueber sein eigenes `console.error` ohne Ende weiter.
+ */
+function trackBridgeResultGroups(): void {
+  const origGroupCollapsed = console.groupCollapsed.bind(console)
+  console.groupCollapsed = (...args: unknown[]): void => {
+    consoleGroups.push(typeof args[0] === 'string' && SINK_BRIDGE_RESULT.test(args[0]))
+    origGroupCollapsed(...args)
+  }
+  const origGroup = console.group.bind(console)
+  console.group = (...args: unknown[]): void => {
+    consoleGroups.push(false)
+    origGroup(...args)
+  }
+  const origGroupEnd = console.groupEnd.bind(console)
+  console.groupEnd = (): void => {
+    consoleGroups.pop()
+    origGroupEnd()
+  }
+}
+
 // `withGlobalTauri: true` (tauri.conf.json) stellt `window.__TAURI__.core.invoke`
 // bereit — so vermeiden wir eine zusaetzliche @tauri-apps/api-Abhaengigkeit nur
 // fuer den invoke-Aufruf.
@@ -92,12 +126,14 @@ export function installGlobalLogCapture(options: LogCaptureOptions = {}): void {
   if (!isTauri()) {
     if (!isCapacitor() || !options.android) return
     androidSink = new AndroidLogSink(options.android)
+    trackBridgeResultGroups()
   }
   captureInstalled = true
 
   const origError = console.error.bind(console)
   console.error = (...args: unknown[]): void => {
     origError(...args)
+    if (insideSinkBridgeResult()) return
     writeNativeLog('error', args.map(stringify).join(' '))
   }
   // Nur `info`: Der Logout-Grund (PosSessionService) ist die einzige Spur, warum eine Sitzung endete.

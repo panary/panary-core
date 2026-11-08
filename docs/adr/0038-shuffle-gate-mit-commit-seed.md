@@ -48,7 +48,8 @@ ist als Werkzeug unbrauchbar, solange er ohnehin rot ist.
 ## Entscheidung
 
 Die CI bekommt einen zweiten api-edge-Lauf mit `--sequence.shuffle`
-(`.github/workflows/ci.yml`, Schritt „Reihenfolge-Gate"). Drei Festlegungen, jede
+(`.github/workflows/ci.yml`, ursprünglich Schritt „Reihenfolge-Gate", seit #1375 Job
+`reihenfolge-gate`, siehe Korrektur am Ende). Drei Festlegungen, jede
 gegen einen konkreten Fehlschlag:
 
 **Der Seed kommt aus `github.sha`, nicht aus der Uhr.** Ein Gate, das beim Re-Run

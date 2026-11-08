@@ -1,7 +1,7 @@
 import { effect, inject, Injectable } from '@angular/core'
 import { Id, Paginated, Params } from '@feathersjs/feathers'
 import { UserPreference } from '@panary/user-preferences/domain'
-import { BaseService, ConnectionService } from '@panary/shared/data-access'
+import { BaseService, ConnectionService, errorName } from '@panary/shared/data-access'
 
 @Injectable({
   providedIn: 'root',
@@ -247,7 +247,8 @@ export class UserPreferencesService extends BaseService<UserPreference> {
       const stored = localStorage.getItem(`${this.STORAGE_KEY_PREFIX}${key}`)
       return stored ? JSON.parse(stored) : null
     } catch (error) {
-      console.error(`Fehler beim Lesen aus dem lokalen Speicher für ${key}:`, error)
+      // Nur der Name: Die SyntaxError-Meldung zitiert ein Stück des gespeicherten Werts.
+      console.error(`Fehler beim Lesen aus dem lokalen Speicher für ${key}:`, errorName(error))
       return null
     }
   }

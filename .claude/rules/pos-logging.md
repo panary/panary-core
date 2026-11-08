@@ -46,9 +46,15 @@ erbt von `Error`, sein `data` landet nicht in der Datei). Alles **andere** schre
 `JSON.stringify` vollständig:
 
 - **`HttpErrorResponse`** (Angular) ist kein `Error`. Er trägt den Antwort-Body (`error`), die `url` samt
-  Query und die Header. Solche Fehler mit `err.status` und `err.message` einzeln nennen.
+  Query und die Header, und seine `message` nennt die URL ebenfalls. Solche Fehler nur mit `err.status`
+  nennen.
 - **Objekte als Kontext** (`console.warn('Sync fehlgeschlagen', record)`) schreiben den ganzen Datensatz.
   Nur die Felder aus §2 „Stattdessen" übergeben.
+- **Fehler unbekannter Form** (roher Socket-Callback, `catch (error: unknown)` mit `HttpErrorResponse`):
+  `describeErrorForLog(error)` aus `@panary/shared/data-access` übergeben. Er liefert Name, Code und
+  Meldung als Zeichenkette, nie `data`, beim `HttpErrorResponse` nur Name und Status.
+- **`JSON.parse`-Fehler** über gespeicherte Werte: Die `SyntaxError`-Meldung zitiert die Eingabe (V8 zehn
+  Zeichen, WebKit den ersten Bezeichner). Nur Schlüssel und `errorName(error)` nennen.
 - **Geworfene Nicht-Fehler** (`throw response`, `Promise.reject(data)`) landen als unbehandelte Ablehnung
   ebenso vollständig in der Datei. Geworfen wird ein `Error`.
 

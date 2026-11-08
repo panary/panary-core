@@ -8,7 +8,7 @@ import { httpErrorCodesDE } from '@panary/util-error-handling'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { Id } from '@feathersjs/feathers'
 import { APP_CONFIG, AppConfigService } from '@panary/shared/data-access-config'
-import { clearPosOperatorToken, ConnectionService } from '@panary/shared/data-access'
+import { clearPosOperatorToken, ConnectionService, describeErrorForLog, errorName } from '@panary/shared/data-access'
 
 type LoginBody = {
   loginname?: string
@@ -92,7 +92,8 @@ export class AuthService {
           this.logout().then()
         }
       } catch (error) {
-        console.error('[AuthService] Error parsing authenticationItem:', error)
+        // Die SyntaxError-Meldung zitiert ein Stück der Eingabe, hier des gespeicherten Tokens.
+        console.error('[AuthService] authenticationItem in sessionStorage nicht lesbar:', errorName(error))
         this.#authenticationItem.set(null)
         sessionStorage.removeItem('authenticationItem')
         console.log('Error to login via sessionStorage')
@@ -179,17 +180,12 @@ export class AuthService {
 
     this.logErrorDetails(httpError)
 
-    return throwError(() => new Error(String(err?.['message'] ?? httpError)))
+    // Bleibt unbehandelt und landet so im Mitschnitt: ohne die URL aus `HttpErrorResponse.message`.
+    return throwError(() => new Error(describeErrorForLog(httpError)))
   }
 
   private logErrorDetails(error: HttpErrorResponse | unknown): void {
-    const err = error as Record<string, unknown>
-    console.error({
-      code: err?.['code'],
-      message: err?.['message'],
-      name: err?.['name'],
-      data: err?.['data'],
-    })
+    console.error('[AuthService] Anmeldung fehlgeschlagen:', describeErrorForLog(error))
   }
 
   private validateExploration(exp: number): boolean {

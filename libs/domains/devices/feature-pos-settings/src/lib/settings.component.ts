@@ -9,6 +9,7 @@ import { EMPTY_PIN_CHANGE, pinChangeError, pinChangeSchema, type PinChange } fro
 import { LocationService } from '@panary/locations/data-access'
 import {
   ConnectionService,
+  errorName,
   LanguageService,
   OFFLINE_OUTBOX,
   OFFLINE_REPLAY,
@@ -353,7 +354,8 @@ export class SettingsComponent implements OnInit {
         this.currentUser.set(JSON.parse(stored))
       }
     } catch (e) {
-      console.error('Failed to load user', e)
+      // Nur der Name: Die SyntaxError-Meldung zitiert ein Stück des gespeicherten Users.
+      console.error('[Settings] pos_current_user in localStorage nicht lesbar:', errorName(e))
     }
   }
 

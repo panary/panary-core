@@ -1,11 +1,11 @@
-import { computed, effect, inject, Injectable, Signal, signal, untracked, WritableSignal } from '@angular/core'
+import { computed, inject, Injectable, Signal, signal, WritableSignal } from '@angular/core'
 import { Router } from '@angular/router'
 import { AuthenticationItem } from '@panary/auth/domain'
 import { User, UserSystemRole } from '@panary/users/domain'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { Id } from '@feathersjs/feathers'
 import { APP_CONFIG } from '@panary/shared/data-access-config'
-import { clearPosOperatorToken, ConnectionService, errorName } from '@panary/shared/data-access'
+import { clearPosOperatorToken, errorName } from '@panary/shared/data-access'
 
 @Injectable({
   providedIn: 'root',
@@ -19,7 +19,6 @@ export class AuthService {
   /** INJECTION */
   #notificationService: NotificationService = inject(NotificationService)
   #router: Router = inject(Router)
-  #connectionService: ConnectionService = inject(ConnectionService)
 
   /** PRIVATE PROPERTIES */
   #appConfig = inject(APP_CONFIG)
@@ -82,47 +81,6 @@ export class AuthService {
         console.log('Error to login via sessionStorage')
       }
     }
-    // React to login state changes to manage socket connection
-    effect(() => {
-      const loggedIn = this.isLoggedIn()
-      queueMicrotask(() => {
-        if (loggedIn) {
-          setTimeout(() => this.#connectionService.socketLogin(), 100)
-        } else {
-          setTimeout(() => this.#connectionService.socketLogout(), 100)
-        }
-      })
-    })
-
-    // Session-Ablauf-Wächter: Wenn der WS-Layer den Token server-seitig als
-    // ungültig zurückbekommt (401), wird der User sauber ausgeloggt und zum
-    // Login geleitet — statt mit leerem Hauptinhalt in einer stillen
-    // WS-Reconnect-Schleife hängenzubleiben (siehe ConnectionService).
-    // `userSessionExpired()` ist getrackt; logout()/isLoggedIn() laufen via
-    // untracked() (Effect-Loop-Schutz, siehe angular.md §2.1).
-    effect(() => {
-      const expired = this.#connectionService.userSessionExpired()
-      if (!expired) return
-      untracked(() => {
-        if (this.isLoggedIn()) {
-          console.warn('[AuthService] WS-Session server-seitig abgelaufen — Logout + Login-Redirect.')
-          void this.logout()
-        }
-      })
-    })
-
-    // Periodischer Ablauf-Check: Der JWT-Ablauf wurde bisher nur beim App-Init
-    // geprüft. Läuft das Token bei offenem Tab ab (lange Session), blieb der
-    // Nutzer mit leerem Hauptinhalt und „Kein gültiger Token"-WS-Schleife
-    // zurück, ohne Re-Login-Aufforderung. Alle 30 s prüfen und ggf. ausloggen.
-    setInterval(() => {
-      if (!this.isLoggedIn()) return
-      const exp = this.#authenticationItem()?.authentication.payload.exp
-      if (!exp || this.validateExploration(exp)) {
-        console.warn('[AuthService] Token während Laufzeit abgelaufen — Logout + Login-Redirect.')
-        void this.logout()
-      }
-    }, 30_000)
   }
 
   /** PRIVATE METHODS */
@@ -138,10 +96,8 @@ export class AuthService {
     // Der POS fuehrt eine zweite Sitzungsebene: das Geraet haengt am
     // sessionStorage-JWT, der MITARBEITER an `pos_current_user` im
     // localStorage — und `posAuthGuard` entscheidet ausschliesslich daran.
-    // Blieb der Eintrag hier liegen, kam der Nutzer nach einem Token-Ablauf
-    // (periodischer Check oben, WS-401-Waechter) zwar auf /login, konnte aber
-    // jede geschuetzte Route weiter aufrufen und landete dort ohne gueltiges
-    // Geraete-JWT im leeren Bildschirm samt WS-Reconnect-Schleife.
+    // Blieb der Eintrag hier liegen, kam der Nutzer nach einem Logout zwar
+    // auf /login, konnte aber jede geschuetzte Route weiter aufrufen.
     // Im Admin-Client existiert der Schluessel nicht — dort ist die Zeile ein No-Op.
     localStorage.removeItem('pos_current_user')
     // Das Bediener-Token gehoert zu derselben Sitzungsebene (#619).

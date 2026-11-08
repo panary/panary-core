@@ -11,7 +11,6 @@ import { BusinessDaySchema } from '@panary/businessdays/domain'
 import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
 import { CLIENT_SERVICE_METHODS } from './client-service-methods'
 import { applySocketDeadline } from './socket-deadlines'
-import { describeErrorForLog } from '../utils/log-safe-error'
 
 // Bestehender Export-Pfad: Die Spec von `BusinessDayService` importiert die Liste über den Haupteinstieg.
 export { BUSINESSDAYS_CLIENT_METHODS } from './client-service-methods'
@@ -67,14 +66,6 @@ export class ConnectionService {
   })
   #isAuthenticated: WritableSignal<boolean> = signal(false)
   #systemMode: WritableSignal<string> = signal('standalone')
-
-  // Signal: Die User-Session wurde server-seitig als ungültig/abgelaufen
-  // zurückgewiesen (WS-Auth 401). Nur Admin/User-Mode relevant — Device-Mode
-  // (POS) wird in `authenticateSocket()`/`socketLogout()` ohnehin ausgenommen.
-  // Die `AuthService` reagiert auf dieses Signal mit `logout()` + Redirect zum
-  // Login, statt bei abgelaufenem Token still in einer WS-Reconnect-Schleife mit
-  // leerem Hauptinhalt hängenzubleiben.
-  readonly #userSessionExpired: WritableSignal<boolean> = signal(false)
 
   // Cloud-Pairing-Status aus dem /health-Endpoint des Edge-Backends. Wird beim
   // Connect und periodisch gepollt (siehe #healthPoll), damit POS- und Setup-
@@ -293,16 +284,6 @@ export class ConnectionService {
   /** Grund eines Cloud-Token-Fehlers (z.B. `token-expired`, `edge-revoked`). */
   get cloudTokenErrorReason(): Signal<string | null> {
     return this.#cloudTokenErrorReason.asReadonly()
-  }
-
-  /**
-   * True, sobald die WS-Authentifizierung server-seitig mit 401 abgelehnt wurde
-   * (Token abgelaufen/ungültig). Die `AuthService` beobachtet das und löst
-   * `logout()` + Login-Redirect aus. Wird beim erfolgreichen (Re-)Auth und beim
-   * `socketLogin()` zurückgesetzt.
-   */
-  get userSessionExpired(): Signal<boolean> {
-    return this.#userSessionExpired.asReadonly()
   }
 
   /**
@@ -693,112 +674,9 @@ export class ConnectionService {
     }
   }
 
-  public socketLogin() {
-    // Only used for User Auth (JWT)
-    // Frischer Login-Versuch → stale „Session abgelaufen"-Flag zurücksetzen,
-    // damit der AuthService-Wächter nicht direkt nach dem Re-Login erneut feuert.
-    this.#userSessionExpired.set(false)
-    if (this.#app.io.connecting) {
-      console.warn('socketLogin(): Verbindung läuft bereits, warte auf "connect"...')
-      this.#app.io.once('connect', () => {
-        this.authenticateSocket()
-      })
-      return
-    }
-
-    if (!this.#app.io.connected) {
-      this.#app.io.once('connect', () => {
-        this.authenticateSocket()
-      })
-      this.#app.io.connect()
-    } else {
-      this.authenticateSocket()
-    }
-  }
-
-  public socketLogout() {
-    // In Device Mode (POS), we want to keep the connection open!
-    // AuthService might call this when no User is logged in, but Device Auth must persist.
-    if (this.deviceConfigService.getConfig()?.deviceId) {
-      console.log('socketLogout called, but ignored in Device Mode (keeping usage valid).')
-      return
-    }
-
-    try {
-      if (this.#app.io?.connected) {
-        this.#app.io.disconnect()
-        console.log('Socket disconnect initiated (logout).')
-      }
-    } catch (error) {
-      console.error('Error during socket disconnect:', error)
-    }
-
-    this.#isAuthenticated.set(false)
-    this.#serverLink.set({
-      isConnected: false,
-      connectedAt: '-',
-    })
-  }
-
   //#endregion
 
   //#region Private Methods
-  private authenticateSocket() {
-    // Strategy: JWT (User)
-
-    // If we are in Device Mode (POS), we are already "authenticated" via the handshake/device:authenticated event.
-    // However, if we need to escalate to User context, we might theoretically send a JWT.
-    // But for now, if Device Config exists, we assume Device Auth handles the base connection.
-    if (this.deviceConfigService.getConfig()?.deviceId) {
-      // We trust the device:authenticated event handled in createSocket
-      return
-    }
-
-    const token = this.getToken()
-    if (!token || typeof token !== 'string' || token.trim().length < 10) {
-      console.warn('[WS]: Kein gültiger Token vorhanden – Authentifizierung abgebrochen.')
-      return
-    }
-
-    if (this.#app.io.connecting) {
-      console.debug('[WS]: Socket is reconnecting, delaying authentication...')
-      this.#app.io.once('connect', () => {
-        this.authenticateSocket()
-      })
-      return
-    }
-
-    console.log('[WS]: starte Authentifizierung...')
-    this.#app.io.emit(
-      'create',
-      'authentication',
-      {
-        strategy: 'jwt',
-        accessToken: token,
-      },
-      (error: { code?: unknown } | null, newAuthResult: any): void => {
-        if (error) {
-          if (error.code === 401) {
-            console.warn('[WS]: Token nicht gültig – Session abgelaufen, Re-Login erforderlich.')
-            // Signalisiert der AuthService, dass die User-Session server-seitig
-            // ungültig ist → sauberer logout()+Login-Redirect statt stiller
-            // Reconnect-Schleife. socketLogout() ignoriert Device-Mode.
-            this.#userSessionExpired.set(true)
-            this.socketLogout()
-            return
-          }
-          // Der rohe `io.emit`-Callback liefert ein Plain Object samt `data` der Server-Antwort,
-          // kein `Error` — der Mitschnitt schriebe es ganz (pos-logging.md §3).
-          console.error('[WS]: Fehler bei Authentifizierung', describeErrorForLog(error))
-          return
-        }
-        console.log(`[WS]: User ${newAuthResult?.user?._id ?? 'unbekannt'} authentifiziert`)
-        this.#userSessionExpired.set(false)
-        this.#isAuthenticated.set(true)
-      },
-    )
-  }
-
   private createSocket(deviceConfig: any) {
     let url = ''
     let options: any = {}
@@ -876,11 +754,6 @@ export class ConnectionService {
         // POS: Wait for device authentication
         if (deviceConfig?.deviceId) {
           console.log(`[POS-WS] Waiting for device:authenticated event...`)
-          // Fallback if needed could go here
-        } else {
-          // Admin/User: Try to re-authenticate if token exists (e.g. after reconnect)
-          console.log(`[WS] Connection established. Checking for token to auto-authenticate...`)
-          this.authenticateSocket()
         }
       })
       .on('disconnect', (reason: any): void => {
@@ -961,19 +834,6 @@ export class ConnectionService {
       })
 
     return socket
-  }
-
-  private getToken(): string | null {
-    try {
-      const item = sessionStorage.getItem('authenticationItem')
-      if (item) {
-        const parsed = JSON.parse(item)
-        return parsed.accessToken || null
-      }
-    } catch (e) {
-      return null
-    }
-    return null
   }
 
   private async fetchSystemMode(baseUrl: string): Promise<void> {

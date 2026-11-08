@@ -36,8 +36,8 @@ Funktion wählt den höchstpriorisierten aktiven Zustand. Die Leiter bildet die
 
 | # | id | Bedingung | Gewicht | level | Action |
 |---|----|-----------|---------|-------|--------|
-| – | `tenant-suspended` | Tier `cloud-direct` + Cloud lehnte mit `TENANT_SUSPENDED` ab, **und nicht** `userSessionExpired` | 120 | crit | – |
-| 1 | `client-offline` | WS `disconnected`/`error` **und nicht** `userSessionExpired` | 100 | crit | `reload` |
+| – | `tenant-suspended` | Tier `cloud-direct` + Cloud lehnte mit `TENANT_SUSPENDED` ab | 120 | crit | – |
+| 1 | `client-offline` | WS `disconnected`/`error` | 100 | crit | `reload` |
 | 2 | `re-pairing-required` | `cloudNeedsRePairing` (Tier 3 + `cloudPairingStatus==='disconnected'`) | 90 | crit | – |
 | 3 | `offline-mode-active` | Override aktiv (`offlineOverrideActiveUntil` in Zukunft) | 80 | warn | – (Restminuten) |
 | 4 | `token-expired` | `tokenExpiry.level==='crit'` & `remainingSec<=0` | 70 | crit | – |
@@ -53,8 +53,9 @@ Kein Eintrag aktiv → kein Banner.
 
 - `client-offline` (w100) unterdrückt alle Cloud-Banner: ist der Edge nicht
   erreichbar, ist der `/health`-State veraltet → alle Cloud-Aussagen unzuverlässig;
-  einzige sinnvolle Aktion ist Reload. Unterdrückt bei `userSessionExpired()`, weil
-  dann der Auth-Flow (Logout + Login-Redirect) übernimmt.
+  einzige sinnvolle Aktion ist Reload. Bis panary/panary-core#1367 wurde er bei
+  `userSessionExpired()` unterdrückt. Das Signal wurde nie `true` (der JWT-Socket-Login
+  hatte keinen Token) und ist entfallen.
 - `offline-mode-active` (w80) **über** token-expired/cloud-unreachable: der Operator
   hat den Offline-Modus bewusst aktiviert; sein Countdown darf nicht vom Symptom
   verdeckt werden, das er bereits akzeptiert hat. `re-pairing-required` (w90) bleibt
@@ -89,7 +90,7 @@ Kein Eintrag aktiv → kein Banner.
         ▼
 ConnectionService (libs/shared/data-access)
   └─ Signals + Computeds: connectionState, syncStaleness, tokenExpiry,
-     cloudNeedsRePairing, showsCloudSyncStatus, userSessionExpired,
+     cloudNeedsRePairing, showsCloudSyncStatus,
      offlineModeActive, offlineModeRemainingMin, cloudUnreachable*,
      lastCloudContactAgeMin*                                            (* neu)
         │
@@ -177,7 +178,7 @@ etablierte Clear-Pattern, keine DB-Migration nötig (SQLite-Spalten bereits null
 ## Verifikation
 
 - Unit: `nx test data-access` — 11 Selektor-Specs (alles-ok→null, Referenz-Fall→token-expired,
-  re-pairing>token, client-offline schlägt alles, userSessionExpired unterdrückt client-offline,
+  re-pairing>token, client-offline schlägt alles,
   offline-mode>token, cloud-unreachable+Action, token-expiring Stunden-Key, sync-stale info-Level,
   nicht-Tier-3→null, client-offline auch außerhalb Tier 3).
 - Build/Lint: `nx run-many -t lint,test,build -p data-access shared-ui-cloud-status

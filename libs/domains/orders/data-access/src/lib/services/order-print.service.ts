@@ -158,16 +158,6 @@ export class OrderPrintService {
       /* leer */
     }
 
-    try {
-      const stored = sessionStorage.getItem('authenticationItem')
-      if (stored) {
-        const token = JSON.parse(stored)?.accessToken
-        if (token) return new HttpHeaders({ Authorization: `Bearer ${token}` })
-      }
-    } catch {
-      /* leer */
-    }
-
     return new HttpHeaders()
   }
 

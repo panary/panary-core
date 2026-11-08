@@ -5,7 +5,6 @@ import { type CloudStatusState, selectActiveBanner } from './cloud-status-banner
 /** Basis-State: alles gesund, Tier 3 (Edge mit Cloud-Sync), keine Auffaelligkeit. */
 const healthy = (): CloudStatusState => ({
   connectionStatus: 'authenticated',
-  userSessionExpired: false,
   showsCloudSyncStatus: true,
   cloudNeedsRePairing: false,
   cloudTokenErrorReason: null,
@@ -65,16 +64,6 @@ describe('selectActiveBanner — Prioritaetsleiter', () => {
     })
     expect(banner?.id).toBe('client-offline')
     expect(banner?.action?.kind).toBe('reload')
-  })
-
-  it('client-offline wird bei abgelaufener Session unterdrueckt (Auth-Flow uebernimmt)', () => {
-    const banner = selectActiveBanner({
-      ...healthy(),
-      connectionStatus: 'error',
-      userSessionExpired: true,
-    })
-    // Kein client-offline; Cloud-State gesund → kein Banner.
-    expect(banner).toBeNull()
   })
 
   it('Offline-Modus aktiv schlaegt Token-abgelaufen + Cloud-unreachable (w80)', () => {
@@ -184,16 +173,6 @@ describe('selectActiveBanner — Prioritaetsleiter', () => {
     expect(banner?.sublineKey).toBe('CLOUD_STATUS.CONNECT_OFFLINE_SUBLINE_PENDING')
     expect(banner?.sublineParams).toEqual({ count: 3 })
   })
-
-  it('connect-offline weicht bei abgelaufener Session zurueck (Auth-Flow uebernimmt)', () => {
-    const banner = selectActiveBanner({
-      ...healthy(),
-      connectionStatus: 'error',
-      offlineCacheActive: true,
-      userSessionExpired: true,
-    })
-    expect(banner).toBeNull()
-  })
 })
 
 describe('selectActiveBanner — Notfall-Modus (w35)', () => {
@@ -274,10 +253,5 @@ describe('selectActiveBanner — Mandant gesperrt', () => {
   it('ARCHIVED nennt den Abschluss nicht als Ausweg', () => {
     const banner = selectActiveBanner({ ...healthy(), tenantSuspended: true, tenantStatus: 'ARCHIVED' })
     expect(banner?.sublineKey).toBe('CLOUD_STATUS.TENANT_SUSPENDED_SUBLINE_ARCHIVED')
-  })
-
-  it('weicht bei abgelaufener Session dem Auth-Flow', () => {
-    const banner = selectActiveBanner({ ...healthy(), tenantSuspended: true, userSessionExpired: true })
-    expect(banner?.id).not.toBe('tenant-suspended')
   })
 })

@@ -30,7 +30,6 @@ export class CloudStatusBannerService {
     const connection = conn.connectionState()
     return selectActiveBanner({
       connectionStatus: connection.status,
-      userSessionExpired: conn.userSessionExpired(),
       offlineCacheActive: this.#offlineCache?.isReady() ?? false,
       // pendingCount() ist ein Signal-Read → das computed() trackt den Outbox-Zähler reaktiv.
       outboxPendingCount: this.#outbox?.pendingCount() ?? 0,

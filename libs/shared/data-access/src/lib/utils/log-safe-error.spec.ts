@@ -12,7 +12,7 @@ const GEHEIM = 'eyJhbGciOiJIUzI1NiJ9.geheim'
 
 describe('describeErrorForLog', () => {
   it('nennt beim rohen Socket-Fehler (Plain Object) Name, Code und Meldung, aber kein data', () => {
-    // So liefert der `io.emit`-Callback in `ConnectionService.authenticateSocket` den Fehler:
+    // So liefert ein roher `io.emit`-Callback den Fehler:
     // serialisiert, ohne `convert()` der Feathers-Clients, also kein `instanceof Error`.
     const raw = {
       name: 'NotAuthenticated',

@@ -688,7 +688,6 @@ export class DeviceConfigService {
       'panary_usernames',
       'panary_company',
       'panary_server_settings',
-      'authenticationItem',
     ]
     keysToRemove.forEach(k => localStorage.removeItem(k))
     sessionStorage.clear()

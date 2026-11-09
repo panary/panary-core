@@ -12,6 +12,12 @@ sources:
   - id: ci-yml
     resource: .github/workflows/ci.yml
     title: Job main (Schritte „Nx-Cache …“) und Job nx-cache-aufraeumen
+  - id: issue-1402
+    resource: https://github.com/panary/panary-core/issues/1402
+    title: Notice-Größe über dem Deckel, Ursache und Messung
+  - id: nx-cache-mass
+    resource: scripts/nx-cache-mass.mjs
+    title: Messung der Nx-Cache-Notices
 ---
 
 # CI-Nx-Cache

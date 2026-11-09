@@ -94,6 +94,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   try {
     console.log(zeile(messen(cacheDir, dbDatei, deckelRoh)))
   } catch (error) {
-    console.log(`Messung fehlgeschlagen: ${error.message}`)
+    // Eine Zeile: Die Notice zeigt ohnehin nur die erste.
+    console.log(`Messung fehlgeschlagen: ${String(error.message).split('\n')[0]}`)
   }
 }

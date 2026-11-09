@@ -151,8 +151,11 @@ jobs:
           quelle="${alt[0]}"
           cp "$quelle" "$ziel" || verwerfen "DB nicht kopiert"
           rm -f .nx/workspace-data/*.lock .nx/workspace-data/*.db-wal .nx/workspace-data/*.db-shm
+          # An der Quelle messen, nicht am Ziel: Schon das Lesen legt -wal/-shm neben
+          # der DB an, und die verschwinden hier mit "$t".
+          masse="$(node scripts/nx-cache-mass.mjs .nx/cache "$quelle")"
           rm -rf "$t"
-          echo "::notice title=Nx-Cache::$(node scripts/nx-cache-mass.mjs .nx/cache "$ziel"), DB $(basename "$quelle") -> $(basename "$ziel")"
+          echo "::notice title=Nx-Cache::${masse}, DB $(basename "$quelle") -> $(basename "$ziel")"
 
       # `--all`, nicht `--base`: Ein `format:check --base=…` prüft ausschließlich
       # Dateien, die gegen main geändert wurden — auf main selbst also nie. Drift
@@ -433,6 +436,8 @@ jobs:
           [ "${#wal[@]}" -eq 1 ] && walgroesse="WAL $(stat -c %s "${wal[0]}") B"
           if mkdir -p "$t/db" && cp -R .nx/cache "$t/cache" && cp "${dbs[0]}" "$t/db/"; then
             echo "::notice title=Nx-Cache gesichert::$(node scripts/nx-cache-mass.mjs "$t/cache" "$t/db/$(basename "${dbs[0]}")"), ${walgroesse}"
+            # Die Messung hat neben der Kopie -wal/-shm angelegt; gesichert wird nur die .db.
+            rm -f "$t"/db/*.db-wal "$t"/db/*.db-shm
           else
             echo "::warning title=Nx-Cache::Bereitlegen fehlgeschlagen — nichts zu sichern."
             rm -rf "$t"

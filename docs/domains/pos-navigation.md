@@ -65,7 +65,7 @@ Menü mit Uhrzeit und Dauer, **Pause** und **Gehen**; amber = Pause, ein Tipp be
 (`timeClockTapAction`). Ein Tipp löst genau einen Aufruf aus — `PosStaffService.timeClock()` sperrt, solange
 die Antwort aussteht. Rückmeldung sind die Farbe der Taste und eine kurze Meldung ohne Login-Namen („Eingestempelt“, „Pause begonnen“, „Pause beendet“, „Ausgestempelt“, aus `PosStaffService`); die technischen Standardmeldungen des `WorkingTimeService` („Arbeitszeit wurde erstellt/geändert“, [core#962](https://github.com/panary/panary-core/issues/962)) sind am POS stumm. Die generische Realtime-Meldung „Benutzer wurde
 geändert“, die jedes Stempeln über das `patched`-Event auslöste, unterdrückt `UserService`
-([core#954](https://github.com/panary/panary-core/issues/954), Muster core#657 bei Bestellungen). Gesperrt (offline, Mandantensperre) öffnet die Taste kein Menü, sondern nennt den Grund.
+([core#954](https://github.com/panary/panary-core/issues/954), Muster core#657 bei Bestellungen). Gesperrt (offline; Mandantensperre nur ausgestempelt) öffnet die Taste kein Menü, sondern nennt den Grund.
 Stempeltaste und Abmelden sind 48 px hoch (Touch-Minimum). Die Arbeitszeit für Uhrzeit und Dauer lädt
 `PosTimeClock` je Stempel-ID einmal.
 
@@ -125,8 +125,13 @@ Ein **gesperrter** Rail-Eintrag bleibt antippbar und meldet den Grund als Warnun
 dem Eintrag. Die Mandantensperre geht im Hinweis vor „offline", weil sie bleibt, wenn die Verbindung
 zurückkommt.
 
-**Stempeln und Abmelden** folgen ihren bisherigen Regeln: Kommen, Pause und Gehen sind offline und bei
-Mandantensperre gesperrt (`timeTrackingBlockedHintKey`, Kontosperre vor „offline"), Abmelden ist
+**Stempeln und Abmelden** folgen ihren bisherigen Regeln: Kommen, Pause und Gehen sind offline gesperrt.
+Die Mandantensperre sperrt nur Kommen und Pause-Beginn (`suspensionBlocksTimeClock`); Gehen und Pause-Ende
+lässt die Cloud ausdrücklich durch (panary/panary-cloud#1435), sonst liefe die Arbeitszeit eines bei
+Sperrbeginn Eingestempelten ohne Endzeit weiter ([core#1395](https://github.com/panary/panary-core/issues/1395)).
+Eingestempelt öffnet die Taste deshalb auch unter Sperre das Menü, „Pause“ darin nennt die Sperre. Dieselbe
+Regel gilt im Stempel-Panel per Personalnummer. Der Hinweis nennt die Kontosperre vor „offline"
+(`timeTrackingBlockedHintKey`). Abmelden ist
 offline gesperrt (`PosSessionService.isOffline`). Gehen meldet danach ab. Liegt in der Kasse eine
 angefangene Bestellung, fragen Abmelden und Gehen vorher wie der Seitenwechsel
 ([core#1064](https://github.com/panary/panary-core/issues/1064), [Kasse als Route](pos-kasse-route.md)). Gesperrte Stempeltasten und

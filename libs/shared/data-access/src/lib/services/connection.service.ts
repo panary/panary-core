@@ -569,6 +569,11 @@ export class ConnectionService {
     return this.#app.service('leave-requests')
   }
 
+  /** Nur Cloud (`entitlements.getForTenant`), am Edge gibt es den Service nicht (#1401). */
+  get entitlementsService(): { getForTenant: (data: Record<string, never>) => Promise<unknown> } {
+    return this.#app.service('entitlements')
+  }
+
   //#endregion
 
   //#region Constructor

@@ -51,6 +51,8 @@ export const CLIENT_SERVICE_METHODS = {
   'leave-requests': [...STANDARD_METHODS],
   'pre-orders': [...STANDARD_METHODS, 'convert'],
   'opening-hour-exceptions': [...STANDARD_METHODS],
+  // Nur Cloud: Mandantenstatus im Tier cloud-direct abfragen (#1401). Keine Standardmethoden, der Service hat keine.
+  entitlements: ['getForTenant'],
 } as const satisfies Record<string, readonly string[]>
 
 export type ClientServicePath = keyof typeof CLIENT_SERVICE_METHODS

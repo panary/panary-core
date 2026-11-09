@@ -1,6 +1,6 @@
 {
   "name": "@panary/apikeys",
-  "version": "26.11.13",
+  "version": "26.11.14",
   "license": "BSL-1.1",
   "type": "commonjs",
   "exports": {

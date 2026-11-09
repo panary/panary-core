@@ -127,7 +127,10 @@ läuft über **alle** Zeilen, auch über reine Terminal-Ausgaben ungecachter Tas
 (`is_cache_entry = 0`). `du` zählt dagegen belegte Blöcke. Bei tausenden kleinen Ausgabedateien
 liegt das ein Vielfaches höher. Lokal gemessen an einem Nx-23-Cache mit 2761 Einträgen: DB-Summe
 4,21 GB, Dateigröße auf der Platte 4,21 GB, `du` 6,22 GB. Die Notices zeigten bis #1402 die
-`du`-Zahl und lagen deshalb über dem Deckel, ohne dass er versagt haben muss.
+`du`-Zahl und lagen deshalb über dem Deckel, ohne dass er versagt hatte. Die erste neue Notice
+(PR #1405, Cache des jüngsten `main`-Laufs auf dem Linux-Runner): 438 Einträge, Nx-Maß 962 MB
+von 1 GB, Dateigröße 962 MB, belegt 2,47 GB, 0 Verzeichnisse ohne DB-Zeile. Der Block-Aufschlag
+dort ist also rund das 2,6-Fache.
 
 Daraus folgt auch: **Sinkende Einträge sind unter dem Deckel normal.** Ist er erreicht, verdrängt
 jeder große neue Eintrag mehrere kleine alte. Die Zahl wächst nur, bis der Deckel greift.
@@ -161,8 +164,8 @@ CI-Schritt.
   fährt nur `run-many -t lint`, also keine `test`-, `typecheck`- oder `build`-Einträge. Vom
   Feature-Branch aus ist ein Dispatch ohnehin tabu, denn er bekäme das RW-Token des Remote-Caches.
 - **Die Verdrängungsregel** ist aus den SQL-Texten im nativen Nx-Modul abgelesen, nicht aus dem
-  Rust-Quelltext. Den Vergleich von DB-Summe und Dateigröße gibt es nur auf macOS (APFS). Den
-  Block-Aufschlag auf dem Linux-Runner zeigt erst die Notice.
+  Rust-Quelltext. Dass die Summe unter dem Deckel bleibt, belegt eine einzelne Notice
+  (PR #1405), noch keine Reihe von Läufen.
 - **Die Shell-Logik ist nicht als Spec getestet**, nur lokal mit den Fällen oben nachgestellt. Sie
   steht inline im Workflow, und belegt wird sie über die Verifikation nach dem Merge
   ([#1376](https://github.com/panary/panary-core/issues/1376)).

@@ -29,4 +29,14 @@ describe('slugifyHandle', () => {
   it('strips leading and trailing dashes', () => {
     expect(slugifyHandle('---leading-trailing---')).toBe('leading-trailing')
   })
+
+  it('collapses mixed separator runs to one dash', () => {
+    expect(slugifyHandle('a - _ - b')).toBe('a-b')
+    expect(slugifyHandle('-!-a-!-')).toBe('a')
+  })
+
+  it('trims long dash runs at both edges', () => {
+    expect(slugifyHandle('-'.repeat(100_000) + 'x' + '-'.repeat(100_000))).toBe('x')
+    expect(slugifyHandle('a-'.repeat(100_000) + '!')).toBe('a-'.repeat(30))
+  })
 })

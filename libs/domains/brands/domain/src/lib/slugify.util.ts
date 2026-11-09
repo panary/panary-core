@@ -9,7 +9,8 @@
  * - lowercase
  * - ä→ae, ö→oe, ü→ue, ß→ss vor NFKD-Diakritika-Strip (sonst würde ü→u statt ue)
  * - non-[a-z0-9] → '-'
- * - leading/trailing '-' entfernt
+ * - leading/trailing '-' entfernt — ohne Quantor (`/^-|-$/`): Nach dem Schritt davor steht je Rand
+ *   höchstens ein '-', und so bleibt der Ausdruck linear (CodeQL js/polynomial-redos, Alert #14)
  * - max. 60 Zeichen (passend zum brand.handle-Schema maxLength: 60)
  */
 export function slugifyHandle(name: string): string {
@@ -22,6 +23,6 @@ export function slugifyHandle(name: string): string {
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(/^-|-$/g, '')
     .slice(0, 60)
 }

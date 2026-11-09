@@ -82,7 +82,7 @@
     "@capacitor/share": "^8.0.3",
     "@eslint/js": "^9.39.5",
     "@feathersjs/authentication-client": "^5.0.51",
-    "@feathersjs/cli": "5.0.51",
+    "@feathersjs/cli": "5.0.52",
     "@feathersjs/rest-client": "^5.0.51",
     "@feathersjs/socketio-client": "^5.0.51",
     "@ngx-translate/core": "^17.0.0",

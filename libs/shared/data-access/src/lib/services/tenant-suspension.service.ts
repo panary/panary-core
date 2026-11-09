@@ -4,10 +4,11 @@ import { computed, Injectable, signal } from '@angular/core'
 export const TENANT_SUSPENDED_CODE = 'TENANT_SUSPENDED'
 
 /**
- * Wie lange eine erkannte Sperre ohne neuen 403 stehen bleibt. Die Cloud cached den
- * Mandantenstatus rund 30 s; danach darf der nächste Versuch wieder durchgehen. Ein
- * Statusendpunkt für Geräte existiert nicht, deshalb ist der nächste schreibende Request
- * die Nachprüfung: Ist der Mandant noch gesperrt, setzt der 403 den Zustand sofort neu.
+ * Wie lange eine aus einem Schreib-403 erkannte Sperre ohne neuen 403 stehen bleibt. Die Cloud
+ * cached den Mandantenstatus rund 30 s; danach darf der nächste Versuch wieder durchgehen.
+ * Bestätigt ein Statusabruf die Sperre (`holdSuspended`, panary/panary-core#1401: Edge-`/health`
+ * bzw. `entitlements.getForTenant`), gilt die TTL nicht — dann hebt erst ein Abruf ohne Sperre
+ * sie auf.
  */
 export const TENANT_SUSPENSION_TTL_MS = 60_000
 
@@ -27,16 +28,26 @@ export function readTenantSuspension(error: unknown): { tenantStatus: string | n
   return { tenantStatus: typeof data?.tenantStatus === 'string' ? data.tenantStatus : null }
 }
 
+/** Mandantenstatus, bei dem die Cloud schreibende Requests ablehnt. */
+const LOCKED_TENANT_STATUSES: ReadonlySet<string> = new Set(['SUSPENDED', 'ARCHIVED'])
+
 /**
- * Zustand „Mandant gesperrt" (Tier `cloud-direct`). Wird von `ServiceHelper.handleError`
- * gesetzt und vom Cloud-Status-Banner angezeigt. Läuft nach `TENANT_SUSPENSION_TTL_MS`
- * ohne weiteren 403 von selbst ab. Der Zustand samt Ablaufzeitpunkt liegt in `sessionStorage` und
- * wird beim Start nur wiederhergestellt, solange der Ablaufzeitpunkt in der Zukunft liegt (core#1030).
+ * Zustand „Mandant gesperrt". Zwei Quellen (panary/panary-core#1401):
+ * - **Schreib-403** (`ServiceHelper.handleError`, Zeiterfassungs-Panel) → `markSuspended`, läuft nach
+ *   `TENANT_SUSPENSION_TTL_MS` ohne weiteren 403 von selbst ab.
+ * - **Statusabruf** (Edge-`/health` im Tier `edge-with-cloud`, `entitlements.getForTenant` im Tier
+ *   `cloud-direct`) → `holdSuspended` bzw. `clear()`. Gehalten wird ohne Ablauf, solange der Abruf
+ *   die Sperre bestätigt; ein Schreib-403 stuft eine gehaltene Sperre nicht auf die TTL herab.
+ * Der Zustand samt Ablaufzeitpunkt liegt in `sessionStorage` und wird beim Start nur wiederhergestellt,
+ * solange der Ablaufzeitpunkt in der Zukunft liegt (core#1030); eine gehaltene Sperre erneuert ihn bei
+ * jedem bestätigenden Abruf.
  */
 @Injectable({ providedIn: 'root' })
 export class TenantSuspensionService {
   readonly #state = signal<{ tenantStatus: string | null } | null>(null)
   #timer: ReturnType<typeof setTimeout> | null = null
+  /** Von einem Statusabruf bestätigt: kein TTL-Ablauf. */
+  #held = false
 
   constructor() {
     this.#restore()
@@ -47,12 +58,52 @@ export class TenantSuspensionService {
   readonly tenantStatus = computed(() => this.#state()?.tenantStatus ?? null)
 
   markSuspended(tenantStatus: string | null): void {
+    if (this.#held) {
+      // Bestätigte Sperre bleibt gehalten; nur ein konkreterer Status wird übernommen.
+      if (tenantStatus !== null) this.holdSuspended(tenantStatus)
+      return
+    }
     this.#activate(tenantStatus, Date.now() + TENANT_SUSPENSION_TTL_MS)
+  }
+
+  /** Ein Statusabruf bestätigt die Sperre: halten, bis ein Abruf sie aufhebt (`clear()`). */
+  holdSuspended(tenantStatus: string | null): void {
+    this.#activate(tenantStatus, Date.now() + TENANT_SUSPENSION_TTL_MS)
+    if (this.#timer) clearTimeout(this.#timer)
+    this.#timer = null
+    this.#held = true
+  }
+
+  /**
+   * Wertet einen abgerufenen Mandantenstatus aus (`entitlements.getForTenant`). SUSPENDED/ARCHIVED hält
+   * die Sperre, jeder andere bekannte Status hebt sie auf. `null`/unbekannt ändert nichts: Die Cloud
+   * liefert `null` auch, wenn ihr eigener Mandanten-Read scheitert.
+   */
+  applyTenantStatus(tenantStatus: unknown): void {
+    if (typeof tenantStatus !== 'string' || tenantStatus === '') return
+    if (LOCKED_TENANT_STATUSES.has(tenantStatus)) this.holdSuspended(tenantStatus)
+    else this.clear()
+  }
+
+  /**
+   * Wertet das Feld `cloudTenantSuspension` aus dem Edge-`/health` aus. Fehlt es (ältere Edge, oder seit
+   * dem Edge-Start noch kein Pull), ändert sich nichts; `null` heisst „letzter Pull lief durch".
+   */
+  applyHealthSuspension(value: unknown): void {
+    if (value === undefined) return
+    if (value === null) {
+      this.clear()
+      return
+    }
+    if (typeof value !== 'object') return
+    const status = (value as { tenantStatus?: unknown }).tenantStatus
+    this.holdSuspended(typeof status === 'string' ? status : null)
   }
 
   clear(): void {
     if (this.#timer) clearTimeout(this.#timer)
     this.#timer = null
+    this.#held = false
     this.#state.set(null)
     try {
       sessionStorage.removeItem(TENANT_SUSPENSION_STORAGE_KEY)

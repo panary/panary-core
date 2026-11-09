@@ -90,4 +90,76 @@ describe('TenantSuspensionService', () => {
     )
     expect(new TenantSuspensionService().suspended()).toBe(false)
   })
+
+  describe('gehaltene Sperre aus einem Statusabruf (#1401)', () => {
+    it('holdSuspended läuft nicht nach der TTL ab', () => {
+      const svc = new TenantSuspensionService()
+      svc.holdSuspended('SUSPENDED')
+      vi.advanceTimersByTime(5 * TENANT_SUSPENSION_TTL_MS)
+      expect(svc.suspended()).toBe(true)
+      expect(svc.tenantStatus()).toBe('SUSPENDED')
+    })
+
+    it('ein Schreib-403 stuft eine gehaltene Sperre nicht auf die TTL herab', () => {
+      const svc = new TenantSuspensionService()
+      svc.holdSuspended('SUSPENDED')
+      svc.markSuspended(null)
+      vi.advanceTimersByTime(2 * TENANT_SUSPENSION_TTL_MS)
+      expect(svc.suspended()).toBe(true)
+      expect(svc.tenantStatus()).toBe('SUSPENDED')
+    })
+
+    it('nach clear() gilt für einen Schreib-403 wieder die TTL', () => {
+      const svc = new TenantSuspensionService()
+      svc.holdSuspended('SUSPENDED')
+      svc.clear()
+      svc.markSuspended('SUSPENDED')
+      vi.advanceTimersByTime(TENANT_SUSPENSION_TTL_MS)
+      expect(svc.suspended()).toBe(false)
+    })
+
+    it('applyTenantStatus: SUSPENDED und ARCHIVED halten, ACTIVE hebt auf, null ändert nichts', () => {
+      const svc = new TenantSuspensionService()
+      svc.applyTenantStatus('ARCHIVED')
+      vi.advanceTimersByTime(2 * TENANT_SUSPENSION_TTL_MS)
+      expect(svc.tenantStatus()).toBe('ARCHIVED')
+      svc.applyTenantStatus(null)
+      expect(svc.suspended()).toBe(true)
+      svc.applyTenantStatus('ACTIVE')
+      expect(svc.suspended()).toBe(false)
+      svc.applyTenantStatus('SUSPENDED')
+      expect(svc.suspended()).toBe(true)
+    })
+
+    it('applyTenantStatus(null) setzt keine Sperre', () => {
+      const svc = new TenantSuspensionService()
+      svc.applyTenantStatus(null)
+      svc.applyTenantStatus(undefined)
+      expect(svc.suspended()).toBe(false)
+    })
+
+    it('applyHealthSuspension: Objekt hält, null hebt auf, fehlendes Feld ändert nichts', () => {
+      const svc = new TenantSuspensionService()
+      svc.applyHealthSuspension({ tenantStatus: 'SUSPENDED' })
+      vi.advanceTimersByTime(2 * TENANT_SUSPENSION_TTL_MS)
+      expect(svc.suspended()).toBe(true)
+      svc.applyHealthSuspension(undefined)
+      expect(svc.suspended()).toBe(true)
+      svc.applyHealthSuspension(null)
+      expect(svc.suspended()).toBe(false)
+    })
+
+    it('applyHealthSuspension ohne Status hält trotzdem, mit Status unbekannt', () => {
+      const svc = new TenantSuspensionService()
+      svc.applyHealthSuspension({})
+      expect(svc.suspended()).toBe(true)
+      expect(svc.tenantStatus()).toBeNull()
+    })
+
+    it('eine gehaltene Sperre übersteht ein Neuladen innerhalb der TTL', () => {
+      new TenantSuspensionService().holdSuspended('SUSPENDED')
+      vi.advanceTimersByTime(20_000)
+      expect(new TenantSuspensionService().suspended()).toBe(true)
+    })
+  })
 })

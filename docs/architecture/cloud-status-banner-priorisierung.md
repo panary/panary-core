@@ -141,7 +141,8 @@ erkennt die Sperre also erst beim nächsten Buchen. Zwei Statusquellen ergänzen
 Bestätigt eine Quelle die Sperre (SUSPENDED/ARCHIVED), hält `holdSuspended()` sie **ohne** 60-s-Ablauf, bis ein Abruf
 einen anderen Status meldet (`clear()`). Ein Schreib-403 stuft eine gehaltene Sperre nicht herab. „Unbekannt" ändert nie
 etwas: `tenantStatus: null` (die Cloud liefert das auch, wenn ihr Mandanten-Read scheitert), ein fehlgeschlagener Abruf und
-ein fehlendes `/health`-Feld (ältere Edge, oder seit dem Edge-Start noch kein Pull). Der Edge hält den Zustand nur im
+ein fehlendes `/health`-Feld (ältere Edge, oder seit dem Edge-Start noch kein Pull). Ohne gekoppelte Cloud meldet `/health`
+`null`, damit nach dem Entkoppeln keine Sperre hängen bleibt. Der Edge hält den Zustand nur im
 Speicher; nach einem Neustart klärt ihn der nächste Pull. In den Sync-Modi `manual`, `disabled` und `scheduled` läuft der
 Pull selten oder gar nicht; dort bleibt im Edge-Tier der Schreibversuch die Erkennung. Tier `standalone` zeigt die Sperre
 nie (`tenantSuspensionShown`).

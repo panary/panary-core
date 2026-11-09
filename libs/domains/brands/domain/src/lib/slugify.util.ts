@@ -22,6 +22,8 @@ export function slugifyHandle(name: string): string {
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    // Nach dem Schritt davor gibt es keine Bindestrich-Läufe mehr, je Rand höchstens einen.
+    // Ohne Quantor bleibt der Ausdruck linear (CodeQL js/polynomial-redos, Alert #14).
+    .replace(/^-|-$/g, '')
     .slice(0, 60)
 }

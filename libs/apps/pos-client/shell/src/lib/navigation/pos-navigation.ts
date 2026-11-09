@@ -234,6 +234,7 @@ export type TimeClockAction = 'clock-in' | 'start-break' | 'end-break' | 'clock-
  * Was die Mandantensperre am POS sperrt: nur Kommen und Pause-Beginn. Gehen und Pause-Ende lässt die
  * Cloud ausdrücklich durch (panary/panary-cloud#1435, `assert-tenant-status.hook.ts`), sonst liefe die
  * Arbeitszeit eines bei Sperrbeginn Eingestempelten ohne Endzeit weiter (panary/panary-core#1395).
+ * Gegenstück im Stempel-Panel: `SUSPENSION_BLOCKS` (time-clock-panel.component.ts), beide gleich halten.
  */
 export function suspensionBlocksTimeClock(action: TimeClockAction): boolean {
   return action === 'clock-in' || action === 'start-break'

@@ -28,7 +28,10 @@ const STAMP_ACTION_OF: Record<TimeClockAction, StampAction> = {
   'break-end': 'endBreak',
 }
 
-/** Buchungen, die die Cloud bei gesperrtem Mandanten ablehnt; Gehen und Pause-Ende lässt sie durch (cloud#1435). */
+/**
+ * Buchungen, die die Cloud bei gesperrtem Mandanten ablehnt; Gehen und Pause-Ende lässt sie durch (cloud#1435).
+ * Gegenstück am Rail: `suspensionBlocksTimeClock` (pos-navigation.ts), beide gleich halten.
+ */
 const SUSPENSION_BLOCKS: ReadonlySet<StampAction> = new Set<StampAction>(['checkin', 'startBreak'])
 
 /** Zeigt die Bestätigung vor der Buchung: nur das, was der Server als Vorschau herausgibt. */

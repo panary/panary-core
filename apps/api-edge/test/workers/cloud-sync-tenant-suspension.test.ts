@@ -77,7 +77,7 @@ describe('cloud-sync-scheduler worker — Mandantensperre aus sync-pull (#1401)'
     const app = createApp()
 
     assert.strictEqual(getCloudTenantSuspension(app), undefined)
-    assert.strictEqual(tenantSuspensionForHealth(app), undefined)
+    assert.strictEqual(tenantSuspensionForHealth(app, true), undefined)
   })
 
   it('403 TENANT_SUSPENDED setzt die Sperre mit dem Status der Cloud', async () => {
@@ -86,7 +86,7 @@ describe('cloud-sync-scheduler worker — Mandantensperre aus sync-pull (#1401)'
 
     await assert.rejects(() => runPullForService(app, connection, 'products'))
 
-    assert.deepStrictEqual(tenantSuspensionForHealth(app), { tenantStatus: 'SUSPENDED' })
+    assert.deepStrictEqual(tenantSuspensionForHealth(app, true), { tenantStatus: 'SUSPENDED' })
   })
 
   it('ARCHIVED zaehlt wie SUSPENDED', async () => {
@@ -95,7 +95,7 @@ describe('cloud-sync-scheduler worker — Mandantensperre aus sync-pull (#1401)'
 
     await assert.rejects(() => runPullForService(app, connection, 'products'))
 
-    assert.deepStrictEqual(tenantSuspensionForHealth(app), { tenantStatus: 'ARCHIVED' })
+    assert.deepStrictEqual(tenantSuspensionForHealth(app, true), { tenantStatus: 'ARCHIVED' })
   })
 
   it('ein erfolgreicher Pull hebt die Sperre auf', async () => {
@@ -106,7 +106,7 @@ describe('cloud-sync-scheduler worker — Mandantensperre aus sync-pull (#1401)'
     stubFetch({ status: 200, body: okBody })
     await runPullForService(app, connection, 'products')
 
-    assert.strictEqual(tenantSuspensionForHealth(app), null)
+    assert.strictEqual(tenantSuspensionForHealth(app, true), null)
   })
 
   it('ein generischer 403 setzt keine Sperre', async () => {
@@ -115,7 +115,7 @@ describe('cloud-sync-scheduler worker — Mandantensperre aus sync-pull (#1401)'
 
     await assert.rejects(() => runPullForService(app, connection, 'products'))
 
-    assert.strictEqual(tenantSuspensionForHealth(app), undefined)
+    assert.strictEqual(tenantSuspensionForHealth(app, true), undefined)
   })
 
   it('ein 500 nach der Sperre laesst sie stehen', async () => {
@@ -126,6 +126,23 @@ describe('cloud-sync-scheduler worker — Mandantensperre aus sync-pull (#1401)'
     stubFetch({ status: 500, body: { message: 'boom' } })
     await assert.rejects(() => runPullForService(app, connection, 'products'))
 
-    assert.deepStrictEqual(tenantSuspensionForHealth(app), { tenantStatus: 'SUSPENDED' })
+    assert.deepStrictEqual(tenantSuspensionForHealth(app, true), { tenantStatus: 'SUSPENDED' })
+  })
+
+  it('ohne gekoppelte Cloud meldet /health keine Sperre, auch wenn der Merker noch steht', async () => {
+    const app = createApp()
+    stubFetch({ status: 403, body: suspendedBody('SUSPENDED') })
+    await assert.rejects(() => runPullForService(app, connection, 'products'))
+
+    assert.strictEqual(tenantSuspensionForHealth(app, false), null)
+  })
+
+  it('erkennt die Sperre auch nur am Message-Praefix, dann ohne Status', async () => {
+    const app = createApp()
+    stubFetch({ status: 403, body: { name: 'Forbidden', message: 'TENANT_SUSPENDED: gesperrt', code: 403 } })
+
+    await assert.rejects(() => runPullForService(app, connection, 'products'))
+
+    assert.deepStrictEqual(tenantSuspensionForHealth(app, true), { tenantStatus: null })
   })
 })

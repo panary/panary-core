@@ -31,6 +31,7 @@ import os from 'os'
 import { getLocalIpAddress, renderStatusPage } from './status-page'
 import { findReportableCloudConnection } from './utils/cloud-connection-lookup'
 import { tenantSuspensionForHealth } from './utils/cloud-tenant-suspension'
+import { PairingStatus } from '@panary/cloud-connection/domain'
 import { systemModeFromPairing } from './utils/system-mode'
 import { computeSyncExpectation } from './utils/sync-expectation'
 import { APP_VERSION } from './version'
@@ -263,7 +264,7 @@ app.use(async (ctx, next) => {
       emergencyOverrideSince,
       // Mandantensperre aus dem letzten Pull (#1401): fehlt = unbekannt, `null` = nicht gesperrt.
       // Verraet nur den Status, keine Mandanten-Daten.
-      cloudTenantSuspension: tenantSuspensionForHealth(app),
+      cloudTenantSuspension: tenantSuspensionForHealth(app, cloudPairingStatus === PairingStatus.CONNECTED),
     }
     ctx.status = 200
     return

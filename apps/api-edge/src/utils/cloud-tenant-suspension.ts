@@ -59,8 +59,14 @@ export const getCloudTenantSuspension = (app: Application): CloudTenantSuspensio
 /**
  * Feld `cloudTenantSuspension` des öffentlichen `/health`: nur der Status, kein Zeitstempel.
  * `undefined` lässt das Feld in der JSON-Antwort weg — der POS liest das als „unbekannt".
+ * Ohne gekoppelte Cloud gibt es keine Sperre: `null`, auch wenn der Merker aus einem früheren Pairing
+ * noch steht — sonst hielte der POS nach dem Entkoppeln eine Sperre, die niemand mehr aufhebt.
  */
-export const tenantSuspensionForHealth = (app: Application): { tenantStatus: string | null } | null | undefined => {
+export const tenantSuspensionForHealth = (
+  app: Application,
+  cloudPaired: boolean,
+): { tenantStatus: string | null } | null | undefined => {
+  if (!cloudPaired) return null
   const state = getCloudTenantSuspension(app)
   if (state === undefined) return undefined
   return state === null ? null : { tenantStatus: state.tenantStatus }

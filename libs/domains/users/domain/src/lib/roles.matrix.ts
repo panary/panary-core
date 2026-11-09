@@ -84,6 +84,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Phase 6 — Brand- und Reservierungs-Schicht. Owner hat strukturellen
     // Bypass; Eintraege dienen der Dokumentation der Mindest-Rechte.
     { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.DOMAIN_STATUS, action: AppAction.READ },
+    { resource: AppResource.DOMAIN_VERIFY, action: AppAction.CREATE },
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
@@ -183,6 +185,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Phase 6 — Brand- und Reservierungs-Schicht. Operator-Eingriff bei
     // Tenant-Support (z.B. Reservierung manuell stornieren).
     { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.DOMAIN_STATUS, action: AppAction.READ },
+    { resource: AppResource.DOMAIN_VERIFY, action: AppAction.CREATE },
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
@@ -266,6 +270,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Phase 6 — Brand- und Reservierungs-Schicht. Support liest mit (Ticket-
     // Diagnose), kein Schreibzugriff.
     { resource: AppResource.BRANDS, action: AppAction.READ },
+    { resource: AppResource.DOMAIN_STATUS, action: AppAction.READ },
     { resource: AppResource.RESERVATIONS, action: AppAction.READ },
   ],
 
@@ -481,6 +486,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Phase 6 — Brand- und Reservierungs-Schicht: Owner pflegt Marken,
     // Reservierungen, Tische und Slots vollumfaenglich.
     { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.DOMAIN_STATUS, action: AppAction.READ },
+    { resource: AppResource.DOMAIN_VERIFY, action: AppAction.CREATE },
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
@@ -634,6 +641,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Phase 6 — Brand- und Reservierungs-Schicht: Techniker hat Admin-
     // aequivalente Rechte fuer Diagnose/Support.
     { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.DOMAIN_STATUS, action: AppAction.READ },
+    { resource: AppResource.DOMAIN_VERIFY, action: AppAction.CREATE },
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
@@ -821,6 +830,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Phase 6 — Brand- und Reservierungs-Schicht: Manager pflegt Marken,
     // Reservierungen, Tische und Slots gleichberechtigt zum Owner.
     { resource: AppResource.BRANDS, action: AppAction.MANAGE },
+    { resource: AppResource.DOMAIN_STATUS, action: AppAction.READ },
+    { resource: AppResource.DOMAIN_VERIFY, action: AppAction.CREATE },
     { resource: AppResource.RESERVATIONS, action: AppAction.MANAGE },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.MANAGE },
     { resource: AppResource.TABLE_LINKS, action: AppAction.MANAGE },
@@ -929,6 +940,7 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // Phase 6 — Brand- und Reservierungs-Schicht: Staff darf Marken/Tische/
     // Slots ansehen (Anzeige im Admin/Tisch-Plan), aber NICHT bearbeiten.
     { resource: AppResource.BRANDS, action: AppAction.READ },
+    { resource: AppResource.DOMAIN_STATUS, action: AppAction.READ },
     { resource: AppResource.RESERVATION_TABLES, action: AppAction.READ },
     { resource: AppResource.TABLE_LINKS, action: AppAction.READ },
     { resource: AppResource.MERCH_PRODUCTS, action: AppAction.READ },

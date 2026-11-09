@@ -167,6 +167,8 @@ Grenzen der Tabelle:
 | `storefront-publish-brand` | – | C | – | C | C | – | – | – | – | – | – |
 | `storefront-publish-rollback` | – | C | – | C | C | – | – | – | – | – | – |
 | `storefront-publish-meta` | – | R | R | R | R | – | – | – | – | – | – |
+| `domain-status` | R | R | R | R | R | R | R | – | – | – | – |
+| `domain-verify` | C | C | – | C | C | C | – | – | – | – | – |
 | `storefront-preview-token` | – | C | – | C | C | – | – | – | – | – | – |
 | `storefront-preset-library` | – | M | – | R | R | – | R | – | – | – | – |
 | `storefront-scaffold` | – | – | – | C | C | – | – | – | – | – | – |

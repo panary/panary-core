@@ -439,3 +439,26 @@ describe('RolePermissions — STOCK_PERIOD_CLOSINGS', () => {
     }
   })
 })
+
+// panary/panary-cloud#1859: domain-status und domain-verify mappen intern auf BRANDS, der globale
+// secureByDefault prueft aber vorher den rohen Pfad. Ohne eigenen Eintrag bekam der Owner 403.
+describe('RolePermissions — DOMAIN_STATUS / DOMAIN_VERIFY folgen BRANDS', () => {
+  const roles = Object.values(UserSystemRole)
+
+  it('DOMAIN_STATUS: genau die Rollen mit Leserecht auf BRANDS lesen, und nur lesen', () => {
+    for (const role of roles) {
+      const expected = roleCan(role, AppResource.BRANDS, AppAction.READ) ? [AppAction.READ] : []
+      expect({ role, actions: roleActions(role, AppResource.DOMAIN_STATUS) }).toEqual({ role, actions: expected })
+    }
+    expect(roleCan(UserSystemRole.TENANT_OWNER, AppResource.DOMAIN_STATUS, AppAction.READ)).toBe(true)
+  })
+
+  it('DOMAIN_VERIFY: genau die Rollen, die BRANDS verwalten, legen an, und nur das', () => {
+    for (const role of roles) {
+      const expected = roleCan(role, AppResource.BRANDS, AppAction.UPDATE) ? [AppAction.CREATE] : []
+      expect({ role, actions: roleActions(role, AppResource.DOMAIN_VERIFY) }).toEqual({ role, actions: expected })
+    }
+    expect(roleCan(UserSystemRole.TENANT_OWNER, AppResource.DOMAIN_VERIFY, AppAction.CREATE)).toBe(true)
+    expect(roleCan(UserSystemRole.TENANT_STAFF, AppResource.DOMAIN_VERIFY, AppAction.CREATE)).toBe(false)
+  })
+})

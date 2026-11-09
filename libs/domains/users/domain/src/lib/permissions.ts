@@ -351,6 +351,18 @@ export const AppResource = {
    *  ausschliesslich intern im Publish-Service, extern wird nie geschrieben. */
   STOREFRONT_PUBLISH_META: 'storefront-publish-meta',
 
+  /** Cloud-only: Domain-Status einer Marke (GET /domain-status?brandId=…) fuer die
+   *  Seite Markenverwaltung → Eigene Domains. Eigener AppResource aus demselben Grund
+   *  wie STOREFRONT_PUBLISH_BRAND: Der Service mappt intern auf BRANDS, der globale
+   *  secureByDefault prueft aber vorher den rohen Pfad (panary/panary-cloud#1859).
+   *  READ fuer genau die Rollen, die BRANDS lesen. */
+  DOMAIN_STATUS: 'domain-status',
+
+  /** Cloud-only: Domain-Verifikation (POST /domain-verify) einer eigenen Domain.
+   *  Eigener AppResource aus demselben Grund wie DOMAIN_STATUS. CREATE fuer die
+   *  Rollen, die BRANDS verwalten (MANAGE). */
+  DOMAIN_VERIFY: 'domain-verify',
+
   /** Cloud-only: Preview-Token-Service fuer den Draft-Render der Storefront
    *  (Phase 4 PUBW-05, D-11..D-15). Custom-Method-Service
    *  `apps/api-cloud/src/services/storefront-preview-token/`. CREATE erzeugt

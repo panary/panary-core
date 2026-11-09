@@ -48,10 +48,17 @@ mod tests {
     use super::*;
     use std::sync::{Arc, Mutex};
 
+    /// Hält ein `capture()` vom Tausch des Hooks bis zum Zurücksetzen exklusiv.
+    static HOOK_TAUSCH: Mutex<()> = Mutex::new(());
+
     /// Der Panic-Hook ist prozessweit, Rust-Tests laufen parallel. Deshalb wird der
     /// bisherige Hook vorher genommen und danach wieder gesetzt, und der Test-Hook
-    /// zeichnet nur Panics des eigenen Threads auf.
+    /// zeichnet nur Panics des eigenen Threads auf. Der Thread-Filter allein reicht
+    /// nicht: Zwei überlappende Aufrufe überschreiben sich gegenseitig den Hook
+    /// (panary/panary-core#1390), deshalb läuft der Tausch unter `HOOK_TAUSCH`.
     fn capture(f: impl FnOnce() + std::panic::UnwindSafe) -> String {
+        // Ein früher gescheiterter Test vergiftet den Mutex; das `()` darin bleibt trotzdem gültig.
+        let _tausch = HOOK_TAUSCH.lock().unwrap_or_else(|e| e.into_inner());
         let seen = Arc::new(Mutex::new(None::<String>));
         let sink = Arc::clone(&seen);
         let me = std::thread::current().id();
@@ -94,5 +101,25 @@ mod tests {
     fn zeile_ohne_text_nutzlast() {
         let line = capture(|| std::panic::panic_any(42_u32));
         assert!(line.ends_with(": <Nutzlast ohne Text>"), "{line}");
+    }
+
+    /// Nachstellung des Rennens aus panary/panary-core#1390: Viele Threads rufen `capture()`
+    /// gleichzeitig. Ohne Serialisierung überschreibt ein Thread den Hook des anderen, und
+    /// dessen Panic landet nicht beim eigenen Hook.
+    #[test]
+    fn capture_haelt_parallelen_aufrufen_stand() {
+        let threads: Vec<_> = (0..8)
+            .map(|t| {
+                std::thread::spawn(move || {
+                    for i in 0..200 {
+                        let line = capture(move || panic!("Lauf {t}-{i}"));
+                        assert!(line.ends_with(&format!(": Lauf {t}-{i}")), "{line}");
+                    }
+                })
+            })
+            .collect();
+        for handle in threads {
+            handle.join().expect("ein Thread hat seine Panic verloren");
+        }
     }
 }

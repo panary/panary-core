@@ -4,7 +4,7 @@ title: CI-Nx-Cache — Remote-Cache bei Push, GitHub-Actions-Cache bei PR
 description: Woher die core-CI ihre Nx-Treffer bekommt — main-Läufe aus dem Remote-Cache, PR-Läufe aus einem rollierenden GitHub-Actions-Cache des jüngsten main-Stands —, warum es dafür kein Read-Only-Token gibt, wie die Task-DB über die Maschinen-ID hinweg übernommen wird und was der Deckel gegen das volle Cache-Kontingent tut.
 tags: [ci, infra, nx]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-11-08T19:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-11-09T22:45:00Z }
 sources:
   - id: issue-1376
     resource: https://github.com/panary/panary-core/issues/1376
@@ -12,6 +12,12 @@ sources:
   - id: ci-yml
     resource: .github/workflows/ci.yml
     title: Job main (Schritte „Nx-Cache …“) und Job nx-cache-aufraeumen
+  - id: issue-1402
+    resource: https://github.com/panary/panary-core/issues/1402
+    title: Notice-Größe über dem Deckel, Ursache und Messung
+  - id: nx-cache-mass
+    resource: scripts/nx-cache-mass.mjs
+    title: Messung der Nx-Cache-Notices
 ---
 
 # CI-Nx-Cache
@@ -102,10 +108,48 @@ genutzten Rust-Caches.
 
 - `NX_MAX_CACHE_SIZE: 1GB` im Job-Env deckelt den lokalen Cache, also auch den gesicherten Eintrag.
   Bewusst nicht als `maxCacheSize` in `nx.json`, das würde auch den lokal geteilten Cache deckeln.
-- Das Aufräumen hält genau einen Nx-Eintrag. Der Aufschlag auf das Kontingent bleibt damit bei
-  höchstens rund 1 GB statt einem Eintrag je Push.
-- Die tatsächliche Größe steht bei jedem Sichern als `::notice` „Nx-Cache gesichert“ im Log. Ist
-  der Deckel nach einigen Läufen erreicht oder weit unterschritten, wird er hier nachgezogen.
+- Das Aufräumen hält genau einen Nx-Eintrag. Das Kontingent zählt das **gepackte** Archiv, und das
+  lag bei 2,2 GB auf der Platte bei 134–145 MB
+  ([#1402](https://github.com/panary/panary-core/issues/1402)). Der Aufschlag auf das Kontingent
+  ist also rund ein Siebtel des Deckels, nicht der Deckel selbst.
+
+### Wonach der Deckel rechnet
+
+Nx 23.3.1 verdrängt am Ende jedes Laufs (`removeOldCacheRecords`) in zwei Schritten, beide in der
+Task-DB:
+
+1. Zeilen, deren `accessed_at` älter als sieben Tage ist, fallen weg.
+2. Ist `SELECT SUM(size) FROM cache_outputs` danach größer als der Deckel, löscht Nx die ältesten
+   Zeilen nach `accessed_at`, je hundert auf einmal, bis die Summe darunter liegt.
+
+`size` ist die Summe der Dateigrößen eines Eintrags in Bytes, gesammelt beim Ablegen. Die Summe
+läuft über **alle** Zeilen, auch über reine Terminal-Ausgaben ungecachter Tasks
+(`is_cache_entry = 0`). `du` zählt dagegen belegte Blöcke. Bei tausenden kleinen Ausgabedateien
+liegt das ein Vielfaches höher. Lokal gemessen an einem Nx-23-Cache mit 2761 Einträgen: DB-Summe
+4,21 GB, Dateigröße auf der Platte 4,21 GB, `du` 6,22 GB. Die Notices zeigten bis [#1402](https://github.com/panary/panary-core/issues/1402) die
+`du`-Zahl und lagen deshalb über dem Deckel, ohne dass er versagt hatte. Die erste neue Notice
+([PR #1405](https://github.com/panary/panary-core/pull/1405), Cache des jüngsten `main`-Laufs auf dem Linux-Runner): 438 Einträge, Nx-Maß 962 MB
+von 1 GB, Dateigröße 962 MB, belegt 2,47 GB, 0 Verzeichnisse ohne DB-Zeile. Der Block-Aufschlag
+dort ist also rund das 2,6-Fache.
+
+Daraus folgt auch: **Sinkende Einträge sind unter dem Deckel normal.** Ist er erreicht, verdrängt
+jeder große neue Eintrag mehrere kleine alte. Die Zahl wächst nur, bis der Deckel greift.
+
+### Die Notices
+
+Beide Notices („Nx-Cache“ beim Übernehmen, „Nx-Cache gesichert“ beim Bereitlegen) kommen aus
+`scripts/nx-cache-mass.mjs`:
+
+| Angabe | Quelle | Wofür |
+| --- | --- | --- |
+| Einträge laut DB, Zeilen | `cache_outputs`, `is_cache_entry = 1` bzw. alle | Einträge, die Nx als Treffer kennt |
+| Nx-Maß von Deckel | `SUM(size)` über alle Zeilen gegen `NX_MAX_CACHE_SIZE` | das, was Nx vergleicht; „ÜBER DEM DECKEL“ heißt, die Verdrängung greift nicht |
+| Platte: Dateigröße / belegt | Byte-Summe bzw. Blöcke × 512 | Block-Aufschlag des Runners |
+| Hash-Verzeichnisse, davon ohne DB-Zeile | Verzeichnisse unter `.nx/cache` gegen die DB | verwaiste Einträge, die Nx nie verdrängt |
+| WAL (nur beim Sichern) | Größe der `*.db-wal` | gesichert wird nur die `.db`; ein volles WAL fehlte der Kopie |
+
+Die Messung endet immer mit Exit 0. Ihr Spec `scripts/nx-cache-mass.spec.mjs` läuft als eigener
+CI-Schritt.
 
 ## Was das nicht abdeckt
 
@@ -119,9 +163,9 @@ genutzten Rust-Caches.
   `^build`-Ergebnisse der unbetroffenen Libs an. Ein `workflow_dispatch` hilft dabei kaum: Er
   fährt nur `run-many -t lint`, also keine `test`-, `typecheck`- oder `build`-Einträge. Vom
   Feature-Branch aus ist ein Dispatch ohnehin tabu, denn er bekäme das RW-Token des Remote-Caches.
-- **`NX_MAX_CACHE_SIZE`** wird von Nx akzeptiert. Wann die native Schicht bei Überschreitung
-  verdrängt, ist am JS-Code nicht zu sehen. Ob der Eintrag unter 1 GB bleibt, zeigt erst die
-  Notice über mehrere Läufe.
+- **Die Verdrängungsregel** ist aus den SQL-Texten im nativen Nx-Modul abgelesen, nicht aus dem
+  Rust-Quelltext. Dass die Summe unter dem Deckel bleibt, belegt eine einzelne Notice
+  ([PR #1405](https://github.com/panary/panary-core/pull/1405)), noch keine Reihe von Läufen.
 - **Die Shell-Logik ist nicht als Spec getestet**, nur lokal mit den Fällen oben nachgestellt. Sie
   steht inline im Workflow, und belegt wird sie über die Verifikation nach dem Merge
   ([#1376](https://github.com/panary/panary-core/issues/1376)).

@@ -12,6 +12,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
 import { appRoutes } from './app.routes'
 import { APP_CONFIG } from '@panary/shared/data-access-config'
+import { TenantStatusPollService } from '@panary/shared/data-access'
 import { UiScaleService } from '@panary/shared/data-access-theme'
 import { providePosRealtimeScopeGuard } from './realtime-scope-guard.provider'
 import { providePosOfflineCache } from './offline-cache.provider'
@@ -46,6 +47,8 @@ export const appConfig: ApplicationConfig = {
     // instanziieren, damit gespeicherte Dichte VOR dem ersten Paint auf
     // <html> angewendet wird — nur im POS-Client.
     provideEnvironmentInitializer(() => inject(UiScaleService)),
+    // Mandantensperre im Tier cloud-direct ohne Schreibversuch erkennen (#1401).
+    provideEnvironmentInitializer(() => inject(TenantStatusPollService)),
     {
       provide: APP_CONFIG,
       useValue: {

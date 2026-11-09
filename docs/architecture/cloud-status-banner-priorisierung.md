@@ -36,7 +36,7 @@ Funktion wählt den höchstpriorisierten aktiven Zustand. Die Leiter bildet die
 
 | # | id | Bedingung | Gewicht | level | Action |
 |---|----|-----------|---------|-------|--------|
-| – | `tenant-suspended` | Tier `cloud-direct` + Cloud lehnte mit `TENANT_SUSPENDED` ab | 120 | crit | – |
+| – | `tenant-suspended` | Tier `cloud-direct` oder `edge-with-cloud` + Sperre erkannt (Schreib-403 `TENANT_SUSPENDED` oder Statusabruf, core#1401) | 120 | crit | – |
 | 1 | `client-offline` | WS `disconnected`/`error` | 100 | crit | `reload` |
 | 2 | `re-pairing-required` | `cloudNeedsRePairing` (Tier 3 + `cloudPairingStatus==='disconnected'`) | 90 | crit | – |
 | 3 | `offline-mode-active` | Override aktiv (`offlineOverrideActiveUntil` in Zukunft) | 80 | warn | – (Restminuten) |
@@ -125,17 +125,33 @@ nächsten erfolgreichen Cloud-Pull (`cloud-pull-business-days.worker.ts`).
 
 Der Cloud-Guard `assertTenantStatus` antwortet bei SUSPENDED/ARCHIVED mit `403`, `data.code = 'TENANT_SUSPENDED'`.
 `ServiceHelper.handleError` erkennt den Code (Rückfall: Message-Präfix), zeigt **keinen Toast** und setzt den Zustand im
-`TenantSuspensionService`. Ein generischer 403 setzt ihn nie. Der Zustand läuft nach 60 s ohne weiteren 403 von selbst
-ab: Geräte haben keinen Statusendpunkt, der nächste schreibende Request ist die Nachprüfung und setzt ihn bei fortbestehender
-Sperre sofort neu. Der Zustand liegt samt Ablaufzeitpunkt in `sessionStorage` (`panary.tenantSuspension`, core#1030): Ein Neuladen stellt die Sperre
-mit der Restlaufzeit wieder her, ein abgelaufener oder unlesbarer Eintrag wird verworfen, `clear()` löscht ihn mit. Eine Sperre, die
-erst nach dem Neuladen verhängt wird, greift wie bisher beim ersten schreibenden Request. Nur Tier `cloud-direct`; Edge-Tiers kennen die Sperre am POS nicht (eigene Frage). Bei ARCHIVED nennt die
+`TenantSuspensionService`. Ein generischer 403 setzt ihn nie. Eine so erkannte Sperre läuft nach 60 s ohne weiteren 403 von
+selbst ab. Der Zustand liegt samt Ablaufzeitpunkt in `sessionStorage` (`panary.tenantSuspension`, core#1030): Ein Neuladen stellt die Sperre
+mit der Restlaufzeit wieder her, ein abgelaufener oder unlesbarer Eintrag wird verworfen, `clear()` löscht ihn mit. Bei ARCHIVED nennt die
 Subline keinen Ausweg über den Tagesabschluss (auch der ist dort gesperrt).
+
+**Erkennung ohne Schreibversuch (core#1401).** Die Cloud lässt Lesezugriffe unter Sperre durch, ein Schreib-403 allein
+erkennt die Sperre also erst beim nächsten Buchen. Zwei Statusquellen ergänzen ihn:
+
+| Tier | Quelle | Takt |
+| --- | --- | --- |
+| `cloud-direct` | `TenantStatusPollService` fragt `entitlements.getForTenant` ab (Feld `tenantStatus`; jeder angemeldete User, eigener Mandant, unter Sperre „lesend") | sofort nach Anmeldung, dann alle 60 s |
+| `edge-with-cloud` | api-edge merkt sich eine `403 TENANT_SUSPENDED` aus `/sync-pull` (`utils/cloud-tenant-suspension.ts`), ein durchgelaufener Pull hebt sie auf; `/health` meldet sie als `cloudTenantSuspension`, `ConnectionService` überträgt das Feld | Sync-Zyklus des Edge (Standard 300 s) + 60 s Health-Poll |
+
+Bestätigt eine Quelle die Sperre (SUSPENDED/ARCHIVED), hält `holdSuspended()` sie **ohne** 60-s-Ablauf, bis ein Abruf
+einen anderen Status meldet (`clear()`). Ein Schreib-403 stuft eine gehaltene Sperre nicht herab. „Unbekannt" ändert nie
+etwas: `tenantStatus: null` (die Cloud liefert das auch, wenn ihr Mandanten-Read scheitert), ein fehlgeschlagener Abruf und
+ein fehlendes `/health`-Feld (ältere Edge, oder seit dem Edge-Start noch kein Pull). Ohne gekoppelte Cloud meldet `/health`
+`null`, damit nach dem Entkoppeln keine Sperre hängen bleibt. Der Edge hält den Zustand nur im
+Speicher; nach einem Neustart klärt ihn der nächste Pull. In den Sync-Modi `manual`, `disabled` und `scheduled` läuft der
+Pull selten oder gar nicht; dort bleibt im Edge-Tier der Schreibversuch die Erkennung. Tier `standalone` zeigt die Sperre
+nie (`tenantSuspensionShown`).
 
 **Sperre der Auslöser (core#489):** Solange `TenantSuspensionService.suspended()` gilt, sind am POS die Stempel-/Pausen-Buttons
 und die Dashboard-Aktion „Neue Bestellung" deaktiviert, `placeOrder()` im Bestelldialog bucht nicht und meldet per Snackbar.
-Der Warenkorb bleibt stehen. Der Tagesabschluss bleibt bedienbar. Nach Ablauf der 60 s ist alles wieder aktiv, der nächste
-Versuch läuft ggf. erneut in den 403.
+Der Warenkorb bleibt stehen. Der Tagesabschluss bleibt bedienbar. Seit core#1401 gilt das auch im Tier `edge-with-cloud`.
+Eine nur per Schreib-403 erkannte Sperre gibt nach 60 s alles wieder frei, der nächste Versuch läuft ggf. erneut in den 403;
+eine vom Statusabruf gehaltene bleibt, bis der Abruf sie aufhebt.
 
 ## Sekundär-Fix: Token-Fehler beim Re-Pairing zurücksetzen
 

@@ -2,7 +2,7 @@ import { computed, inject, Injectable } from '@angular/core'
 
 import { ConnectionService } from './connection.service'
 import { TenantSuspensionService } from './tenant-suspension.service'
-import { type CloudBanner, selectActiveBanner } from './cloud-status-banner.selector'
+import { type CloudBanner, selectActiveBanner, tenantSuspensionShown } from './cloud-status-banner.selector'
 import { CLOUD_STATUS_BANNER_OPTIONS, OFFLINE_CACHE, OFFLINE_OUTBOX } from './offline-cache.token'
 
 /**
@@ -47,8 +47,9 @@ export class CloudStatusBannerService {
       emergencyOverrideActive: conn.emergencyOverrideActive(),
       emergencyOverrideSinceMin: conn.emergencyOverrideSinceMin(),
       showEmergencyOverride: this.#options?.showEmergencyOverride ?? false,
-      // Nur Tier 1: Edge-Tiers kennen die Cloud-Sperre am POS nicht (eigene Frage, core#434).
-      tenantSuspended: conn.tier() === 'cloud-direct' && this.#suspension.suspended(),
+      // Tier 1 und Tier 3: Seit #1401 meldet der gekoppelte Edge die Sperre aus seinem Pull über `/health`.
+      // Tier 2 (standalone) hat keine Cloud und damit keine Sperre.
+      tenantSuspended: tenantSuspensionShown(conn.tier()) && this.#suspension.suspended(),
       tenantStatus: this.#suspension.tenantStatus(),
     })
   })

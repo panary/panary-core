@@ -26,6 +26,11 @@ import { APP_VERSION } from '../version'
 
 import type { Application } from '../declarations'
 import { decryptCloudToken, encryptCloudToken } from '../utils/cloud-token-cipher'
+import {
+  clearCloudTenantSuspension,
+  markCloudTenantSuspended,
+  readCloudTenantSuspension,
+} from '../utils/cloud-tenant-suspension'
 import { shouldActivateEmergencyOverride, shouldAutoDeactivateEmergencyOverride } from '../utils/emergency-override'
 import {
   deleteOverridesByIds,
@@ -995,6 +1000,9 @@ export const runPullForService = async (
     throwIfRateLimited(response, `pull:${service}`)
     if (!response.ok) {
       const text = await response.text().catch(() => 'Unbekannter Fehler')
+      // Mandantensperre fuer den POS merken (#1401) — der Fehler laeuft danach unveraendert weiter.
+      const suspension = readCloudTenantSuspension(response.status, text)
+      if (suspension) markCloudTenantSuspended(app, suspension.tenantStatus)
       throw new Error(
         buildCloudErrorMessage(`Pull (${service})`, response.status, text, {
           phase: 'pull',
@@ -1027,6 +1035,8 @@ export const runPullForService = async (
     if (!body.hasMore || !body.nextCursor) break
     cursorToken = body.nextCursor
   }
+  // Die Cloud hat den Pull angenommen, der Mandant ist also nicht (mehr) gesperrt (#1401).
+  clearCloudTenantSuspension(app)
   // `updatedAt` NICHT manuell setzen — `syncCursorPatchSchema` ist ein strikter
   // Pick aus dem Vollschema und enthaelt nur die fachlichen Patch-Felder
   // (lastPullAt etc.). `updatedAt` wird serverseitig vom resolveData-Resolver

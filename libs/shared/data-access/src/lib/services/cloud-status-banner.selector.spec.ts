@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { type CloudStatusState, selectActiveBanner } from './cloud-status-banner.selector'
+import { type CloudStatusState, selectActiveBanner, tenantSuspensionShown } from './cloud-status-banner.selector'
 
 /** Basis-State: alles gesund, Tier 3 (Edge mit Cloud-Sync), keine Auffaelligkeit. */
 const healthy = (): CloudStatusState => ({
@@ -253,5 +253,20 @@ describe('selectActiveBanner — Mandant gesperrt', () => {
   it('ARCHIVED nennt den Abschluss nicht als Ausweg', () => {
     const banner = selectActiveBanner({ ...healthy(), tenantSuspended: true, tenantStatus: 'ARCHIVED' })
     expect(banner?.sublineKey).toBe('CLOUD_STATUS.TENANT_SUSPENDED_SUBLINE_ARCHIVED')
+  })
+})
+
+describe('tenantSuspensionShown (#1401)', () => {
+  it('zeigt die Sperre im Tier cloud-direct', () => {
+    expect(tenantSuspensionShown('cloud-direct')).toBe(true)
+  })
+
+  it('zeigt die Sperre auch im Tier edge-with-cloud, weil der Edge sie aus seinem Pull meldet', () => {
+    expect(tenantSuspensionShown('edge-with-cloud')).toBe(true)
+  })
+
+  it('zeigt sie weder standalone noch bei unbekanntem Tier', () => {
+    expect(tenantSuspensionShown('standalone')).toBe(false)
+    expect(tenantSuspensionShown('unknown')).toBe(false)
   })
 })

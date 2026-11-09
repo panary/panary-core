@@ -10,6 +10,7 @@ import { AppConfigService, DeviceConfigService } from '@panary/shared/data-acces
 import { BusinessDaySchema } from '@panary/businessdays/domain'
 import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
 import { CLIENT_SERVICE_METHODS } from './client-service-methods'
+import { TenantSuspensionService } from './tenant-suspension.service'
 import { applySocketDeadline } from './socket-deadlines'
 import { ConnectOutageLog } from './connect-outage-log'
 
@@ -58,6 +59,7 @@ export class ConnectionService {
   //#region Dependencies
   protected readonly appConfigService: AppConfigService = inject(AppConfigService)
   protected readonly deviceConfigService: DeviceConfigService = inject(DeviceConfigService) // Inject DeviceConfigService
+  readonly #tenantSuspension = inject(TenantSuspensionService)
   //#endregion
 
   //#region Signals & State
@@ -567,6 +569,11 @@ export class ConnectionService {
     return this.#app.service('leave-requests')
   }
 
+  /** Nur Cloud (`entitlements.getForTenant`), am Edge gibt es den Service nicht (#1401). */
+  get entitlementsService(): { getForTenant: (data: Record<string, never>) => Promise<unknown> } {
+    return this.#app.service('entitlements')
+  }
+
   //#endregion
 
   //#region Constructor
@@ -888,6 +895,8 @@ export class ConnectionService {
         this.#emergencyOverrideSince.set(
           typeof data.emergencyOverrideSince === 'string' ? data.emergencyOverrideSince : null,
         )
+        // Mandantensperre aus dem Pull des gekoppelten Edge (#1401); fehlt das Feld, bleibt der Zustand.
+        this.#tenantSuspension.applyHealthSuspension(data.cloudTenantSuspension)
         this.#healthLoaded.set(true)
       }
     } catch {

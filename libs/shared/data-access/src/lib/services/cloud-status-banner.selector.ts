@@ -252,3 +252,11 @@ export function selectActiveBanner(s: CloudStatusState): CloudBanner | null {
 
   return null
 }
+
+/**
+ * In welchem Tier der Sperr-Banner erscheint (#1401): überall, wo eine Cloud die Sperre melden kann —
+ * `cloud-direct` direkt, `edge-with-cloud` über den Pull des Edge. `standalone` hat keine Cloud.
+ */
+export function tenantSuspensionShown(tier: 'cloud-direct' | 'standalone' | 'edge-with-cloud' | 'unknown'): boolean {
+  return tier === 'cloud-direct' || tier === 'edge-with-cloud'
+}

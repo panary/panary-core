@@ -45,6 +45,7 @@ const BEKANNTE_AUSNAHMEN: Record<string, string> = {}
 /** Service-Pfade des Clients ohne Edge-Gegenstueck, mit Begruendung. */
 const PFADE_OHNE_EDGE: Record<string, string> = {
   'leave-requests': 'Urlaubsantraege fuehrt nur die Cloud; am Edge gibt es den Service nicht',
+  entitlements: 'Mandantenstatus fuer den cloud-direct-POS (#1401); der Edge meldet ihn ueber /health',
 }
 
 /** Bewusst nicht registrierte Edge-Custom-Methoden, Schluessel wie oben. */

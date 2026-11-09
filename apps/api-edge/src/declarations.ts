@@ -2,6 +2,7 @@
 import { Application as FeathersApplication, Koa } from '@feathersjs/koa'
 import { HookContext as FeathersHookContext, NextFunction } from '@feathersjs/feathers'
 import { ApplicationConfiguration } from './configuration'
+import type { CloudTenantSuspension } from './utils/cloud-tenant-suspension'
 import { UserService } from './services/users/users.class'
 import { ApiKeyService } from './services/apikeys/apikeys.class'
 import { ProductService } from './services/products/products.class'
@@ -57,6 +58,9 @@ export interface Configuration extends ApplicationConfiguration {
   // Laufzeit-Instanz des TSE-Ports (Fiskalisierung), beim Bootstrap via
   // `createTsePort` gesetzt. Optional — in Produktion ohne echten Provider inaktiv.
   tsePort?: TsePort
+  // Mandantensperre aus dem letzten `/sync-pull` (panary/panary-core#1401), gemeldet über `/health`.
+  // `undefined` = seit dem Start unbekannt, `null` = nicht gesperrt.
+  cloudTenantSuspension?: CloudTenantSuspension | null
 }
 
 export interface ServiceTypes {

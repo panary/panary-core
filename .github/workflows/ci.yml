@@ -152,7 +152,7 @@ jobs:
           cp "$quelle" "$ziel" || verwerfen "DB nicht kopiert"
           rm -f .nx/workspace-data/*.lock .nx/workspace-data/*.db-wal .nx/workspace-data/*.db-shm
           rm -rf "$t"
-          echo "::notice title=Nx-Cache::$(find .nx/cache -mindepth 1 -maxdepth 1 | wc -l) Eintraege, $(du -sh .nx/cache | cut -f1), DB $(basename "$quelle") -> $(basename "$ziel")"
+          echo "::notice title=Nx-Cache::$(node scripts/nx-cache-mass.mjs .nx/cache "$ziel"), DB $(basename "$quelle") -> $(basename "$ziel")"
 
       # `--all`, nicht `--base`: Ein `format:check --base=…` prüft ausschließlich
       # Dateien, die gegen main geändert wurden — auf main selbst also nie. Drift
@@ -251,6 +251,11 @@ jobs:
         run: |
           node scripts/uncached-targets.spec.mjs
           pnpm targets:uncached:gate
+
+      # Die Messung der Nx-Cache-Notices (#1402). Sie selbst endet immer mit 0,
+      # ein Fehler darin faerbte nie etwas rot. Deshalb hier der Spec.
+      - name: Nx-Cache-Messung pruefen
+        run: node scripts/nx-cache-mass.spec.mjs
 
       # Die CSP des gepackten POS ist der eine Ort, den kein Test und kein
       # anderes Gate anfasst: Tauri setzt den Header nur im tauri://-Handler,
@@ -419,8 +424,15 @@ jobs:
             echo "::warning title=Nx-Cache::Kein Cache oder nicht genau eine Task-DB (${#dbs[@]}) — nichts zu sichern."
             exit 0
           fi
+          # Gemessen wird die Kopie, denn die wird gesichert. Nx deckelt nach der
+          # Summe der Dateigroessen in der DB, nicht nach `du` (#1402). Die WAL-Groesse
+          # steht dabei, weil nur die .db kopiert wird: Zeilen, die noch im WAL
+          # stuenden, fehlten der Kopie und tauchten als Verzeichnisse ohne DB-Zeile auf.
+          wal=(.nx/workspace-data/*.db-wal)
+          walgroesse="kein WAL"
+          [ "${#wal[@]}" -eq 1 ] && walgroesse="WAL $(stat -c %s "${wal[0]}") B"
           if mkdir -p "$t/db" && cp -R .nx/cache "$t/cache" && cp "${dbs[0]}" "$t/db/"; then
-            echo "::notice title=Nx-Cache gesichert::$(find "$t/cache" -mindepth 1 -maxdepth 1 | wc -l) Eintraege, $(du -sh "$t" | cut -f1)"
+            echo "::notice title=Nx-Cache gesichert::$(node scripts/nx-cache-mass.mjs "$t/cache" "$t/db/$(basename "${dbs[0]}")"), ${walgroesse}"
           else
             echo "::warning title=Nx-Cache::Bereitlegen fehlgeschlagen — nichts zu sichern."
             rm -rf "$t"

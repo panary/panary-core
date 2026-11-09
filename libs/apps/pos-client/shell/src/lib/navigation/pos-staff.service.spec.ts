@@ -88,6 +88,31 @@ describe('PosStaffService (core#832)', () => {
     expect(notify.mock.calls[0][1]).toBe('CLOUD_STATUS.TENANT_SUSPENDED')
   })
 
+  it('Mandantensperre sperrt nur Kommen und Pause-Beginn, Gehen und Pause-Ende gehen durch (core#1395)', async () => {
+    const { service, users, notify } = setup({ suspended: true, stampingId: 'wt-1' })
+    await service.clockIn()
+    await service.startBreak()
+    expect(users.checkin).not.toHaveBeenCalled()
+    expect(users.startBreak).not.toHaveBeenCalled()
+    expect(notify.mock.calls.map(call => call[1])).toEqual([
+      'CLOUD_STATUS.TENANT_SUSPENDED',
+      'CLOUD_STATUS.TENANT_SUSPENDED',
+    ])
+
+    await service.endBreak()
+    await service.clockOut()
+    expect(users.endBreak.mock.calls).toEqual([['u-olga', {}]])
+    expect(users.checkout.mock.calls).toEqual([['u-olga', {}]])
+  })
+
+  it('Rail-Taste unter Sperre: ausgestempelt gesperrt, eingestempelt offen fürs Menü mit Gehen (core#1395)', () => {
+    expect(setup({ suspended: true }).service.timeTrackingBlockedKey()).toBe('CLOUD_STATUS.TENANT_SUSPENDED')
+    expect(setup({ suspended: true, stampingId: 'wt-1' }).service.timeTrackingBlockedKey()).toBeNull()
+    expect(setup({ suspended: true, stampingId: 'wt-1', offline: true }).service.timeTrackingBlockedKey()).toBe(
+      'DASHBOARD.TIME_TRACKING_OFFLINE_BLOCKED',
+    )
+  })
+
   it('Gehen meldet nach Erfolg ab, nach Fehlschlag nicht', async () => {
     const ok = setup({ stampingId: 'wt-1' })
     await ok.service.clockOut()

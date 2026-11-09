@@ -199,7 +199,7 @@ describe('TimeClockPanel — Rückmeldung nach der Stempel-Aktion (core#810)', (
   })
 
   it('Mandant gesperrt → Vorschau wird gar nicht gesendet, Sperr-Hinweis', async () => {
-    const { component, lookupByEmployeeNumber } = setup({ suspended: true })
+    const { component, lookupByEmployeeNumber } = setup({ suspended: true, action: 'clock-in' })
     await component.lookupEmployee()
     expect(lookupByEmployeeNumber).not.toHaveBeenCalled()
     expect(component.confirmation()).toBeNull()
@@ -207,7 +207,7 @@ describe('TimeClockPanel — Rückmeldung nach der Stempel-Aktion (core#810)', (
   })
 
   it('Mandant gesperrt zwischen Vorschau und Buchung → Buchung wird nicht gesendet', async () => {
-    const { component, stampByEmployeeNumber, markSuspended } = setup()
+    const { component, stampByEmployeeNumber, markSuspended } = setup({ action: 'break-start' })
     await component.lookupEmployee()
     markSuspended()
     await component.confirmAction()
@@ -215,6 +215,18 @@ describe('TimeClockPanel — Rückmeldung nach der Stempel-Aktion (core#810)', (
     expect(component.successMessage()).toBeNull()
     expect(component.errorMessage()).toBe('CLOUD_STATUS.TENANT_SUSPENDED')
   })
+
+  it.each(['clock-out', 'break-end'] as const)(
+    'Mandant gesperrt → %s geht trotzdem an den Server (cloud#1435, core#1395)',
+    async action => {
+      const { component, lookupByEmployeeNumber, stampByEmployeeNumber } = setup({ suspended: true, action })
+      await component.lookupEmployee()
+      expect(lookupByEmployeeNumber).toHaveBeenCalledTimes(1)
+      await component.confirmAction()
+      expect(stampByEmployeeNumber).toHaveBeenCalledTimes(1)
+      expect(component.errorMessage()).toBeNull()
+    },
+  )
 
   it('Sperre erst durch diese Anfrage erkannt → Sperr-Hinweis statt „fehlgeschlagen“', async () => {
     const tenantSuspended = feathersError(403, 'TENANT_SUSPENDED: Mandant gesperrt', {

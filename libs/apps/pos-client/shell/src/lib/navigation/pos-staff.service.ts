@@ -14,8 +14,10 @@ import { KasseDraftRegistry } from '@panary/orders/feature-pos-order-dialog'
 import {
   railSide,
   type ScreenSide,
+  suspensionBlocksTimeClock,
   type TimeClockAction,
   timeClockState,
+  timeClockTapAction,
   timeTrackingBlockedHintKey,
 } from './pos-navigation'
 
@@ -81,9 +83,12 @@ export class PosStaffService {
   readonly timeClockState = computed(() => timeClockState(this.isStampedIn(), this.isOnBreak()))
 
   /** Übersetzungsschlüssel, warum Stempeln gerade nicht geht; `null` = es geht. */
-  readonly timeTrackingBlockedKey = computed(() =>
-    timeTrackingBlockedHintKey(this.bookingSuspended(), this.isOffline()),
-  )
+  readonly timeTrackingBlockedKey = computed(() => {
+    // Eingestempelt öffnet die Taste das Menü mit Pause und Gehen; Gehen geht auch unter Sperre (core#1395).
+    const tap = timeClockTapAction(this.timeClockState())
+    const suspensionApplies = tap !== null && suspensionBlocksTimeClock(tap)
+    return timeTrackingBlockedHintKey(this.bookingSuspended() && suspensionApplies, this.isOffline())
+  })
 
   /** Läuft gerade ein Stempel-Aufruf aus der Rail? */
   readonly timeClockBusy = signal(false)
@@ -103,7 +108,7 @@ export class PosStaffService {
   }
 
   async clockIn(): Promise<void> {
-    const user = this.#timeTrackingUser()
+    const user = this.#timeTrackingUser('clock-in')
     if (!user) return
     await this.#run('Clock in', () => this.#users.checkin(user._id, withPosOperatorToken()), 'POS_NAV.CLOCKED_IN')
   }
@@ -113,7 +118,7 @@ export class PosStaffService {
    * wer „Weiter bearbeiten" wählt, bleibt eingestempelt.
    */
   async clockOut(): Promise<void> {
-    const user = this.#timeTrackingUser()
+    const user = this.#timeTrackingUser('clock-out')
     if (!user?.stampingId) return
     if (!(await this.#kasse.confirmLeave())) return
     if (
@@ -123,7 +128,7 @@ export class PosStaffService {
   }
 
   async startBreak(): Promise<void> {
-    const user = this.#timeTrackingUser()
+    const user = this.#timeTrackingUser('start-break')
     if (!user?.stampingId) return
     await this.#run(
       'Start break',
@@ -133,7 +138,7 @@ export class PosStaffService {
   }
 
   async endBreak(): Promise<void> {
-    const user = this.#timeTrackingUser()
+    const user = this.#timeTrackingUser('end-break')
     if (!user?.stampingId) return
     await this.#run('End break', () => this.#users.endBreak(user._id, withPosOperatorToken()), 'POS_NAV.BREAK_ENDED')
   }
@@ -203,8 +208,11 @@ export class PosStaffService {
    * Bediener-Token, damit der Edge die Stempelung an den angemeldeten Menschen binden kann (core#903).
    * Ein Edge vor #903 entfernt den Schlüssel in `resolvePosOperator`, ohne ihn auszuwerten.
    */
-  #timeTrackingUser() {
-    const blocked = this.timeTrackingBlockedKey()
+  #timeTrackingUser(action: TimeClockAction) {
+    const blocked = timeTrackingBlockedHintKey(
+      this.bookingSuspended() && suspensionBlocksTimeClock(action),
+      this.isOffline(),
+    )
     if (blocked) {
       this.#notify(blocked)
       return undefined

@@ -28,6 +28,12 @@ const STAMP_ACTION_OF: Record<TimeClockAction, StampAction> = {
   'break-end': 'endBreak',
 }
 
+/**
+ * Buchungen, die die Cloud bei gesperrtem Mandanten ablehnt; Gehen und Pause-Ende lässt sie durch (cloud#1435).
+ * Gegenstück am Rail: `suspensionBlocksTimeClock` (pos-navigation.ts), beide gleich halten.
+ */
+const SUSPENSION_BLOCKS: ReadonlySet<StampAction> = new Set<StampAction>(['checkin', 'startBreak'])
+
 /** Zeigt die Bestätigung vor der Buchung: nur das, was der Server als Vorschau herausgibt. */
 export interface TimeClockConfirmation {
   /** „Max M." — Vorname und Initial des Nachnamens. */
@@ -297,8 +303,9 @@ export class TimeClockPanelComponent {
       return
     }
 
-    // Wie im Dashboard: Bei gesperrtem Mandanten gar nicht erst senden (panary/panary-core#810).
-    if (this.#tenantSuspension.suspended()) {
+    // Wie in der Rail: Bei gesperrtem Mandanten gar nicht erst senden (panary/panary-core#810) — aber nur, was
+    // die Cloud unter Sperre ablehnt. Gehen und Pause-Ende gehen durch (panary/panary-cloud#1435, core#1395).
+    if (this.#tenantSuspension.suspended() && SUSPENSION_BLOCKS.has(STAMP_ACTION_OF[action])) {
       this.pinError.set(true)
       this.errorMessage.set(this.#translateService.instant('CLOUD_STATUS.TENANT_SUSPENDED'))
       return
@@ -328,7 +335,7 @@ export class TimeClockPanelComponent {
 
     if (!action || !confirmation || employeeNumber.length !== 6 || this.isLoading()) return
 
-    if (this.#tenantSuspension.suspended()) {
+    if (this.#tenantSuspension.suspended() && SUSPENSION_BLOCKS.has(STAMP_ACTION_OF[action])) {
       this.pinError.set(true)
       this.errorMessage.set(this.#translateService.instant('CLOUD_STATUS.TENANT_SUSPENDED'))
       return

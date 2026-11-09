@@ -231,6 +231,15 @@ export function timeTrackingBlockedHintKey(suspended: boolean, offline: boolean)
 export type TimeClockAction = 'clock-in' | 'start-break' | 'end-break' | 'clock-out'
 
 /**
+ * Was die Mandantensperre am POS sperrt: nur Kommen und Pause-Beginn. Gehen und Pause-Ende lässt die
+ * Cloud ausdrücklich durch (panary/panary-cloud#1435, `assert-tenant-status.hook.ts`), sonst liefe die
+ * Arbeitszeit eines bei Sperrbeginn Eingestempelten ohne Endzeit weiter (panary/panary-core#1395).
+ */
+export function suspensionBlocksTimeClock(action: TimeClockAction): boolean {
+  return action === 'clock-in' || action === 'start-break'
+}
+
+/**
  * Zustand der einen Stempeltaste der Rail (core#942): grau = ausgestempelt (Tipp = Kommen), mint =
  * eingestempelt (Tipp öffnet Pause/Gehen), amber = Pause (Tipp = Pause Ende).
  */

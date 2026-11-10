@@ -4,7 +4,7 @@ title: CI-Nx-Cache — Remote-Cache bei Push, GitHub-Actions-Cache bei PR
 description: Woher die core-CI ihre Nx-Treffer bekommt — main-Läufe aus dem Remote-Cache, PR-Läufe aus einem rollierenden GitHub-Actions-Cache des jüngsten main-Stands —, warum es dafür kein Read-Only-Token gibt, wie die Task-DB über die Maschinen-ID hinweg übernommen wird und was der Deckel gegen das volle Cache-Kontingent tut.
 tags: [ci, infra, nx]
 status: stable
-generated: { by: claude-code/opus-5.5, at: 2026-11-09T22:45:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-11-10T02:30:00Z }
 sources:
   - id: issue-1376
     resource: https://github.com/panary/panary-core/issues/1376
@@ -15,6 +15,9 @@ sources:
   - id: issue-1402
     resource: https://github.com/panary/panary-core/issues/1402
     title: Notice-Größe über dem Deckel, Ursache und Messung
+  - id: issue-1407
+    resource: https://github.com/panary/panary-core/issues/1407
+    title: Alter von Zugriff und Anlage in den Notices, Lesart für den Deckel
   - id: nx-cache-mass
     resource: scripts/nx-cache-mass.mjs
     title: Messung der Nx-Cache-Notices
@@ -135,6 +138,30 @@ dort ist also rund das 2,6-Fache.
 Daraus folgt auch: **Sinkende Einträge sind unter dem Deckel normal.** Ist er erreicht, verdrängt
 jeder große neue Eintrag mehrere kleine alte. Die Zahl wächst nur, bis der Deckel greift.
 
+### Reicht 1 GB? Das Alter beim Sichern
+
+Ob der Deckel Einträge wegwirft, die noch gebraucht würden, zeigt das Alter der ältesten Zeile in
+der Notice **„Nx-Cache gesichert“**, also nach der Verdrängung, gelesen zusammen mit dem Nx-Maß
+derselben Notice ([#1407](https://github.com/panary/panary-core/issues/1407)):
+
+| beim Sichern | Lesart |
+| --- | --- |
+| ältester Zugriff nahe sieben Tagen | Die Altersregel verdrängt. Mehr Platz bringt wenig. |
+| ältester Zugriff deutlich jünger, Nx-Maß nahe am Deckel | Der Deckel wirft Einträge weg, die noch keine Woche alt sind. Ein Argument für 2 GB. |
+| ältester Zugriff jünger, Nx-Maß deutlich unter dem Deckel | Es wird nicht verdrängt. |
+
+🚨 **Erst Läufe ab 2026-11-15 19:00 UTC zählen.** Der Actions-Cache-Pfad kam am 2026-11-08 18:55 UTC
+([#1376](https://github.com/panary/panary-core/issues/1376)), der erste gesicherte Lauf startete leer.
+Bis eine Woche danach ist der älteste Zugriff zwangsläufig jünger als sieben Tage, ganz gleich, was
+verdrängt wird. Die älteste Anlage in derselben Zeile macht das sichtbar: Liegt sie unter sieben
+Tagen, ist der Cache selbst noch jünger als die Altersregel.
+
+Gewertet werden nur `main`-Läufe, die Tasks ausgeführt oder getroffen haben (`Cache: n/m` mit
+m > 0). Ein Lauf ohne Tasks frischt kein `accessed_at` auf (abgelesen aus den SQL-Texten im nativen
+Nx-Modul, `UPDATE cache_outputs SET accessed_at = CURRENT_TIMESTAMP` beim Treffer; zur Laufzeit
+ungeprüft). Die Entscheidung über den Deckel trifft
+Michael.
+
 ### Die Notices
 
 Beide Notices („Nx-Cache“ beim Übernehmen, „Nx-Cache gesichert“ beim Bereitlegen) kommen aus
@@ -147,9 +174,15 @@ Beide Notices („Nx-Cache“ beim Übernehmen, „Nx-Cache gesichert“ beim Be
 | Platte: Dateigröße / belegt | Byte-Summe bzw. Blöcke × 512 | Block-Aufschlag des Runners |
 | Hash-Verzeichnisse, davon ohne DB-Zeile | Verzeichnisse unter `.nx/cache` gegen die DB | verwaiste Einträge, die Nx nie verdrängt |
 | WAL (nur beim Sichern) | Größe der `*.db-wal` | gesichert wird nur die `.db`; ein volles WAL fehlte der Kopie |
+| ältester / jüngster Zugriff, älteste Anlage | `MIN`/`MAX(accessed_at)`, `MIN(created_at)` als Alter (h unter einem Tag, sonst d) | Lesart oben; nach `accessed_at` verdrängt Nx. Eigene Abfrage: Fehlt eine Spalte, steht „Alter nicht messbar: …“, die Größen bleiben. Leere DB: „Alter: keine Zeilen“. Beim Sichern gemessen wird die gesicherte `.db` ohne WAL; Zugriffe, die noch im WAL standen, fehlen ihr wie der Messung |
 
 Die Messung endet immer mit Exit 0. Ihr Spec `scripts/nx-cache-mass.spec.mjs` läuft als eigener
 CI-Schritt.
+
+Die Zeitstempel schreibt SQLite per `CURRENT_TIMESTAMP` als `YYYY-MM-DD HH:MM:SS` in UTC, ohne
+Zone. Ein naives `new Date()` läse das als Ortszeit. Das Skript liest sie deshalb von Hand als UTC,
+der Spec startet den Aufruf-Test mit `TZ=Europe/Berlin`. Der CI-Runner läuft in UTC und sähe die
+falsche Lesart sonst nie.
 
 ## Was das nicht abdeckt
 
@@ -166,6 +199,9 @@ CI-Schritt.
 - **Die Verdrängungsregel** ist aus den SQL-Texten im nativen Nx-Modul abgelesen, nicht aus dem
   Rust-Quelltext. Dass die Summe unter dem Deckel bleibt, belegt eine einzelne Notice
   ([PR #1405](https://github.com/panary/panary-core/pull/1405)), noch keine Reihe von Läufen.
+- **Das Alter misst nur die Nutzung durch `main`.** Ein PR-Lauf schreibt seine DB nicht zurück. Ein
+  Eintrag, den nur PRs treffen, sieht deshalb alt aus und wird früher verdrängt, als seine Nutzung
+  rechtfertigt. Ob 2 GB die PR-Trefferquote hebt, zeigte erst ein Vergleich nach dem Anheben.
 - **Die Shell-Logik ist nicht als Spec getestet**, nur lokal mit den Fällen oben nachgestellt. Sie
   steht inline im Workflow, und belegt wird sie über die Verifikation nach dem Merge
   ([#1376](https://github.com/panary/panary-core/issues/1376)).

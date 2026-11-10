@@ -147,6 +147,41 @@ test('unlesbarer Zeitstempel: nicht messbar mit Grund', () => {
   const a = alterAuswerten({ aeltesterZugriff: 'x', juengsterZugriff: 'x', aeltesteAnlage: 'x' }, JETZT)
   assert.match(alterText(a), /^Alter nicht messbar: aeltesterZugriff unlesbar/)
 })
+test('Zeilen mit NULL-Zeitstempeln sind nicht „keine Zeilen"', () => {
+  const a = alterAuswerten({ aeltesterZugriff: null, juengsterZugriff: null, aeltesteAnlage: null, zeilen: 3 }, JETZT)
+  assert.equal(alterText(a), 'Alter nicht messbar: Zeitstempel leer (NULL)')
+})
+test('Zeitstempel Stunden in der Zukunft: nicht messbar statt 0.0 h', () => {
+  const a = alterAuswerten(
+    {
+      aeltesterZugriff: '2026-11-16 01:30:00',
+      juengsterZugriff: '2026-11-16 01:30:00',
+      aeltesteAnlage: '2026-11-16 01:30:00',
+    },
+    JETZT,
+  )
+  assert.match(alterText(a), /^Alter nicht messbar: aeltesterZugriff liegt in der Zukunft/)
+})
+test('wenige Minuten Uhrabweichung bleiben 0.0 h', () => {
+  const a = alterAuswerten(
+    {
+      aeltesterZugriff: '2026-11-16 00:32:00',
+      juengsterZugriff: '2026-11-16 00:32:00',
+      aeltesteAnlage: '2026-11-16 00:32:00',
+    },
+    JETZT,
+  )
+  assert.match(alterText(a), /^ältester Zugriff vor 0\.0 h/)
+})
+test('unlesbarer Rohwert wird gekürzt und ohne Zeilenumbruch ausgegeben', () => {
+  const a = alterAuswerten(
+    { aeltesterZugriff: 'a\nb%' + 'x'.repeat(80), juengsterZugriff: 'x', aeltesteAnlage: 'x' },
+    JETZT,
+  )
+  const t = alterText(a)
+  assert.ok(!t.includes('\n') && !t.includes('%'), t)
+  assert.ok(t.length < 120, t)
+})
 test('zeile() hängt das Alter hinten an', () => {
   const a = alterAuswerten(
     {

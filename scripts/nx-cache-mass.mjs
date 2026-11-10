@@ -39,6 +39,8 @@ export function formatGroesse(bytes) {
 
 const STUNDE = 3600 * 1000
 const TAG = 24 * STUNDE
+/** Uhrabweichung zwischen Nx-Schreiber und Messung, die noch als „jetzt" gilt. */
+const ZUKUNFT_TOLERANZ = 5 * 60 * 1000
 
 /**
  * SQLite `CURRENT_TIMESTAMP` liefert `YYYY-MM-DD HH:MM:SS` in UTC, ohne Zone. `new Date()` läse das
@@ -63,11 +65,21 @@ export function formatAlter(ms) {
  */
 export function alterAuswerten(roh, jetzt) {
   const felder = ['aeltesterZugriff', 'juengsterZugriff', 'aeltesteAnlage']
-  if (felder.every(f => roh?.[f] === null || roh?.[f] === undefined)) return { art: 'leer' }
+  if (felder.every(f => roh?.[f] === null || roh?.[f] === undefined)) {
+    // Zeilen ohne Zeitstempel sind keine leere DB — sonst stünde „keine Zeilen" neben „438 Einträge".
+    return Number(roh?.zeilen) > 0 ? { art: 'fehler', grund: 'Zeitstempel leer (NULL)' } : { art: 'leer' }
+  }
   const werte = {}
   for (const f of felder) {
     const t = parseSqliteUtc(roh[f])
-    if (Number.isNaN(t)) return { art: 'fehler', grund: `${f} unlesbar („${roh[f]}")` }
+    // Gekürzt und ohne Steuerzeichen: Der Wert landet in einem `::notice`-Kommando.
+    const zeige = () =>
+      String(roh[f])
+        .replace(/[\x00-\x1f%]/g, '?')
+        .slice(0, 40)
+    if (Number.isNaN(t)) return { art: 'fehler', grund: `${f} unlesbar („${zeige()}")` }
+    // Eine falsche Zonenlesung verschiebt um Stunden in die Zukunft; still auf 0 geklemmt fiele sie nicht auf.
+    if (t - jetzt > ZUKUNFT_TOLERANZ) return { art: 'fehler', grund: `${f} liegt in der Zukunft („${zeige()}")` }
     werte[f] = jetzt - t
   }
   return { art: 'werte', ...werte }
@@ -140,7 +152,7 @@ function messen(cacheDir, dbDatei, deckelRoh, jetzt) {
       const roh = db
         .prepare(
           'SELECT MIN(accessed_at) AS aeltesterZugriff, MAX(accessed_at) AS juengsterZugriff, ' +
-            'MIN(created_at) AS aeltesteAnlage FROM cache_outputs',
+            'MIN(created_at) AS aeltesteAnlage, COUNT(*) AS zeilen FROM cache_outputs',
         )
         .get()
       alter = alterAuswerten(roh, jetzt)

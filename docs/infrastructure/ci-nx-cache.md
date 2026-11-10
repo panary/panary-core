@@ -15,6 +15,9 @@ sources:
   - id: issue-1402
     resource: https://github.com/panary/panary-core/issues/1402
     title: Notice-Größe über dem Deckel, Ursache und Messung
+  - id: issue-1407
+    resource: https://github.com/panary/panary-core/issues/1407
+    title: Alter von Zugriff und Anlage in den Notices, Lesart für den Deckel
   - id: nx-cache-mass
     resource: scripts/nx-cache-mass.mjs
     title: Messung der Nx-Cache-Notices
@@ -154,7 +157,9 @@ verdrängt wird. Die älteste Anlage in derselben Zeile macht das sichtbar: Lieg
 Tagen, ist der Cache selbst noch jünger als die Altersregel.
 
 Gewertet werden nur `main`-Läufe, die Tasks ausgeführt oder getroffen haben (`Cache: n/m` mit
-m > 0). Ein Lauf ohne Tasks frischt kein `accessed_at` auf. Die Entscheidung über den Deckel trifft
+m > 0). Ein Lauf ohne Tasks frischt kein `accessed_at` auf (abgelesen aus den SQL-Texten im nativen
+Nx-Modul, `UPDATE cache_outputs SET accessed_at = CURRENT_TIMESTAMP` beim Treffer; zur Laufzeit
+ungeprüft). Die Entscheidung über den Deckel trifft
 Michael.
 
 ### Die Notices
@@ -169,7 +174,7 @@ Beide Notices („Nx-Cache“ beim Übernehmen, „Nx-Cache gesichert“ beim Be
 | Platte: Dateigröße / belegt | Byte-Summe bzw. Blöcke × 512 | Block-Aufschlag des Runners |
 | Hash-Verzeichnisse, davon ohne DB-Zeile | Verzeichnisse unter `.nx/cache` gegen die DB | verwaiste Einträge, die Nx nie verdrängt |
 | WAL (nur beim Sichern) | Größe der `*.db-wal` | gesichert wird nur die `.db`; ein volles WAL fehlte der Kopie |
-| ältester / jüngster Zugriff, älteste Anlage | `MIN`/`MAX(accessed_at)`, `MIN(created_at)` als Alter (h unter einem Tag, sonst d) | Lesart oben; nach `accessed_at` verdrängt Nx. Eigene Abfrage: Fehlt eine Spalte, steht „Alter nicht messbar: …“, die Größen bleiben. Leere DB: „Alter: keine Zeilen“ |
+| ältester / jüngster Zugriff, älteste Anlage | `MIN`/`MAX(accessed_at)`, `MIN(created_at)` als Alter (h unter einem Tag, sonst d) | Lesart oben; nach `accessed_at` verdrängt Nx. Eigene Abfrage: Fehlt eine Spalte, steht „Alter nicht messbar: …“, die Größen bleiben. Leere DB: „Alter: keine Zeilen“. Beim Sichern gemessen wird die gesicherte `.db` ohne WAL; Zugriffe, die noch im WAL standen, fehlen ihr wie der Messung |
 
 Die Messung endet immer mit Exit 0. Ihr Spec `scripts/nx-cache-mass.spec.mjs` läuft als eigener
 CI-Schritt.

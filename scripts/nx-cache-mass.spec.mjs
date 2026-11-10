@@ -187,10 +187,10 @@ test('echte SQLite-DB und Verzeichnis', () => {
       'CREATE TABLE cache_outputs (hash TEXT PRIMARY KEY, code INTEGER, size INTEGER, is_cache_entry BOOLEAN, ' +
         'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)',
     )
-    // Zeitstempel relativ zu jetzt, von SQLite selbst in UTC erzeugt: 3 h bzw. 2 d alt
+    // Zeitstempel relativ zu jetzt, von SQLite selbst in UTC erzeugt: Zugriffe 3 h und 30 min, Anlage 2 d
     db.exec(`INSERT INTO cache_outputs VALUES
       ('11', 0, 100, 1, datetime('now', '-2 days'), datetime('now', '-3 hours')),
-      ('44', 0, 5, 0, datetime('now', '-3 hours'), datetime('now', '-3 hours'))`)
+      ('44', 0, 5, 0, datetime('now', '-3 hours'), datetime('now', '-30 minutes'))`)
     db.close()
     // TZ erzwingen: Der CI-Runner läuft in UTC und sähe eine Ortszeit-Lesart sonst nie.
     const r = spawnSync(process.execPath, [skript, cache, join(dir, 'x-v4.db'), '1GB'], {
@@ -200,7 +200,7 @@ test('echte SQLite-DB und Verzeichnis', () => {
     assert.equal(r.status, 0)
     assert.match(r.stdout, /^1 Einträge laut DB \(2 Zeilen\), Nx-Maß 0 KB von Deckel 1\.00 GB, /)
     assert.match(r.stdout, /2 Hash-Verzeichnisse, davon 1 ohne DB-Zeile/)
-    assert.match(r.stdout, /ältester Zugriff vor 3\.0 h, jüngster vor 3\.0 h, älteste Anlage vor 2\.0 d\n$/)
+    assert.match(r.stdout, /ältester Zugriff vor 3\.0 h, jüngster vor 0\.5 h, älteste Anlage vor 2\.0 d\n$/)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

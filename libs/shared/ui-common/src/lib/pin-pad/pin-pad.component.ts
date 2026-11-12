@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output } from '@angular/core'
+import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, input, output } from '@angular/core'
 import { NgClass } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { fromEvent, type Observable } from 'rxjs'
@@ -61,6 +61,8 @@ export class PinPadComponent {
   /** Tailwind-Klasse der gefuellten Punkte (Akzentfarbe je Dialog). Voller Klassenname, sonst findet Tailwind ihn nicht. */
   readonly accentClass = input<string>('bg-[#00B8D4]')
   readonly keyboard = input<PinPadKeyboardSource>('window')
+  /** Flachere Variante (Tasten 3,5 rem, engere Abstaende) fuer Dialoge, die in 1366x768 hoehenknapp sind (core#955). */
+  readonly compact = input(false, { transform: booleanAttribute })
 
   readonly digit = output<string>()
   readonly backspace = output<void>()

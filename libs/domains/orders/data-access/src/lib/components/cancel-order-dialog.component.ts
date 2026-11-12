@@ -4,8 +4,9 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { NotificationService } from '@panary/shared/ui-notifications'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService, currentPosOperatorToken, posOperatorParams } from '@panary/shared/data-access'
+import { PinPadComponent } from '@panary/shared/ui-common'
 import { UserService } from '@panary/users/data-access'
-import { ORDER_CANCEL_AUTHORIZING_ROLES, User, UserStatus } from '@panary/users/domain'
+import { ORDER_CANCEL_AUTHORIZING_ROLES, POS_PIN_LENGTH, User, UserStatus } from '@panary/users/domain'
 import { OrderService } from '../services/order.service'
 import { OrderInteractionService } from '../services/order-interaction.service'
 import { OrderInteractionType } from '@panary/order-interactions/domain'
@@ -24,9 +25,6 @@ const CANCEL_REASONS = [
  * auf zugewiesenen Geräten sichtbar halten muss — sonst wäre der Notfallpfad tot.
  */
 const AUTHORIZING_ROLES = ORDER_CANCEL_AUTHORIZING_ROLES
-
-/** POS-PINs sind über alle POS-Oberflächen hinweg vierstellig (vgl. Login, Unpair, Kassen-Freigabe). */
-const PIN_LENGTH = 4
 
 type DialogStep = 'reason' | 'select-user' | 'pin'
 
@@ -47,7 +45,7 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
 @Component({
   selector: 'lib-cancel-order-dialog',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [PinPadComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 min-w-[22.5rem] max-w-[26.25rem]">
@@ -151,62 +149,21 @@ const isOrderCancelNotAuthorized = (error: unknown): boolean =>
           <p class="text-sm text-ink-muted mb-5">{{ manager.fullName }}</p>
         }
 
-        <!-- PIN Dots -->
-        <div class="flex justify-center gap-3 mb-5">
-          @for (i of pinSlots; track i) {
-            <div
-              class="w-4 h-4 rounded-full transition-all duration-150"
-              [class.bg-line]="pin().length <= i && !pinError()"
-              [class.bg-red-500]="pinError()"
-              [class.bg-amber-500]="pin().length > i && !pinError()"
-            ></div>
-          }
-        </div>
+        <lib-pin-pad
+          compact
+          [length]="pinLength"
+          [value]="pin()"
+          [disabled]="verifying()"
+          [error]="pinError()"
+          accentClass="bg-amber-500"
+          [keyboard]="keyboard$"
+          (digit)="appendDigit($event)"
+          (backspace)="deleteDigit()"
+        />
 
         @if (errorMessage()) {
           <p class="text-center text-red-500 text-sm mb-3">{{ errorMessage() }}</p>
         }
-
-        <!-- Numpad -->
-        <div class="grid grid-cols-3 gap-2 max-w-[15rem] mx-auto">
-          @for (digit of digits; track digit) {
-            <button
-              (click)="appendDigit(digit)"
-              [disabled]="verifying()"
-              class="h-14 rounded-xl bg-line-soft hover:bg-line
-                     active:bg-line-strong text-xl font-semibold text-ink
-                     transition-all active:scale-95 disabled:opacity-40"
-            >
-              {{ digit }}
-            </button>
-          }
-          <div></div>
-          <button
-            (click)="appendDigit('0')"
-            [disabled]="verifying()"
-            class="h-14 rounded-xl bg-line-soft hover:bg-line
-                   active:bg-line-strong text-xl font-semibold text-ink
-                   transition-all active:scale-95 disabled:opacity-40"
-          >
-            0
-          </button>
-          <button
-            (click)="deleteDigit()"
-            [disabled]="verifying()"
-            class="h-14 rounded-xl bg-line-soft hover:bg-line
-                   flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
-            [attr.aria-label]="'COMMON.DELETE' | translate"
-          >
-            <svg class="w-5 h-5 text-ink-muted dark:text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"
-              ></path>
-            </svg>
-          </button>
-        </div>
 
         @if (verifying()) {
           <p class="text-center text-xs text-ink-muted pt-4">{{ 'COMMON.VERIFYING' | translate }}</p>
@@ -248,8 +205,9 @@ export class CancelOrderDialogComponent {
   #cancelling = false
 
   readonly reasons = CANCEL_REASONS
-  readonly digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-  readonly pinSlots = Array.from({ length: PIN_LENGTH }, (_, i) => i)
+  readonly pinLength = POS_PIN_LENGTH
+  /** Tasten nur vom obersten Overlay (CDK), nicht von `window`: ein gestapelter Dialog darf nicht mitlesen. */
+  readonly keyboard$ = this.#dialogRef.keydownEvents()
 
   step = signal<DialogStep>('reason')
   selectedReason = signal('')
@@ -345,11 +303,11 @@ export class CancelOrderDialogComponent {
   }
 
   appendDigit(digit: string): void {
-    if (this.verifying() || this.pin().length >= PIN_LENGTH) return
+    if (this.verifying() || this.pin().length >= POS_PIN_LENGTH) return
     this.pin.update(p => p + digit)
     this.pinError.set(false)
     this.errorMessage.set(null)
-    if (this.pin().length === PIN_LENGTH) {
+    if (this.pin().length === POS_PIN_LENGTH) {
       // Kurz verzögert, damit der letzte Punkt vor dem Request sichtbar wird (wie im Login).
       setTimeout(() => void this.verifyPin(), 100)
     }
@@ -373,7 +331,7 @@ export class CancelOrderDialogComponent {
    */
   private async verifyPin(): Promise<void> {
     const manager = this.selectedManager()
-    if (!manager || this.verifying() || this.pin().length < PIN_LENGTH) return
+    if (!manager || this.verifying() || this.pin().length < POS_PIN_LENGTH) return
 
     this.verifying.set(true)
     try {

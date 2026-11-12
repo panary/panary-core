@@ -8,8 +8,8 @@ import { CashSession } from '@panary/businessdays/domain'
 import { CashSessionService } from '@panary/businessdays/data-access'
 import { AppError } from '@panary/shared-common'
 import { ConnectionService } from '@panary/shared/data-access'
-import { CASH_SESSION_AUTHORIZING_ROLES, User, UserStatus } from '@panary/users/domain'
-import { IconComponent } from '@panary/shared/ui-common'
+import { CASH_SESSION_AUTHORIZING_ROLES, POS_PIN_LENGTH, User, UserStatus } from '@panary/users/domain'
+import { IconComponent, PinPadComponent } from '@panary/shared/ui-common'
 
 export interface ManagerAuthorizeCashSessionDialogData {
   businessDayId: string
@@ -37,9 +37,6 @@ interface AuthorizingManager {
  * zugewiesenen Geräten sichtbar halten muss — sonst wäre die Freigabe tot.
  */
 const AUTHORIZING_ROLES = CASH_SESSION_AUTHORIZING_ROLES
-
-/** POS-PINs sind über alle POS-Oberflächen hinweg vierstellig (vgl. Login, Storno, Unpair). */
-const PIN_LENGTH = 4
 
 /** Anzeigedauer des Erfolgs-Screens, bevor der Dialog sich selbst schließt. */
 const AUTO_CLOSE_MS = 1200
@@ -71,9 +68,8 @@ const AUTH_ERROR_KEYS: Record<string, string> = {
   selector: 'app-manager-authorize-cash-session-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, TranslateModule],
+  imports: [IconComponent, PinPadComponent, TranslateModule],
   templateUrl: './manager-authorize-cash-session-dialog.component.html',
-  styleUrl: './manager-authorize-cash-session-dialog.component.scss',
 })
 export class ManagerAuthorizeCashSessionDialogComponent {
   readonly #dialogRef = inject(MatDialogRef<ManagerAuthorizeCashSessionDialogComponent, CashSession | null>)
@@ -99,8 +95,8 @@ export class ManagerAuthorizeCashSessionDialogComponent {
       : 0,
   )
 
-  protected readonly digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-  protected readonly pinSlots = Array.from({ length: PIN_LENGTH }, (_, i) => i)
+  protected readonly pinLength = POS_PIN_LENGTH
+  protected readonly keyboard$ = this.#dialogRef.keydownEvents()
 
   protected readonly hasManagers = computed(() => this.managers().length > 0)
 
@@ -162,11 +158,11 @@ export class ManagerAuthorizeCashSessionDialogComponent {
   }
 
   protected addDigit(digit: string): void {
-    if (this.step() !== 'enter-pin' || this.pin().length >= PIN_LENGTH) return
+    if (this.step() !== 'enter-pin' || this.pin().length >= POS_PIN_LENGTH) return
     this.pin.update(current => current + digit)
     this.pinError.set(false)
     this.errorMessage.set(null)
-    if (this.pin().length === PIN_LENGTH) {
+    if (this.pin().length === POS_PIN_LENGTH) {
       // Kurz verzögert, damit der vierte Punkt vor dem Request sichtbar wird (wie im Login).
       setTimeout(() => void this.submit(), 100)
     }
@@ -180,7 +176,7 @@ export class ManagerAuthorizeCashSessionDialogComponent {
 
   protected async submit(): Promise<void> {
     const manager = this.selectedManager()
-    if (!manager || this.step() !== 'enter-pin' || this.pin().length < PIN_LENGTH) return
+    if (!manager || this.step() !== 'enter-pin' || this.pin().length < POS_PIN_LENGTH) return
 
     const pin = this.pin()
     this.step.set('submitting')
@@ -278,17 +274,6 @@ export class ManagerAuthorizeCashSessionDialogComponent {
     }
     // Der Dispatcher liefert auch Tastendrücke aus dem Wechselgeld-Feld —
     // ohne diese Sperre landeten sie im PIN.
-    if (this.step() !== 'enter-pin') return
-
-    if (event.key === 'Backspace' || event.key === 'Delete') {
-      event.preventDefault()
-      this.deleteDigit()
-      return
-    }
-    if (/^[0-9]$/.test(event.key)) {
-      event.preventDefault()
-      this.addDigit(event.key)
-    }
   }
 
   #toErrorMessage(err: unknown): string {

@@ -12,8 +12,8 @@ import { CommonModule } from '@angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
-import { UNPAIR_ALLOWED_ROLES } from '@panary/users/domain'
-import { IconComponent } from '@panary/shared/ui-common'
+import { POS_PIN_LENGTH, UNPAIR_ALLOWED_ROLES } from '@panary/users/domain'
+import { IconComponent, PinPadComponent } from '@panary/shared/ui-common'
 
 // `UNPAIR_ALLOWED_ROLES` liegt zentral in `@panary/users/domain`: Eine
 // PIN-Verifikation muss auf einen User mit einer dieser Rollen treffen
@@ -36,7 +36,7 @@ type DialogStep = 'loading' | 'select-user' | 'enter-pin' | 'confirm' | 'confirm
 @Component({
   selector: 'lib-unpair-device-dialog',
   standalone: true,
-  imports: [IconComponent, CommonModule, TranslateModule],
+  imports: [IconComponent, PinPadComponent, CommonModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './unpair-device-dialog.component.html',
 })
@@ -48,6 +48,8 @@ export class UnpairDeviceDialogComponent implements OnInit {
   readonly #translate = inject(TranslateService)
   // Connect-Tier: nur in der POS-App belegt (sonst null → Zähler 0, unveränderter Ablauf).
   readonly #outbox = inject(OFFLINE_OUTBOX, { optional: true })
+
+  readonly pinLength = POS_PIN_LENGTH
 
   readonly step = signal<DialogStep>('loading')
   readonly eligibleUsers = signal<EligibleUser[]>([])
@@ -82,16 +84,6 @@ export class UnpairDeviceDialogComponent implements OnInit {
       this.cancel()
       return
     }
-    if (this.step() !== 'enter-pin') return
-    if (event.key === 'Backspace' || event.key === 'Delete') {
-      event.preventDefault()
-      this.deleteDigit()
-      return
-    }
-    if (/^[0-9]$/.test(event.key)) {
-      event.preventDefault()
-      this.addDigit(event.key)
-    }
   }
 
   selectUser(user: EligibleUser): void {
@@ -114,11 +106,11 @@ export class UnpairDeviceDialogComponent implements OnInit {
   }
 
   addDigit(digit: string): void {
-    if (this.pinInput().length >= 6) return
+    if (this.pinInput().length >= POS_PIN_LENGTH) return
     this.pinInput.update(c => c + digit)
     this.pinError.set(false)
-    if (this.pinInput().length === 4) {
-      // Auto-Submit bei 4 Ziffern wie im Login-Flow
+    if (this.pinInput().length === POS_PIN_LENGTH) {
+      // Auto-Submit bei voller PIN wie im Login-Flow
       setTimeout(() => void this.verifyPin(), 100)
     }
   }

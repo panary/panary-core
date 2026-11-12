@@ -2,6 +2,7 @@
 // (kein analogjs-Plugin in dieser node-Vitest-Config) faellt Angular auf JIT zurueck.
 import '@angular/compiler'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { EMPTY } from 'rxjs'
 import { Injector, runInInjectionContext, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { NotificationService } from '@panary/shared/ui-notifications'
@@ -52,7 +53,7 @@ function setup(opts: {
   const injector = Injector.create({
     providers: [
       { provide: MAT_DIALOG_DATA, useValue: makeOrder() },
-      { provide: MatDialogRef, useValue: { close } },
+      { provide: MatDialogRef, useValue: { close, keydownEvents: () => EMPTY } },
       { provide: OrderService, useValue: { patch } },
       { provide: OrderInteractionService, useValue: { create: createInteraction } },
       { provide: UserService, useValue: { currentUser: signal(opts.currentUser) } },

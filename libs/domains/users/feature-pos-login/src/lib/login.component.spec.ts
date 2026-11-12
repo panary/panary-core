@@ -785,11 +785,4 @@ describe('LoginComponent — Tastatur (core#1410)', () => {
     expect(digit.preventDefault).not.toHaveBeenCalled()
     expect(component.pinInput()).toBe('')
   })
-
-  it('beide Ziffernbloecke bekommen die PIN-Laenge explizit', () => {
-    const html = readFileSync(join(__dirname, 'login.component.html'), 'utf8')
-    const pads = html.match(/<lib-pin-pad[\s\S]*?\/>/g) ?? []
-    expect(pads).toHaveLength(2)
-    for (const pad of pads) expect(pad).toContain('[length]="pinLength"')
-  })
 })

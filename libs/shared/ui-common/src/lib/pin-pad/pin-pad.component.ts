@@ -72,8 +72,7 @@ export class PinPadComponent {
     effect(onCleanup => {
       const source = this.keyboard()
       if (!source) return
-      const events$ =
-        source === 'window' ? fromEvent<KeyboardEvent>(window, 'keydown', { capture: true }) : source
+      const events$ = source === 'window' ? fromEvent<KeyboardEvent>(window, 'keydown', { capture: true }) : source
       const subscription = events$.subscribe(event => this.#handleKey(event))
       onCleanup(() => subscription.unsubscribe())
     })

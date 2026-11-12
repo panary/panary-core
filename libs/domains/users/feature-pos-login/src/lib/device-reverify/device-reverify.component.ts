@@ -1,12 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  computed,
-  inject,
-  output,
-  signal,
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, output, signal } from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 import { ConnectionService } from '@panary/shared/data-access'
@@ -81,6 +73,14 @@ export class DeviceReverifyComponent implements OnInit {
 
   ngOnInit(): void {
     void this.#loadUsers()
+  }
+
+  protected selectUser(user: EligibleUser): void {
+    this.selectedUser.set(user)
+    this.pinInput.set('')
+    this.pinError.set(false)
+    this.errorMessage.set(null)
+    this.step.set('enter-pin')
   }
 
   /** PIN-Laenge fuer Punktreihe, Obergrenze und Auto-Submit (Tastatur nimmt `lib-pin-pad` selbst entgegen). */

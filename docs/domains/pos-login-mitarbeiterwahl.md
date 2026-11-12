@@ -58,7 +58,7 @@ Bildschirmtastatur: nur Ziffern 0–9 sowie Backspace/Delete; Tasten mit Strg/Cm
 ergeben nichts (`pinKeyAction`). Esc und alles Übrige bleiben beim Host (Login: zurück zur Auswahl bzw.
 PIN-Wechsel verwerfen).
 
-- **Quelle der Tasten:** Vorgabe ist `window` in der Capture-Phase, damit ein `stopPropagation()` im Panel eines
+- **Quelle der Tasten:** (Stand PR 1/2: Login und Geräte-Reverify nutzen die Komponente; die übrigen PIN-Dialoge folgen in PR 2/2 von core#1410.) Vorgabe ist `window` in der Capture-Phase, damit ein `stopPropagation()` im Panel eines
   Overlays die Taste nicht verschluckt. Dialoge auf dem CDK (MatDialog) übergeben `dialogRef.keydownEvents()`,
   weil der CDK Tasten nur ans oberste Overlay routet und gestapelte Dialoge sonst gleichzeitig reagieren.
 - **Länge:** `length` ist Pflicht-Input ohne Vorgabe; Aufrufer übergeben `POS_PIN_LENGTH`.

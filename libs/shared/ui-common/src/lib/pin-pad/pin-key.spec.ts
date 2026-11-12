@@ -12,12 +12,9 @@ describe('pinKeyAction', () => {
     expect(key(k)).toEqual({ type: 'backspace' })
   })
 
-  it.each(['a', 'Z', '-', '.', ' ', 'Enter', 'Escape', 'Tab', 'ArrowLeft', '10', '²', '٣'])(
-    'ignoriert %j',
-    k => {
-      expect(key(k)).toBeNull()
-    }
-  )
+  it.each(['a', 'Z', '-', '.', ' ', 'Enter', 'Escape', 'Tab', 'ArrowLeft', '10', '²', '٣'])('ignoriert %j', k => {
+    expect(key(k)).toBeNull()
+  })
 
   it('ignoriert Kuerzel mit Strg, Cmd oder Alt (z. B. Cmd+1, Strg+Backspace)', () => {
     expect(key('1', { metaKey: true })).toBeNull()

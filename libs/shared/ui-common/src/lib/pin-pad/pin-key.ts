@@ -8,7 +8,7 @@ export type PinKeyAction = { type: 'digit'; digit: string } | { type: 'backspace
  * Ziffer ergeben keine Aktion. Eine gehaltene Taste soll keine halbe PIN eintippen.
  */
 export function pinKeyAction(
-  event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'repeat'>
+  event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'repeat'>,
 ): PinKeyAction | null {
   if (event.ctrlKey || event.metaKey || event.altKey) return null
   if (event.key === 'Backspace' || event.key === 'Delete') return { type: 'backspace' }

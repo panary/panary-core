@@ -7,8 +7,7 @@ import { ConnectionService, currentPosOperatorToken, posOperatorParams } from '@
 import { PinPadComponent } from '@panary/shared/ui-common'
 import { UserService } from '@panary/users/data-access'
 import { ORDER_CANCEL_AUTHORIZING_ROLES, POS_PIN_LENGTH, User, UserStatus } from '@panary/users/domain'
-import { OrderService } from '../services/order.service'
-import { OrderInteractionService } from '../services/order-interaction.service'
+import { OrderInteractionService, OrderService } from '@panary/orders/data-access'
 import { OrderInteractionType } from '@panary/order-interactions/domain'
 import { Order, OrderStatus } from '@panary/orders/domain'
 

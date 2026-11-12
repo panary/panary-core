@@ -267,13 +267,12 @@ export class ManagerAuthorizeCashSessionDialogComponent {
   }
 
   #onKeydown(event: KeyboardEvent): void {
+    // Ziffern und Backspace nimmt lib-pin-pad an, und nur im PIN-Schritt (dort steht es im Template):
+    // Tasten aus dem Wechselgeld-Feld erreichen den PIN so nicht.
     if (event.key === 'Escape') {
       event.preventDefault()
       this.cancel()
-      return
     }
-    // Der Dispatcher liefert auch Tastendrücke aus dem Wechselgeld-Feld —
-    // ohne diese Sperre landeten sie im PIN.
   }
 
   #toErrorMessage(err: unknown): string {

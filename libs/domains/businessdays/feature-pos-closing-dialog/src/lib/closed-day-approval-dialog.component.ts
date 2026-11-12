@@ -199,10 +199,11 @@ export class ClosedDayApprovalDialogComponent {
   }
 
   #onKeydown(event: KeyboardEvent): void {
+    // Ziffern und Backspace nimmt lib-pin-pad an, und nur im PIN-Schritt (dort steht es im Template):
+    // Tasten aus dem Wechselgeld-Feld erreichen den PIN so nicht.
     if (event.key === 'Escape') {
       event.preventDefault()
       this.cancel()
-      return
     }
   }
 

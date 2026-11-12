@@ -10,8 +10,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { UserService } from '@panary/users/data-access'
 import { OrderStatus, type Order } from '@panary/orders/domain'
-import { OrderService } from '../services/order.service'
-import { OrderInteractionService } from '../services/order-interaction.service'
+import { OrderInteractionService, OrderService } from '@panary/orders/data-access'
 import { CancelOrderDialogComponent } from './cancel-order-dialog.component'
 
 // Geprueft wird das Journal-Ereignis zum Storno (panary/panary-core#591): Am Edge ist

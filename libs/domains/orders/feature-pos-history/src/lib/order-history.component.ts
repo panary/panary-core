@@ -10,8 +10,8 @@ import {
   OrderService,
   OrderStatus,
   PrintDialogComponent,
-  CancelOrderDialogComponent,
 } from '@panary/orders/data-access'
+import { CancelOrderDialogComponent } from '@panary/orders/feature-pos-order-dialog'
 import { buildHistoryLineVm, type HistoryLineVm } from './history-line'
 import { ExtendedParams } from '@panary/shared-common'
 import { EurPipe, IconComponent, PageHeaderComponent, PosSplitComponent } from '@panary/shared/ui-common'

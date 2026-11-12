@@ -17,6 +17,7 @@ import { NotificationService } from '@panary/shared/ui-notifications'
 import { uuidv7 } from 'uuidv7'
 import {
   CASH_PAYMENT_DIALOG_CONFIG,
+  CancelOrderDialogComponent,
   CashPaymentDialogComponent,
   type CashPaymentDialogData,
   KasseReorderHandoff,
@@ -31,7 +32,6 @@ import {
 } from '@panary/orders/data-access'
 import {
   PrintDialogComponent,
-  CancelOrderDialogComponent,
   SplitOrderDialogComponent,
   type SplitOrderDialogData,
   type SplitOrderDialogResult,

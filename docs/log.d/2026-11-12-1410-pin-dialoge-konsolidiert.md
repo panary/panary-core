@@ -1,0 +1,3 @@
+* **Update**: PIN-Eingabe in Storno, Ruhetag-Freigabe, Kassen-Freigabe, Kiosk-PIN und Entkoppeln läuft über das gemeinsame `lib-pin-pad` (Tastatur ohne Anklicken, nur Ziffern); eigene Ziffernblöcke, Punktreihen und Ziffern-Handler entfallen, neue Variante `compact` ([POS-Login](../domains/pos-login-mitarbeiterwahl.md), core#1410).
+* **Update**: Entkoppeln nimmt die PIN-Länge aus `POS_PIN_LENGTH` (vorher Obergrenze 6, Auto-Submit bei 4). Kiosk-PIN und Entkoppeln verloren ihre Tasten nach einem Klick ins Panel (`stopPropagation`), das Pad hört seitdem in der Capture-Phase.
+* **Update**: Mutationsprobe: Obergrenze in `addDigit` des Entkoppelns zurück auf 6 → 1 rot; Kontrolllauf grün.

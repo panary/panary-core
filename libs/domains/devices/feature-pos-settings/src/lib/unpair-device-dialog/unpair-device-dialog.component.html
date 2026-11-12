@@ -11,7 +11,7 @@
   <div
     class="w-full max-w-md bg-surface-input rounded-3xl shadow-2xl border border-line-soft overflow-hidden flex flex-col max-h-[90vh]"
     (click)="$event.stopPropagation()"
-    (keydown)="$event.stopPropagation()"
+    (keydown)="$event.key !== 'Escape' && $event.stopPropagation()"
     tabindex="-1"
   >
     <!-- Header -->

@@ -103,6 +103,21 @@ describe('UserFormComponent – Formular', () => {
     expect(saveButton().disabled).toBe(false)
   })
 
+  it('sperrt eine PIN mit mehr als vier Ziffern (POS-Login nimmt nur vier)', async () => {
+    const { type, saveButton } = await render('new')
+    await type('userLoginname', 'neu')
+    await type('userPassword', 'geheim')
+    await type('posPin', '12345')
+    expect(saveButton().disabled).toBe(true)
+  })
+
+  it('maskiert das PIN-Feld', async () => {
+    const { el } = await render('new')
+    const input = el.querySelector('#posPin') as HTMLInputElement
+    expect(input.type).toBe('password')
+    expect(input.inputMode).toBe('numeric')
+  })
+
   it('begrenzt den Rabatt in Prozent auf 100', async () => {
     const { type, check, saveButton } = await render('u-other')
     await check('USERS.STAFF_MEAL_ELIGIBLE', true)

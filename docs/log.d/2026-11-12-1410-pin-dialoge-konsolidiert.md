@@ -1,0 +1,6 @@
+* **Update**: PIN-Eingabe in Storno, Ruhetag-Freigabe, Kassen-Freigabe, Kiosk-PIN und Entkoppeln läuft über das gemeinsame `lib-pin-pad` (Tastatur ohne Anklicken, nur Ziffern); eigene Ziffernblöcke, Punktreihen und Ziffern-Handler entfallen, neue Variante `compact` ([POS-Login](../domains/pos-login-mitarbeiterwahl.md), core#1410).
+* **Update**: Entkoppeln nimmt die PIN-Länge aus `POS_PIN_LENGTH` (vorher Obergrenze 6, Auto-Submit bei 4). Kiosk-PIN und Entkoppeln verloren ihre Tasten nach einem Klick ins Panel (`stopPropagation`), das Pad hört seitdem in der Capture-Phase.
+* **Update**: Mutationsprobe: Obergrenze in `addDigit` des Entkoppelns zurück auf 6 → 1 rot; Kontrolllauf grün.
+* **Update**: Weitere Mutationsproben: Ziffernzweig im Host des Entkoppelns wieder eingebaut → 1 rot (`nimmt Ziffern nicht mehr selbst vom window`); `compact` aus dem PIN-Schritt der Kassen-Freigabe entfernt → 1 rot (Template-Spec); Kontrolllauf grün. Die Capture-Subscription im Pad selbst bleibt ohne Spec (Node-Umgebung) und gehört in den Sichttest.
+* **Update**: `CancelOrderDialogComponent` zog von `orders/data-access` (publishable, kennt `ui-common` nicht, Build rot) nach `orders/feature-pos-order-dialog`; die Exporte der Verbraucher (Aktive Bestellungen, Verlauf) wurden angepasst.
+

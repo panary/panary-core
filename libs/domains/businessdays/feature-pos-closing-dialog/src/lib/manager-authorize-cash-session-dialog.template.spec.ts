@@ -38,13 +38,15 @@ describe('Kassenfreigabe — PIN-Schritt passt in 1366×768 (core#955)', () => {
     expect(gap).toBeLessThanOrEqual(4)
   })
 
-  it('lässt die PIN-Tasten bei 3,5rem, ohne globale Mindesthöhe darüber', () => {
-    const tasten = [...pinStep.matchAll(/<button[^>]*class="([^"]*)"/g)].map(m => m[1].split(/\s+/))
+  it('nutzt den gemeinsamen Ziffernblock in der flachen Variante (Tasten 3,5 rem)', () => {
+    // Die Tastenhöhe steckt seit core#1410 in `lib-pin-pad` (`compact` = h-14); hier bleibt nur die Zurück-Taste.
+    const pad = pinStep.slice(pinStep.indexOf('<lib-pin-pad'), pinStep.indexOf('</lib-pin-pad>'))
+    const tasten = [...pad.matchAll(/<button[^>]*class="([^"]*)"/g)].map(m => m[1].split(/\s+/))
     const mindesthoehe = (klasse: string) =>
       Number(styles.match(new RegExp(`\\.${klasse}\\s*\\{[^}]*min-height:\\s*max\\(([\\d.]+)rem`))?.[1] ?? 0)
 
-    // Vier Tags: die Ziffern 1–9 im @for, dazu Zurück, 0 und Löschen.
-    expect(tasten).toHaveLength(4)
+    expect(pad).toMatch(/\bcompact\b/)
+    expect(tasten).toHaveLength(1)
     expect(tasten.filter(k => !k.includes('h-14'))).toEqual([])
     expect(tasten.flat().filter(k => mindesthoehe(k) > 3.5)).toEqual([])
   })

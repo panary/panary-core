@@ -7,8 +7,8 @@ import { BusinessDayService, type ClosedDayApproval } from '@panary/businessdays
 import { CLOSED_DAY_APPROVER_ROLES } from '@panary/locations/domain'
 import { AppError } from '@panary/shared-common'
 import { ConnectionService } from '@panary/shared/data-access'
-import { User, UserStatus } from '@panary/users/domain'
-import { IconComponent } from '@panary/shared/ui-common'
+import { POS_PIN_LENGTH, User, UserStatus } from '@panary/users/domain'
+import { IconComponent, PinPadComponent } from '@panary/shared/ui-common'
 
 export interface ClosedDayApprovalDialogData {
   /** Kalendertag in Filialzeit (`YYYY-MM-DD`), wie ihn die Edge meldet. */
@@ -27,9 +27,6 @@ interface Approver {
   staffRole?: string
   role: string
 }
-
-/** POS-PINs sind über alle POS-Oberflächen hinweg vierstellig (vgl. Login, Storno, Kassen-Freigabe). */
-const PIN_LENGTH = 4
 
 /** Anzeigedauer des Erfolgs-Screens, bevor der Dialog sich selbst schließt. */
 const AUTO_CLOSE_MS = 1200
@@ -50,9 +47,8 @@ const APPROVE_ERROR_KEYS: Record<string, string> = {
   selector: 'app-closed-day-approval-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, TranslateModule],
+  imports: [IconComponent, PinPadComponent, TranslateModule],
   templateUrl: './closed-day-approval-dialog.component.html',
-  styleUrl: './closed-day-approval-dialog.component.scss',
 })
 export class ClosedDayApprovalDialogComponent {
   readonly #dialogRef = inject(MatDialogRef<ClosedDayApprovalDialogComponent, ClosedDayApproval | null>)
@@ -69,8 +65,8 @@ export class ClosedDayApprovalDialogComponent {
   protected readonly pinError = signal(false)
   protected readonly errorMessage = signal<string | null>(null)
 
-  protected readonly digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-  protected readonly pinSlots = Array.from({ length: PIN_LENGTH }, (_, i) => i)
+  protected readonly pinLength = POS_PIN_LENGTH
+  protected readonly keyboard$ = this.#dialogRef.keydownEvents()
 
   protected readonly hasApprovers = computed(() => this.approvers().length > 0)
   protected readonly isBlock = computed(() => this.data.policy === 'block')
@@ -111,11 +107,11 @@ export class ClosedDayApprovalDialogComponent {
   }
 
   protected addDigit(digit: string): void {
-    if (this.step() !== 'enter-pin' || this.pin().length >= PIN_LENGTH) return
+    if (this.step() !== 'enter-pin' || this.pin().length >= POS_PIN_LENGTH) return
     this.pin.update(current => current + digit)
     this.pinError.set(false)
     this.errorMessage.set(null)
-    if (this.pin().length === PIN_LENGTH) {
+    if (this.pin().length === POS_PIN_LENGTH) {
       // Kurz verzögert, damit der vierte Punkt sichtbar wird. Abbruch in der Lücke stoppt ihn (#close).
       this.#submitTimer = setTimeout(() => {
         this.#submitTimer = null
@@ -132,7 +128,7 @@ export class ClosedDayApprovalDialogComponent {
 
   protected async submit(): Promise<void> {
     const approver = this.selectedApprover()
-    if (!approver || this.step() !== 'enter-pin' || this.pin().length < PIN_LENGTH) return
+    if (!approver || this.step() !== 'enter-pin' || this.pin().length < POS_PIN_LENGTH) return
 
     const pin = this.pin()
     this.step.set('submitting')
@@ -203,20 +199,11 @@ export class ClosedDayApprovalDialogComponent {
   }
 
   #onKeydown(event: KeyboardEvent): void {
+    // Ziffern und Backspace nimmt lib-pin-pad an, und nur im PIN-Schritt (dort steht es im Template):
+    // Tasten aus dem Wechselgeld-Feld erreichen den PIN so nicht.
     if (event.key === 'Escape') {
       event.preventDefault()
       this.cancel()
-      return
-    }
-    if (this.step() !== 'enter-pin') return
-    if (event.key === 'Backspace' || event.key === 'Delete') {
-      event.preventDefault()
-      this.deleteDigit()
-      return
-    }
-    if (/^[0-9]$/.test(event.key)) {
-      event.preventDefault()
-      this.addDigit(event.key)
     }
   }
 

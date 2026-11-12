@@ -13,6 +13,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { ConnectionService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
 
+import { POS_PIN_LENGTH } from '@panary/users/domain'
 import { UnpairDeviceDialogComponent } from './unpair-device-dialog.component'
 
 /**
@@ -129,5 +130,25 @@ describe('UnpairDeviceDialogComponent — Datenverlust-Rückfrage', () => {
     await Promise.resolve()
 
     expect(unpairCalls).toHaveLength(1)
+  })
+
+  it('nimmt Ziffern nicht mehr selbst vom window: das macht lib-pin-pad (core#1410)', () => {
+    const { component } = setup()
+    component.step.set('enter-pin')
+
+    component.handleKeyboardInput({ key: '5', preventDefault: () => undefined } as KeyboardEvent)
+
+    expect(component.pinInput()).toBe('')
+  })
+
+  it('begrenzt die PIN auf POS_PIN_LENGTH statt auf sechs Ziffern', () => {
+    vi.useFakeTimers()
+    const { component } = setup()
+    component.step.set('enter-pin')
+
+    for (const d of '123456') component.addDigit(d)
+
+    expect(component.pinInput()).toHaveLength(POS_PIN_LENGTH)
+    vi.useRealTimers()
   })
 })

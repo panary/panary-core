@@ -14,7 +14,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ConnectionService } from '@panary/shared/data-access'
 import { KioskService, LogService } from '@panary/shared/data-access-updater'
 import { KIOSK_EXIT_ALLOWED_ROLES, POS_PIN_LENGTH } from '@panary/users/domain'
-import { IconComponent, type IconName } from '@panary/shared/ui-common'
+import { IconComponent, PinPadComponent, type IconName } from '@panary/shared/ui-common'
 
 /** Was der Notausgang nach erfolgreicher PIN tut (panary/panary-core#1188). */
 export type KioskAction = 'exit' | 'window-mode' | 'enable' | 'disable'
@@ -47,7 +47,7 @@ const ACTION_KEYS: Record<KioskAction, { title: string; icon: IconName }> = {
  */
 @Component({
   selector: 'lib-kiosk-pin-dialog',
-  imports: [IconComponent, TranslateModule],
+  imports: [IconComponent, PinPadComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './kiosk-pin-dialog.component.html',
 })
@@ -69,7 +69,6 @@ export class KioskPinDialogComponent implements OnInit {
   #closed = false
 
   readonly pinLength = POS_PIN_LENGTH
-  readonly pinSlots = Array.from({ length: POS_PIN_LENGTH }, (_, i) => i)
 
   readonly step = signal<DialogStep>('loading')
   readonly eligibleUsers = signal<EligibleUser[]>([])
@@ -100,16 +99,6 @@ export class KioskPinDialogComponent implements OnInit {
       event.preventDefault()
       this.cancel()
       return
-    }
-    if (this.step() !== 'enter-pin') return
-    if (event.key === 'Backspace' || event.key === 'Delete') {
-      event.preventDefault()
-      this.deleteDigit()
-      return
-    }
-    if (/^[0-9]$/.test(event.key)) {
-      event.preventDefault()
-      this.addDigit(event.key)
     }
   }
 

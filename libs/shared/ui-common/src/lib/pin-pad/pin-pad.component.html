@@ -1,5 +1,5 @@
 <!-- PIN Dots -->
-<div class="flex justify-center gap-4 mb-8" [class.pin-shake]="error()">
+<div class="flex justify-center gap-4" [class.mb-8]="!compact()" [class.mb-5]="compact()" [class.pin-shake]="error()">
   @for (i of dots(); track i) {
     <div
       class="w-4 h-4 rounded-full transition-all duration-150"
@@ -12,36 +12,48 @@
 </div>
 
 <!-- Numpad -->
-<div class="grid grid-cols-3 gap-3 max-w-[17.5rem] mx-auto">
+<div
+  class="grid grid-cols-3 mx-auto"
+  [class.gap-3]="!compact()"
+  [class.max-w-[17.5rem]]="!compact()"
+  [class.gap-2]="compact()"
+  [class.max-w-[16.25rem]]="compact()"
+>
   @for (d of digits; track d) {
     <button
-      class="pnry-touch h-16 rounded-xl bg-line-soft hover:bg-line active:bg-line-strong text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
+      class="pnry-touch rounded-xl bg-line-soft hover:bg-line active:bg-line-strong text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
       (click)="digit.emit(d)"
       [disabled]="disabled()"
+      [class.h-16]="!compact()"
+      [class.h-14]="compact()"
     >
       {{ d }}
     </button>
   }
 
   <!-- Slot unten links (z. B. Zurueck zur Personenwahl); ohne Inhalt bleibt das Feld leer -->
-  <div class="h-16 flex items-center justify-center">
+  <div class="flex items-center justify-center" [class.h-16]="!compact()" [class.h-14]="compact()">
     <ng-content select="[pinPadStart]" />
   </div>
 
   <!-- Zero -->
   <button
-    class="pnry-touch h-16 rounded-xl bg-line-soft hover:bg-line active:bg-line-strong text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
+    class="pnry-touch rounded-xl bg-line-soft hover:bg-line active:bg-line-strong text-2xl font-semibold text-[#0F172A] dark:text-white transition-all active:scale-95 disabled:opacity-50"
     (click)="digit.emit('0')"
     [disabled]="disabled()"
+    [class.h-16]="!compact()"
+    [class.h-14]="compact()"
   >
     0
   </button>
 
   <!-- Delete -->
   <button
-    class="pnry-touch h-16 rounded-xl bg-line-soft hover:bg-line active:bg-line-strong flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
+    class="pnry-touch rounded-xl bg-line-soft hover:bg-line active:bg-line-strong flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
     (click)="backspace.emit()"
     [disabled]="disabled()"
+    [class.h-16]="!compact()"
+    [class.h-14]="compact()"
     [attr.aria-label]="'LOGIN.DELETE_DIGIT' | translate"
   >
     <svg class="w-6 h-6 text-ink-muted dark:text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">

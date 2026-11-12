@@ -61,7 +61,7 @@
     <div class="flex-1"></div>
 
     @if (isShared()) {
-      <lib-time-clock-panel mode="embedded" />
+      <lib-time-clock-panel mode="embedded" (pinDialogOpen)="timeClockOpen.set($event)" />
     } @else if (assignedUserNames().length) {
       <div class="rounded-card border border-line bg-surface-elevated p-4">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
@@ -283,6 +283,7 @@
               [value]="pinInput()"
               [error]="pinError()"
               [disabled]="isLoading()"
+              [keyboard]="timeClockOpen() ? null : 'window'"
               (digit)="addDigit($event)"
               (backspace)="deleteDigit()"
             />
@@ -355,6 +356,7 @@
               [value]="changePinPhase() === 'new' ? newPin() : confirmPin()"
               [error]="!!changePinError()"
               [disabled]="isLoading()"
+              [keyboard]="timeClockOpen() ? null : 'window'"
               (digit)="addChangePinDigit($event)"
               (backspace)="deleteChangePinDigit()"
             />
@@ -535,6 +537,6 @@
   <!-- Mobile: Time Clock Panel (Slide-In) — ebenfalls nur geteilt.
        Genau der mobile Fall ist das Diensthandy aus dem Anlass des Features. -->
   @if (isShared()) {
-    <lib-time-clock-panel class="lg:hidden" mode="mobile"></lib-time-clock-panel>
+    <lib-time-clock-panel class="lg:hidden" mode="mobile" (pinDialogOpen)="timeClockOpen.set($event)"></lib-time-clock-panel>
   }
 </div>

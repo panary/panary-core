@@ -6,6 +6,7 @@ import {
   HostListener,
   inject,
   input,
+  output,
   signal,
   ViewChild,
   WritableSignal,
@@ -74,6 +75,12 @@ export class TimeClockPanelComponent {
 
   /** Show PIN input dialog */
   readonly showPinDialog: WritableSignal<boolean> = signal(false)
+
+  /**
+   * Meldet, ob der Stempeluhr-Dialog offen ist. Der Login schaltet dann sein eigenes Tastaturgehoer ab,
+   * sonst nehmen Stempeluhr (Bubble) und `lib-pin-pad` (Capture) dieselbe Ziffer doppelt an (core#1417).
+   */
+  readonly pinDialogOpen = output<boolean>()
 
   /** Eingegebene Personalnummer — bleibt ein String, führende Nullen zählen. */
   readonly employeeNumberInput: WritableSignal<string> = signal('')
@@ -152,7 +159,7 @@ export class TimeClockPanelComponent {
 
   private resetState(): void {
     this.selectedAction.set(null)
-    this.showPinDialog.set(false)
+    this.#setPinDialog(false)
     this.employeeNumberInput.set('')
     this.confirmation.set(null)
     this.pinError.set(false)
@@ -206,7 +213,7 @@ export class TimeClockPanelComponent {
   //#region Action Selection
   selectAction(action: TimeClockAction): void {
     this.selectedAction.set(action)
-    this.showPinDialog.set(true)
+    this.#setPinDialog(true)
     this.employeeNumberInput.set('')
     this.confirmation.set(null)
     this.pinError.set(false)
@@ -216,7 +223,7 @@ export class TimeClockPanelComponent {
 
   cancelAction(): void {
     this.selectedAction.set(null)
-    this.showPinDialog.set(false)
+    this.#setPinDialog(false)
     this.employeeNumberInput.set('')
     this.confirmation.set(null)
     this.pinError.set(false)
@@ -408,6 +415,11 @@ export class TimeClockPanelComponent {
 
   //#region Lockout
   #lockTimer: ReturnType<typeof setInterval> | null = null
+
+  #setPinDialog(open: boolean): void {
+    this.showPinDialog.set(open)
+    this.pinDialogOpen.emit(open)
+  }
 
   constructor() {
     this.#destroyRef.onDestroy(() => this.#stopLockTimer())

@@ -774,6 +774,25 @@ describe('LoginComponent — Tastatur (core#1410)', () => {
     expect(component.currentStep()).toBe('select-user')
   })
 
+  it('Esc wird ignoriert, solange der Stempeluhr-Dialog offen ist', async () => {
+    const { component } = setup({ mode: DeviceAccessMode.SHARED })
+    await component['connectAndLoadUsers']()
+    component.selectUser(component.posUsers()[1])
+    component.timeClockOpen.set(true)
+    const escape = key('Escape')
+
+    component.handleKeyboardInput(escape)
+
+    expect(escape.preventDefault).not.toHaveBeenCalled()
+    expect(component.currentStep()).toBe('enter-pin')
+  })
+
+  it('bindet beide Pads nur ohne offene Stempeluhr an die Tastatur', () => {
+    const html = readFileSync(join(__dirname, 'login.component.html'), 'utf8')
+    expect(html.match(/\[keyboard\]="timeClockOpen\(\) \? null : 'window'"/g)).toHaveLength(2)
+    expect(html.match(/\(pinDialogOpen\)="timeClockOpen\.set\(\$event\)"/g)).toHaveLength(2)
+  })
+
   it('Ziffern und Backspace nimmt lib-pin-pad entgegen, nicht mehr der Login-Host', async () => {
     const { component } = setup({ mode: DeviceAccessMode.SHARED })
     await component['connectAndLoadUsers']()

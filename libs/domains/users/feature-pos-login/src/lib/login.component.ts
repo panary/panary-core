@@ -110,7 +110,10 @@ export class LoginComponent implements OnInit {
   readonly selectedUser: WritableSignal<PosUser | null> = signal(null)
 
   /** Stempeluhr-Dialog offen: Login-Pads und Esc ruhen, die Stempeluhr hat die Tastatur (core#1417). */
-  readonly timeClockOpen = signal(false)
+  readonly timeClockEmbeddedOpen = signal(false)
+  readonly timeClockMobileOpen = signal(false)
+  // Zwei Panel-Instanzen (embedded/mobile): eine schliessende darf die offene andere nicht ueberschreiben.
+  readonly timeClockOpen = computed(() => this.timeClockEmbeddedOpen() || this.timeClockMobileOpen())
 
   readonly pinInput: WritableSignal<string> = signal('')
   readonly pinError: WritableSignal<boolean> = signal(false)

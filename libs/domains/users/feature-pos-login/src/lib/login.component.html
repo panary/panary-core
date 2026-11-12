@@ -61,7 +61,7 @@
     <div class="flex-1"></div>
 
     @if (isShared()) {
-      <lib-time-clock-panel mode="embedded" (pinDialogOpen)="timeClockOpen.set($event)" />
+      <lib-time-clock-panel mode="embedded" (pinDialogOpen)="timeClockEmbeddedOpen.set($event)" />
     } @else if (assignedUserNames().length) {
       <div class="rounded-card border border-line bg-surface-elevated p-4">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
@@ -537,6 +537,10 @@
   <!-- Mobile: Time Clock Panel (Slide-In) — ebenfalls nur geteilt.
        Genau der mobile Fall ist das Diensthandy aus dem Anlass des Features. -->
   @if (isShared()) {
-    <lib-time-clock-panel class="lg:hidden" mode="mobile" (pinDialogOpen)="timeClockOpen.set($event)"></lib-time-clock-panel>
+    <lib-time-clock-panel
+      class="lg:hidden"
+      mode="mobile"
+      (pinDialogOpen)="timeClockMobileOpen.set($event)"
+    ></lib-time-clock-panel>
   }
 </div>

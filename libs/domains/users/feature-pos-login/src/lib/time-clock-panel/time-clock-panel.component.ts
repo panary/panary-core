@@ -422,7 +422,10 @@ export class TimeClockPanelComponent {
   }
 
   constructor() {
-    this.#destroyRef.onDestroy(() => this.#stopLockTimer())
+    this.#destroyRef.onDestroy(() => {
+      this.#stopLockTimer()
+      this.pinDialogOpen.emit(false)
+    })
   }
 
   #startLockout(seconds: number): void {

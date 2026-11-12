@@ -50,6 +50,20 @@ Der Gerätename in der Panelzeile ist der Name aus der Kopplung (`panary_device_
 Großer Name, Ziffernblock und der Zurück-Pfeil (zurück zu Schritt 1; auf einem Ein-Personen-Gerät
 ausgeblendet). Eine zweite Taste „Andere Person" gibt es seit core#963 nicht mehr. `verifyPin`, `changePin`, die Re-Verifikation und die Rate-Limits sind unverändert.
 
+### PIN per Tastatur
+
+Der Ziffernblock ist die gemeinsame Komponente `lib-pin-pad` (`libs/shared/ui-common`, core#1410). Sie nimmt
+neben Touch/Maus auch die physische Tastatur an, **ohne dass vorher ein Feld angeklickt werden muss** und ohne
+Bildschirmtastatur: nur Ziffern 0–9 sowie Backspace/Delete; Tasten mit Strg/Cmd/Alt und eine gehaltene Ziffer
+ergeben nichts (`pinKeyAction`). Esc und alles Übrige bleiben beim Host (Login: zurück zur Auswahl bzw.
+PIN-Wechsel verwerfen).
+
+- **Quelle der Tasten:** (Stand PR 1/2: Login und Geräte-Reverify nutzen die Komponente; die übrigen PIN-Dialoge folgen in PR 2/2 von core#1410.) Vorgabe ist `window` in der Capture-Phase, damit ein `stopPropagation()` im Panel eines
+  Overlays die Taste nicht verschluckt. Dialoge auf dem CDK (MatDialog) übergeben `dialogRef.keydownEvents()`,
+  weil der CDK Tasten nur ans oberste Overlay routet und gestapelte Dialoge sonst gleichzeitig reagieren.
+- **Länge:** `length` ist Pflicht-Input ohne Vorgabe; Aufrufer übergeben `POS_PIN_LENGTH`.
+- **Slot** `pinPadStart` ersetzt das leere Feld unten links (z. B. Zurück zur Personenwahl).
+
 ## Grenzen
 
 - `users.find` am Login lädt höchstens 50 Personen (`$limit: 50`). Bei mehr Mitarbeitern je Filiale fehlen

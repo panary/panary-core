@@ -1,20 +1,10 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  HostListener,
-  OnInit,
-  computed,
-  inject,
-  output,
-  signal,
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, output, signal } from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 import { ConnectionService } from '@panary/shared/data-access'
-import { DEVICE_REVERIFY_AUTHORIZING_ROLES } from '@panary/users/domain'
+import { DEVICE_REVERIFY_AUTHORIZING_ROLES, POS_PIN_LENGTH } from '@panary/users/domain'
 
-import { PinPadComponent } from '../pin-pad/pin-pad.component'
-import { IconComponent } from '@panary/shared/ui-common'
+import { IconComponent, PinPadComponent } from '@panary/shared/ui-common'
 
 /**
  * Bestaetigungsbildschirm nach langer Offline-Phase (panary/panary-core#325).
@@ -85,20 +75,6 @@ export class DeviceReverifyComponent implements OnInit {
     void this.#loadUsers()
   }
 
-  @HostListener('window:keydown', ['$event'])
-  protected handleKeyboardInput(event: KeyboardEvent): void {
-    if (this.step() !== 'enter-pin') return
-    if (event.key === 'Backspace' || event.key === 'Delete') {
-      event.preventDefault()
-      this.deleteDigit()
-      return
-    }
-    if (/^[0-9]$/.test(event.key)) {
-      event.preventDefault()
-      this.addDigit(event.key)
-    }
-  }
-
   protected selectUser(user: EligibleUser): void {
     this.selectedUser.set(user)
     this.pinInput.set('')
@@ -106,6 +82,9 @@ export class DeviceReverifyComponent implements OnInit {
     this.errorMessage.set(null)
     this.step.set('enter-pin')
   }
+
+  /** PIN-Laenge fuer Punktreihe, Obergrenze und Auto-Submit (Tastatur nimmt `lib-pin-pad` selbst entgegen). */
+  protected readonly pinLength = POS_PIN_LENGTH
 
   protected backToUserList(): void {
     this.selectedUser.set(null)
@@ -119,11 +98,11 @@ export class DeviceReverifyComponent implements OnInit {
   }
 
   protected addDigit(digit: string): void {
-    if (this.pinInput().length >= 6) return
+    if (this.pinInput().length >= POS_PIN_LENGTH) return
     this.pinInput.update(current => current + digit)
     this.pinError.set(false)
-    // Auto-Submit bei 4 Ziffern wie im Login-Flow.
-    if (this.pinInput().length === 4) setTimeout(() => void this.verifyPin(), 100)
+    // Auto-Submit bei vollstaendiger PIN wie im Login-Flow.
+    if (this.pinInput().length === POS_PIN_LENGTH) setTimeout(() => void this.verifyPin(), 100)
   }
 
   protected deleteDigit(): void {

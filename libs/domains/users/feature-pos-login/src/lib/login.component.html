@@ -351,6 +351,7 @@
             }
 
             <lib-pin-pad
+              [length]="pinLength"
               [value]="changePinPhase() === 'new' ? newPin() : confirmPin()"
               [error]="!!changePinError()"
               [disabled]="isLoading()"

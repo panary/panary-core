@@ -748,3 +748,41 @@ describe('LoginComponent — Versionsanzeige', () => {
     expect(aside).not.toContain('appVersion')
   })
 })
+
+describe('LoginComponent — Tastatur (core#1410)', () => {
+  const key = (k: string) => ({ key: k, preventDefault: vi.fn() }) as unknown as KeyboardEvent
+
+  it('Esc geht in der PIN-Eingabe zurueck zur Auswahl', async () => {
+    const { component } = setup({ mode: DeviceAccessMode.SHARED })
+    await component['connectAndLoadUsers']()
+    component.selectUser(component.posUsers()[1])
+    const escape = key('Escape')
+
+    component.handleKeyboardInput(escape)
+
+    expect(escape.preventDefault).toHaveBeenCalled()
+    expect(component.currentStep()).toBe('select-user')
+  })
+
+  it('Esc verwirft den PIN-Wechsel', async () => {
+    const { component } = setup({ mode: DeviceAccessMode.SHARED })
+    await component['connectAndLoadUsers']()
+    component.currentStep.set('change-pin')
+
+    component.handleKeyboardInput(key('Escape'))
+
+    expect(component.currentStep()).toBe('select-user')
+  })
+
+  it('Ziffern und Backspace nimmt lib-pin-pad entgegen, nicht mehr der Login-Host', async () => {
+    const { component } = setup({ mode: DeviceAccessMode.SHARED })
+    await component['connectAndLoadUsers']()
+    component.selectUser(component.posUsers()[1])
+    const digit = key('4')
+
+    component.handleKeyboardInput(digit)
+
+    expect(digit.preventDefault).not.toHaveBeenCalled()
+    expect(component.pinInput()).toBe('')
+  })
+})

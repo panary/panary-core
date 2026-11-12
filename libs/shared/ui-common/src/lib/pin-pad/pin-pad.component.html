@@ -1,10 +1,10 @@
 <!-- PIN Dots -->
-<div class="flex justify-center gap-4 mb-8">
+<div class="flex justify-center gap-4 mb-8" [class.pin-shake]="error()">
   @for (i of dots(); track i) {
     <div
       class="w-4 h-4 rounded-full transition-all duration-150"
       [class.bg-line]="value().length <= i && !error()"
-      [class.bg-[#00B8D4]]="value().length > i && !error()"
+      [ngClass]="value().length > i && !error() ? accentClass() : ''"
       [class.bg-red-500]="error()"
       [class.scale-110]="value().length === i + 1"
     ></div>
@@ -23,8 +23,10 @@
     </button>
   }
 
-  <!-- Empty -->
-  <div class="h-16"></div>
+  <!-- Slot unten links (z. B. Zurueck zur Personenwahl); ohne Inhalt bleibt das Feld leer -->
+  <div class="h-16 flex items-center justify-center">
+    <ng-content select="[pinPadStart]" />
+  </div>
 
   <!-- Zero -->
   <button

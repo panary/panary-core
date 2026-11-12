@@ -18,7 +18,6 @@ import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-conf
 import { ConnectionService, OFFLINE_OUTBOX, storePosOperatorToken } from '@panary/shared/data-access'
 import { monogramStyle, POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
-import { PinPadComponent } from './pin-pad/pin-pad.component'
 import { StaffPickerComponent, type StaffPickerPerson } from './staff-picker/staff-picker.component'
 import { DeviceReverifyComponent } from './device-reverify/device-reverify.component'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
@@ -26,7 +25,7 @@ import { UpdateService } from '@panary/shared/data-access-updater'
 import { LanguageService, LANGUAGES } from '@panary/shared/data-access'
 import { TranslateModule } from '@ngx-translate/core'
 import { TranslateService } from '@ngx-translate/core'
-import { IconComponent, PanaryLogoComponent } from '@panary/shared/ui-common'
+import { IconComponent, PanaryLogoComponent, PinPadComponent } from '@panary/shared/ui-common'
 
 interface PosUser {
   _id: string
@@ -240,6 +239,10 @@ export class LoginComponent implements OnInit {
   //#endregion
 
   //#region Keyboard Input
+  /**
+   * Ziffern und Backspace nimmt `lib-pin-pad` selbst entgegen (Capture auf `window`). Hier bleibt nur
+   * Esc: Er geht zurueck zur Benutzerauswahl bzw. verwirft den PIN-Wechsel.
+   */
   @HostListener('window:keydown', ['$event'])
   handleKeyboardInput(event: KeyboardEvent): void {
     const step = this.currentStep()
@@ -249,31 +252,13 @@ export class LoginComponent implements OnInit {
       return
     }
 
-    const isChangePin = step === 'change-pin'
-
-    // Backspace oder Delete zum Löschen
-    if (event.key === 'Backspace' || event.key === 'Delete') {
-      event.preventDefault()
-      if (isChangePin) this.deleteChangePinDigit()
-      else this.deleteDigit()
-      return
-    }
-
     // Escape um zurück zur Benutzerauswahl zu gehen. Im Wechsel-Schritt bedeutet
     // das kompletten Rueckzug (inkl. Verwerfen des verifizierten PINs) — der
     // Zwang laesst sich damit nicht umgehen, nur neu beginnen.
     if (event.key === 'Escape') {
       event.preventDefault()
-      if (isChangePin) this.cancelChangePin()
+      if (step === 'change-pin') this.cancelChangePin()
       else this.backToUsers()
-      return
-    }
-
-    // Nur Ziffern 0-9 akzeptieren
-    if (/^[0-9]$/.test(event.key)) {
-      event.preventDefault()
-      if (isChangePin) this.addChangePinDigit(event.key)
-      else this.addDigit(event.key)
     }
   }
 

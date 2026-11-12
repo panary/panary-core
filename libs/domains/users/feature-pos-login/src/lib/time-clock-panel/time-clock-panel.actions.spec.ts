@@ -118,6 +118,19 @@ describe('TimeClockPanel — Bestätigungsschritt (core#1198)', () => {
   })
 })
 
+describe('TimeClockPanel — Dialog-Meldung an den Login (core#1417)', () => {
+  it('meldet offen beim Waehlen einer Aktion und zu beim Abbrechen', () => {
+    const { component } = setup()
+    const emitted: boolean[] = []
+    component.pinDialogOpen.subscribe(open => emitted.push(open))
+
+    component.selectAction('break-end')
+    component.cancelAction()
+
+    expect(emitted).toEqual([true, false])
+  })
+})
+
 describe('TimeClockPanel — Ablehnung und Sperre (core#1198)', () => {
   it('abgelehnte Nummer → Einheitsmeldung, Eingabe leer, keine Bestätigung', async () => {
     const { component } = setup({ lookup: async () => Promise.reject(rejected()) })

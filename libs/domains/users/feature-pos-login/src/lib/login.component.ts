@@ -109,6 +109,12 @@ export class LoginComponent implements OnInit {
   readonly posUsers: WritableSignal<PosUser[]> = signal([])
   readonly selectedUser: WritableSignal<PosUser | null> = signal(null)
 
+  /** Stempeluhr-Dialog offen: Login-Pads und Esc ruhen, die Stempeluhr hat die Tastatur (core#1417). */
+  readonly timeClockEmbeddedOpen = signal(false)
+  readonly timeClockMobileOpen = signal(false)
+  // Zwei Panel-Instanzen (embedded/mobile): eine schliessende darf die offene andere nicht ueberschreiben.
+  readonly timeClockOpen = computed(() => this.timeClockEmbeddedOpen() || this.timeClockMobileOpen())
+
   readonly pinInput: WritableSignal<string> = signal('')
   readonly pinError: WritableSignal<boolean> = signal(false)
   readonly isLoading: WritableSignal<boolean> = signal(false)
@@ -245,6 +251,8 @@ export class LoginComponent implements OnInit {
    */
   @HostListener('window:keydown', ['$event'])
   handleKeyboardInput(event: KeyboardEvent): void {
+    if (this.timeClockOpen()) return
+
     const step = this.currentStep()
 
     // Nur in den beiden PIN-Eingabe-Schritten reagieren

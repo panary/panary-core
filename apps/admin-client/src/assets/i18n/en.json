@@ -314,7 +314,7 @@
     "POS_USER": "POS User (appears in POS login)",
     "EMPLOYEE_NUMBER": "Employee Number (6 digits)",
     "EMPLOYEE_NUMBER_INVALID": "Exactly 6 digits.",
-    "POS_PIN": "POS PIN (4–6 digits)",
+    "POS_PIN": "POS PIN (4 digits)",
     "POS_PIN_INVALID": "Exactly 4 digits.",
     "PIN_SET": "set",
     "PIN_CLICK_TO_CHANGE": "Click to change",

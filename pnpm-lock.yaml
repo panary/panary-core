@@ -61,7 +61,7 @@ overrides:
   smol-toml: ^1.9.0
   immutable: ^5.1.8
   '@hono/node-server': ^2.0.10
-  hono: ^4.13.11
+  hono: ^4.13.16
   engine.io: ^6.6.10
   moment: ^2.31.0
   '@tauri-apps/api': ~2.12.1
@@ -337,7 +337,7 @@ importers:
         version: 4.1.12(vitest@4.1.12)
       altcha-lib:
         specifier: 2.6.0
-        version: 2.6.0(cors@2.8.6)(express@5.2.1)(hono@4.13.13)
+        version: 2.6.0(cors@2.8.6)(express@5.2.1)
       angular-eslint:
         specifier: 22.6.0
         version: 22.6.0(chokidar@5.0.0)(eslint@9.39.5(jiti@2.7.0))(typescript-eslint@8.71.1(eslint@9.39.5(jiti@2.7.0))(typescript@6.0.3))(typescript@6.0.3)
@@ -4311,7 +4311,7 @@ packages:
       express: ^4.0.0 || ^5.0.0
       fastify: ^5.0.0
       h3: ^2.0.0
-      hono: ^4.13.11
+      hono: ^4.13.16
     peerDependenciesMeta:
       '@fastify/cookie':
         optional: true
@@ -5694,10 +5694,6 @@ packages:
 
   help-me@5.0.0:
     resolution: {integrity: sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg==}
-
-  hono@4.13.13:
-    resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
-    engines: {node: '>=16.9.0'}
 
   hosted-git-info@10.1.1:
     resolution: {integrity: sha512-DeOnSPAvOndYKfw075gt8yZzQ7S2hNztw34zBTfhIzLhmBTswIBg5/y+pqu/VD5cYWm5goAFTusDmUEmKZ0PEQ==}
@@ -12471,11 +12467,10 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
-  altcha-lib@2.6.0(cors@2.8.6)(express@5.2.1)(hono@4.13.13):
+  altcha-lib@2.6.0(cors@2.8.6)(express@5.2.1):
     optionalDependencies:
       cors: 2.8.6
       express: 5.2.1
-      hono: 4.13.13
 
   angular-eslint@22.6.0(chokidar@5.0.0)(eslint@9.39.5(jiti@2.7.0))(typescript-eslint@8.71.1(eslint@9.39.5(jiti@2.7.0))(typescript@6.0.3))(typescript@6.0.3):
     dependencies:
@@ -13879,9 +13874,6 @@ snapshots:
   he@1.2.0: {}
 
   help-me@5.0.0: {}
-
-  hono@4.13.13:
-    optional: true
 
   hosted-git-info@10.1.1:
     dependencies:

@@ -25,6 +25,7 @@ import {
   type FieldState,
 } from '@angular/forms/signals'
 import { Router } from '@angular/router'
+import { POS_PIN_PATTERN } from '@panary/users/domain'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiService } from '../../core/api.service'
 import { AuthService } from '../../core/auth.service'
@@ -233,8 +234,9 @@ import { objectHash } from '../../core/dirty-check'
                 <input
                   id="posPin"
                   [formField]="userForm.posPin"
-                  type="text"
+                  type="password"
                   inputmode="numeric"
+                  autocomplete="new-password"
                   [placeholder]="isNew() ? 'z.B. 1234' : 'Neuen PIN eingeben'"
                   [class]="inputClass(userForm.posPin())"
                 />
@@ -425,7 +427,7 @@ export class UserFormComponent {
       ({ valueOf }) => valueOf(u.isPosUser),
       pos => {
         pattern(pos.employeeNumber, /^\d{6}$/)
-        pattern(pos.posPin, /^\d{4,6}$/)
+        pattern(pos.posPin, POS_PIN_PATTERN)
       },
     )
     applyWhen(

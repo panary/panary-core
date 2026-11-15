@@ -57,3 +57,16 @@ export function monthsBehind(referenz: unknown, kandidat: unknown): number | nul
   if (!ref || !cand) return null
   return ref.year * 12 + ref.month - (cand.year * 12 + cand.month)
 }
+
+/**
+ * Weicht der laufende Build von der Version ab, die der Server meldet? Grundlage des Update-Hinweises in den
+ * Browser-Clients (core#1439): Jede Abweichung genuegt, nicht erst ein Monatsrueckstand, denn nach einem
+ * Neuladen liefert der Server ohnehin den autoritativen Stand.
+ *
+ * `false`, sobald eine Seite keine `YY.MM.INDEX`-Version ist (`staging-<sha>`, `pr-check`, `0.0.0`, ein leerer
+ * oder fehlender Wert): Dort ist ein Vergleich nicht sinnvoll, und ein falscher Hinweis waere schlimmer als keiner.
+ */
+export function isVersionDrift(build: unknown, server: unknown): boolean {
+  const order = compareVersions(build, server)
+  return order !== null && order !== 0
+}

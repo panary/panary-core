@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { compareVersions, monthsBehind, parsePanaryVersion } from './panary-version'
+import { compareVersions, isVersionDrift, monthsBehind, parsePanaryVersion } from './panary-version'
 
 // Versionen sind `YY.MM.INDEX` (tools/scripts/bump-version.mjs), der Index springt im Monatswechsel auf 1.
 // Die Fenster aus ADR 0070 sind in Monatsstaenden bemessen, nie in Releases.
@@ -99,5 +99,32 @@ describe('monthsBehind(referenz, kandidat)', () => {
     expect(monthsBehind('pr-check', '26.11.4')).toBeNull()
     expect(monthsBehind(undefined, '26.11.4')).toBeNull()
     expect(monthsBehind('26.11.4', undefined)).toBeNull()
+  })
+})
+
+describe('isVersionDrift(build, server)', () => {
+  it('ist false bei gleicher Version, auch mit v-Praefix auf einer Seite', () => {
+    expect(isVersionDrift('26.11.16', '26.11.16')).toBe(false)
+    expect(isVersionDrift('26.11.16', 'v26.11.16')).toBe(false)
+  })
+
+  it('ist ab der ersten Abweichung true, auch innerhalb eines Monats', () => {
+    expect(isVersionDrift('26.11.15', '26.11.16')).toBe(true)
+    expect(isVersionDrift('26.10.4', '26.11.1')).toBe(true)
+    expect(isVersionDrift('26.11.1', '27.1.1')).toBe(true)
+  })
+
+  it('meldet auch einen Server, der aelter ist als der Build, als Abweichung', () => {
+    expect(isVersionDrift('26.11.16', '26.11.2')).toBe(true)
+  })
+
+  it('ist false, sobald eine Seite keine Version ist: nicht vergleichbar, kein Hinweis', () => {
+    expect(isVersionDrift('26.11.16', 'staging-ab12cd3')).toBe(false)
+    expect(isVersionDrift('staging-ab12cd3', '26.11.16')).toBe(false)
+    expect(isVersionDrift('26.11.16', '0.0.0')).toBe(false)
+    expect(isVersionDrift('26.11.16', 'smoke')).toBe(false)
+    expect(isVersionDrift('26.11.16', '')).toBe(false)
+    expect(isVersionDrift('26.11.16', null)).toBe(false)
+    expect(isVersionDrift('26.11.16', undefined)).toBe(false)
   })
 })

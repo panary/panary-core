@@ -1015,6 +1015,14 @@ Positionen, Menü-Aufpreise, Modifier, Kombinationssumme, Nachlass und „Gesamt
 Formatiert wird über eine Funktion (`fmtAmount`); der Wert wird einmal in
 `renderOrderReceipt` gelesen und durchgereicht.
 
+**Menü-Aufschlag an Komponenten (core#1452):** Die Betragsspalte einer Menü-Beilage oder eines Menü-Getränks
+druckt nur den beim Buchen an der Zeile festgeschriebenen `surcharge` (Euro brutto je Stück der Komponente),
+mengen-skaliert über `menuComponentSurchargeLineCents` (`component.amount × line.amount`). Fehlt das Feld
+(Bestand, ältere Kassen) oder ist das Menü ein `FIXED_PROPORTIONAL`-Festpreis, bleibt die Spalte leer. Ein
+General-Preis der Filiale (`genericProductSettings`) liest der Bon nicht mehr; der Positionsbetrag
+(`lineItemGrossCents`) bleibt davon unberührt. Ein Nachdruck einer Bestandsbestellung zeigt deshalb an den
+Komponenten keinen Betrag mehr, die Summe bleibt gleich. Begründung: [ADR 0071](../adr/0071-menue-aufschlag-wird-beim-buchen-festgeschrieben.md).
+
 🚨 **Der Bestands-Default sitzt allein im Renderer:**
 `settings?.receiptSettings?.showCurrency !== false`. Eine Prüfung auf Truthiness
 nähme jeder Bestandsfiliale beim Update still die Währung, denn keine trägt das

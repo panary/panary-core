@@ -46,7 +46,7 @@ interface CartSnapshot {
 }
 
 import { ProductGroup, ProductGroupService } from '@panary/product-groups/data-access'
-import { ItemType, ProductSchema } from '@panary/products/domain'
+import { ItemType, menuOptionGroupSlot, ProductSchema } from '@panary/products/domain'
 import { ProductService } from '@panary/products/data-access'
 import {
   calculateArticlePrice,

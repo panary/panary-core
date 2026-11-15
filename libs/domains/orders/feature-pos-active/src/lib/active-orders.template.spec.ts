@@ -18,7 +18,14 @@ describe('Offene Bestellungen — Menü-Komponenten (core#807)', () => {
 
   it('der Preis unter der Komponente kommt aus menuComponentSurcharge, nicht aus dem Listenpreis', () => {
     expect(component).not.toMatch(/formatPrice\(item\.menu(SideDish|Drink)\.price\)/)
-    expect(component).toMatch(/menuComponentSurcharge\(item, component, generalPrice\)/)
+    expect(component).toMatch(/menuComponentSurcharge\(item, component\)/)
+    // core#1453: Der General-Preis der Filiale ist keine Quelle mehr.
+    expect(component).not.toMatch(/generalMenu(SideDish|Drink)Price/)
+  })
+
+  it('die Hauptzeile zeigt den Positionsbetrag aus calculateArticlePrice, nie Preis × Menge (core#1453)', () => {
+    expect(component).toMatch(/lineTotalFormatted: this\.formatPrice\(calculateArticlePrice\(item\)\)/)
+    expect(component).not.toMatch(/item\.price \* item\.amount/)
   })
 })
 
@@ -90,8 +97,11 @@ describe('Offene Bestellungen — Bon-Karte (core#1126)', () => {
     expect(menuParts).not.toMatch(/text-xs text-ink-muted pl-2/)
   })
 
-  it('der Modifier-Aufpreis trägt ein Plus wie der Menü-Aufpreis', () => {
-    expect(component).toMatch(/priceFormatted: extra\.price > 0 \? `\+\$\{this\.formatPrice\(/)
+  it('der Modifier-Betrag steht ohne Plus wie auf dem Bon (core#1453, löst core#1126 ab)', () => {
+    expect(component).toMatch(
+      /priceFormatted: extra\.price > 0 \? this\.formatPrice\(calculateModifierPrice\(item, extra\)\) : null/,
+    )
+    expect(component).not.toMatch(/`\+\$\{this\.formatPrice/)
   })
 
   it('der Kopf steht in einer Zeile, ohne „Uhr“', () => {

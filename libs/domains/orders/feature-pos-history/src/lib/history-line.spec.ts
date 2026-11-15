@@ -91,3 +91,45 @@ describe('buildHistoryLineVm (core#1235)', () => {
     expect(vm.modifiers[1].amount).toBe(1)
   })
 })
+
+// core#1453: Hauptzeile = Positionsbetrag, Komponenten nur mit dem festgeschriebenen Aufschlag.
+describe('buildHistoryLineVm — Positionsbetrag und Aufschlag (core#1453)', () => {
+  const menu = (over: Record<string, unknown> = {}) =>
+    line({
+      price: 10,
+      isMenu: true,
+      menuSideDish: { externalId: SIDE, name: 'Pommes', price: 3, amount: 1 },
+      menuDrink: { externalId: DRINK, name: 'Cola', price: 5.5, amount: 1 },
+      ...over,
+    } as Partial<OrderLineItem>)
+
+  it('nimmt für die Hauptzeile den Positionsbetrag samt Extras, nicht Preis × Menge', () => {
+    const vm = buildHistoryLineVm(menu({ amount: 2, modifiers: [mod({ price: 0.5 })] }))
+    expect(vm.lineTotal).toBeGreaterThan(20)
+    expect(vm.lineTotal).not.toBe(20)
+  })
+
+  it('zeigt an einer Komponente nur den festgeschriebenen Aufschlag, nicht ihren Preis', () => {
+    const vm = buildHistoryLineVm(
+      menu({
+        menuSideDish: { externalId: SIDE, name: 'Pommes', price: 3, amount: 1, surcharge: 0.6 },
+        menuDrink: { externalId: DRINK, name: 'Cola', price: 5.5, amount: 1 },
+      }),
+    )
+    expect(vm.sideDishSurcharge).toBe(0.6)
+    expect(vm.drinkSurcharge).toBeNull()
+  })
+
+  it('zeigt ohne Feld (Bestandsbestellung) keinen Betrag', () => {
+    const vm = buildHistoryLineVm(menu())
+    expect([vm.sideDishSurcharge, vm.drinkSurcharge]).toEqual([null, null])
+  })
+
+  it('skaliert den Aufschlag mit der Zeilenmenge und lässt ihn beim Festpreis-Menü weg', () => {
+    const slot = { externalId: DRINK, name: 'Cola', price: 5.5, amount: 1, surcharge: 0.6 }
+    expect(buildHistoryLineVm(menu({ amount: 2, menuDrink: slot })).drinkSurcharge).toBe(1.2)
+    expect(
+      buildHistoryLineVm(menu({ amount: 2, bundlePricingMode: 'FIXED_PROPORTIONAL', menuDrink: slot })).drinkSurcharge,
+    ).toBeNull()
+  })
+})

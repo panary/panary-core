@@ -232,7 +232,7 @@
         }
         <span>{{ line.item.name }}</span>
       </div>
-      <span>{{ line.item.price * line.item.amount | eur }}</span>
+      <span>{{ line.lineTotal | eur }}</span>
     </div>
     <ng-container
       [ngTemplateOutlet]="historyExtras"
@@ -240,14 +240,24 @@
     />
     @if (line.item.isMenu) {
       @if (line.item.menuSideDish) {
-        <div class="pl-6 text-sm text-ink" data-testid="menu-part">{{ line.item.menuSideDish.name }}</div>
+        <div class="pl-6 flex justify-between items-start text-sm text-ink" data-testid="menu-part">
+          <span>{{ line.item.menuSideDish.name }}</span>
+          @if (line.sideDishSurcharge !== null) {
+            <span data-testid="menu-part-surcharge">{{ line.sideDishSurcharge | eur }}</span>
+          }
+        </div>
         <ng-container
           [ngTemplateOutlet]="historyExtras"
           [ngTemplateOutletContext]="{ $implicit: line.sideDishModifiers, indent: 'pl-10' }"
         />
       }
       @if (line.item.menuDrink) {
-        <div class="pl-6 text-sm text-ink" data-testid="menu-part">{{ line.item.menuDrink.name }}</div>
+        <div class="pl-6 flex justify-between items-start text-sm text-ink" data-testid="menu-part">
+          <span>{{ line.item.menuDrink.name }}</span>
+          @if (line.drinkSurcharge !== null) {
+            <span data-testid="menu-part-surcharge">{{ line.drinkSurcharge | eur }}</span>
+          }
+        </div>
         <ng-container
           [ngTemplateOutlet]="historyExtras"
           [ngTemplateOutletContext]="{ $implicit: line.drinkModifiers, indent: 'pl-10' }"
@@ -277,7 +287,7 @@
         }
       </span>
       @if (extra.price !== null) {
-        <span>{{ extra.kind === 'extra' ? '+' : '' }}{{ extra.price | eur }}</span>
+        <span>{{ extra.price | eur }}</span>
       }
     </div>
   }

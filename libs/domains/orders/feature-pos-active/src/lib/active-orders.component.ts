@@ -23,6 +23,7 @@ import {
   KasseReorderHandoff,
 } from '@panary/orders/feature-pos-order-dialog'
 import {
+  calculateArticlePrice,
   calculateModifierPrice,
   menuComponentSurcharge,
   calculateTaxSummary,
@@ -905,22 +906,14 @@ export class ActiveOrdersComponent {
     const groups = groupModifiersByComponent(item, { components: false })
     return {
       item,
-      lineTotalFormatted: this.formatPrice(item.price * item.amount),
+      lineTotalFormatted: this.formatPrice(calculateArticlePrice(item)),
       modifiers: groups.main.map(extra => this.#buildModifierVm(item, extra)),
       sideDishModifiers: groups.sideDish.map(extra => this.#buildModifierVm(item, extra)),
       drinkModifiers: groups.drink.map(extra => this.#buildModifierVm(item, extra)),
-      // Dieselbe Regel wie im Warenkorb: der Aufpreis je Stück über dem allgemeinen Menüpreis, beim
-      // Festpreis-Menü nichts — vorher stand hier der volle Listenpreis der Komponente (core#807).
-      sideDishPriceFormatted: this.#menuSurchargeFormatted(
-        item,
-        item.menuSideDish,
-        this.#locationService.generalMenuSideDishPrice,
-      ),
-      drinkPriceFormatted: this.#menuSurchargeFormatted(
-        item,
-        item.menuDrink,
-        this.#locationService.generalMenuDrinkPrice,
-      ),
+      // Dieselbe Regel wie im Warenkorb und auf dem Bon: nur der an der Zeile festgeschriebene Aufschlag,
+      // beim Festpreis-Menü und ohne Feld nichts (core#807, core#1453).
+      sideDishPriceFormatted: this.#menuSurchargeFormatted(item, item.menuSideDish),
+      drinkPriceFormatted: this.#menuSurchargeFormatted(item, item.menuDrink),
     }
   }
 
@@ -929,18 +922,15 @@ export class ActiveOrdersComponent {
       id: extra._id,
       name: extra.name,
       icon: extra.icon,
-      // Betrag wie Engine und Bon (#698): bei `modifierScope: 'unit'` für alle Stück. Mit „+“ wie der
-      // Menü-Aufpreis (core#1126), der Positionspreis darüber steht ohne.
-      priceFormatted: extra.price > 0 ? `+${this.formatPrice(calculateModifierPrice(item, extra))}` : null,
+      // Betrag wie Engine und Bon (#698): bei `modifierScope: 'unit'` für alle Stück. Ohne „+“ wie auf dem Bon:
+      // Die Hauptzeile trägt den Positionsbetrag samt Extras, die Unterzeile ist ein Posten darin (core#1453,
+      // löst die „+“-Konvention aus core#1126 für diese Ansicht ab).
+      priceFormatted: extra.price > 0 ? this.formatPrice(calculateModifierPrice(item, extra)) : null,
     }
   }
 
-  #menuSurchargeFormatted(
-    item: OrderLineItem,
-    component: OrderLineItem['menuDrink'],
-    generalPrice: number,
-  ): string | null {
-    const surcharge = menuComponentSurcharge(item, component, generalPrice)
-    return surcharge > 0 ? `+${this.formatPrice(surcharge)}` : null
+  #menuSurchargeFormatted(item: OrderLineItem, component: OrderLineItem['menuDrink']): string | null {
+    const surcharge = menuComponentSurcharge(item, component)
+    return surcharge > 0 ? this.formatPrice(surcharge) : null
   }
 }

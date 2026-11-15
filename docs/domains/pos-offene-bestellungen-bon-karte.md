@@ -21,9 +21,13 @@ standen die Aufpreise in der Namensspalte und endeten an deren Rand; lange Namen
 
 | Zeile | Schrift | Preis |
 |---|---|---|
-| Position | `text-ink` | Zeilensumme ohne Vorzeichen |
-| Modifier | `text-xs text-ink-muted`, „+“ vor dem Namen | `+0,70 €` (Betrag wie Engine und Bon, #698); 0-€-Modifier ohne Preis |
-| Beilage, Getränk eines Menüs | `text-sm text-ink` mit Symbol | Menü-Aufpreis `+2,30 €` ([core#807](https://github.com/panary/panary-core/issues/807)), beim Festpreis-Menü keiner |
+| Position | `text-ink` | Positionsbetrag aus `calculateArticlePrice` (Artikel, Komponenten und Extras), wie auf dem Bon ([core#1453](https://github.com/panary/panary-core/issues/1453)) |
+| Modifier | `text-xs text-ink-muted`, „+“ vor dem Namen | `0,70 €` ohne „+“ (Betrag wie Engine und Bon, #698); 0-€-Modifier ohne Preis |
+| Beilage, Getränk eines Menüs | `text-sm text-ink` mit Symbol | der an der Zeile festgeschriebene Aufschlag (`surcharge`, [ADR 0071](../adr/0071-menue-aufschlag-wird-beim-buchen-festgeschrieben.md)), für alle Stück der Zeile, ohne „+“. Beim Festpreis-Menü und an Zeilen ohne das Feld steht kein Betrag ([core#807](https://github.com/panary/panary-core/issues/807), core#1453) |
+
+Seit core#1453 steht an Unterzeilen kein „+“ vor dem Betrag: Die Hauptzeile trägt den Positionsbetrag samt Extras, die
+Unterzeile ist ein Posten darin. Das löst die Schreibweise aus [core#1126](https://github.com/panary/panary-core/issues/1126)
+für „Offen“ und Historie ab (Entscheidung Michael, 2026-11-15). Die Bestellannahme behält ihr „+“ vor dem Aufschlag.
 
 Die Preiszelle wird auch leer gerendert, damit die Folge der Grid-Zellen nicht verrutscht. Beilage und Getränk liefert
 die Vorlage `#menuParts` als zwei Zellen ins Raster der Position, für freie Positionen und Kombinationen gleich.

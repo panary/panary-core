@@ -86,11 +86,13 @@ Zeile überhaupt zugeordnete Modifier trägt.
   [core#1235](https://github.com/panary/panary-core/issues/1235)): `buildHistoryLineVm` ruft den Helfer mit
   `{ components: false }`. Eine Vorlage für freie Positionen und Kombinationen zeigt den Hauptartikel mit „+ Name“,
   darunter Beilage und Getränk mit ihren Extras (eingerückt). „ohne“-Zeilen und −1-Marker bleiben ohne „+“, die Menge
-  steht als „+ 2x Name“. Gespeicherte Preise, nichts wird neu gerechnet. Der Menü-Aufpreis der Komponenten entfällt:
-  Gespeichert sind nur die Komponentenpreise, nicht der Aufpreis (Komponentenpreis minus Standardpreis), und aus der
-  aktuellen Standort-Konfiguration würde er für alte Bestellungen falsch. Die Zeilensumme enthält die
-  Komponentenpreise weiterhin; die sichtbaren Beträge der Historie summieren sich deshalb bei solchen Menüs nicht zur
-  Gesamtsumme (war schon vorher so). Die Historie liest weiter das rohe `order.lineItems` (nicht `effectiveLineItems` wie „Offen“), bei
+  steht als „+ 2x Name“. Gespeicherte Werte, nichts wird aus der Standort-Konfiguration abgeleitet. Seit
+  [core#1453](https://github.com/panary/panary-core/issues/1453) steht an der Hauptzeile der Positionsbetrag
+  (`calculateArticlePrice`, wie auf dem Bon), an Beilage und Getränk nur der beim Buchen festgeschriebene Aufschlag
+  (`surcharge`, [ADR 0071](../adr/0071-menue-aufschlag-wird-beim-buchen-festgeschrieben.md)) und am Extra sein Preis
+  ohne „+“. Bestandszeilen ohne das Feld zeigen an Komponenten keinen Betrag. Die sichtbaren Beträge der Historie
+  summieren sich bei Menüs mit Extras auf die Gesamtsumme, weil die Hauptzeile den vollen Positionsbetrag trägt.
+  Die Historie liest weiter das rohe `order.lineItems` (nicht `effectiveLineItems` wie „Offen“), bei
   gesplitteten Bestellungen weichen beide bewusst voneinander ab.
 
 Nicht umgestellt (zeigen weiter flach): Split-Dialog.

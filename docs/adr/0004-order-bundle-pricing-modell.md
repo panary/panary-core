@@ -151,9 +151,13 @@ Soßen und Extras bleiben Modifier am Satz der Zeile.
 
 **Konsequenz:** Der Positionsbetrag ändert sich nicht. Die Komponente trägt denselben Preis wie der Slot,
 `lineComponents` bevorzugt `components[]` vor den Slots (keine Doppelzählung), und Modifier skalieren in
-beiden Formen mit der Zeilenmenge (`modifierScale`). Nur die Verteilung auf Steuersätze ändert sich, bei
+beiden Formen mit der Zeilenmenge (`modifierScale`), weil die Kasse neue Zeilen immer mit `modifierScope: 'unit'` bucht. Nur die Verteilung auf Steuersätze ändert sich, bei
 Menüs mit Beilage oder Getränk zu abweichendem Satz. Kein Backfill: Bereits gebuchte Zeilen behalten ihren
 Snapshot. Der Bon druckt `components[]` weiter nicht, Karte und Historie ebenso.
+Voraussetzung für die Betragsgleichheit ist höchstens eine Beilagen- und eine Getränkegruppe je Menü: Der
+Legacy-Slot hält nur die letzte Wahl, `recordSlotComponent` ersetzt nach `optionGroupId`, zwei Getränkegruppen
+ergäben also zwei Komponenten und einen höheren Betrag als der Slot. Diese Konfiguration fängt die Prüfung in
+core#1455 ab.
 Die Zuordnung zu Beilage oder Getränk hängt am Gruppennamen. Eine anders benannte Gruppe bucht ihre Wahl
 als Modifier und bleibt am Satz der Zeile; die Prüfung solcher Konfigurationen ist core#1455.
 

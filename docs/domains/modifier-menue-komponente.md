@@ -44,6 +44,9 @@ bekommen `componentExternalId`; direkt getippte Extras und Modifier aus den Grup
   `@panary/orders`-Bump in der Cloud abgelehnt — als TERMINAL-Fehler in der Outbox.
 - **Komponente ersetzt** (andere Beilage bzw. anderes Getränk): Die zugeordneten Modifier der alten Komponente fallen
   mit weg (`dropComponentModifiers`).
+  Beilage und Getränk stehen dabei zugleich als Legacy-Slot und als `components[]`-Eintrag mit eigenem Steuersatz
+  (core#1450, [ADR 0004](../adr/0004-order-bundle-pricing-modell.md)); der Eintrag mit gleicher `optionGroupId`
+  wird ersetzt, nicht ergänzt.
 - **Extras-Raster und Anpassen-Sheet** passen nur den Hauptartikel an: `increaseExtra`/`decreaseExtra` und die
   Mengen im Sheet übergehen Modifier mit `componentExternalId`. Eine Mayo per Raster neben der Pommes-Mayo ist ein
   zweiter Eintrag ohne Zuordnung, Minus nimmt nie die Mayo der Pommes zurück.

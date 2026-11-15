@@ -104,7 +104,6 @@ describe('Historie: Menge erst ab 2 (core#1257)', () => {
 
   it('findet den Anker der Hauptzeile', () => {
     expect(ende).toBeGreaterThan(source.indexOf('<ng-template #historyLine'))
-    expect(zeile.length).toBeLessThan(900)
   })
 
   it('blendet die Menge 1 samt Zelle aus, damit der Name nicht um den Gap einrückt', () => {

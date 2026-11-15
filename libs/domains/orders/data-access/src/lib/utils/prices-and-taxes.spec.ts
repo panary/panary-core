@@ -355,12 +355,14 @@ describe('menuComponentSurcharge (core#781, core#1453)', () => {
 
   it('zeigt ohne Festpreis den festgeschriebenen Aufschlag, nicht den Komponentenpreis', () => {
     expect(menuComponentSurcharge({ amount: 1 }, drink)).toEqual(0.6)
-    expect(menuComponentSurcharge({ amount: 1 }, { price: 4.2, amount: 1, surcharge: 0.7 })).toEqual(0.7)
+    const teuer = { price: 4.2, amount: 1, surcharge: 0.7 }
+    expect(menuComponentSurcharge({ amount: 1 }, teuer)).toEqual(0.7)
   })
 
   it('zeigt ohne Feld keinen Betrag, auch wenn die Komponente einen Preis trägt (Bestand, ältere Kassen)', () => {
-    expect(menuComponentSurcharge({ amount: 1 }, { price: 6.5, amount: 1 })).toEqual(0)
-    expect(menuComponentSurcharge({ amount: 1 }, { price: 6.5, amount: 1, surcharge: null })).toEqual(0)
+    const ohneFeld = { price: 6.5, amount: 1 }
+    expect(menuComponentSurcharge({ amount: 1 }, ohneFeld)).toEqual(0)
+    expect(menuComponentSurcharge({ amount: 1 }, { ...ohneFeld, surcharge: null })).toEqual(0)
   })
 
   it('skaliert mit Zeilen- und Komponentenmenge, wie der Bon', () => {

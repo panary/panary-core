@@ -1,3 +1,5 @@
 export * from './lib/product.schema'
 export * from './lib/product-labeling'
 export * from './lib/legacy-types'
+export * from './lib/menu-option-group-slot'
+export * from './lib/menu-tax-check'

@@ -237,6 +237,59 @@ describe('computeOrderTax — appliedDiscounts', () => {
     expect(applied[0].computedAmountCents).toBe(toCents(25))
   })
 
+  // #1433: Ein LINE-Eintrag ohne Position kann die Engine nicht anwenden. Sein gelieferter Betrag darf nicht in
+  // `computedAmountCents` stehen bleiben, denn der Aggregator (financials.ts) zieht genau diesen Wert ab.
+  it('LINE-Rabatt ohne lineItemId ist nicht anwendbar: computedAmountCents 0, Brutto unverändert (#1433)', () => {
+    const applied = [makeApplied({ target: 'line', valueType: 'amount', valueCents: 1090, computedAmountCents: 1090 })]
+    const r = computeOrderTax(makeOrderWithApplied([makeLine(7, 1, 19, 7)], applied))
+    expect(applied[0].computedAmountCents).toBe(0)
+    expect(roundCents(r.brutto)).toBe(toCents(7))
+  })
+
+  it('LINE-Rabatt mit lineItemId null verhält sich wie ohne lineItemId (#1433)', () => {
+    const applied = [
+      makeApplied({
+        target: 'line',
+        lineItemId: null,
+        valueType: 'amount',
+        valueCents: 1090,
+        computedAmountCents: 1090,
+      }),
+    ]
+    const r = computeOrderTax(makeOrderWithApplied([makeLine(7, 1, 19, 7)], applied))
+    expect(applied[0].computedAmountCents).toBe(0)
+    expect(roundCents(r.brutto)).toBe(toCents(7))
+  })
+
+  it('ein nicht anwendbarer LINE-Eintrag lässt gültige Rabatte daneben unberührt (#1433)', () => {
+    const lineA = makeLine(50, 1, 19, 7, { _id: '00000000-0000-0000-0000-00000000000a' })
+    const applied = [
+      makeApplied({
+        _id: '00000000-0000-0000-0000-0000000000a1',
+        target: 'line',
+        valueType: 'amount',
+        valueCents: 900,
+        computedAmountCents: 900,
+      }),
+      makeApplied({
+        _id: '00000000-0000-0000-0000-0000000000a2',
+        target: 'line',
+        lineItemId: '00000000-0000-0000-0000-00000000000a',
+        valueType: 'percent',
+        valuePercent: 10,
+      }),
+      makeApplied({
+        _id: '00000000-0000-0000-0000-0000000000a3',
+        target: 'order',
+        valueType: 'amount',
+        valueCents: 500,
+      }),
+    ]
+    const r = computeOrderTax(makeOrderWithApplied([lineA], applied))
+    expect(applied.map(a => a.computedAmountCents)).toEqual([0, 500, 500])
+    expect(roundCents(r.brutto)).toBe(toCents(40))
+  })
+
   it('mehrere ORDER-Rabatte werden sequenziell angewandt', () => {
     const applied = [
       makeApplied({

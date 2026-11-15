@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Print-Server-API
-description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker, die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet, der Zeichensatz je Drucker samt Transliteration typografischer Zeichen und die abschaltbare Währungsangabe auf dem Bestellbon.
+description: Referenz der Print-Server-Schnittstelle am Edge — Aufrufer, Ziel-Host und Fehler-Events, der mitgelieferte MQTT-Broker, die ESC/POS-Encoder-Library samt der in Dots gemessenen Zentrierungsfalle bei Font B, das Rendern je Zieldrucker, die Druckerrolle, die über Küchenbon oder vollständige Quittung entscheidet, der Zeichensatz je Drucker samt Transliteration typografischer Zeichen die abschaltbare Währungsangabe auf dem Bestellbon und die Betragsspalte in Font-B-Tabellen.
 tags: [locations, print-server, esc-pos, mqtt]
 status: stable
 generated: { by: claude-code/historic, at: 2025-03-28T00:00:00Z }
@@ -1041,3 +1041,32 @@ aus `receipt.currency`); er wird vom Edge nicht aufgerufen
 ([ADR 0007](../adr/0007-beleg-bon-system.md)). Und wie überall in diesem Dokument
 gilt: **Nur der IP-Pfad** rendert serverseitig, MQTT-Drucker bekommen ihre
 Nutzlast vom POS-Client und sehen den Schalter nicht.
+
+---
+
+## 16. Betragsspalte in Font-B-Tabellen
+
+Eine `table()` rechnet ihre Spaltenbreiten in den Zeichen des **aktiven Fonts**. `font('B')` stellt den Composer auf
+`chars / 42 * 56` Spalten um (`fontBColumns()` in `escpos.adapter.ts`): 64 auf 80 mm, abgerundet 42 auf 58 mm, je
+Zeichen 9 statt 12 Dots. Der Font steht vor der Tabelle (§10, `font()` wirft in Zellen).
+
+**Der Fehler** ([#1444](https://github.com/panary/panary-core/issues/1444), Drucktest am 2026-11-15): Die Unterzeilen
+des Bestellbons (Menü-Komponenten, Modifier, Extras) und die MwSt-Zeilen des Belegs druckten in Font B, rechneten
+aber mit den Font-A-Breiten der Hauptzeile. `marginLeft` zählt zur Spaltensumme dazu, nicht in sie hinein:
+
+| | Zeichen Font B | Dots (80 mm) | Dots (58 mm) |
+|---|---|---|---|
+| Hauptzeile (Font A, 48 bzw. 32 Zeichen) | – | 576 | 384 |
+| Unterzeile vorher: 4 + 32 + 12 | 48 bzw. 32 | 432 (**−144**) | 288 (**−96**) |
+| Unterzeile nachher: 4 + 44 + 16 | 64 bzw. 42 | 576 | 378 |
+
+Die Betragsspalte behält die Breite der Hauptzeile **in Dots** (12 Zeichen Font A = 16 Zeichen Font B), die
+Namensspalte nimmt den Rest. Auf 58 mm bleiben 6 Dots Rundung, weil 42 × 9 nicht 384 ergibt. Die Namensspalte der
+Unterzeilen ist dadurch breiter (44 statt 32 Zeichen auf 80 mm, 22 statt 16 auf 58 mm), lange Namen brechen später um.
+
+**Die Regel:** Jede Tabelle in Font B bekommt ihre Breiten über `fontBColumns()`, nie die Zahlen der Font-A-Zeile.
+
+**Messung:** `order-receipt.renderer.spec.ts` und `receipt-escpos.renderer.spec.ts` vergleichen die rechte Kante der
+Zeilen in Dots (`leadDots + contentDots` aus `test/escpos-layout.ts`) mit der der Hauptzeile, je 80 mm und 58 mm,
+mit und ohne `EUR`. Der Test misst die Zellenbreite, die der Encoder annimmt, nicht das Papier: Ob ein Druckermodell
+Font B mit 9 Dots druckt, zeigt nur der Ausdruck.

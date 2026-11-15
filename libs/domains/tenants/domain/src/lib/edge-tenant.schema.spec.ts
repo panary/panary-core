@@ -14,7 +14,15 @@ describe('edgeTenantSchema', () => {
   })
 
   it('enthaelt keine Cloud-only-Aggregate (Allowlist-Projection-Kontrakt)', () => {
-    for (const cloudOnly of ['subscription', 'planUsage', 'billing', 'securityPolicy', 'compliance', 'internalNotes', 'sso']) {
+    for (const cloudOnly of [
+      'subscription',
+      'planUsage',
+      'billing',
+      'securityPolicy',
+      'compliance',
+      'internalNotes',
+      'sso',
+    ]) {
       expect(props[cloudOnly]).toBeUndefined()
     }
   })

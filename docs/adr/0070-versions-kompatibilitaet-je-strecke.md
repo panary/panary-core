@@ -196,6 +196,17 @@ im Issue). Reihenfolge nach Abhängigkeit:
 - **Ohne Verhaltensänderung.** Cloud und core nutzen die Bausteine erst in den Folge-Issues, nach dem
   Core-Release der Libs und dem Pin-Bump der Cloud.
 
+### Nachtrag: Client-Version im Handshake (core#1438)
+
+- **`clientVersion` im Socket-`auth`** der Geräteverbindung, gesendet von POS, KDS, Tablet und Kiosk. Der Edge
+  liest sie tolerant: fehlend, kein Text oder über 50 Zeichen heißt „unbekannt", nie Abweisung. Ältere POS
+  ohne Feld und ältere Edges ohne Kenntnis des Feldes verbinden unverändert, die Release-Reihenfolge
+  Cloud → Edge → POS bleibt gedeckt.
+- **Ausgabe nur über `device-connections`** (`connectedDevices: { deviceId, clientVersion }[]`), also mit
+  Anmeldung und RBAC. Die öffentliche `/health` zeigt höchstens Zähler.
+- Die Auswertung (Rückstand in Monatsständen mit `monthsBehind` aus core#1437, Hinweise in den Oberflächen)
+  folgt in den Folge-Issues, u. a. core#1439.
+
 ## Referenzen
 
 - panary/panary-core#1411 (Entscheidung), panary/panary-workbench#214 (Tag ≠ Rollout)

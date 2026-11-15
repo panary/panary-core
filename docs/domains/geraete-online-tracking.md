@@ -28,11 +28,13 @@ Live-Socket-Zustand. Quelle ist die Feathers-Channel-Registry des Edge.
 
 - **`device-connections`-Service**
   ([`services/device-connections/device-connections.ts`](../../apps/api-edge/src/services/device-connections/device-connections.ts)):
-  read-only `find` → `{ online, total, connectedDeviceIds }` für `params.user.tenantId`.
+  read-only `find` → `{ online, total, connectedDeviceIds, connectedDevices }` für `params.user.tenantId`.
   - **online/connectedDeviceIds:** `app.channel('authenticated').connections` filtern auf
     `conn.tenantId === tenantId && conn.deviceId` (Device-Connections joinen diesen Channel
     nach erfolgreicher API-Key-Auth), eindeutige `deviceId`s. Disconnect entfernt die
     Connection automatisch → Zähler stimmt ohne weiteres Zutun.
+  - **connectedDevices:** dieselben Geräte als `{ deviceId, clientVersion }`, `clientVersion` ist `null`,
+    wenn das Gerät keine Version gesendet hat (Details: [Client-Version im Handshake](#client-version-im-handshake)).
   - **total:** interner `app.service('devices').find({ tenantId, active: true, $limit: 0 })`.
   - Hooks `around.all: [authenticate('jwt'), authorize()]`. Registrierung in
     [`services/index.ts`](../../apps/api-edge/src/services/index.ts) nach `devices`.
@@ -42,6 +44,25 @@ Live-Socket-Zustand. Quelle ist die Feathers-Channel-Registry des Edge.
   ⚠️ Der Edge-`devices`-Service hat `multi: []` → kein `patch(null, …)`; daher per
   `find({ deviceId })` → `patch(_id, …)` (interner Call). `devices` ist nicht in der
   Sync-Allowlist → kein Outbox-/Cloud-Push.
+
+#### Client-Version im Handshake
+
+Seit core#1438 (ADR 0070) sendet jedes Gerät den Stand seines Builds als `clientVersion` im Socket-`auth`
+(`buildDeviceSocketAuth` in `libs/shared/data-access`, Quelle `AppConfigService.appVersion`, also die
+`package.json`-Version der App, nicht die austauschbare `config.json`). Der Edge liest sie in
+[`channels.ts`](../../apps/api-edge/src/channels.ts) mit `readClientVersion`
+([`device-client-version.ts`](../../apps/api-edge/src/device-client-version.ts)):
+
+- **Tolerant, nie abweisend.** Fehlt das Feld (älterer POS), ist es kein Text, leer oder länger als 50
+  Zeichen, gilt die Version als **unbekannt** (`null`); die Verbindung steht trotzdem. Der Wert wird nicht auf
+  `YY.MM.INDEX` geprüft, das entscheidet beim Lesen `parsePanaryVersion` (`@panary/shared-common`).
+- **Gehalten wird sie am Connection-Objekt** (`connection.clientVersion`) neben `deviceId`, und im Wide Event
+  `device.auth` steht sie als `clientVersion`. Keine PINs, Tokens oder Schlüssel dabei.
+- **Ausgegeben wird sie nur über `device-connections`**: Anmeldung und `DEVICE_CONNECTIONS`-Recht (OWNER und
+  TECHNICIAN) sind Pflicht. Die öffentliche `/health` nennt keine Geräteliste und keine Version.
+- **Mehrere Verbindungen eines Geräts** (Reconnect-Überlappung) zählen einmal; eine versionslose Verbindung
+  überschreibt eine bekannte Version nicht.
+- Die Cloud erfährt sie nicht: Wie `connectedDeviceIds` bleibt die Liste am Edge.
 
 ### Frontend (`apps/admin-client`, REST + JWT-Interceptor, OnPush/Signals)
 

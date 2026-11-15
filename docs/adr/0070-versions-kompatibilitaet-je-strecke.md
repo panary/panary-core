@@ -170,7 +170,7 @@ Je PR-groß, als Unter-Issues von panary/panary-core#1411 mit blocked-by-Reihenf
 im Issue). Reihenfolge nach Abhängigkeit:
 
 1. Heartbeat-`edgeVersion` in der Cloud persistieren (cloud) — liefert die erste echte Messung.
-2. Versionsvergleich `YY.MM.INDEX` mit Monatsstand-Differenz als geteilte Hilfsfunktion (core, `shared-common`), dazu das additive Feld `requiredPosMinVersion` im Sync-Status-Schema.
+2. Versionsvergleich `YY.MM.INDEX` mit Monatsstand-Differenz als geteilte Hilfsfunktion (core, `shared-common`), dazu die additiven Felder `requiredEdgeMinVersion` und `requiredPosMinVersion` in der **Heartbeat-Antwort**, nicht im Sync-Status-Schema (core#1437, Nachtrag unten).
 3. Mindestversion je Strecke als Plattform-Einstellung von Hand (cloud, Feature-Flag-Abstimmung nötig).
 4. Drift-Anzeige und Alarm für veraltete oder zu neue Edges in der Edge-Verwaltung (cloud).
 5. Versions-Handshake POS ↔ Edge: Version im Socket-`auth`, Erfassung am Edge, tote Spalten
@@ -179,6 +179,22 @@ im Issue). Reihenfolge nach Abhängigkeit:
 7. POS: Warnhinweis in der Schicht, Prüfung bei Login und Schichtstart gegen die Mindestversion (core).
 8. Update-Hinweis im core-Admin-Client und Setup-Client (core).
 9. Kompatibilitätsgate in der Cloud-CI: Sync-Payloads der letzten zwei Monatsstände aus den publizierten Paketen gegen die aktuellen Validatoren, beide Richtungen (cloud).
+
+### Nachtrag: Umsetzung der geteilten Bausteine (core#1437)
+
+- **Übertragungsweg der Mindestversionen ist die Heartbeat-Antwort** (`syncHeartbeatResponseSchema`,
+  `/sync-heartbeat`), nicht `/sync-status`: Der Edge liest die Heartbeat-Antwort schon heute, `/sync-status`
+  ruft er nirgends auf. Beide Felder sind optional und höchstens 50 Zeichen lang; ältere Edges lesen die
+  Antwort ohne Schemaprüfung und ignorieren sie. `requiredEdgeMinVersion` im Status-Schema bleibt unangetastet.
+- **Die Funktionen leben in `@panary/shared-common`** (`libs/shared/common/src/lib/utils/panary-version.ts`):
+  `parsePanaryVersion`, `compareVersions`, `monthsBehind(referenz, kandidat)`. Alles, was nicht `YY.MM.INDEX`
+  ist, ist `null` („unbekannt"), nie ein Rückstand: `staging-<sha>`, `pr-check`, `smoke`, `0.0.0` und
+  gewöhnliches Semver wie `1.2.3` (zweistelliges Jahr verlangt).
+- **Vorzeichen von `monthsBehind`:** positiv = der Kandidat liegt hinter der Referenz zurück, negativ = er ist
+  **neuer** als die Referenz. Der zweite Fall ist der Datenverlust-Pfad (Edge neuer als die Cloud-Libs) und
+  braucht deshalb ein eigenes Zeichen statt eines Betrags. Verglichen wird nur der Monatsstand, nie der Index.
+- **Ohne Verhaltensänderung.** Cloud und core nutzen die Bausteine erst in den Folge-Issues, nach dem
+  Core-Release der Libs und dem Pin-Bump der Cloud.
 
 ## Referenzen
 

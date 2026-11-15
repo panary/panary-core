@@ -245,7 +245,7 @@
                       <span
                         >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}: {{ lineItem.menuSideDish?.name || 'ohne' }}</span
                       >
-                      @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
+                      @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish);
                       @if (sideSurcharge > 0) {
                         <span>+ {{ sideSurcharge | eur }}</span>
                       }
@@ -256,7 +256,7 @@
                     />
                     <div class="flex justify-between">
                       <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
-                      @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
+                      @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink);
                       @if (drinkSurcharge > 0) {
                         <span>+ {{ drinkSurcharge | eur }}</span>
                       }
@@ -371,7 +371,7 @@
                       <span
                         >{{ 'ORDER_DIALOG.SIDE_DISH' | translate }}: {{ lineItem.menuSideDish?.name || 'ohne' }}</span
                       >
-                      @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish, generalSideDishPrice);
+                      @let sideSurcharge = menuSurcharge(lineItem, lineItem.menuSideDish);
                       @if (sideSurcharge > 0) {
                         <span>+{{ sideSurcharge | eur }}</span>
                       }
@@ -382,7 +382,7 @@
                     />
                     <div class="flex justify-between">
                       <span>{{ 'ORDER_DIALOG.DRINK' | translate }}: {{ lineItem.menuDrink?.name || 'ohne' }}</span>
-                      @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink, generalDrinkPrice);
+                      @let drinkSurcharge = menuSurcharge(lineItem, lineItem.menuDrink);
                       @if (drinkSurcharge > 0) {
                         <span>+{{ drinkSurcharge | eur }}</span>
                       }

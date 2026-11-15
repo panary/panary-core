@@ -4,12 +4,12 @@ import {
   GenericOrderLineItem,
   isUnstampedPaymentPlaceholder,
   lineItemGrossCents,
+  menuComponentSurchargeLineCents,
   modifierLineGrossCents,
   Order,
   OrderLineItem,
   sumCents,
   TaxInfo,
-  toCents,
 } from '@panary/orders/domain'
 
 // POS-Anzeige-Preise — delegieren vollständig an die kanonische Cents-Engine
@@ -25,8 +25,8 @@ import {
 //   - General-Menü-Preise (generalSideDish-/generalDrinkPrice) werden NICHT mehr
 //     aufgeschlagen — die Engine kennt sie nicht, der fakturierte Betrag
 //     (taxSnapshot/payment) enthielt sie nie. Der Aufpreis-Ausweis im Warenkorb
-//     (`menuComponentSurcharge`, unten) zeigt price − generalPrice,
-//     beim Festpreis-Menü (FIXED_PROPORTIONAL) aber nichts — wie der Bon (core#781).
+//     (`menuComponentSurcharge`, unten) zeigt den an der Zeile festgeschriebenen Aufschlag
+//     (core#1452/#1453), beim Festpreis-Menü (FIXED_PROPORTIONAL) und ohne Feld nichts — wie der Bon.
 
 /** Zeilenpreis OHNE Ad-hoc-Modifier (Menü-Bestandteile inklusive). */
 export function calculateArticlePriceWithoutExtras(articleItem: OrderLineItem): number {
@@ -88,18 +88,17 @@ export function calculateTaxSummary(order: Order): TaxInfo {
 }
 
 /**
- * Aufpreis einer Menü-Komponente (Beilage/Getränk) für die Anzeige an der Kasse, je Stück —
- * Warenkorb und „Offene Bestellungen“ (core#807) rechnen damit dasselbe. Beim Festpreis-Menü
- * (`FIXED_PROPORTIONAL`) ist die Komponente im Festpreis enthalten — die Engine verteilt
- * `line.price` über die Komponenten und schlägt nichts auf, der Bon weist deshalb ebenfalls keinen
- * Aufpreis aus (`order-receipt.renderer.ts`, `appendMenuComponentLine`). Ein „+€…" stünde dort
- * als Zuschlag, der nie berechnet wird (core#781).
+ * Aufschlag einer Menü-Komponente (Beilage/Getränk) für die Anzeige an der Kasse, für alle Stück der
+ * Zeile (`component.amount × line.amount`) — Warenkorb, „Offene Bestellungen“ und Historie zeigen damit
+ * dasselbe wie der Bon (core#1453). Gelesen wird nur der beim Buchen festgeschriebene `surcharge`
+ * (core#1452, `menuComponentSurchargeLineCents`); ein General-Preis der Filiale ist keine Quelle mehr.
+ * Ohne Feld (Bestand, ältere Kassen) und beim Festpreis-Menü (`FIXED_PROPORTIONAL`, die Komponente ist im
+ * Festpreis enthalten, core#781) ist das Ergebnis 0: Es steht kein Betrag da.
  */
 export function menuComponentSurcharge(
-  line: Pick<OrderLineItem, 'bundlePricingMode'>,
-  component: { price?: number | null } | null | undefined,
-  generalPrice: number,
+  line: Pick<OrderLineItem, 'bundlePricingMode' | 'amount'>,
+  component: { amount?: number | null; surcharge?: number | null } | null | undefined,
 ): number {
-  if (!component || line.bundlePricingMode === 'FIXED_PROPORTIONAL') return 0
-  return fromCents(Math.max(0, toCents(component.price ?? 0) - toCents(generalPrice)))
+  if (!component) return 0
+  return fromCents(menuComponentSurchargeLineCents(line, component))
 }

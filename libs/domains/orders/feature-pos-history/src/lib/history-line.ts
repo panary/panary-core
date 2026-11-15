@@ -1,4 +1,4 @@
-import { calculateModifierPrice } from '@panary/orders/data-access'
+import { calculateArticlePrice, calculateModifierPrice, menuComponentSurcharge } from '@panary/orders/data-access'
 import {
   groupModifiersByComponent,
   modifiersCountPerUnit,
@@ -23,6 +23,12 @@ export interface HistoryModifierVm {
 
 export interface HistoryLineVm {
   item: OrderLineItem
+  /** Positionsbetrag der Hauptzeile (`lineItemGrossCents`: Artikel, Komponenten und Extras), wie auf dem Bon. */
+  lineTotal: number
+  /** Festgeschriebener Aufschlag der Beilage für alle Stück der Zeile, `null` ohne Aufschlag (core#1453). */
+  sideDishSurcharge: number | null
+  /** Festgeschriebener Aufschlag des Getränks für alle Stück der Zeile, `null` ohne Aufschlag (core#1453). */
+  drinkSurcharge: number | null
   modifiers: HistoryModifierVm[]
   sideDishModifiers: HistoryModifierVm[]
   drinkModifiers: HistoryModifierVm[]
@@ -45,16 +51,24 @@ function modifierVm(item: OrderLineItem, extra: ModifierLineItem): HistoryModifi
 
 /**
  * Ansicht einer Position der Historie: Extras beim Hauptartikel, bei Beilage und Getränk — dieselbe Zuordnung wie
- * „Offen" und Warenkorb (core#1127). Nur Anzeige: gespeicherte Preise, nichts wird neu gerechnet. Der Menü-Aufpreis
- * der Komponenten fehlt bewusst: Die gespeicherte Zeile trägt keinen, und aus der aktuellen Standort-Konfiguration
- * würde er für alte Bestellungen falsch (core#1235).
+ * „Offen" und Warenkorb (core#1127). Nur Anzeige: gespeicherte Werte, der Positionsbetrag kommt aus der geteilten
+ * Engine-Quelle. Der Aufschlag der Komponenten ist der beim Buchen an der Zeile festgeschriebene (core#1452/#1453);
+ * eine Bestandszeile ohne das Feld zeigt keinen Betrag. Aus der aktuellen Standort-Konfiguration wird nichts abgeleitet,
+ * das wäre für alte Bestellungen falsch (core#1235).
  */
 export function buildHistoryLineVm(item: OrderLineItem): HistoryLineVm {
   // `components[]` gibt die Historie nicht aus — deren Modifier bleiben am Hauptartikel statt zu verschwinden.
   const groups = groupModifiersByComponent(item, { components: false })
   const vm = (list: ModifierLineItem[]) => list.map(extra => modifierVm(item, extra))
+  const surcharge = (component: OrderLineItem['menuDrink']): number | null => {
+    const value = menuComponentSurcharge(item, component)
+    return value > 0 ? value : null
+  }
   return {
     item,
+    lineTotal: calculateArticlePrice(item),
+    sideDishSurcharge: surcharge(item.menuSideDish),
+    drinkSurcharge: surcharge(item.menuDrink),
     modifiers: vm(groups.main),
     sideDishModifiers: vm(groups.sideDish),
     drinkModifiers: vm(groups.drink),

@@ -78,19 +78,33 @@ describe('Historie-Template — Menü und Extras je Komponente (core#1235)', () 
     expect(extras.indexOf('@else')).toBeGreaterThan(plus)
   })
 
-  it('zeigt keinen Menü-Aufpreis (die gespeicherte Zeile trägt keinen)', () => {
+  it('zeigt an Beilage und Getränk nur den festgeschriebenen Aufschlag aus dem View-Model (core#1453)', () => {
+    // Gelesen wird er in `history-line.ts` über menuComponentSurcharge; das Template rechnet nichts.
     expect(source).not.toContain('menuComponentSurcharge')
     expect(source).not.toContain('menuSideDish.price')
     expect(source).not.toContain('menuDrink.price')
+    expect(source).toContain('line.sideDishSurcharge')
+    expect(source).toContain('line.drinkSurcharge')
+    expect(source.match(/data-testid="menu-part-surcharge"/g)).toHaveLength(2)
+  })
+
+  it('zeigt den Betrag eines Extras ohne „+“, wie der Bon (core#1453, löst core#1126 ab)', () => {
+    const extras = source.slice(source.indexOf('<ng-template #historyExtras'))
+    expect(extras).toContain('{{ extra.price | eur }}')
+    expect(extras).not.toContain("extra.kind === 'extra' ? '+' : ''")
   })
 })
 
 // core#1257: Das Bon-Detail zeigt die Menge erst ab 2, wie der gedruckte Bon.
 describe('Historie: Menge erst ab 2 (core#1257)', () => {
-  const zeile = source.slice(
-    source.indexOf('<ng-template #historyLine'),
-    source.indexOf('line.item.price * line.item.amount'),
-  )
+  // Anker: der Positionsbetrag der Hauptzeile. Fehlt er, wäre der Ausschnitt fast die ganze Datei und der Test
+  // prüfte nichts (indexOf liefert −1), deshalb muss er gefunden werden.
+  const ende = source.indexOf('{{ line.lineTotal | eur }}')
+  const zeile = source.slice(source.indexOf('<ng-template #historyLine'), ende)
+
+  it('findet den Anker der Hauptzeile', () => {
+    expect(ende).toBeGreaterThan(source.indexOf('<ng-template #historyLine'))
+  })
 
   it('blendet die Menge 1 samt Zelle aus, damit der Name nicht um den Gap einrückt', () => {
     expect(zeile.replace(/\s+/g, ' ')).toMatch(

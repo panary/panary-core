@@ -345,22 +345,34 @@ describe('calculateOrderTotal — Betrag einer gespeicherten Bestellung (#703)',
   })
 })
 
-describe('menuComponentSurcharge (core#781)', () => {
-  const drink = { price: 6.5 }
+describe('menuComponentSurcharge (core#781, core#1453)', () => {
+  const drink = { price: 6.5, amount: 1, surcharge: 0.6 }
 
-  it('weist beim Festpreis-Menü keinen Aufpreis aus — die Komponente ist im Festpreis enthalten', () => {
-    expect(menuComponentSurcharge({ bundlePricingMode: 'FIXED_PROPORTIONAL' }, drink, 0)).toEqual(0)
-    expect(menuComponentSurcharge({ bundlePricingMode: 'FIXED_PROPORTIONAL' }, drink, 2)).toEqual(0)
+  it('weist beim Festpreis-Menü keinen Aufschlag aus — die Komponente ist im Festpreis enthalten', () => {
+    expect(menuComponentSurcharge({ bundlePricingMode: 'FIXED_PROPORTIONAL', amount: 1 }, drink)).toEqual(0)
+    expect(menuComponentSurcharge({ bundlePricingMode: 'FIXED_PROPORTIONAL', amount: 2 }, drink)).toEqual(0)
   })
 
-  it('zeigt ohne Festpreis den Aufpreis über dem allgemeinen Menüpreis, cent-genau', () => {
-    expect(menuComponentSurcharge({}, drink, 0)).toEqual(6.5)
-    expect(menuComponentSurcharge({}, { price: 4.2 }, 1.1)).toEqual(3.1)
+  it('zeigt ohne Festpreis den festgeschriebenen Aufschlag, nicht den Komponentenpreis', () => {
+    expect(menuComponentSurcharge({ amount: 1 }, drink)).toEqual(0.6)
+    const teuer = { price: 4.2, amount: 1, surcharge: 0.7 }
+    expect(menuComponentSurcharge({ amount: 1 }, teuer)).toEqual(0.7)
   })
 
-  it('wird nie negativ und verträgt fehlende Komponente oder Preis', () => {
-    expect(menuComponentSurcharge({}, { price: 1 }, 2)).toEqual(0)
-    expect(menuComponentSurcharge({}, undefined, 0)).toEqual(0)
-    expect(menuComponentSurcharge({}, { price: null }, 0)).toEqual(0)
+  it('zeigt ohne Feld keinen Betrag, auch wenn die Komponente einen Preis trägt (Bestand, ältere Kassen)', () => {
+    const ohneFeld = { price: 6.5, amount: 1 }
+    expect(menuComponentSurcharge({ amount: 1 }, ohneFeld)).toEqual(0)
+    expect(menuComponentSurcharge({ amount: 1 }, { ...ohneFeld, surcharge: null })).toEqual(0)
+  })
+
+  it('skaliert mit Zeilen- und Komponentenmenge, wie der Bon', () => {
+    expect(menuComponentSurcharge({ amount: 2 }, drink)).toEqual(1.2)
+    expect(menuComponentSurcharge({ amount: 1 }, { ...drink, amount: 2 })).toEqual(1.2)
+    expect(menuComponentSurcharge({ amount: 3 }, { ...drink, amount: 2 })).toEqual(3.6)
+  })
+
+  it('verträgt eine fehlende Komponente', () => {
+    expect(menuComponentSurcharge({ amount: 1 }, undefined)).toEqual(0)
+    expect(menuComponentSurcharge({ amount: 1 }, null)).toEqual(0)
   })
 })

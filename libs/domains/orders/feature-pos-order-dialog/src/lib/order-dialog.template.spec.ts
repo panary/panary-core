@@ -24,13 +24,14 @@ describe('OrderDialog-Template — Menue-Beilage und -Getraenk (#564)', () => {
 // in Einzel- UND Kombinationszeile. Die rohe Differenz price − generalPrice zeigte „+€6.50" unter dem
 // Getraenk eines Festpreis-Menues; beim ersten Fix blieb sie in der Kombinationszeile stehen.
 describe('OrderDialog-Template — Aufpreis der Menue-Komponenten (core#781)', () => {
-  it('rechnet den Aufpreis nie im Template aus', () => {
+  it('rechnet den Aufpreis nie im Template aus und kennt keinen General-Preis mehr (core#1453)', () => {
     expect(template.match(/\.price\s*-\s*general(SideDish|Drink)Price/g)).toBeNull()
+    expect(template).not.toMatch(/general(SideDish|Drink)Price/)
   })
 
   it('nutzt menuSurcharge in Einzel- und Kombinationszeile je fuer Beilage und Getraenk', () => {
-    expect(template.match(/menuSurcharge\(lineItem, lineItem\.menuSideDish, generalSideDishPrice\)/g)).toHaveLength(2)
-    expect(template.match(/menuSurcharge\(lineItem, lineItem\.menuDrink, generalDrinkPrice\)/g)).toHaveLength(2)
+    expect(template.match(/menuSurcharge\(lineItem, lineItem\.menuSideDish\)/g)).toHaveLength(2)
+    expect(template.match(/menuSurcharge\(lineItem, lineItem\.menuDrink\)/g)).toHaveLength(2)
   })
 })
 

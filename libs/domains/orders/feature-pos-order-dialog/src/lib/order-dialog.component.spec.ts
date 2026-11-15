@@ -3513,14 +3513,38 @@ describe('OrderDialog — Bezahlansicht „nur Bar" (core#831)', () => {
   })
 })
 
+// core#1453: Die Bestellannahme zeigt an einer Menü-Komponente nur den festgeschriebenen Aufschlag der Zeile,
+// nie den Komponentenpreis und nichts aus der Filiale.
+describe('OrderDialog — Aufschlag der Menü-Komponenten (core#1453)', () => {
+  const line = (over: Record<string, unknown> = {}) => ({ amount: 1, ...over }) as never
+  const slot = (over: Record<string, unknown> = {}) => ({ name: 'Cola', price: 5.5, amount: 1, ...over }) as never
+
+  it('zeigt den festgeschriebenen Aufschlag, nicht den Komponentenpreis', () => {
+    const { component } = setup()
+    expect(component.menuSurcharge(line(), slot({ surcharge: 0.6 }))).toBe(0.6)
+  })
+
+  it('zeigt ohne Feld keinen Betrag, auch bei teurer Komponente', () => {
+    const { component } = setup()
+    expect(component.menuSurcharge(line(), slot())).toBe(0)
+  })
+
+  it('skaliert mit der Zeilenmenge und zeigt beim Festpreis-Menü nichts', () => {
+    const { component } = setup()
+    expect(component.menuSurcharge(line({ amount: 2 }), slot({ surcharge: 0.6 }))).toBe(1.2)
+    expect(
+      component.menuSurcharge(line({ amount: 2, bundlePricingMode: 'FIXED_PROPORTIONAL' }), slot({ surcharge: 0.6 })),
+    ).toBe(0)
+  })
+})
+
 // core#878: Seit die Kasse eine Route ist (core#828), erzeugt ein Neuladen auf `/kasse` die Komponente, bevor
-// `LocationService.activeLocation()` gesetzt ist. Kanal-Vorbelegung und Pauschalpreise wurden aber im Konstruktor
-// einmal gelesen und blieben auf Telefon bzw. 0.
+// `LocationService.activeLocation()` gesetzt ist. Die Kanal-Vorbelegung wurde aber im Konstruktor einmal gelesen und
+// blieb auf Telefon. (Die Pauschalpreise für Beilage und Getränk entfielen mit core#1453.)
 describe('OrderDialog — Standort kommt nach dem Aufbau (core#878)', () => {
   const location = (over: Record<string, unknown> = {}) => ({
     _id: 'loc-1',
     operationMode: 'pos-cashier',
-    settings: { genericProductSettings: { generalSideDishPrice: 1.5, generalDrinkPrice: 2.5 } },
     ...over,
   })
 
@@ -3553,22 +3577,6 @@ describe('OrderDialog — Standort kommt nach dem Aufbau (core#878)', () => {
     activeLocation.set(location({ _id: 'loc-1' }))
 
     expect(component.orderChannel()).toBe('telephone')
-  })
-
-  it('übernimmt die Pauschalpreise für Beilage und Getränk, auch wenn der Standort später kommt', () => {
-    const activeLocation = signal<unknown>(undefined)
-    const { component } = setup({ activeLocation: () => activeLocation() })
-    expect([component.generalSideDishPrice, component.generalDrinkPrice]).toEqual([0, 0])
-
-    activeLocation.set(location())
-
-    expect([component.generalSideDishPrice, component.generalDrinkPrice]).toEqual([1.5, 2.5])
-  })
-
-  it('fällt ohne Einstellung auf 0 zurück', () => {
-    const { component } = setup({ activeLocation: () => location({ settings: {} }) })
-
-    expect([component.generalSideDishPrice, component.generalDrinkPrice]).toEqual([0, 0])
   })
 })
 

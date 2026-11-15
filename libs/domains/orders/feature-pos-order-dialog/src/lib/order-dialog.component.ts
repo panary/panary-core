@@ -489,16 +489,6 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   customerPage = 0
   readonly customerPageSize = 24
   #customerRequest = 0
-  /**
-   * Pauschalpreise für Beilage und Getränk eines Menüs. Aus dem Standort abgeleitet statt im Konstruktor
-   * kopiert: Ein Neuladen auf `/kasse` baut die Komponente, bevor der Standort geladen ist (core#878).
-   */
-  get generalSideDishPrice(): number {
-    return this.locationService.activeLocation()?.settings?.genericProductSettings?.generalSideDishPrice || 0
-  }
-  get generalDrinkPrice(): number {
-    return this.locationService.activeLocation()?.settings?.genericProductSettings?.generalDrinkPrice || 0
-  }
   extras = this.productService.extras
 
   visibleProductGroups: ProductGroup[] = []
@@ -2001,9 +1991,9 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     return groupModifiersByComponent(line, { components: false })
   }
 
-  /** Aufpreis-Ausweis einer Menü-Komponente — beim Festpreis-Menü 0 wie auf dem Bon (core#781). */
-  menuSurcharge(line: OrderLineItem, component: OrderLineItem['menuDrink'], generalPrice: number): number {
-    return menuComponentSurcharge(line, component, generalPrice)
+  /** Aufschlag-Ausweis einer Menü-Komponente: der festgeschriebene Aufschlag der Zeile wie auf dem Bon, beim Festpreis-Menü 0 (core#781, core#1453). */
+  menuSurcharge(line: OrderLineItem, component: OrderLineItem['menuDrink']): number {
+    return menuComponentSurcharge(line, component)
   }
 
   setSauceSubButtons(ids: Array<string> | undefined = undefined, isInclusive = false, currentIndex = 0) {

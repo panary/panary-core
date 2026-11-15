@@ -1041,10 +1041,11 @@ describe('order-receipt.renderer — Nachbestellung (core#1140)', () => {
   })
 
   it('wird auf 58 mm einfach breit, solange die Kopfzeile in 32 Zeichen passt', () => {
-    const zeilen = decodeEscPosLines(
-      renderOrderReceipt(tischOrder('12'), location, { paperWidth: '58mm', followUp: true }),
-      30,
-    )
+    const bytes = renderOrderReceipt(tischOrder('12'), location, { paperWidth: '58mm', followUp: true })
+    // Bis zum Schnittbefehl dekodieren — dessen Laenge kennt die Tabelle bewusst nicht. Seit #1444 umbrechen die
+    // Unterzeilen auf 58 mm nicht mehr, der Bon hat weniger als 30 Zeilen.
+    const cut = bytes.findIndex((byte, i) => byte === 0x1d && bytes[i + 1] === 0x56)
+    const zeilen = decodeEscPosLines(bytes.subarray(0, cut === -1 ? bytes.length : cut), 500)
     const kopf = zeilen.filter(z => z.text.includes('Nachbestellung'))
     expect(kopf).toHaveLength(1)
     expect(kopf[0].text.trim()).toMatch(/^Nachbestellung . Tisch 12$/)
@@ -1060,5 +1061,80 @@ describe('order-receipt.renderer — Nachbestellung (core#1140)', () => {
     expect(zeilen).toContain('Nachbestellung')
     expect(zeilen).toContain('Tisch: Terrasse am Fenster')
     expect(zeilen.some(z => z.includes('Nachbestellung ·'))).toBe(false)
+  })
+})
+
+// #1444 — Die Unterzeilen (Menue-Komponenten, Modifier, Extras) drucken in Font B, rechneten ihre Spaltenbreiten
+// aber in Font-A-Zeichen: 4 + 36 + 12 = 52 Font-B-Zeichen = 468 Dots auf einem 576 Dots breiten 80-mm-Bon. Der
+// Betrag endete 108 Dots (12 Zeichen) vor der Kante der Hauptzeile. Gemessen wird deshalb die rechte Kante in
+// Dots, nicht der Text — in Zeichen sieht die Abweichung nach einer ordentlichen Spalte aus.
+describe('order-receipt.renderer — Betragsspalte der Unterzeilen (#1444)', () => {
+  const POMMES = '019ecd00-0000-7000-8000-000000000011'
+  const COLA = '019ecd00-0000-7000-8000-000000000012'
+  const mod = (name: string, price: number, componentExternalId?: string) => ({
+    _id: `m-${name}`,
+    name,
+    price,
+    amount: 1,
+    taxInside: 19,
+    taxOutside: 7,
+    topic: 'Extras',
+    ...(componentExternalId ? { componentExternalId } : {}),
+  })
+  const order = {
+    dailySequenceNumber: 9,
+    dineLocation: 'take-out',
+    recordingDate: '2026-11-15T10:00:00.000Z',
+    lineItems: [
+      {
+        _id: 'li-1',
+        name: 'Hamburger 100gr',
+        topic: 'Menues',
+        amount: 1,
+        price: 8,
+        taxInside: 19,
+        taxOutside: 7,
+        isMenu: true,
+        modifierScope: 'unit',
+        menuSideDish: { externalId: POMMES, name: 'Pommes', price: 3, amount: 1, taxInside: 19, taxOutside: 7 },
+        menuDrink: { externalId: COLA, name: 'Coca Cola LIGHT', price: 5.5, amount: 1, taxInside: 19, taxOutside: 7 },
+        modifiers: [mod('Mayonaise', 0.7, POMMES), mod('Extra Gauda', 2)],
+      },
+    ],
+  }
+  const rechteKante = (z: { leadDots: number; contentDots: number }): number => z.leadDots + z.contentDots
+
+  describe.each([
+    ['80mm', 576],
+    ['58mm', 384],
+  ] as const)('%s', (paperWidth, papierDots) => {
+    it.each([
+      ['mit EUR', true],
+      ['ohne EUR', false],
+    ])('endet jeder Betrag der Unterzeilen an der Kante der Hauptzeile (%s)', (_name, showCurrency) => {
+      const loc = { ...location, settings: { ...location.settings, receiptSettings: { showCurrency } } }
+      const bytes = renderOrderReceipt(order, loc, { paperWidth, variant: 'full' })
+      // Bis zum Schnittbefehl dekodieren — dessen Laenge kennt die Tabelle bewusst nicht.
+      const cut = bytes.findIndex((byte, i) => byte === 0x1d && bytes[i + 1] === 0x56)
+      const zeilen = decodeEscPosLines(bytes.subarray(0, cut === -1 ? bytes.length : cut), 500)
+      const betrag = showCurrency ? /\d,\d\d EUR$/ : /\d,\d\d$/
+      const haupt = zeilen.find(z => z.text.includes('Hamburger 100gr'))!
+      const unter = ['Pommes', 'Mayonaise', 'Coca Cola LIGHT', 'Extra Gauda'].map(
+        name => [name, zeilen.find(z => z.text.includes(name))] as const,
+      )
+
+      expect(haupt.text).toMatch(betrag)
+      expect(rechteKante(haupt)).toBe(papierDots)
+      for (const [name, zeile] of unter) {
+        expect(zeile, `Zeile „${name}" fehlt`).toBeDefined()
+        expect(zeile!.charDots, `„${name}" nicht in Font B`).toBe(9)
+        expect(zeile!.text, `„${name}" ohne Betrag`).toMatch(betrag)
+        // Font B ist 9 Dots breit: Auf 58 mm sind es 42 Zeichen (378 Dots) auf 384 Dots Papier. Eine Zelle
+        // Abstand ist die Rundung der Zeichenzahl, kein Spaltenversatz.
+        const abstand = rechteKante(haupt) - rechteKante(zeile!)
+        expect(abstand, `„${name}": ${abstand} Dots vor der Kante der Hauptzeile`).toBeGreaterThanOrEqual(0)
+        expect(abstand, `„${name}": ${abstand} Dots vor der Kante der Hauptzeile`).toBeLessThan(9)
+      }
+    })
   })
 })

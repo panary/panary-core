@@ -14,6 +14,17 @@ const COLUMNS_MAP: Record<PaperWidth, number> = {
   '80mm': 48,
 }
 
+/**
+ * Font B setzt auf demselben Papier mehr Zeichen je Zeile als Font A (9 statt 12 Dots): `chars / 42 * 56`. Aus 48
+ * Font-A-Zeichen (80 mm) werden 64, aus 32 (58 mm) abgerundet 42. Gemessen an @point-of-sale/receipt-printer-encoder@3.0.3:
+ * `font('B')` stellt die Spalten des Composers so um, und eine `table()` in Font B rechnet ihre Spaltenbreiten in
+ * diesen Zeichen. Wer dieselbe Breite in Dots wie in Font A will (Betragsspalte unter der Hauptzeile), rechnet sie
+ * hier um, statt die Font-A-Zahl zu uebernehmen (#1444).
+ */
+export function fontBColumns(fontAColumns: number): number {
+  return Math.floor((fontAColumns * 56) / 42)
+}
+
 export interface EscposOptions {
   paperWidth?: PaperWidth
   /**

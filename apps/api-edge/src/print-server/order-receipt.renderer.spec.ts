@@ -16,13 +16,9 @@ const renderToText = (
   return new TextDecoder('latin1').decode(bytes).replace(/[\x00-\x1f]/g, ' ')
 }
 
+// Kein General-Preis mehr in der Filiale: Der Bon druckt den an der Zeile festgeschriebenen `surcharge` (#1452).
 const location = {
-  settings: {
-    genericProductSettings: {
-      generalDrinkPrice: 3.5,
-      generalSideDishPrice: 1.0,
-    },
-  },
+  settings: {},
 }
 
 const buildMenuOrder = (amount: number, overrides: Record<string, unknown> = {}) => ({
@@ -39,7 +35,14 @@ const buildMenuOrder = (amount: number, overrides: Record<string, unknown> = {})
       taxInside: 19,
       taxOutside: 7,
       isMenu: true,
-      menuSideDish: { name: 'Suesskartoffel-Pommes', price: 1.5, amount: 1, taxInside: 19, taxOutside: 7 },
+      menuSideDish: {
+        name: 'Suesskartoffel-Pommes',
+        price: 1.5,
+        amount: 1,
+        surcharge: 0.5,
+        taxInside: 19,
+        taxOutside: 7,
+      },
       menuDrink: { name: 'Hauslimo', price: 3.5, amount: 1, taxInside: 19, taxOutside: 7 },
       ...overrides,
     },
@@ -49,7 +52,7 @@ const buildMenuOrder = (amount: number, overrides: Record<string, unknown> = {})
 describe('order-receipt.renderer — Menü-Sub-Zeilen', () => {
   it('weist den Beilagen-Aufpreis bei Menge 1 einmalig aus', () => {
     const text = renderToText(buildMenuOrder(1), location)
-    // Aufpreis = 1,50 − 1,00 (General-Preis) = 0,50
+    // Aufschlag = gespeicherter `surcharge` 0,50
     expect(text).toContain('+ Suesskartoffel-Pommes')
     expect(text).toContain('0,50 EUR')
   })
@@ -62,10 +65,52 @@ describe('order-receipt.renderer — Menü-Sub-Zeilen', () => {
     expect(text).not.toContain('0,50 EUR')
   })
 
-  it('weist für Getränke auf General-Preis-Niveau keinen Aufpreis aus', () => {
+  it('weist für ein Getränk ohne gespeicherten Aufschlag keinen Betrag aus', () => {
     const text = renderToText(buildMenuOrder(2), location)
     expect(text).toContain('+ Hauslimo')
     expect(text).not.toContain('3,50 EUR')
+  })
+
+  it('druckt den gespeicherten Aufschlag, nicht die Differenz zu einem Filial-Preis (#1452)', () => {
+    // Filiale mit General-Preis 1,00 würde früher 1,50 − 1,00 = 0,50 liefern; jetzt zählt allein das Feld.
+    const mitGeneralPreis = {
+      settings: { genericProductSettings: { generalSideDishPrice: 1, generalDrinkPrice: 3.5 } },
+    }
+    const order = buildMenuOrder(1, {
+      menuSideDish: {
+        name: 'Suesskartoffel-Pommes',
+        price: 1.5,
+        amount: 1,
+        surcharge: 0.7,
+        taxInside: 19,
+        taxOutside: 7,
+      },
+    })
+    const text = renderToText(order, mitGeneralPreis)
+    expect(text).toContain('0,70 EUR')
+    expect(text).not.toContain('0,50 EUR')
+  })
+
+  it('druckt ohne Feld keinen Aufschlag, auch wenn der Komponentenpreis über dem alten General-Preis liegt', () => {
+    const mitGeneralPreis = {
+      settings: { genericProductSettings: { generalSideDishPrice: 1, generalDrinkPrice: 3.5 } },
+    }
+    const order = buildMenuOrder(1, {
+      menuSideDish: { name: 'Suesskartoffel-Pommes', price: 1.5, amount: 1, taxInside: 19, taxOutside: 7 },
+    })
+    const text = renderToText(order, mitGeneralPreis)
+    expect(text).toContain('+ Suesskartoffel-Pommes')
+    expect(text).not.toContain('0,50 EUR')
+    expect(text).not.toContain('1,50 EUR')
+  })
+
+  it('druckt den Aufschlag auch am Getränk', () => {
+    const order = buildMenuOrder(1, {
+      menuDrink: { name: 'Hauslimo', price: 5, amount: 1, surcharge: 1.5, taxInside: 19, taxOutside: 7 },
+    })
+    const text = renderToText(order, location)
+    expect(text).toContain('+ Hauslimo')
+    expect(text).toContain('1,50 EUR')
   })
 
   it('weist bei FIXED_PROPORTIONAL keine Komponenten-Aufpreise aus', () => {
@@ -77,7 +122,14 @@ describe('order-receipt.renderer — Menü-Sub-Zeilen', () => {
 
   it('skaliert zusätzlich mit der Komponenten-Menge (component.amount × line.amount)', () => {
     const order = buildMenuOrder(2, {
-      menuSideDish: { name: 'Suesskartoffel-Pommes', price: 1.5, amount: 2, taxInside: 19, taxOutside: 7 },
+      menuSideDish: {
+        name: 'Suesskartoffel-Pommes',
+        price: 1.5,
+        amount: 2,
+        surcharge: 0.5,
+        taxInside: 19,
+        taxOutside: 7,
+      },
     })
     const text = renderToText(order, location)
     // 2 Komponenten × 2 Menüs × 0,50 = 2,00
@@ -1096,8 +1148,24 @@ describe('order-receipt.renderer — Betragsspalte der Unterzeilen (#1444)', () 
         taxOutside: 7,
         isMenu: true,
         modifierScope: 'unit',
-        menuSideDish: { externalId: POMMES, name: 'Pommes', price: 3, amount: 1, taxInside: 19, taxOutside: 7 },
-        menuDrink: { externalId: COLA, name: 'Coca Cola LIGHT', price: 5.5, amount: 1, taxInside: 19, taxOutside: 7 },
+        menuSideDish: {
+          externalId: POMMES,
+          name: 'Pommes',
+          price: 3,
+          amount: 1,
+          surcharge: 2,
+          taxInside: 19,
+          taxOutside: 7,
+        },
+        menuDrink: {
+          externalId: COLA,
+          name: 'Coca Cola LIGHT',
+          price: 5.5,
+          amount: 1,
+          surcharge: 2,
+          taxInside: 19,
+          taxOutside: 7,
+        },
         modifiers: [mod('Mayonaise', 0.7, POMMES), mod('Extra Gauda', 2)],
       },
     ],

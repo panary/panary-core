@@ -6,10 +6,9 @@ import {
   groupModifiersByComponent,
   hasComponentModifiers,
   lineItemGrossCents,
+  menuComponentSurchargeLineCents,
   modifierLineGrossCents,
   modifiersCountPerUnit,
-  multiplyCents,
-  toCents,
   type OrderLineItem,
 } from '@panary/orders/domain'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
@@ -80,8 +79,6 @@ export function renderOrderReceipt(
   // Alle Zeitangaben auf dem Bon laufen ueber die Zeitzone der Filiale — der
   // Prozess steht im Container auf UTC (#274).
   const timeZone = printTimeZoneForLocation(location)
-  const drinkPrice = settings?.genericProductSettings?.generalDrinkPrice ?? 0
-  const sideDishPrice = settings?.genericProductSettings?.generalSideDishPrice ?? 0
   // 🚨 `!== false`, nicht Truthiness (#1258): Bestandsfilialen tragen das Feld nicht
   // und muessen weiter `EUR` drucken. Der Default „an" sitzt nur hier.
   const showCurrency = settings?.receiptSettings?.showCurrency !== false
@@ -223,7 +220,7 @@ export function renderOrderReceipt(
     enc.rule({ style: 'single' })
 
     for (const article of combo) {
-      appendArticle(enc, article, nameW, priceW, subWidths, drinkPrice, sideDishPrice, showCurrency)
+      appendArticle(enc, article, nameW, priceW, subWidths, showCurrency)
     }
 
     // Die Trennlinie folgt der Betragsbreite — mit und ohne `EUR` (#1258).
@@ -259,7 +256,7 @@ export function renderOrderReceipt(
         .bold(false)
       enc.rule({ style: 'single' })
     }
-    appendArticle(enc, article, nameW, priceW, subWidths, drinkPrice, sideDishPrice, showCurrency)
+    appendArticle(enc, article, nameW, priceW, subWidths, showCurrency)
   }
 
   // ─────────────────────────────────────────
@@ -531,8 +528,6 @@ function appendArticle(
   nameW: number,
   priceW: number,
   sub: SubLineWidths,
-  drinkPrice: number,
-  sideDishPrice: number,
   showCurrency: boolean,
 ): void {
   const prefix = namePrefix(article)
@@ -564,11 +559,11 @@ function appendArticle(
   if (article.isMenu && hasComponentModifiers(groups)) {
     appendModifierLines(enc, article, groups.main, isFixed, sub, showCurrency)
     if (article.menuSideDish) {
-      appendMenuComponentLine(enc, article, article.menuSideDish, sideDishPrice, isFixed, sub, showCurrency)
+      appendMenuComponentLine(enc, article, article.menuSideDish, sub, showCurrency)
       appendModifierLines(enc, article, groups.sideDish, isFixed, sub, showCurrency, COMPONENT_MODIFIER_INDENT)
     }
     if (article.menuDrink) {
-      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, sub, showCurrency)
+      appendMenuComponentLine(enc, article, article.menuDrink, sub, showCurrency)
       appendModifierLines(enc, article, groups.drink, isFixed, sub, showCurrency, COMPONENT_MODIFIER_INDENT)
     }
     return
@@ -578,10 +573,10 @@ function appendArticle(
   // Menü-Beilage & Getränk — Font B, eingerückt
   if (article.isMenu) {
     if (article.menuSideDish) {
-      appendMenuComponentLine(enc, article, article.menuSideDish, sideDishPrice, isFixed, sub, showCurrency)
+      appendMenuComponentLine(enc, article, article.menuSideDish, sub, showCurrency)
     }
     if (article.menuDrink) {
-      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, sub, showCurrency)
+      appendMenuComponentLine(enc, article, article.menuDrink, sub, showCurrency)
     }
   }
 
@@ -594,24 +589,19 @@ function appendArticle(
 // Betrag schmaler, damit die Preisspalte an derselben Stelle endet.
 const COMPONENT_MODIFIER_INDENT = 2
 
-// Menü-Beilage/-Getränk als SUB-Zeile. Der Aufpreis (Positionspreis − General-
-// Preis) zählt PRO Menü — dieselbe Skalierung wie die Preis-Engine
-// (`lineGrossCents`: component.amount × line.amount, Entscheidung 2026-07-04).
-// Ausgewiesen wird der mengen-skalierte Gesamtaufpreis (wie Hauptzeile und
-// Modifier-Zeilen) — ein einmaliger Aufpreis passt bei Menge > 1 nicht zur
-// Zeilensumme.
+// Menü-Beilage/-Getränk als SUB-Zeile. Ausgewiesen wird nur der beim Buchen an der Zeile festgeschriebene
+// Aufschlag (`surcharge`, core#1452), mengen-skaliert über `menuComponentSurchargeLineCents`: Der Aufschlag zählt
+// PRO Menü, dieselbe Skalierung wie die Preis-Engine (`lineGrossCents`: component.amount × line.amount,
+// Entscheidung 2026-07-04), und passt so zur Zeilensumme. Fehlt das Feld (Bestand, ältere Kassen) oder ist das Menü
+// ein Festpreis-Menü, bleibt die Betragsspalte leer. Ein General-Preis der Filiale ist keine Quelle mehr.
 function appendMenuComponentLine(
   enc: any,
   article: any,
   component: any,
-  generalPrice: number,
-  isFixed: boolean,
   sub: SubLineWidths,
   showCurrency: boolean,
 ): void {
-  const perUnitCents = isFixed ? 0 : Math.max(0, toCents(component.price ?? 0) - toCents(generalPrice))
-  const units = (component.amount ?? 1) * (article.amount ?? 1)
-  const extraCents = multiplyCents(perUnitCents, units)
+  const extraCents = menuComponentSurchargeLineCents(article, component)
   enc.font('B')
   enc.table(
     [

@@ -2790,7 +2790,7 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       // FIXED_PROPORTIONAL: neues Komponenten-Modell. `price` ist der FESTPREIS
       // (Verteilungs-Ziel der Engine); die Komponenten (inkl. Hauptgericht) werden
       // beim Bundle-Abschluss in `finalizeBundleLine` gefüllt. ROLLUP/à-la-carte
-      // bleiben bei der Legacy-Shape (menuDrink/menuSideDish) → keine Regression.
+      // füllen `components[]` bei der Gruppenwahl (`recordSlotComponent`, core#1450).
       bundlePricingMode: product.bundlePricingMode === 'FIXED_PROPORTIONAL' ? 'FIXED_PROPORTIONAL' : undefined,
       components: product.bundlePricingMode === 'FIXED_PROPORTIONAL' ? [] : undefined,
       name: product.name,

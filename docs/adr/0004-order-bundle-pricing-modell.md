@@ -136,6 +136,27 @@ nie). Der Aufpreis-Ausweis im Order-Dialog (`menuSideDish.price − generalPrice
 bleibt bis core#1453 unverändert; der Bon druckt seit core#1452 den festgeschriebenen
 `surcharge` ([ADR 0071](0071-menue-aufschlag-wird-beim-buchen-festgeschrieben.md)).
 
+### Update 2026-11-16 — Kasse schreibt `components[]` auch für Menüs ohne Festpreis (core#1450)
+
+**Problem:** Beilage und Getränk eines ROLLUP-Menüs standen nur als Legacy-Slots auf der Zeile. Die Engine
+versteuert Legacy-Zeilen am Satz der Zeile, das Getränk eines 7-%-Menüs lief damit zu 7 % statt zu 19 %.
+Der ROLLUP-Zweig mit eigenem Satz je Komponente existierte seit Phase 3, die Kasse speiste ihn nie.
+
+**Entscheidung (Michael, 2026-11-15):** `selectOptionGroupItem` schreibt für jede Beilagen- und
+Getränkewahl zusätzlich eine Komponente (`BundleFlow.recordSlotComponent`): Rolle aus dem Gruppennamen,
+eigene Sätze, voller Normalpreis. Die Legacy-Slots bleiben gefüllt, denn Verbrauch (`cogs.ts`), die
+Gruppierung der Extras und alte Leser lesen sie weiter. Eine neue Wahl in derselben Gruppe ersetzt den
+Eintrag mit gleicher `optionGroupId`, ein angehängter zweiter würde in der Engine doppelt zählen.
+Soßen und Extras bleiben Modifier am Satz der Zeile.
+
+**Konsequenz:** Der Positionsbetrag ändert sich nicht. Die Komponente trägt denselben Preis wie der Slot,
+`lineComponents` bevorzugt `components[]` vor den Slots (keine Doppelzählung), und Modifier skalieren in
+beiden Formen mit der Zeilenmenge (`modifierScale`). Nur die Verteilung auf Steuersätze ändert sich, bei
+Menüs mit Beilage oder Getränk zu abweichendem Satz. Kein Backfill: Bereits gebuchte Zeilen behalten ihren
+Snapshot. Der Bon druckt `components[]` weiter nicht, Karte und Historie ebenso.
+Die Zuordnung zu Beilage oder Getränk hängt am Gruppennamen. Eine anders benannte Gruppe bucht ihre Wahl
+als Modifier und bleibt am Satz der Zeile; die Prüfung solcher Konfigurationen ist core#1455.
+
 ### Beispiel — Festpreis-Menü „Hamburger 100gr" (7,00 € fix, take-out)
 
 Komponenten (Normalpreis · Außer-Haus-Satz): Hauptgericht 4,40 € @7 %, Getränk
@@ -192,8 +213,10 @@ abgesichert.
 - **Kein Backfill.** Bestehende Orders behalten ihre (ggf. fehlerhafte) Shape; ihre
   bereits fehlgeschlagenen Tagesabschlüsse werden hierdurch NICHT automatisch grün.
 - **Transitions-Zustand:** Der POS-Writer füllt für FIXED-Bundles `components[]`
-  **und** die Legacy-Slots (Dialog-Anzeige, COGS, alte Reader). ROLLUP/à-la-carte
-  bleiben unverändert bei der Legacy-Shape → keine Regression.
+  **und** die Legacy-Slots (Dialog-Anzeige, COGS, alte Reader). Seit core#1450
+  schreibt er Beilage und Getränk auch für ROLLUP-Menüs und Menüs ohne
+  `bundlePricingMode` als Komponente (siehe Update 2026-11-16). Zeilen davor
+  bleiben bei der Legacy-Shape.
 - **Echt-proportionaler Split** greift, sobald `product.mainPrice` gepflegt ist.
   Der Produkt-Editor liegt in **panary-cloud** (admin-dashboard) → mainPrice-Eingabe
   + `PANARY_CORE_REF`-Bump sind Phase 6. Bis dahin: Restbetrags-Fallback (korrekte

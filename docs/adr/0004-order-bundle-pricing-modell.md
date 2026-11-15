@@ -89,7 +89,9 @@ gegen Doppel-`main`) in `@panary/orders/domain`; der POS-Writer ruft sie nur noc
   `computeOrderTax` (== Snapshot/Payment); Zeilen-/Kombipreise über die geteilte
   Quelle `lineItemGrossCents` (== Engine == POS-Anzeige, seit 2026-07-06).
   Beilage/Getränk/Modifier bei FIXED ohne Aufschlag (im Festpreis enthalten);
-  der Aufpreis-Ausweis (`menuSideDish.price − generalPrice`) bleibt rein optisch.
+  der Aufpreis-Ausweis druckt seit core#1452 den an der Zeile festgeschriebenen `surcharge`
+  ([ADR 0071](0071-menue-aufschlag-wird-beim-buchen-festgeschrieben.md)), nicht mehr
+  `menuSideDish.price − generalPrice`; er bleibt rein optisch.
 - **Order-Total-Fallback** (`order-total.ts`, Prio 3 hinter payment → taxSnapshot):
   summiert seit core#634 `lineItemGrossCents` je Zeile und rechnet damit exakt wie
   die Engine (Tabelle unten). Vorher hatte er eine eigene Formel, die Modifier im
@@ -131,7 +133,8 @@ FIXED-Modifier zählen on top, Halbcent-Rabatte runden wie die Engine, und die
 General-Menü-Preise (`generalSideDishPrice`/`generalDrinkPrice`) werden nicht
 mehr auf den Zeilenpreis aufgeschlagen (der fakturierte Betrag enthielt sie
 nie). Der Aufpreis-Ausweis im Order-Dialog (`menuSideDish.price − generalPrice`)
-bleibt unverändert.
+bleibt bis core#1453 unverändert; der Bon druckt seit core#1452 den festgeschriebenen
+`surcharge` ([ADR 0071](0071-menue-aufschlag-wird-beim-buchen-festgeschrieben.md)).
 
 ### Beispiel — Festpreis-Menü „Hamburger 100gr" (7,00 € fix, take-out)
 

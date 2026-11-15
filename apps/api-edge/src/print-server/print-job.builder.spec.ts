@@ -114,7 +114,6 @@ const drucker = (over: Partial<PrinterConfig> & Pick<PrinterConfig, 'pid' | 'nam
 const bonLocation = {
   settings: {
     generalSettings: { timezone: 'Europe/Berlin' },
-    genericProductSettings: { generalDrinkPrice: 3.5, generalSideDishPrice: 1.0 },
   },
 }
 

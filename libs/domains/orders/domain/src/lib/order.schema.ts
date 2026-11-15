@@ -207,6 +207,20 @@ export const modifierLineItemSchema = Type.Object({
 })
 export type ModifierLineItem = Static<typeof modifierLineItemSchema>
 
+// Aufschlag einer Menü-Komponente (core#1452, Anker core#1445): Euro brutto je Stück der Komponente, wie `price`.
+// Beim Buchen GESTEMPELT (die Order ist ein immutabler Snapshot, nicht später aus dem Katalog nachschlagen):
+// Preis der gewählten Option minus Preis der günstigsten Option derselben Auswahlgruppe. Fehlt das Feld
+// (Bestand, ältere Kassen), zeigt keine Anzeige an der Komponente einen Betrag, es gibt keinen Backfill. Rein
+// additiv und optional; er geht nie in den Positionsbetrag ein (der bleibt `lineItemGrossCents`), die steuerliche
+// Aufteilung nach ADR 0004 ändert er nicht. Gelesen wird er nur über `menuComponentSurchargePerUnitCents` und
+// `menuComponentSurchargeLineCents`.
+const menuComponentSurchargeSchema = Type.Object({
+  surcharge: Type.Optional(Type.Number({ minimum: 0 })),
+})
+
+// Slot `menuSideDish` / `menuDrink` der Legacy-Form: generische Zeile plus festgeschriebener Aufschlag.
+export const menuComponentSlotSchema = Type.Intersect([genericLineItemSchema, menuComponentSurchargeSchema])
+
 /**
  * Generische Bundle-Komponente einer Order-Zeile — ersetzt die hartkodierten
  * menuDrink/menuSideDish-Slots. Trägt einen EIGENEN Steuersatz (taxInside/
@@ -216,6 +230,7 @@ export type ModifierLineItem = Static<typeof modifierLineItemSchema>
  */
 export const lineComponentSchema = Type.Intersect([
   genericLineItemSchema,
+  menuComponentSurchargeSchema,
   Type.Object({
     optionGroupId: Type.Optional(Type.String({ format: 'uuid' })),
     // 'main' = Hauptgericht eines Bundles (trägt bei FIXED_PROPORTIONAL sein
@@ -248,8 +263,8 @@ export const orderLineItemSchema = Type.Intersect([
     bundlePricingMode: Type.Optional(StringEnum(['ROLLUP', 'FIXED_PROPORTIONAL'])),
     // --- Legacy (deprecated; Sunset nach abgeschlossener Migration) ---
     isMenu: Type.Optional(Type.Boolean()),
-    menuDrink: Type.Optional(Type.Union([genericLineItemSchema, Type.Null()])),
-    menuSideDish: Type.Optional(Type.Union([genericLineItemSchema, Type.Null()])),
+    menuDrink: Type.Optional(Type.Union([menuComponentSlotSchema, Type.Null()])),
+    menuSideDish: Type.Optional(Type.Union([menuComponentSlotSchema, Type.Null()])),
   }),
 ])
 

@@ -13,7 +13,7 @@ import {
   type OrderLineItem,
 } from '@panary/orders/domain'
 import { buildTseReceiptBlock } from '@panary/tse/domain'
-import { createEscposEncoder, type EscposOptions } from './escpos.adapter'
+import { createEscposEncoder, fontBColumns, type EscposOptions } from './escpos.adapter'
 import { formatPrintDate, formatPrintDateTime, formatPrintTime, printTimeZoneForLocation } from './print-date-format'
 
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
@@ -74,7 +74,7 @@ export function renderOrderReceipt(
   // Spaltenbreiten
   const priceW = 12
   const nameW = cols - priceW
-  const subNameW = cols - priceW - 4 // 4 Zeichen Einrückung
+  const subWidths = subLineWidths(cols, priceW)
 
   const settings = location?.settings || {}
   // Alle Zeitangaben auf dem Bon laufen ueber die Zeitzone der Filiale — der
@@ -223,7 +223,7 @@ export function renderOrderReceipt(
     enc.rule({ style: 'single' })
 
     for (const article of combo) {
-      appendArticle(enc, article, nameW, priceW, subNameW, drinkPrice, sideDishPrice, showCurrency)
+      appendArticle(enc, article, nameW, priceW, subWidths, drinkPrice, sideDishPrice, showCurrency)
     }
 
     // Die Trennlinie folgt der Betragsbreite — mit und ohne `EUR` (#1258).
@@ -259,7 +259,7 @@ export function renderOrderReceipt(
         .bold(false)
       enc.rule({ style: 'single' })
     }
-    appendArticle(enc, article, nameW, priceW, subNameW, drinkPrice, sideDishPrice, showCurrency)
+    appendArticle(enc, article, nameW, priceW, subWidths, drinkPrice, sideDishPrice, showCurrency)
   }
 
   // ─────────────────────────────────────────
@@ -371,7 +371,7 @@ function appendKitchenHeader(enc: any): void {
 // die Angaben auf je eine Zeile zurueck wie vor #1257 — auf 58 mm ist das mit
 // Kassenname der Regelfall.
 function appendMetaLine(enc: any, meta: string[], cols: number): void {
-  const fontBCols = Math.floor((cols / 42) * 56)
+  const fontBCols = fontBColumns(cols)
   enc.font('B')
   const first = meta[0]
   const last = meta[meta.length - 1]
@@ -506,6 +506,23 @@ function pickupWidth(label: string, cols: number): number {
   return label.length * 3 <= cols ? 3 : 2
 }
 
+// Einrückung der Unterzeilen in Font-B-Zeichen. `marginLeft` zählt ZUR Spaltensumme dazu, nicht in sie hinein.
+const SUB_INDENT = 4
+
+interface SubLineWidths {
+  nameW: number
+  priceW: number
+}
+
+// Spaltenbreiten der Unterzeilen (Menü-Komponenten, Modifier) in Font-B-Zeichen (#1444). Bis dahin rechneten sie in
+// Font-A-Zeichen: 4 + 32 + 12 = 48 Font-B-Zeichen = 432 Dots auf 576 Dots Papier, der Betrag endete 144 Dots (16
+// Zeichen) vor der Kante der Hauptzeile. Die Betragsspalte behält die Breite der Hauptzeile in Dots (12 Zeichen
+// Font A = 16 Zeichen Font B), die Namensspalte nimmt den Rest — auf 58 mm bleiben 6 Dots Rundung (42 × 9 = 378).
+function subLineWidths(cols: number, priceW: number): SubLineWidths {
+  const priceWB = fontBColumns(priceW)
+  return { nameW: fontBColumns(cols) - SUB_INDENT - priceWB, priceW: priceWB }
+}
+
 // ─── Artikel-Rendering mit voller Encoder-Kontrolle ───
 
 function appendArticle(
@@ -513,7 +530,7 @@ function appendArticle(
   article: any,
   nameW: number,
   priceW: number,
-  subNameW: number,
+  sub: SubLineWidths,
   drinkPrice: number,
   sideDishPrice: number,
   showCurrency: boolean,
@@ -545,7 +562,7 @@ function appendArticle(
   // gleich. `components[]` druckt der Bon nicht, deren Modifier bleiben deshalb am Hauptartikel.
   const groups = groupModifiersByComponent(article, { components: false })
   if (article.isMenu && hasComponentModifiers(groups)) {
-    appendModifierLines(enc, article, groups.main, isFixed, subNameW, priceW, showCurrency)
+    appendModifierLines(enc, article, groups.main, isFixed, sub, showCurrency)
     if (article.menuSideDish) {
       appendMenuComponentLine(
         enc,
@@ -553,8 +570,7 @@ function appendArticle(
         article.menuSideDish,
         sideDishPrice,
         isFixed,
-        subNameW,
-        priceW,
+        sub,
         showCurrency,
       )
       appendModifierLines(
@@ -562,21 +578,19 @@ function appendArticle(
         article,
         groups.sideDish,
         isFixed,
-        subNameW,
-        priceW,
+        sub,
         showCurrency,
         COMPONENT_MODIFIER_INDENT,
       )
     }
     if (article.menuDrink) {
-      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, subNameW, priceW, showCurrency)
+      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, sub, showCurrency)
       appendModifierLines(
         enc,
         article,
         groups.drink,
         isFixed,
-        subNameW,
-        priceW,
+        sub,
         showCurrency,
         COMPONENT_MODIFIER_INDENT,
       )
@@ -594,19 +608,18 @@ function appendArticle(
         article.menuSideDish,
         sideDishPrice,
         isFixed,
-        subNameW,
-        priceW,
+        sub,
         showCurrency,
       )
     }
     if (article.menuDrink) {
-      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, subNameW, priceW, showCurrency)
+      appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, sub, showCurrency)
     }
   }
 
   // Modifiers — Font B, eingerückt. Bei FIXED sind Menü-Bestandteile inklusive →
   // kein Einzelpreis (der Festpreis steht oben).
-  appendModifierLines(enc, article, article.modifiers ?? [], isFixed, subNameW, priceW, showCurrency)
+  appendModifierLines(enc, article, article.modifiers ?? [], isFixed, sub, showCurrency)
 }
 
 // Zusätzliche Einrückung der Modifier unter einer Menü-Komponente (#1127). Die Namensspalte wird um denselben
@@ -625,8 +638,7 @@ function appendMenuComponentLine(
   component: any,
   generalPrice: number,
   isFixed: boolean,
-  subNameW: number,
-  priceW: number,
+  sub: SubLineWidths,
   showCurrency: boolean,
 ): void {
   const perUnitCents = isFixed ? 0 : Math.max(0, toCents(component.price ?? 0) - toCents(generalPrice))
@@ -635,8 +647,8 @@ function appendMenuComponentLine(
   enc.font('B')
   enc.table(
     [
-      { width: subNameW, marginLeft: 4, align: 'left' },
-      { width: priceW, align: 'right' },
+      { width: sub.nameW, marginLeft: SUB_INDENT, align: 'left' },
+      { width: sub.priceW, align: 'right' },
     ],
     [[`+ ${component.name}`, extraCents > 0 ? fmtAmount(fromCents(extraCents), showCurrency) : '']],
   )
@@ -648,8 +660,7 @@ function appendModifierLines(
   article: any,
   modifiers: any[],
   isFixed: boolean,
-  subNameW: number,
-  priceW: number,
+  sub: SubLineWidths,
   showCurrency: boolean,
   extraIndent = 0,
 ): void {
@@ -677,8 +688,8 @@ function appendModifierLines(
       const perUnit = mod.amount > 0 && modifiersCountPerUnit(article)
       enc.table(
         [
-          { width: subNameW - extraIndent, marginLeft: 4 + extraIndent, align: 'left' },
-          { width: priceW, align: 'right' },
+          { width: sub.nameW - extraIndent, marginLeft: SUB_INDENT + extraIndent, align: 'left' },
+          { width: sub.priceW, align: 'right' },
         ],
         [[`${perUnit ? `je ${amount}x ` : amountPrefix(amount)}${modName}`, modPrice]],
       )

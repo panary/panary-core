@@ -186,3 +186,31 @@ describe('receipt-escpos.renderer — Zeichensatz (#376)', () => {
     expect(renderReceiptEscPos(mitEuro(), { encoding: 'CP437' })).toEqual(ohne)
   })
 })
+
+// #1444 — Die MwSt-Zeilen drucken in Font B, rechneten ihre Spaltenbreiten aber in Font-A-Zeichen: 36 + 12 = 48
+// Font-B-Zeichen = 432 Dots auf 576 Dots Papier, der Betrag endete 144 Dots vor dem der Positionen.
+describe('receipt-escpos.renderer — Betragsspalte der MwSt-Zeilen (#1444)', () => {
+  it.each([
+    ['80mm', 576],
+    ['58mm', 384],
+  ] as const)('endet der Betrag jeder MwSt-Zeile auf %s an der Kante der Positionen', (paperWidth, papierDots) => {
+    const bytes = renderReceiptEscPos(buildReceipt(), { paperWidth })
+    // Bis zum Schnittbefehl dekodieren — dessen Laenge kennt die Tabelle bewusst nicht.
+    const cut = bytes.findIndex((byte, i) => byte === 0x1d && bytes[i + 1] === 0x56)
+    const zeilen = decodeEscPosLines(bytes.subarray(0, cut === -1 ? bytes.length : cut), 500)
+    const kante = (z: { leadDots: number; contentDots: number }) => z.leadDots + z.contentDots
+    const position = zeilen.find(z => z.text.includes('Nuggets'))!
+    const steuer = zeilen.filter(z => z.text.startsWith('MwSt'))
+
+    expect(kante(position)).toBe(papierDots)
+    expect(steuer).toHaveLength(2)
+    for (const zeile of steuer) {
+      expect(zeile.charDots, 'MwSt-Zeile nicht in Font B').toBe(9)
+      expect(zeile.text).toMatch(/\d,\d\d EUR$/)
+      // Auf 58 mm sind es 42 Font-B-Zeichen (378 Dots) auf 384 Dots Papier — die Rundung, kein Spaltenversatz.
+      const abstand = papierDots - kante(zeile)
+      expect(abstand, `${abstand} Dots vor der Kante der Positionen`).toBeGreaterThanOrEqual(0)
+      expect(abstand, `${abstand} Dots vor der Kante der Positionen`).toBeLessThan(9)
+    }
+  })
+})

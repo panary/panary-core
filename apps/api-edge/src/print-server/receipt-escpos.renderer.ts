@@ -1,6 +1,6 @@
 import { buildTseReceiptBlock } from '@panary/tse/domain'
 import type { Receipt } from '@panary/receipts/domain'
-import { createEscposEncoder, type EscposOptions } from './escpos.adapter'
+import { createEscposEncoder, fontBColumns, type EscposOptions } from './escpos.adapter'
 import { formatPrintDate, formatPrintTime } from './print-date-format'
 
 const COLUMNS_MAP: Record<string, number> = { '58mm': 32, '80mm': 48 }
@@ -118,13 +118,16 @@ export function renderReceiptEscPos(receipt: Receipt, options: EscposOptions = {
     ],
   )
 
-  // Steuer-Aufschlüsselung (mehrsatzig, z. B. 7 % / 19 %)
+  // Steuer-Aufschlüsselung (mehrsatzig, z. B. 7 % / 19 %). In Font B, dessen Zeile mehr Zeichen fasst als die von Font A:
+  // mit den Font-A-Breiten endete der Betrag 144 Dots (80 mm) vor dem Betrag der Positionen (#1444).
+  const taxPriceW = fontBColumns(priceW)
+  const taxNameW = fontBColumns(cols) - taxPriceW
   enc.font('B')
   for (const t of receipt.taxSummary?.taxes ?? []) {
     enc.table(
       [
-        { width: nameW, align: 'left' },
-        { width: priceW, align: 'right' },
+        { width: taxNameW, align: 'left' },
+        { width: taxPriceW, align: 'right' },
       ],
       [[`MwSt ${t.taxRate}% (Netto ${fmtMoney(t.amount, currency)})`, fmtMoney(t.tax, currency)]],
     )

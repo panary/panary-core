@@ -4678,7 +4678,9 @@ describe('Menü-Auswahl schreibt components[] (core#1450)', () => {
 
     waehle(component, parent, gruppe('g-drink', 'Getränk', [cola()]), cola())
 
-    expect(component['lineItems'][0].components).toHaveLength(1)
+    // Der Abschluss ergänzt zusätzlich das Hauptgericht (role 'main'); das Getränk darf nur einmal vorkommen.
+    const components = component['lineItems'][0].components as Array<{ role: string }>
+    expect(components.filter(c => c.role === 'drink')).toHaveLength(1)
   })
 
   it('eine Soße (Modifier-Gruppe) bleibt Modifier und erzeugt keine Komponente', () => {

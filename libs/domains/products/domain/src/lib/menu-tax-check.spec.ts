@@ -227,7 +227,11 @@ describe('Regel 5 — Satz kommt in der Filiale nicht vor', () => {
   })
 
   it('prüft den Ersatzwert der Kasse: ein fehlender Satz außer Haus zählt als 7 %', () => {
-    const findings = check({ optionGroups: [group(1, 'Getränk', [11])] }, [product(11, 3, 19, undefined)], [19])
+    const findings = check(
+      { taxInside: 19, taxOutside: 19, optionGroups: [group(1, 'Getränk', [11])] },
+      [product(11, 3, 19, undefined)],
+      [19],
+    )
     expect(findings.filter(f => f.rule === 5).map(f => f.rate)).toEqual([7])
   })
 

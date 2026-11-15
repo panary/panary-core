@@ -156,6 +156,21 @@ export class BundleFlow {
   }
 
   /**
+   * Schreibt die Wahl aus einer Beilagen- oder Getränkegruppe als Komponente der Zeile (core#1450).
+   * Die Engine versteuert eine Komponente zu ihrem EIGENEN Satz; ohne sie läuft das Getränk eines
+   * 7-%-Menüs über den Satz der Zeile. Eine neue Wahl in derselben Gruppe ERSETZT den Eintrag mit
+   * gleicher `optionGroupId`: Ein angehängter zweiter Eintrag würde in der Engine doppelt gezählt.
+   * Die Legacy-Slots (`menuSideDish`/`menuDrink`) pflegt der Aufrufer weiter, sie speisen Verbrauch,
+   * Bon-Gruppierung und alte Leser.
+   */
+  recordSlotComponent(lineItem: OrderLineItem, product: ProductSchema, group: { id?: string; name?: string }): void {
+    const component = this.toComponent(product, group)
+    const current = lineItem.components ?? []
+    const index = group?.id ? current.findIndex(c => c.optionGroupId === group.id) : -1
+    lineItem.components = index >= 0 ? current.map((c, i) => (i === index ? component : c)) : [...current, component]
+  }
+
+  /**
    * Schließt eine FIXED_PROPORTIONAL-Bundle-Zeile ab: ergänzt das Hauptgericht als
    * Komponente (role 'main') mit Normalpreis-Gewicht. Quelle: product.mainPrice;
    * fehlt der Wert, dient der Restbetrag (Festpreis − Σ übrige Komponenten) als

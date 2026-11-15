@@ -741,3 +741,61 @@ describe('modifierScope (#698) — Modifier je Stück per Zeilenmerkmal', () => 
     expect(modifiersCountPerUnit(makeLine(6.7, 2, 7, 7))).toBe(false)
   })
 })
+
+describe('ROLLUP-Menü ohne Festpreis — Beilage und Getränk am eigenen Satz (core#1450)', () => {
+  // Menü 8,00 € (7 % Speisen), Beilage 2,00 € (7 %), Getränk 3,00 € (19 %). Take-out: 7 / 7 / 19.
+  const beilage = (partial: Partial<GenericOrderLineItem> = {}) =>
+    makeGeneric(2.0, 1, { taxInside: 19, taxOutside: 7, topic: 'Beilagen', ...partial })
+  const getraenk = (partial: Partial<GenericOrderLineItem> = {}) =>
+    makeGeneric(3.0, 1, { taxInside: 19, taxOutside: 19, topic: 'Getränke', ...partial })
+
+  const alteForm = (amount: number) =>
+    makeLine(8.0, amount, 19, 7, {
+      isMenu: true,
+      menuSideDish: beilage(),
+      menuDrink: getraenk(),
+      modifierScope: 'unit',
+    })
+  const neueForm = (amount: number) =>
+    makeLine(8.0, amount, 19, 7, {
+      isMenu: true,
+      menuSideDish: beilage(),
+      menuDrink: getraenk(),
+      modifierScope: 'unit',
+      components: [
+        { ...beilage(), optionGroupId: 'g-side', role: 'side' },
+        { ...getraenk(), optionGroupId: 'g-drink', role: 'drink' },
+      ],
+    })
+
+  it('Legacy-Slots versteuern das Getränk am Satz der Zeile (7 %) — der Befund', () => {
+    const r = computeOrderTax(makeOrder([alteForm(1)], 'take-out'))
+    expect(r.taxes.map(t => t.taxRate)).toEqual([7])
+  })
+
+  it('components[] splittet das Getränk auf 19 %, Menü und Beilage bleiben bei 7 %', () => {
+    const r = computeOrderTax(makeOrder([neueForm(1)], 'take-out'))
+    const byRate = Object.fromEntries(r.taxes.map(t => [t.taxRate, t.amount + t.tax]))
+    expect(byRate[7]).toBeCloseTo(10.0, 5)
+    expect(byRate[19]).toBeCloseTo(3.0, 5)
+  })
+
+  it.each([1, 2, 3])('Positionsbetrag bleibt in beiden Formen gleich (Menge %i)', amount => {
+    expect(lineItemGrossCents(neueForm(amount))).toBe(lineItemGrossCents(alteForm(amount)))
+    expect(lineItemGrossCents(neueForm(amount))).toBe(1300 * amount)
+  })
+
+  it('Positionsbetrag bleibt mit Modifier je Stück gleich', () => {
+    const mod = makeGeneric(0.5, 1, { taxInside: 7, taxOutside: 7, topic: 'Extras' })
+    const alt = { ...alteForm(2), modifiers: [mod] }
+    const neu = { ...neueForm(2), modifiers: [mod] }
+    expect(lineItemGrossCents(neu)).toBe(lineItemGrossCents(alt))
+  })
+
+  it('Netto plus Steuer ergibt cent-genau den Brutto-Betrag', () => {
+    const r = computeOrderTax(makeOrder([neueForm(2)], 'dine-in'))
+    const taxCents = r.taxes.reduce((s, t) => s + roundCents(t.tax), 0)
+    expect(roundCents(r.netto) + taxCents).toBe(roundCents(r.brutto))
+    expect(roundCents(r.brutto)).toBe(2600)
+  })
+})

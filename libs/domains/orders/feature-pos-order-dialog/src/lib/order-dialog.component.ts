@@ -2669,12 +2669,19 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Speichern basierend auf Gruppen-Name
     const groupName = (group.name || '').toLowerCase()
+    const isSlotGroup =
+      groupName.includes('beilage') ||
+      groupName.includes('side') ||
+      groupName.includes('getränk') ||
+      groupName.includes('drink')
     if (groupName.includes('beilage') || groupName.includes('side')) {
       dropComponentModifiers(lineItem, lineItem.menuSideDish, genericItem)
       lineItem.menuSideDish = genericItem
+      this.#bundleFlow.recordSlotComponent(lineItem, selected, group)
     } else if (groupName.includes('getränk') || groupName.includes('drink')) {
       dropComponentModifiers(lineItem, lineItem.menuDrink, genericItem)
       lineItem.menuDrink = genericItem
+      this.#bundleFlow.recordSlotComponent(lineItem, selected, group)
     } else {
       // Soßen, Extras etc. als Modifier (freeQuantity berücksichtigen)
       const freeQty = group.freeQuantity || 0
@@ -2698,9 +2705,10 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    // FIXED_PROPORTIONAL: zusätzlich generische Komponente mit Normalpreis-Gewicht
-    // (Engine-Eingabe). Legacy-Slots bleiben für Anzeige/alte Reader gefüllt.
-    if (parentProduct.bundlePricingMode === 'FIXED_PROPORTIONAL') {
+    // Beilage und Getränk stehen oben schon als Komponente (alle Preisregeln, core#1450). FIXED_PROPORTIONAL
+    // führt zusätzlich die übrigen Gruppen als Komponente mit Normalpreis-Gewicht (Engine-Eingabe).
+    // Legacy-Slots bleiben für Anzeige/alte Reader gefüllt.
+    if (parentProduct.bundlePricingMode === 'FIXED_PROPORTIONAL' && !isSlotGroup) {
       lineItem.components = lineItem.components ?? []
       lineItem.components.push(this.#bundleFlow.toComponent(selected, group))
     }

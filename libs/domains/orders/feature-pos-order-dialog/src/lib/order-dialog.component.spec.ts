@@ -4599,3 +4599,103 @@ describe('Kasse — Hinweis auf fehlenden Geschäftstag (core#1171)', () => {
     expect(component.businessDayHint()).toBe('open-here')
   })
 })
+
+describe('Menü-Auswahl schreibt components[] (core#1450)', () => {
+  const gruppe = (id: string, name: string, items: ProductSchema[]) => ({
+    id,
+    name,
+    minSelections: 1,
+    maxSelections: 1,
+    items,
+  })
+  const cola = () => product('p-cola', { name: 'Cola', price: 3, taxInside: 19, taxOutside: 19 })
+  const wasser = () => product('p-wasser', { name: 'Wasser', price: 2, taxInside: 19, taxOutside: 7 })
+  const pommes = () => product('p-pommes', { name: 'Pommes', price: 2, taxInside: 7, taxOutside: 7 })
+  const menue = (over: Partial<ProductSchema> = {}) =>
+    product('p-menu', {
+      isMenu: true,
+      price: 8,
+      taxInside: 7,
+      taxOutside: 7,
+      ...over,
+    } as never)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function waehle(component: any, parent: ProductSchema, group: any, selected: ProductSchema) {
+    // Ohne weitere Gruppe schließt die Auswahl den Durchlauf und hebt die Markierung auf (`setProductButtonsByGroupId`).
+    component['_selectedProductIndex'] = 0
+    component['selectOptionGroupItem'](selected, group, parent)
+  }
+
+  it('ROLLUP-Menü: Beilage und Getränk stehen mit eigenem Satz in components[], die Slots bleiben gefüllt', () => {
+    const { component } = setup()
+    const parent = menue({ bundlePricingMode: 'ROLLUP' } as never)
+    component['increaseLineItem'](parent)
+    component['_selectedProductIndex'] = 0
+
+    waehle(component, parent, gruppe('g-side', 'Beilage', [pommes()]), pommes())
+    waehle(component, parent, gruppe('g-drink', 'Getränk', [cola()]), cola())
+
+    const line = component['lineItems'][0]
+    expect(line.components).toHaveLength(2)
+    expect(line.components[0]).toMatchObject({ _id: 'p-pommes', role: 'side', taxInside: 7, optionGroupId: 'g-side' })
+    expect(line.components[1]).toMatchObject({ _id: 'p-cola', role: 'drink', taxOutside: 19, optionGroupId: 'g-drink' })
+    expect(line.menuSideDish._id).toBe('p-pommes')
+    expect(line.menuDrink._id).toBe('p-cola')
+  })
+
+  it('Menü ohne bundlePricingMode (Legacy-Katalog) verhält sich wie ROLLUP', () => {
+    const { component } = setup()
+    const parent = menue()
+    component['increaseLineItem'](parent)
+    component['_selectedProductIndex'] = 0
+
+    waehle(component, parent, gruppe('g-drink', 'Getränk', [cola()]), cola())
+
+    expect(component['lineItems'][0].components).toHaveLength(1)
+  })
+
+  it('geänderte Getränkewahl ersetzt den Eintrag und doppelt die Komponente nicht', () => {
+    const { component } = setup()
+    const parent = menue({ bundlePricingMode: 'ROLLUP' } as never)
+    component['increaseLineItem'](parent)
+    component['_selectedProductIndex'] = 0
+    const drinks = gruppe('g-drink', 'Getränk', [cola(), wasser()])
+
+    waehle(component, parent, drinks, cola())
+    waehle(component, parent, drinks, wasser())
+
+    const line = component['lineItems'][0]
+    expect(line.components).toHaveLength(1)
+    expect(line.components[0]).toMatchObject({ _id: 'p-wasser', taxOutside: 7 })
+    expect(line.menuDrink._id).toBe('p-wasser')
+  })
+
+  it('FIXED_PROPORTIONAL: die Getränkewahl steht genau einmal in components[] (kein Doppeleintrag durch den Festpreis-Pfad)', () => {
+    const { component } = setup()
+    const parent = menue({ bundlePricingMode: 'FIXED_PROPORTIONAL' } as never)
+    component['increaseLineItem'](parent)
+
+    waehle(component, parent, gruppe('g-drink', 'Getränk', [cola()]), cola())
+
+    expect(component['lineItems'][0].components).toHaveLength(1)
+  })
+
+  it('eine Soße (Modifier-Gruppe) bleibt Modifier und erzeugt keine Komponente', () => {
+    const { component } = setup()
+    const parent = menue({ bundlePricingMode: 'ROLLUP' } as never)
+    component['increaseLineItem'](parent)
+    component['_selectedProductIndex'] = 0
+
+    waehle(
+      component,
+      parent,
+      gruppe('g-sauce', 'Soße', [product('p-ketchup', { price: 0.5 })]),
+      product('p-ketchup', { price: 0.5 }),
+    )
+
+    const line = component['lineItems'][0]
+    expect(line.components ?? []).toHaveLength(0)
+    expect(line.modifiers).toHaveLength(1)
+  })
+})

@@ -240,3 +240,41 @@ describe('BundleFlow.finalizeFixedBundle', () => {
     expect(li.components?.filter(c => c.role === 'main')).toHaveLength(1)
   })
 })
+
+describe('BundleFlow.recordSlotComponent (core#1450)', () => {
+  const flow = new BundleFlow(catalog())
+  const cola = product({ _id: 'p-cola', name: 'Cola', price: 3, taxInside: 19, taxOutside: 19 })
+  const wasser = product({ _id: 'p-wasser', name: 'Wasser', price: 2, taxInside: 19, taxOutside: 7 })
+  const drinks = { id: 'g-drinks', name: 'Getränke' }
+  const sides = { id: 'g-sides', name: 'Beilagen' }
+
+  it('legt die Komponente mit Rolle, eigenen Steuersätzen und Normalpreis an', () => {
+    const li = lineItem({ modifiers: [] })
+    flow.recordSlotComponent(li, cola, drinks)
+    expect(li.components).toHaveLength(1)
+    expect(li.components?.[0]).toMatchObject({
+      _id: 'p-cola',
+      price: 3,
+      taxInside: 19,
+      taxOutside: 19,
+      optionGroupId: 'g-drinks',
+      role: 'drink',
+    })
+  })
+
+  it('ersetzt bei einer neuen Wahl den Eintrag derselben Gruppe statt einen zweiten anzuhängen', () => {
+    const li = lineItem({ modifiers: [] })
+    flow.recordSlotComponent(li, cola, drinks)
+    flow.recordSlotComponent(li, wasser, drinks)
+    expect(li.components).toHaveLength(1)
+    expect(li.components?.[0]).toMatchObject({ _id: 'p-wasser', taxOutside: 7 })
+  })
+
+  it('lässt die Komponente einer anderen Gruppe stehen', () => {
+    const li = lineItem({ modifiers: [] })
+    flow.recordSlotComponent(li, product({ _id: 'p-pommes', price: 2, taxInside: 7, taxOutside: 7 }), sides)
+    flow.recordSlotComponent(li, cola, drinks)
+    flow.recordSlotComponent(li, wasser, drinks)
+    expect(li.components?.map(c => c._id)).toEqual(['p-pommes', 'p-wasser'])
+  })
+})

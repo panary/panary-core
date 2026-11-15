@@ -34,7 +34,7 @@ neue Version das Weiterarbeiten sperren soll. Die Bestandsaufnahme am Code (`ori
 **Der Vorfall, der die Reihenfolge begründet:** Am 2026-08-15 trug `receiptSchema` mit `v26.8.21` das neue
 Feld `discounts`; die Cloud lief noch auf den Libs von `26.8.20`. Ein Edge auf `26.8.21` schickte
 rabattierte Belege mit dem Feld, die Cloud wies sie bei der Validierung ab. Sync **TERMINAL**, kein Retry,
-die Operation war weg (ADR 0002, Abschnitt „Versions-Check"). Ein Edge, der **neuer** ist als die Cloud, ist
+die Operation war weg (ADR 0002, Abschnitt „Das Gate gegen den stillen Fehlschlag"; dort war die Ursache ein vergessenes Lib-Publish, der Pfad „Edge kennt ein Feld, das die Cloud-Libs nicht kennen" ist derselbe). Ein Edge, der **neuer** ist als die Cloud, ist
 damit kein Schönheitsfehler, sondern ein Datenverlust-Pfad.
 
 **Warum eine Versionsprüfung kein Sicherheits-Gate sein kann:** `edgeVersion` ist ungeprüfte Selbstauskunft
@@ -170,15 +170,15 @@ Je PR-groß, als Unter-Issues von panary/panary-core#1411 mit blocked-by-Reihenf
 im Issue). Reihenfolge nach Abhängigkeit:
 
 1. Heartbeat-`edgeVersion` in der Cloud persistieren (cloud) — liefert die erste echte Messung.
-2. Versionsvergleich `YY.MM.INDEX` mit Monatsstand-Differenz als geteilte Hilfsfunktion (core, `shared-common`).
+2. Versionsvergleich `YY.MM.INDEX` mit Monatsstand-Differenz als geteilte Hilfsfunktion (core, `shared-common`), dazu das additive Feld `requiredPosMinVersion` im Sync-Status-Schema.
 3. Mindestversion je Strecke als Plattform-Einstellung von Hand (cloud, Feature-Flag-Abstimmung nötig).
 4. Drift-Anzeige und Alarm für veraltete oder zu neue Edges in der Edge-Verwaltung (cloud).
 5. Versions-Handshake POS ↔ Edge: Version im Socket-`auth`, Erfassung am Edge, tote Spalten
    `posClientVersion`/`edgeAppVersion` entweder befüllen oder entfernen (core).
-6. `requiredEdgeMinVersion` verdrahten: Cloud liefert, Edge zeigt Hinweis (cloud + core).
+6. `requiredEdgeMinVersion` und `requiredPosMinVersion` verdrahten: erst liefert die Cloud, dann wertet der Edge aus und reicht die POS-Mindestversion weiter (je ein Issue in cloud und core).
 7. POS: Warnhinweis in der Schicht, Prüfung bei Login und Schichtstart gegen die Mindestversion (core).
 8. Update-Hinweis im core-Admin-Client und Setup-Client (core).
-9. Kompatibilitätstest: ein altes Edge-Image gegen die aktuelle Cloud, beide Richtungen des Sync-Vertrags (core + cloud).
+9. Kompatibilitätsgate in der Cloud-CI: Sync-Payloads der letzten zwei Monatsstände aus den publizierten Paketen gegen die aktuellen Validatoren, beide Richtungen (cloud).
 
 ## Referenzen
 

@@ -3,16 +3,15 @@ type: ADR
 title: 'Versions-Kompatibilität je Strecke — Cloud zuerst, Rückstand in Monatsständen, Mindestversion von Hand, nie eine Sperre im laufenden Betrieb'
 description: 'Für Browser-Clients, POS ↔ Edge und Edge ↔ Cloud gilt je eine Regel: zulässiger Rückstand in Monatsständen (YY.MM), Erkennungsort und Verhalten bei Überschreitung. Release-Reihenfolge Cloud → Edge → POS dauerhaft, Mindestversion nur von Hand, der POS wird nie im laufenden Betrieb gesperrt. Der ADR baut keinen Mechanismus, er schneidet die Folge-Issues.'
 tags: [versionierung, kompatibilität, sync, pos-client, api-edge, release]
-status: draft
-decision: proposed
+status: stable
+decision: accepted
 generated: { by: claude-code/sonnet-5.5, at: 2026-11-15T17:00:00Z }
 ---
 
 # ADR 0070 — Versions-Kompatibilität je Strecke
 
-> **Stand: Entwurf.** Die Entscheidungen 1–4 hat Michael am 2026-11-15 getroffen
-> (panary/panary-core#1411, Kommentar). Das **Toleranz-Fenster** (Abschnitt „Fenster je Strecke")
-> ist ein Vorschlag und wird erst mit seiner Bestätigung festgeschrieben.
+> **Entschieden am 2026-11-15** von Michael (panary/panary-core#1411, zwei Kommentare): die Entscheidungen 1–4
+> am Vormittag, das Toleranz-Fenster („Fenster je Strecke") am Abend mit „Ja, so festschreiben".
 
 ## Problem
 
@@ -118,7 +117,7 @@ und **Setup-Client** (ausgeliefert vom Edge). **Storefront und Beleg-Portal sind
 
 ### Fenster je Strecke
 
-> **Vorschlag, noch nicht bestätigt.** Einheit ist der Monatsstand `YY.MM`. „M" ist der Monatsstand des
+> Einheit ist der Monatsstand `YY.MM`. „M" ist der Monatsstand des
 > Referenzteils (bei Edge ↔ Cloud die Cloud, bei POS ↔ Edge der Edge). Ein Rückstand von 2 heißt:
 > Der ältere Teil steht auf `M−2` oder neuer. Weil der Index im Monatswechsel zurückspringt, entspricht
 > das je nach Stichtag etwa 60 bis 90 Kalendertagen.
@@ -127,7 +126,7 @@ und **Setup-Client** (ausgeliefert vom Edge). **Storefront und Beleg-Portal sind
 | --- | --- | --- | --- | --- |
 | Browser ↔ ausliefernder Server | Gleichstand. Es gibt kein Fenster: Ein offener Tab ist nach einem Deploy sofort veraltet. | jede Abweichung | Banner mit Reload-Knopf (Bestand in der Cloud, neu im core-Admin-Client und Setup-Client). Reload-Pflicht nur über die manuelle Mindestversion. | Browser, durch Vergleich der eigenen Version mit `/health` |
 | POS ↔ Edge | Der Edge versteht POS-Stände bis `M−2`. | POS steht auf `M−1` oder älter | Warnhinweis in der Schicht. **Keine Sperre im Betrieb.** Login oder Schichtstart nur gegen die manuelle Mindestversion verweigert. | POS (kennt seine Version) gegen die Edge-Version aus `/health`; Edge erfasst die POS-Version im Socket-`auth` |
-| Edge ↔ Cloud | Die Cloud versteht Edge-Stände bis `M−2`. Ein Edge neuer als die Cloud ist ein Fehler im Ablauf. | Edge steht auf `M−1` oder älter, oder ist **neuer** als die Cloud | Alarm und Anzeige in der Edge-Verwaltung der Cloud, **keine Sync-Sperre**. Bei manueller Mindestversion: Hinweis an den Edge-Admin, Sync läuft weiter. | Cloud, aus dem persistierten Heartbeat-`edgeVersion` |
+| Edge ↔ Cloud | Die Cloud versteht Edge-Stände bis `M−2`. Ein Edge neuer als die Cloud ist ein Fehler im Ablauf. | Edge steht auf `M−1` oder älter, oder ist **neuer** als die Cloud | Alarm und Anzeige in der Edge-Verwaltung der Cloud. **Die Cloud sperrt den Sync eines zu alten Edges nie, auch nicht über die manuelle Mindestversion:** Bei einer Mindestversion bekommt der Edge-Admin einen Hinweis, der Sync läuft weiter. | Cloud, aus dem persistierten Heartbeat-`edgeVersion` |
 
 Warum **2 Monatsstände** und nicht 1 oder 3:
 

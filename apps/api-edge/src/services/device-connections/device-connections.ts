@@ -42,7 +42,8 @@ export interface ConnectedDevice {
  * (Disconnect entfernt die Connection).
  *
  * Hält ein Gerät mehrere Verbindungen (Reconnect-Überlappung), zählt es einmal. Die Version ist die
- * einer Verbindung, die eine nennt: Eine ältere, versionslose Verbindung überschreibt keine bekannte.
+ * der zuletzt registrierten Verbindung, die eine nennt: Die Registry führt sie in Verbindungsreihenfolge, die jüngste
+ * Verbindung ist also die aktuelle. Eine versionslose Verbindung überschreibt keine bekannte.
  */
 export function collectConnectedDevices(app: Application, tenantId: string): ConnectedDevice[] {
   const channel = typeof app.channel === 'function' ? app.channel('authenticated') : undefined
@@ -56,7 +57,7 @@ export function collectConnectedDevices(app: Application, tenantId: string): Con
     const clientVersion = readClientVersion(c.clientVersion)
     const known = devices.get(c.deviceId)
     if (!known) devices.set(c.deviceId, { deviceId: c.deviceId, clientVersion })
-    else if (known.clientVersion === null && clientVersion !== null) known.clientVersion = clientVersion
+    else if (clientVersion !== null) known.clientVersion = clientVersion
   }
   return [...devices.values()]
 }

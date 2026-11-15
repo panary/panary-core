@@ -60,8 +60,9 @@ Seit core#1438 (ADR 0070) sendet jedes Gerät den Stand seines Builds als `clien
   `device.auth` steht sie als `clientVersion`. Keine PINs, Tokens oder Schlüssel dabei.
 - **Ausgegeben wird sie nur über `device-connections`**: Anmeldung und `DEVICE_CONNECTIONS`-Recht (OWNER und
   TECHNICIAN) sind Pflicht. Die öffentliche `/health` nennt keine Geräteliste und keine Version.
-- **Mehrere Verbindungen eines Geräts** (Reconnect-Überlappung) zählen einmal; eine versionslose Verbindung
-  überschreibt eine bekannte Version nicht.
+- **Mehrere Verbindungen eines Geräts** (Reconnect-Überlappung, Update am Gerät) zählen einmal. Gelten
+  mehrere Versionen, gewinnt die der zuletzt registrierten Verbindung; eine versionslose überschreibt keine
+  bekannte.
 - Die Cloud erfährt sie nicht: Wie `connectedDeviceIds` bleibt die Liste am Edge.
 
 ### Frontend (`apps/admin-client`, REST + JWT-Interceptor, OnPush/Signals)

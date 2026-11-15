@@ -65,6 +65,15 @@ describe('collectConnectedDevices', () => {
     expect(collectConnectedDevices(app, TENANT)).toEqual([{ deviceId: 'pos-1', clientVersion: '26.11.15' }])
   })
 
+  it('nimmt bei zwei bekannten Versionen die der zuletzt registrierten Verbindung', () => {
+    // Update am Gerät: Die alte Verbindung hängt noch in der Registry, die neue steht dahinter.
+    const app = makeApp([
+      { tenantId: TENANT, deviceId: 'pos-1', clientVersion: '26.10.3' },
+      { tenantId: TENANT, deviceId: 'pos-1', clientVersion: '26.11.15' },
+    ])
+    expect(collectConnectedDevices(app, TENANT)).toEqual([{ deviceId: 'pos-1', clientVersion: '26.11.15' }])
+  })
+
   it('übergeht Connections ohne deviceId', () => {
     const app = makeApp([{ tenantId: TENANT, clientVersion: '26.11.15' }])
     expect(collectConnectedDevices(app, TENANT)).toEqual([])
@@ -85,7 +94,12 @@ describe('deviceConnectionsService.find', () => {
 
   it('liefert ohne Tenant intern leere Listen, extern verweigert er', async () => {
     const service = deviceConnectionsService(makeApp([]))
-    await expect(service.find({})).resolves.toEqual({ online: 0, total: 0, connectedDeviceIds: [], connectedDevices: [] })
+    await expect(service.find({})).resolves.toEqual({
+      online: 0,
+      total: 0,
+      connectedDeviceIds: [],
+      connectedDevices: [],
+    })
     await expect(service.find({ provider: 'socketio' })).rejects.toThrow()
   })
 })

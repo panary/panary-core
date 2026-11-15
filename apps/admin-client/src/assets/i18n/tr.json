@@ -159,6 +159,11 @@
     "EMERGENCY_OVERRIDE_SUBLINE": "{{minutes}} dakikadır yerel yazıcı değişiklikleri — bulut döndüğünde eşitlenir.",
     "END_EMERGENCY_MODE": "Sonlandır"
   },
+  "UPDATE_BANNER": {
+    "MESSAGE": "Yeni sürüm {{version}} mevcut",
+    "RELOAD": "Yeniden yükle",
+    "LATER": "Daha sonra"
+  },
   "COMMON": {
     "SAVE": "Kaydet",
     "SAVING": "Kaydediliyor...",

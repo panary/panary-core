@@ -207,6 +207,25 @@ im Issue). Reihenfolge nach Abhängigkeit:
 - Die Auswertung (Rückstand in Monatsständen mit `monthsBehind` aus core#1437, Hinweise in den Oberflächen)
   folgt in den Folge-Issues, u. a. core#1439.
 
+### Nachtrag: Update-Hinweis im Admin-Client (core#1439)
+
+- **Teil 1 von 2: nur der Admin-Client.** `UpdateMonitorService` (`apps/admin-client/src/app/core/`) fragt die
+  Version des Edge über den bestehenden `EdgeVersionService` (`GET /health`) beim Start, im 60-s-Takt und bei
+  jeder Rückkehr in den Tab. Weicht sie von der Build-Version des geladenen Clients ab (beide stammen aus
+  derselben Root-`package.json`), zeigt `app-update-banner` einen Hinweis „Neu laden" oder „Später". Reine
+  Auskunft, nie eine Sperre.
+- **Maßgeblich ist jede Abweichung**, nicht der Monatsrückstand: `isVersionDrift(build, server)` in
+  `@panary/shared-common`. Nach dem Neuladen liefert der Edge ohnehin den autoritativen Client. Ist eine Seite
+  keine `YY.MM.INDEX`-Version (`staging-<sha>`, `0.0.0`, leer), ist das Ergebnis `false`.
+- **Keine Antwort ist kein neuer Zustand.** Antwortet `/health` nicht (der Edge startet im Update gerade neu),
+  bleibt der letzte bekannte Stand: Ein gezeigter Hinweis verschwindet nicht, ohne Antwort erscheint keiner.
+  „Später" gilt für genau die gemeldete Edge-Version; eine noch neuere zeigt den Hinweis wieder.
+- **Setup-Client offen (Plan-Annahme gebrochen).** Der Plan ging davon aus, dass auch der Setup-Client die
+  Edge-Version aus `/health` liest. Im Setup-Modus bedient der Edge aber nur `/api/system-info`, `/api/setup`
+  und den SPA-Fallback; `/health` gibt es dort nicht, und die Version ist mit core#323 bewusst verborgen. Ohne
+  Entscheidung (Version im Setup-Modus freigeben oder dort keinen Hinweis zeigen) setzt dieser Schritt nichts
+  um; das Issue bleibt offen.
+
 ## Referenzen
 
 - panary/panary-core#1411 (Entscheidung), panary/panary-workbench#214 (Tag ≠ Rollout)

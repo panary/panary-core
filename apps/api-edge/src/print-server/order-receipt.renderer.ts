@@ -564,36 +564,12 @@ function appendArticle(
   if (article.isMenu && hasComponentModifiers(groups)) {
     appendModifierLines(enc, article, groups.main, isFixed, sub, showCurrency)
     if (article.menuSideDish) {
-      appendMenuComponentLine(
-        enc,
-        article,
-        article.menuSideDish,
-        sideDishPrice,
-        isFixed,
-        sub,
-        showCurrency,
-      )
-      appendModifierLines(
-        enc,
-        article,
-        groups.sideDish,
-        isFixed,
-        sub,
-        showCurrency,
-        COMPONENT_MODIFIER_INDENT,
-      )
+      appendMenuComponentLine(enc, article, article.menuSideDish, sideDishPrice, isFixed, sub, showCurrency)
+      appendModifierLines(enc, article, groups.sideDish, isFixed, sub, showCurrency, COMPONENT_MODIFIER_INDENT)
     }
     if (article.menuDrink) {
       appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, sub, showCurrency)
-      appendModifierLines(
-        enc,
-        article,
-        groups.drink,
-        isFixed,
-        sub,
-        showCurrency,
-        COMPONENT_MODIFIER_INDENT,
-      )
+      appendModifierLines(enc, article, groups.drink, isFixed, sub, showCurrency, COMPONENT_MODIFIER_INDENT)
     }
     return
   }
@@ -602,15 +578,7 @@ function appendArticle(
   // Menü-Beilage & Getränk — Font B, eingerückt
   if (article.isMenu) {
     if (article.menuSideDish) {
-      appendMenuComponentLine(
-        enc,
-        article,
-        article.menuSideDish,
-        sideDishPrice,
-        isFixed,
-        sub,
-        showCurrency,
-      )
+      appendMenuComponentLine(enc, article, article.menuSideDish, sideDishPrice, isFixed, sub, showCurrency)
     }
     if (article.menuDrink) {
       appendMenuComponentLine(enc, article, article.menuDrink, drinkPrice, isFixed, sub, showCurrency)

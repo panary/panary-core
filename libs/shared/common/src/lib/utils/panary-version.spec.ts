@@ -23,6 +23,8 @@ describe('parsePanaryVersion', () => {
     'pr-check',
     'smoke',
     '0.0.0',
+    '1.2.3', // gewoehnliches Semver, kein Jahr
+    '3.11.1',
     '',
     '   ',
     '26.11',

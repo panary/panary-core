@@ -78,9 +78,11 @@ Legacy-Zweig der Rabatt-KPI und die SQLite-Spalte
   Aggregator zieht keinen Phantom-Rabatt ab. Das Schema bleibt unverändert (`lineItemId` optional),
   der Eintrag wird nicht abgewiesen. Der POS legt Positionsrabatte immer mit `lineItemId` an;
   erreichbar ist der Fall nur über einen Client, der `orders.create`/`patch` mit einem schema-gültigen,
-  unvollständigen Eintrag aufruft. Der Edge rechnet den Snapshot bei jedem Schreiben neu
-  (`calculate-tax-details`), der gespeicherte Wert ist also ab jetzt 0. Bereits gespeicherte Bestands-Orders
-  mit so einem Eintrag werden nicht umgeschrieben.
+  unvollständigen Eintrag aufruft. Der Edge rechnet den Snapshot bei jedem Schreiben neu, das
+  `appliedDiscounts` mitschreibt (`calculate-tax-details`), der gespeicherte Wert ist dann 0. Bereits
+  gespeicherte Bestands-Orders mit so einem Eintrag werden nicht umgeschrieben. Bei ihnen rechnet der
+  Bon-Renderer beim Druck neu und druckt keine Nachlasszeile, während Beleg und Tagesbericht den gespeicherten
+  Wert lesen: Bon und Beleg können dort auseinanderlaufen.
 
 #### Erkennung von Bestands-Orders
 

@@ -114,10 +114,11 @@ export const subscriptionSchema = Type.Object(
     maxLocations: Type.Optional(Type.Number({ minimum: 0 })),
     maxUsers: Type.Optional(Type.Number({ minimum: 0 })),
     maxDevices: Type.Optional(Type.Number({ minimum: 0 })),
-    // Plan-Limit-Enforcement (Welle B Item 1): denormalisierte Counter fuer
-    // atomic findOneAndUpdate. Race-frei gegen TOCTOU. Wird vom
-    // enforce-plan-limits-Hook gewartet und vom reconcile-plan-limit-counters-
-    // Skript re-initialisiert. _deletedAt-Records werden NICHT mitgezaehlt.
+    // @deprecated — durch `tenant.planUsage` abgeloest (panary/panary-cloud#619).
+    // Die Zaehler lagen hier, obwohl `subscription` von vielen Schreibern als
+    // Ganzes ersetzt wird; ein dazwischen liegendes `$inc` ging verloren. Bleibt
+    // im Schema, weil Bestandsdokumente sie tragen (`additionalProperties: false`);
+    // neue Leser und Schreiber nutzen `planUsage`.
     currentLocationCount: Type.Optional(Type.Number({ minimum: 0 })),
     currentUserCount: Type.Optional(Type.Number({ minimum: 0 })),
     currentDeviceCount: Type.Optional(Type.Number({ minimum: 0 })),
@@ -125,6 +126,26 @@ export const subscriptionSchema = Type.Object(
   { $id: 'TenantSubscription', additionalProperties: false },
 )
 export type TenantSubscription = Static<typeof subscriptionSchema>
+//#endregion
+
+//#region Sub-Aggregat: planUsage
+// Plan-Limit-Enforcement (Welle B Item 1, herausgeloest aus `subscription` in
+// panary/panary-cloud#619): denormalisierte Zaehler fuer atomic findOneAndUpdate,
+// race-frei gegen TOCTOU. Gewartet vom enforce-plan-limits-Hook, re-initialisiert
+// vom Plan-Limit-Abgleich. _deletedAt-Records werden NICHT mitgezaehlt.
+// Eigenes Top-Level-Objekt, damit ein Schreiber, der `subscription` als Ganzes
+// ersetzt, die Zaehler nicht beruehrt. Alle Felder optional: Bestandsmandanten
+// haben das Objekt bis zum ersten Abgleich nicht, fehlende Zaehler lesen sich als 0.
+// Cloud-only — steht in PLATFORM_ONLY_TENANT_FIELDS und nie im Edge-Schema.
+export const planUsageSchema = Type.Object(
+  {
+    locations: Type.Optional(Type.Number({ minimum: 0 })),
+    users: Type.Optional(Type.Number({ minimum: 0 })),
+    devices: Type.Optional(Type.Number({ minimum: 0 })),
+  },
+  { $id: 'TenantPlanUsage', additionalProperties: false },
+)
+export type TenantPlanUsage = Static<typeof planUsageSchema>
 //#endregion
 
 //#region Sub-Aggregat: tse (KassenSichV + RKSV)
@@ -344,6 +365,7 @@ export const tenantSchema = Type.Object(
     legalEntity: Type.Optional(legalEntitySchema),
     billing: Type.Optional(billingSchema),
     subscription: Type.Optional(subscriptionSchema),
+    planUsage: Type.Optional(planUsageSchema),
     tse: Type.Optional(tseAccountSchema),
     branding: Type.Optional(brandingSchema),
     localization: Type.Optional(localizationSchema),
@@ -460,6 +482,7 @@ export const PLATFORM_ONLY_TENANT_FIELDS = [
   'suspendedReason',
   'archivedAt',
   'subscription',
+  'planUsage',
   'tse',
   'compliance',
   'securityPolicy',

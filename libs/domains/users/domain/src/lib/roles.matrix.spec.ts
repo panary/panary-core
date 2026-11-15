@@ -462,3 +462,19 @@ describe('RolePermissions — DOMAIN_STATUS / DOMAIN_VERIFY folgen BRANDS', () =
     expect(roleCan(UserSystemRole.TENANT_STAFF, AppResource.DOMAIN_VERIFY, AppAction.CREATE)).toBe(false)
   })
 })
+
+// panary-cloud#758: Produktbilder. Der Techniker pflegt Produkte und braucht dafuer das Asset-Recht.
+describe('RolePermissions — STOREFRONT_ASSET fuer den Techniker', () => {
+  it('TENANT_TECHNICIAN darf Assets anlegen, lesen und loeschen, aber nicht aendern', () => {
+    expect(roleActions(UserSystemRole.TENANT_TECHNICIAN, AppResource.STOREFRONT_ASSET).sort()).toEqual(
+      [AppAction.CREATE, AppAction.DELETE, AppAction.READ].sort(),
+    )
+    expect(roleCan(UserSystemRole.TENANT_TECHNICIAN, AppResource.STOREFRONT_ASSET, AppAction.UPDATE)).toBe(false)
+  })
+
+  it('TENANT_TECHNICIAN hat dasselbe Recht wie TENANT_MANAGER', () => {
+    expect(roleActions(UserSystemRole.TENANT_TECHNICIAN, AppResource.STOREFRONT_ASSET).sort()).toEqual(
+      roleActions(UserSystemRole.TENANT_MANAGER, AppResource.STOREFRONT_ASSET).sort(),
+    )
+  })
+})

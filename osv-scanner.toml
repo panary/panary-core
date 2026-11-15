@@ -25,8 +25,8 @@
 
 [[IgnoredVulns]]
 id = "GHSA-gcqx-w48m-w2h4"  # deepmerge: mergeObject() erlaubt Prototype-Poisoning des Ergebnisobjekts (CVSS 5.3)
-ignoreUntil = 2026-11-27
-reason = "Kein Fix: betroffen ist 4.2.0 bis 4.3.1 (last_affected), und 4.3.1 (2023-03-16) ist die neueste deepmerge-Version. Advisory am 2026-10-27 21:45 UTC geaendert, seitdem meldet osv-scanner es. Nur Dev-Abhaengigkeit (@rollup/plugin-node-resolve unter @nx/rollup, fork-ts-checker-webpack-plugin unter @nx/webpack, jest-config unter @nx/jest), nicht im Edge-Image (pnpm why deepmerge --prod ist leer). Gemergt werden nur Build- und Test-Konfigurationen aus dem eigenen Repo, nie fremder Input. Eingetragen 2026-10-27 (panary/panary-core#1163, Pendant panary/panary-cloud#1482); bei Fix-Version per Override heben und Eintrag entfernen."
+ignoreUntil = 2027-01-29
+reason = "Kein Fix: betroffen ist 4.2.0 bis 4.3.1 (last_affected), und 4.3.1 (2023-03-16) ist die neueste deepmerge-Version. Advisory am 2026-10-27 21:45 UTC geaendert, seitdem meldet osv-scanner es. Nur Dev-Abhaengigkeit (@rollup/plugin-node-resolve unter @nx/rollup, fork-ts-checker-webpack-plugin unter @nx/webpack, jest-config unter @nx/jest), nicht im Edge-Image (pnpm why deepmerge --prod ist leer). Gemergt werden nur Build- und Test-Konfigurationen aus dem eigenen Repo, nie fremder Input. Upstream-Stand 2026-11-14: Der Fix-PR TehShrike/deepmerge#274 ist geschlossen, 4.3.1 bleibt latest. Eingetragen 2026-10-27 (panary/panary-core#1163, Pendant panary/panary-cloud#1482), auf 2027-01-29 verlaengert am 2026-11-15 nach der Analyse in panary/panary-cloud#2036 (Entscheidung: Ignore statt Patch oder Ersatz); Wiedervorlage zum Ablauf: Upstream erneut pruefen, bei Fix-Version per Override heben und Eintrag entfernen."
 
 [[IgnoredVulns]]
 id = "GHSA-3g3m-2fjr-6pw4"  # glob: Advisory vom 2026-10-30 (CVSS 6.3)

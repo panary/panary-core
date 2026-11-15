@@ -106,3 +106,9 @@ hat kein `additionalProperties: false`. Vor dem Pin-Bump reicht sie das Feld ung
 UUID. Die Cloud-Detailansicht zieht in [cloud#1468](https://github.com/panary/panary-cloud/issues/1468) nach.
 Ob ein Edge mit dem Feld gegen eine Cloud mit altem Paket sauber synchronisiert, ist über die offene Modifier-Ebene
 begründet, nicht in CI gemessen.
+
+## Prüfung der Steuer-Konfiguration
+
+Ob Beilage und Getränk eines Menüs als Komponente mit eigenem Satz oder als Extra am Satz der Zeile gebucht werden,
+entscheidet allein der Gruppenname (`menuOptionGroupSlot`, `@panary/products/domain`). `checkMenuTax` prüft die
+Konfiguration nach sieben festen Regeln gegen diese Rechnung: [ADR 0072](../adr/0072-menue-steuerregeln-als-feste-pruefung.md).

@@ -159,6 +159,11 @@
     "EMERGENCY_OVERRIDE_SUBLINE": "Lokale Drucker-Änderungen seit {{minutes}} Minuten — werden bei Cloud-Rückkehr abgeglichen.",
     "END_EMERGENCY_MODE": "Beenden"
   },
+  "UPDATE_BANNER": {
+    "MESSAGE": "Neue Version {{version}} verfügbar",
+    "RELOAD": "Neu laden",
+    "LATER": "Später"
+  },
   "COMMON": {
     "SAVE": "Speichern",
     "SAVING": "Speichern...",

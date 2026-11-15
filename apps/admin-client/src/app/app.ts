@@ -8,10 +8,18 @@ import { ConfirmDialogComponent } from './core/confirm-dialog'
 import { EmergencyOverrideService } from './core/emergency-override.service'
 import { formatApiError } from './core/error-helper'
 import { OfflineOverrideService } from './core/offline-override.service'
+import { UpdateBannerComponent } from './layout/update-banner'
 import { AdminIconComponent } from './shared/icon/icon'
 
 @Component({
-  imports: [RouterOutlet, CloudStatusBannerComponent, ConfirmDialogComponent, TranslateModule, AdminIconComponent],
+  imports: [
+    RouterOutlet,
+    CloudStatusBannerComponent,
+    ConfirmDialogComponent,
+    TranslateModule,
+    AdminIconComponent,
+    UpdateBannerComponent,
+  ],
   selector: 'app-root',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,6 +72,9 @@ import { AdminIconComponent } from './shared/icon/icon'
         (cancelled)="confirmEndEmergency.set(false)"
       />
     }
+
+    <!-- Neue Edge-Version: nicht blockierend, unten mittig (der Cloud-Banner sitzt oben). -->
+    <app-update-banner />
 
     <router-outlet />
   `,

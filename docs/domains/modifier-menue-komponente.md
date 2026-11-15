@@ -90,8 +90,7 @@ Zeile überhaupt zugeordnete Modifier trägt.
   [core#1453](https://github.com/panary/panary-core/issues/1453) steht an der Hauptzeile der Positionsbetrag
   (`calculateArticlePrice`, wie auf dem Bon), an Beilage und Getränk nur der beim Buchen festgeschriebene Aufschlag
   (`surcharge`, [ADR 0071](../adr/0071-menue-aufschlag-wird-beim-buchen-festgeschrieben.md)) und am Extra sein Preis
-  ohne „+“. Bestandszeilen ohne das Feld zeigen an Komponenten keinen Betrag. Die sichtbaren Beträge der Historie
-  summieren sich bei Menüs mit Extras auf die Gesamtsumme, weil die Hauptzeile den vollen Positionsbetrag trägt.
+  ohne „+“. Bestandszeilen ohne das Feld zeigen an Komponenten keinen Betrag.
   Die Historie liest weiter das rohe `order.lineItems` (nicht `effectiveLineItems` wie „Offen“), bei
   gesplitteten Bestellungen weichen beide bewusst voneinander ab.
 

@@ -15,6 +15,7 @@ export * from './lib/schemas/extended-params.model'
 
 // 4. Utils
 // get-base64-logo ist Node.js-only (path/fs) – nur serverseitig verwenden
+export * from './lib/utils/panary-version'
 
 // 5. Offline-Cache-Abstraktion (Connect-Tier)
 export * from './lib/cache/offline-cache-port'

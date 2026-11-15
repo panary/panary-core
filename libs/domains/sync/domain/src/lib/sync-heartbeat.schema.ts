@@ -104,6 +104,10 @@ export const syncHeartbeatResponseSchema = Type.Object(
     nextToken: Type.Optional(Type.String({ maxLength: 512 })),
     nextTokenExpiresAt: Type.Optional(Type.String({ format: 'date-time' })),
     pullSince: Type.Optional(Type.String({ format: 'date-time' })),
+    // Mindestversionen von Hand (ADR 0070, core#1437). Der Edge liest die Antwort ohne Schemaprüfung (Cast), ältere
+    // Edges ignorieren die Felder. Eine Mindestversion sperrt nie den Sync.
+    requiredEdgeMinVersion: Type.Optional(Type.String({ maxLength: 50 })),
+    requiredPosMinVersion: Type.Optional(Type.String({ maxLength: 50 })),
   },
   { $id: 'SyncHeartbeatResponse', additionalProperties: false },
 )

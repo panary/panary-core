@@ -72,6 +72,17 @@ Legacy-Zweig der Rabatt-KPI und die SQLite-Spalte
   über die Steuer-Atome verteilt), dann ORDER-Rabatte auf die Restsumme.
   Festbeträge via Largest-Remainder. `computedAmountCents` wird von der Engine
   zurückgeschrieben. Tax-Integrität (netto + steuer = brutto) bleibt pro Satz.
+- **Nicht anwendbarer LINE-Eintrag (#1433):** Ein Eintrag mit `target: 'line'` ohne `lineItemId`
+  (fehlend oder `null`) kann keine Position treffen. Die Engine setzt sein `computedAmountCents`
+  auf **0**, statt den gelieferten Wert stehen zu lassen. Das Brutto bleibt unberührt, und der
+  Aggregator zieht keinen Phantom-Rabatt ab. Das Schema bleibt unverändert (`lineItemId` optional),
+  der Eintrag wird nicht abgewiesen. Der POS legt Positionsrabatte immer mit `lineItemId` an;
+  erreichbar ist der Fall nur über einen Client, der `orders.create`/`patch` mit einem schema-gültigen,
+  unvollständigen Eintrag aufruft. Der Edge rechnet den Snapshot bei jedem Schreiben neu, das
+  `appliedDiscounts` mitschreibt (`calculate-tax-details`), der gespeicherte Wert ist dann 0. Bereits
+  gespeicherte Bestands-Orders mit so einem Eintrag werden nicht umgeschrieben. Bei ihnen rechnet der
+  Bon-Renderer beim Druck neu und druckt keine Nachlasszeile, während Beleg und Tagesbericht den gespeicherten
+  Wert lesen: Bon und Beleg können dort auseinanderlaufen.
 
 #### Erkennung von Bestands-Orders
 

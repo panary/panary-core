@@ -299,7 +299,14 @@ function applyAppliedDiscounts(lines: LineGross[], applied: AppliedDiscount[]): 
   //    Normalpreise − Festpreis): das Brutto sinkt auf den Festpreis, pro
   //    Steuersatz korrekt.
   for (const ad of applied) {
-    if (ad.target !== 'line' || !ad.lineItemId) continue
+    if (ad.target !== 'line') continue
+    // Ein LINE-Eintrag ohne Position ist nicht anwendbar (#1433). Das Schema lässt ihn zu (`lineItemId` optional,
+    // auch `null`). Ohne diese Zeile bliebe der vom Client gelieferte `computedAmountCents` stehen, obwohl das Brutto
+    // unberührt ist, und der Aggregator (financials.ts) zöge den Phantom-Rabatt von Summen und Tagesbericht ab.
+    if (!ad.lineItemId) {
+      ad.computedAmountCents = 0
+      continue
+    }
     const atoms = lines.filter(l => l.lineItemId === ad.lineItemId)
     const lineTotal = sumCents(atoms.map(l => l.grossCents))
     const amount = discountAmountCents(ad.valueType, ad.valuePercent, ad.valueCents, lineTotal)

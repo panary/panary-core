@@ -20,6 +20,7 @@ const compile = (schema: TSchema, options: { coerceTypes?: boolean } = {}) =>
 const TENANT = '01927d4f-3c2e-7b6a-9a1f-1ce0a8a5d7e2'
 const LOCATION = '01927d4f-3c2e-7b6a-9a1f-1ce0a8a5d7e3'
 const USER = '01927d4f-3c2e-7b6a-9a1f-1ce0a8a5d7e4'
+const IMAGE = '01927d4f-3c2e-7b6a-9a1f-1ce0a8a5d7e5'
 
 const productData = (extra: Record<string, unknown> = {}) => ({
   name: 'Laugenbrezel',
@@ -135,6 +136,44 @@ describe('productQuerySchema', () => {
     const validate = compile(productQuerySchema, { coerceTypes: true })
     expect(validate({ name: 'Brezel' })).toBe(true)
     expect(validate({ labeling: null })).toBe(false)
+  })
+
+  it('bietet `imageAssetId` nicht als Filter an', () => {
+    const validate = compile(productQuerySchema, { coerceTypes: true })
+    expect(validate({ imageAssetId: IMAGE })).toBe(false)
+  })
+})
+
+describe('imageAssetId — Verweis auf ein storefront-asset', () => {
+  const validateData = compile(productDataSchema)
+  const validatePatch = compile(productPatchSchema)
+
+  it('ist beim Anlegen nicht Pflicht — Bestandsprodukte bleiben gültig', () => {
+    expect(validateData(productData())).toBe(true)
+  })
+
+  it('akzeptiert beim Anlegen eine uuid', () => {
+    expect(validateData(productData({ imageAssetId: IMAGE }))).toBe(true)
+  })
+
+  it('akzeptiert `null` beim Anlegen und im Patch — die Referenz lösen', () => {
+    expect(validateData(productData({ imageAssetId: null }))).toBe(true)
+    expect(validatePatch({ imageAssetId: null })).toBe(true)
+  })
+
+  it('akzeptiert im Patch eine uuid', () => {
+    expect(validatePatch({ imageAssetId: IMAGE })).toBe(true)
+  })
+
+  it('lehnt einen Wert ab, der keine uuid ist', () => {
+    expect(validateData(productData({ imageAssetId: 'bild.png' }))).toBe(false)
+    expect(validateData(productData({ imageAssetId: '' }))).toBe(false)
+    expect(validatePatch({ imageAssetId: 42 })).toBe(false)
+  })
+
+  it('wird als optionales Feld geführt', () => {
+    expect(productSchema.properties).toHaveProperty('imageAssetId')
+    expect(productSchema.required).not.toContain('imageAssetId')
   })
 })
 

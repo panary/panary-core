@@ -612,6 +612,12 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.VAT_VALIDATION_CACHE, action: AppAction.READ },
     // OoS-Item-7: Logo lesen (UI-Anzeige + Beleg-Druck), kein Upload.
     { resource: AppResource.TENANT_BRANDING_ASSET, action: AppAction.READ },
+    // Produktbilder (panary-cloud#758): Der Techniker pflegt Produkte und muss das Bild dazu hochladen
+    // koennen. Wie TENANT_MANAGER: anlegen, lesen, loeschen.
+    {
+      resource: AppResource.STOREFRONT_ASSET,
+      action: [AppAction.CREATE, AppAction.READ, AppAction.DELETE],
+    },
     // Tenant-Settings + KI-Wareneingang: Techniker hat Manager-aequivalente Rechte.
     { resource: AppResource.TENANT_SETTINGS, action: AppAction.READ },
     { resource: AppResource.INCOMING_GOODS_EXTRACT, action: AppAction.CREATE },

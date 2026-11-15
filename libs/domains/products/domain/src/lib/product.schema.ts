@@ -168,6 +168,12 @@ export const productSchema = Type.Object(
     // Schema ab. Der Edge hat bewusst KEINE Spalte dafür — bis es dort einen Konsumenten gibt,
     // hält die Cloud-Sync-Projektion das Feld vom Edge fern.
     labeling: Type.Optional(Type.Union([productLabelingSchema, Type.Null()])),
+
+    // 9. Produktbild (panary-cloud#758)
+    // Verweis auf ein `storefront-asset` der Cloud, kein Binärfeld. Am Edge ohne Spalte (wie `labeling`):
+    // Die Cloud hält das Feld aus der Pull-Projektion, bis es dort einen Konsumenten gibt (ADR 0050, ADR 0070).
+    // `null` löst die Referenz, `$unset` lehnt das geschlossene Schema ab.
+    imageAssetId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
   },
   { $id: 'Product', additionalProperties: false },
 )
@@ -197,6 +203,7 @@ export const productDataSchema = Type.Intersect(
         'ingredientReferences',
         'recipeReferences',
         'labeling',
+        'imageAssetId',
       ]),
     ),
     // Pflicht fuer Sync-Bootstrap (Edge→Cloud): Edge-Records bringen `_id`,

@@ -3,6 +3,7 @@ import { Forbidden } from '@feathersjs/errors'
 
 import { authorize } from '@panary/shared-backend'
 import type { Application } from '../../declarations'
+import { readClientVersion } from '../../device-client-version'
 
 export const deviceConnectionsPath = 'device-connections'
 
@@ -19,33 +20,51 @@ export interface DeviceConnectionStatus {
   total: number
   /** deviceId-Liste der gerade verbundenen Geräte (für Live-Badges/Liste). */
   connectedDeviceIds: string[]
+  /**
+   * Die verbundenen Geräte samt Client-Version (core#1438, ADR 0070). `clientVersion` ist `null`, wenn
+   * das Gerät keine gesendet hat (älterer POS) oder der Wert unbrauchbar war. Gleiche Reihenfolge wie
+   * `connectedDeviceIds`. Nur hier, nie in der öffentlichen `/health`: Der Dienst verlangt Anmeldung
+   * und das READ-Recht (TENANT_OWNER, TENANT_TECHNICIAN).
+   */
+  connectedDevices: ConnectedDevice[]
+}
+
+export interface ConnectedDevice {
+  deviceId: string
+  clientVersion: string | null
 }
 
 /**
- * Sammelt die eindeutigen `deviceId`s der gerade verbundenen Geräte EINES Tenants
- * aus der Feathers-Channel-Registry. Device-Connections joinen in `channels.ts`
- * nach erfolgreicher API-Key-Auth den `authenticated`-Channel und tragen
- * `connection.tenantId`/`connection.deviceId`. Idiomatischer als der rohe
- * Socket.IO-Zugriff und automatisch aktuell (Disconnect entfernt die Connection).
+ * Sammelt die eindeutigen verbundenen Geräte EINES Tenants (mit Client-Version) aus der
+ * Feathers-Channel-Registry. Device-Connections joinen in `channels.ts` nach erfolgreicher
+ * API-Key-Auth den `authenticated`-Channel und tragen `connection.tenantId`/`connection.deviceId`/
+ * `connection.clientVersion`. Idiomatischer als der rohe Socket.IO-Zugriff und automatisch aktuell
+ * (Disconnect entfernt die Connection).
+ *
+ * Hält ein Gerät mehrere Verbindungen (Reconnect-Überlappung), zählt es einmal. Die Version ist die
+ * der zuletzt registrierten Verbindung, die eine nennt: Die Registry führt sie in Verbindungsreihenfolge, die jüngste
+ * Verbindung ist also die aktuelle. Eine versionslose Verbindung überschreibt keine bekannte.
  */
-function collectConnectedDeviceIds(app: Application, tenantId: string): string[] {
+export function collectConnectedDevices(app: Application, tenantId: string): ConnectedDevice[] {
   const channel = typeof app.channel === 'function' ? app.channel('authenticated') : undefined
   const connections = channel?.connections
   if (!Array.isArray(connections)) return []
 
-  const ids = new Set<string>()
+  const devices = new Map<string, ConnectedDevice>()
   for (const conn of connections) {
-    const c = conn as { tenantId?: string; deviceId?: string }
-    if (c.tenantId === tenantId && typeof c.deviceId === 'string' && c.deviceId) {
-      ids.add(c.deviceId)
-    }
+    const c = conn as { tenantId?: string; deviceId?: string; clientVersion?: unknown }
+    if (c.tenantId !== tenantId || typeof c.deviceId !== 'string' || !c.deviceId) continue
+    const clientVersion = readClientVersion(c.clientVersion)
+    const known = devices.get(c.deviceId)
+    if (!known) devices.set(c.deviceId, { deviceId: c.deviceId, clientVersion })
+    else if (clientVersion !== null) known.clientVersion = clientVersion
   }
-  return [...ids]
+  return [...devices.values()]
 }
 
 /**
  * Read-only Custom-Service `device-connections`: Echtzeit-Verbindungszählung der
- * Geräte eines Tenants am Edge. `find` liefert `{ online, total, connectedDeviceIds }`.
+ * Geräte eines Tenants am Edge. `find` liefert `{ online, total, connectedDeviceIds, connectedDevices }`.
  * Tenant-Scoping über `params.user.tenantId`; `authorize()` prüft das READ-Recht
  * (RolePermissions: DEVICE_CONNECTIONS → TENANT_OWNER + TENANT_TECHNICIAN).
  */
@@ -53,9 +72,10 @@ export const deviceConnectionsService = (app: Application) => ({
   async find(params: ServiceParams = {}): Promise<DeviceConnectionStatus> {
     const tenantId = params.user?.tenantId
     if (params.provider && !tenantId) throw new Forbidden('Tenant-Kontext fehlt.')
-    if (!tenantId) return { online: 0, total: 0, connectedDeviceIds: [] }
+    if (!tenantId) return { online: 0, total: 0, connectedDeviceIds: [], connectedDevices: [] }
 
-    const connectedDeviceIds = collectConnectedDeviceIds(app, tenantId)
+    const connectedDevices = collectConnectedDevices(app, tenantId)
+    const connectedDeviceIds = connectedDevices.map(d => d.deviceId)
 
     // total = aktive (registrierte) Geräte des Tenants. Interner Call
     // (provider: undefined) umgeht den multiTenancy-Filter → tenantId explizit.
@@ -71,7 +91,7 @@ export const deviceConnectionsService = (app: Application) => ({
       // Degradiert auf die Online-Zahl — die Live-Verbindung bleibt korrekt.
     }
 
-    return { online: connectedDeviceIds.length, total, connectedDeviceIds }
+    return { online: connectedDeviceIds.length, total, connectedDeviceIds, connectedDevices }
   },
 })
 

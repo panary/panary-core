@@ -33,4 +33,13 @@ export class AppConfigService {
   get websocketUrl(): string | undefined {
     return this.runtimeConfig?.websocketUrl || this.envConfig.websocketUrl
   }
+
+  /**
+   * Version dieses Builds (aus der `package.json` der App). Bewusst NICHT aus der Laufzeit-Konfiguration:
+   * `assets/config.json` kann ausgetauscht werden, die laufende Programmdatei nicht — und genau deren
+   * Stand will der Edge im Handshake wissen (core#1438).
+   */
+  get appVersion(): string {
+    return this.envConfig.appVersion
+  }
 }

@@ -7,6 +7,7 @@ import { logger } from '@panary/shared-backend'
 import { isDeviceConnection, stripEmployeeNumber } from './utils/strip-employee-number'
 import { stampApiKeyLastUsed } from './utils/apikey-last-used'
 import { authenticateDeviceApiKey } from './utils/device-apikey-auth'
+import { readClientVersion } from './device-client-version'
 import {
   evaluateDeviceReverification,
   recordReverificationRequired,
@@ -74,11 +75,15 @@ export const channels = (app: Application) => {
 
         if (auth.ok) {
           const apiKeyRecord = auth.record
+          // Version des Clients (core#1438, ADR 0070): fehlend, kein Text oder zu lang ist „unbekannt"
+          // und nie ein Grund, die Verbindung abzuweisen — ein älterer POS sendet das Feld nicht.
+          const clientVersion = readClientVersion(handshakeAuth.clientVersion)
           logger.info({
             message: 'Device authenticated via API key',
             event: 'device.auth',
             status: 'success',
             deviceId: handshakeAuth.deviceId,
+            clientVersion,
             tenantId: apiKeyRecord.tenantId,
             locationId: apiKeyRecord.locationId,
             deviceRole: apiKeyRecord.role,
@@ -105,6 +110,8 @@ export const channels = (app: Application) => {
           ;(connection as any).locationId = apiKeyRecord.locationId
           ;(connection as any).deviceId = apiKeyRecord.deviceId
           ;(connection as any).deviceRole = apiKeyRecord.role
+          // Der `device-connections`-Service liest die Version aus der Channel-Registry.
+          ;(connection as any).clientVersion = clientVersion
           // Die Freigabe muss `lastUsedAt` genau dieses Schluessels stempeln;
           // ohne die Id haette sie nur die deviceId und muesste erneut suchen.
           ;(connection as DeviceReverificationConnectionState).apiKeyId = apiKeyRecord._id

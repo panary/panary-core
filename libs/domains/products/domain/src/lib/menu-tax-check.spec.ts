@@ -89,6 +89,11 @@ describe('Regel 1 — Extra-Gruppe mit abweichendem Satz', () => {
     expect(findings.map(f => f.rule)).toEqual([1])
   })
 
+  it('der Satz außer Haus allein genügt (innen gleich, außen 19)', () => {
+    const findings = check({ optionGroups: [group(1, 'Dazu', [11])] }, [product(11, 3, 7, 19)])
+    expect(findings.map(f => f.rule)).toEqual([1])
+  })
+
   it('gilt auch im Festpreis-Menü und für Untergruppen eines Options-Produkts', () => {
     const findings = check(
       { bundlePricingMode: 'FIXED_PROPORTIONAL', mainPrice: 4, optionGroups: [group(1, 'Beilage', [12])] },
@@ -219,6 +224,11 @@ describe('Regel 5 — Satz kommt in der Filiale nicht vor', () => {
         rate: 16,
       },
     ])
+  })
+
+  it('prüft den Ersatzwert der Kasse: ein fehlender Satz außer Haus zählt als 7 %', () => {
+    const findings = check({ optionGroups: [group(1, 'Getränk', [11])] }, [product(11, 3, 19, undefined)], [19])
+    expect(findings.filter(f => f.rule === 5).map(f => f.rate)).toEqual([7])
   })
 
   it('trifft nicht: alle Sätze kommen vor', () => {

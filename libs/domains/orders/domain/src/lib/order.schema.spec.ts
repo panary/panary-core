@@ -150,6 +150,41 @@ describe('orderLineItemSchema', () => {
   })
 })
 
+describe('Aufschlag einer Menü-Komponente (surcharge, #1452)', () => {
+  const drink = (overrides: Record<string, unknown> = {}) => ({ ...modifier(1), name: 'Weizenbier', ...overrides })
+
+  it('akzeptiert die Zeile ohne surcharge (Bestand, ältere Kassen)', () => {
+    expect(Value.Check(orderLineItemSchema, lineItem({ isMenu: true, menuDrink: drink() }))).toBe(true)
+  })
+
+  it('akzeptiert surcharge an menuDrink und menuSideDish', () => {
+    const order = lineItem({
+      isMenu: true,
+      menuDrink: drink({ surcharge: 0.6 }),
+      menuSideDish: drink({ surcharge: 0 }),
+    })
+    expect(Value.Check(orderLineItemSchema, order)).toBe(true)
+  })
+
+  it('lehnt einen negativen surcharge am Slot ab', () => {
+    expect(Value.Check(orderLineItemSchema, lineItem({ isMenu: true, menuDrink: drink({ surcharge: -0.1 }) }))).toBe(
+      false,
+    )
+  })
+
+  it('lehnt einen surcharge ab, der kein Zahlenwert ist', () => {
+    expect(Value.Check(orderLineItemSchema, lineItem({ isMenu: true, menuDrink: drink({ surcharge: '0,60' }) }))).toBe(
+      false,
+    )
+  })
+
+  it('akzeptiert surcharge an einer Komponente in components[], lehnt einen negativen ab', () => {
+    // Ohne `role`: Das Feld ist ein StringEnum (TypeBox `Unsafe`), den Value.Check nicht kennt.
+    expect(Value.Check(lineComponentSchema, { ...modifier(1), surcharge: 0.6 })).toBe(true)
+    expect(Value.Check(lineComponentSchema, { ...modifier(1), surcharge: -0.6 })).toBe(false)
+  })
+})
+
 describe('genericLineItemSchema / lineComponentSchema bleiben bei minimum 0', () => {
   // Negative Mengen und Preise haben nur auf Modifier-Ebene eine Bedeutung
   // (OHNE-Marker bzw. konfigurierter Abzug). Auf Hauptartikel und

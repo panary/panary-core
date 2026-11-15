@@ -8,6 +8,7 @@ import { Utils } from '@panary/shared/util-helpers'
 
 import { AppConfigService, DeviceConfigService } from '@panary/shared/data-access-config'
 import { BusinessDaySchema } from '@panary/businessdays/domain'
+import { buildDeviceSocketAuth } from './device-socket-auth'
 import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
 import { CLIENT_SERVICE_METHODS } from './client-service-methods'
 import { TenantSuspensionService } from './tenant-suspension.service'
@@ -709,11 +710,7 @@ export class ConnectionService {
         randomizationFactor: 0.5,
         autoConnect: false, // Wait for manual connect in constructor
         forceNew: true,
-        auth: {
-          apiKey: deviceConfig.apiKey,
-          deviceId: deviceConfig.deviceId,
-          deviceName: deviceConfig.deviceName || `POS-${deviceConfig.deviceId.substring(0, 8)}`,
-        },
+        auth: buildDeviceSocketAuth(deviceConfig, this.appConfigService.appVersion),
       }
     } else {
       // --- DEFAULT / ADMIN STRATEGY ---

@@ -178,6 +178,11 @@ describe('Regeln 3 und 4 — Hauptgericht im Festpreis-Menü', () => {
     expect(findings.map(f => f.rule)).toEqual([3])
   })
 
+  it('eine nicht auflösbare Option zählt 0 in die teuerste Kombination', () => {
+    const findings = check({ ...fixed, optionGroups: [group(1, 'Getränk', [11]), group(2, 'Beilage', [99])] }, [cola])
+    expect(findings.map(f => f.rule)).toEqual([7, 4])
+  })
+
   it('Regel 4: kein mainPrice, aber Luft nach oben → Hinweis, nie zusammen mit Regel 3', () => {
     const findings = check({ ...fixed, optionGroups: [group(1, 'Getränk', [11])] }, [cola])
     expect(findings).toEqual([
@@ -233,6 +238,10 @@ describe('Regel 5 — Satz kommt in der Filiale nicht vor', () => {
       [19],
     )
     expect(findings.filter(f => f.rule === 5).map(f => f.rate)).toEqual([7])
+  })
+
+  it('meldet einen Satz je Subjekt nur einmal, auch wenn er im Haus und außer Haus gilt', () => {
+    expect(check({ taxInside: 16, taxOutside: 16 }, []).map(f => [f.rule, f.rate])).toEqual([[5, 16]])
   })
 
   it('trifft nicht: alle Sätze kommen vor', () => {

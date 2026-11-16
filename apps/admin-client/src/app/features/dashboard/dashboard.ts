@@ -299,7 +299,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!info) return []
     return [
       { label: this.#t.instant('DASHBOARD.VERSION'), value: `v${info.version}` },
-      { label: this.#t.instant('DASHBOARD.MIN_VERSION_EDGE'), value: this.#minVersionText(info.requiredEdgeMinVersion) },
+      {
+        label: this.#t.instant('DASHBOARD.MIN_VERSION_EDGE'),
+        value: this.#minVersionText(info.requiredEdgeMinVersion),
+      },
       { label: this.#t.instant('DASHBOARD.MIN_VERSION_POS'), value: this.#minVersionText(info.requiredPosMinVersion) },
       { label: this.#t.instant('DASHBOARD.UPTIME'), value: formatUptime(info.uptime) },
       { label: 'Node.js', value: info.nodeVersion },

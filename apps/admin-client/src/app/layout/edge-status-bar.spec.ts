@@ -95,6 +95,40 @@ describe('Edge-Statuszeile: Cloud-Abruf', () => {
   })
 })
 
+describe('Edge-Statuszeile: Mindestversion nachladen', () => {
+  function setupPoll(loadInfo: ReturnType<typeof vi.fn>) {
+    vi.useFakeTimers()
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ApiService, useValue: { find: vi.fn().mockResolvedValue({ data: [] }) } },
+        { provide: EdgeVersionService, useValue: { loadInfo } },
+        { provide: SyncProblemCountService, useValue: { count: signal(0) } },
+        { provide: DeviceStatusService, useValue: { online: signal(null), total: signal(null) } },
+      ],
+    })
+    const bar = TestBed.runInInjectionContext(() => new EdgeStatusBarComponent())
+    return () => (bar as unknown as { belowMinVersion: () => string | null }).belowMinVersion()
+  }
+
+  it('zeigt den Hinweis nach dem nächsten Takt, sobald ein Heartbeat die Mindestversion gebracht hat', async () => {
+    const loadInfo = vi.fn().mockResolvedValueOnce(info('26.10.5')).mockResolvedValue(info('26.10.5', '26.11.1'))
+    const below = setupPoll(loadInfo)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(below()).toBeNull()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(below()).toBe('26.11.1')
+  })
+
+  it('hält bei ausbleibender Antwort den letzten Stand (Hinweis bleibt)', async () => {
+    const loadInfo = vi.fn().mockResolvedValueOnce(info('26.10.5', '26.11.1')).mockResolvedValue(null)
+    const below = setupPoll(loadInfo)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(below()).toBe('26.11.1')
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(below()).toBe('26.11.1')
+  })
+})
+
 describe('Edge-Statuszeile: Version', () => {
   async function render(result: ReturnType<typeof info> | null) {
     const loadInfo = vi.fn().mockResolvedValue(result)

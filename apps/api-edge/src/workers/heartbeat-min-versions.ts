@@ -3,6 +3,8 @@ import { logger } from '@panary/shared-backend'
 import type { CloudConnection } from '@panary/cloud-connection/domain'
 import type { SyncHeartbeatResponse } from '@panary/sync/domain'
 
+import type { Application } from '../declarations'
+
 export type MinVersions = {
   requiredEdgeMinVersion: string | null
   requiredPosMinVersion: string | null
@@ -38,7 +40,7 @@ export const readMinVersions = (body: Partial<SyncHeartbeatResponse> | null | un
  * eigener Patch statt eines Felds im Heartbeat-Patch: Scheitert er, bleibt der Heartbeat erfolgreich.
  */
 export const persistMinVersions = async (
-  app: { service: (path: string) => unknown },
+  app: Application,
   connection: Pick<CloudConnection, '_id' | 'requiredEdgeMinVersion' | 'requiredPosMinVersion'>,
   body: Partial<SyncHeartbeatResponse> | null | undefined,
 ): Promise<void> => {
@@ -55,10 +57,8 @@ export const persistMinVersions = async (
       return
     }
     // Interner Aufruf direkt am Adapter wie die übrigen Heartbeat-Patches (`_patch`, ohne Hooks).
-    await (app.service('cloud-connection') as { _patch: (id: string, data: MinVersions) => Promise<unknown> })._patch(
-      connection._id,
-      next,
-    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- wie die übrigen Heartbeat-Patches am Adapter
+    await (app.service('cloud-connection') as any)._patch(connection._id, next)
   } catch (err) {
     logger.warn({
       message: 'Mindestversionen aus der Heartbeat-Antwort konnten nicht gespeichert werden',

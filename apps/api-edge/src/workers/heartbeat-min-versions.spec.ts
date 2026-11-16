@@ -8,7 +8,8 @@ vi.mock('@panary/shared-backend', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
 }))
 
-const makeApp = (_patch: (id: string, data: unknown) => unknown) => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test-Mock der Feathers-App.
+const makeApp = (_patch: (id: string, data: unknown) => unknown): any => ({
   service: (path: string) => {
     if (path !== 'cloud-connection') throw new Error(`unexpected service ${path}`)
     return { _patch }

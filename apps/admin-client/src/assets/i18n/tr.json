@@ -362,7 +362,31 @@
     "TYPE_PRODUCT": "Ürün",
     "TYPE_MODIFIER": "Ek seçenek",
     "TYPE_BUNDLE": "Menü",
-    "NO_OPTION_GROUPS": "Seçenek grubu yok"
+    "NO_OPTION_GROUPS": "Seçenek grubu yok",
+    "TAX_HINTS_TITLE": "Bu menü için vergi uyarıları",
+    "TAX_SEVERITY": {
+      "warnung": "Uyarı",
+      "hinweis": "Not"
+    },
+    "TAX_FINDING": {
+      "EXTRA_GROUP_RATE_DIFFERS": "\"{{group}}\" grubu \"{{product}}\" ürününü ekstra olarak kaydeder ve ekstra her zaman menünün vergi oranıyla çalışır, oysa \"{{product}}\" farklı bir orana sahiptir.",
+      "OPTION_WITHOUT_PRICE_OTHER_RATE": "\"{{group}}\" içindeki \"{{product}}\" menüden farklı bir vergi oranına sahiptir ama kendi fiyatı yoktur. Bu durumda farklı oran menüden pay almaz.",
+      "MAIN_WITHOUT_SHARE": "Sabit fiyatlı menüde ana yemeğe pay kalmıyor.",
+      "MAIN_PRICE_MISSING": "Sabit fiyatlı menüde ana yemeğin fiyatı girilmemiş.",
+      "RATE_NOT_IN_LOCATION": "\"{{product}}\" ürününün %{{rate}} oranı şubenin vergi oranları arasında yok.",
+      "RATE_MISSING_OR_ZERO": "\"{{product}}\" için vergi oranı yok veya 0. Kasa bu durumda %19 veya %7 uygular.",
+      "OPTION_UNRESOLVED": "\"{{group}}\" içindeki bir seçenek artık var olmayan veya yüklenmemiş bir ürüne işaret ediyor."
+    },
+    "TAX_RECOMMENDATION": {
+      "GROUP_AS_SIDE_OR_DRINK": "Öneri: Grubu yan ürün veya içecek olarak adlandırın, kasa böylece kendi oranıyla kaydeder.",
+      "MOVE_OPTION_TO_OWN_SIDE_OR_DRINK_GROUP": "Öneri: Seçeneği kendi yan ürün veya içecek grubuna taşıyın.",
+      "ENTER_OPTION_PRICE": "Öneri: Ürüne bir fiyat girin.",
+      "ENTER_MAIN_PRICE_OR_CHECK_FIXED_PRICE": "Öneri: Ana yemeğin fiyatını girin veya sabit fiyatı kontrol edin.",
+      "ENTER_MAIN_PRICE": "Öneri: Ana yemeğin fiyatını girin.",
+      "CHECK_LOCATION_TAX_RATES": "Öneri: Ürünün oranını veya şubenin vergi oranlarını kontrol edin.",
+      "ENTER_TAX_RATE_EXPLICITLY": "Öneri: Vergi oranını açıkça girin.",
+      "CHECK_OPTION_PRODUCT": "Öneri: Seçeneği kontrol edin veya kaldırın."
+    }
   },
   "PRODUCT_GROUPS": {
     "TITLE": "Ürün Grupları",

@@ -14,7 +14,8 @@ function setup(
   const requiredPosMinVersion = signal<string | null>(min)
   const refreshHealth = vi.fn(async () => {
     if (refreshFails) throw new Error('Edge nicht erreichbar')
-    // Der frische Health-Stand hebt die Mindestversion an.
+    // Der frische Health-Stand kommt erst nach dem Roundtrip an und hebt die Mindestversion an.
+    await Promise.resolve()
     requiredPosMinVersion.set('26.12.1')
   })
   const injector = Injector.create({

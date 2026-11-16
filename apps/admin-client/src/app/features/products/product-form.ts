@@ -36,6 +36,8 @@ interface OptionGroupOption {
   // Kein Eingabefeld mehr, bleibt aber im Modell, damit ein gespeicherter Wert Laden und Speichern übersteht (core#1459).
   priceAdjustment: number
   isDefault: boolean
+  /** Vom Formular nicht bearbeitet, aber durchgereicht, damit Speichern es nicht verliert (core#1461). */
+  priceOverride?: number
 }
 
 interface OptionGroup {
@@ -45,6 +47,9 @@ interface OptionGroup {
   maxSelections: number
   freeQuantity: number
   options: OptionGroupOption[]
+  /** Vom Formular nicht bearbeitet, aber durchgereicht: `HIGHEST` rechnet die Kasse nur mit dem teuersten Artikel. */
+  pricingMode?: 'SUM' | 'HIGHEST'
+  uiMode?: 'GRID' | 'LIST' | 'MODAL'
 }
 
 interface MinimalProduct {
@@ -65,6 +70,14 @@ interface TaxHint {
   finding: MenuTaxFinding
   group: string
   product: string
+}
+
+/**
+ * Alles an `obj` außer den genannten Schlüsseln. Nur String-Schlüssel: Signal Forms hängt Listenelementen einen
+ * Symbol-Schlüssel zur Identität an, der nicht in die Nutzlast gehört.
+ */
+function withoutKeys(obj: object, keys: readonly string[]): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(obj).filter(([key]) => !keys.includes(key)))
 }
 
 const INPUT = `w-full bg-surface-input border border-line-soft rounded-lg p-3
@@ -691,7 +704,6 @@ export class ProductFormComponent implements OnInit {
   private locationTaxRates = signal<number[]>([])
   /** Felder, die das Formular nicht bearbeitet, die die Steuerprüfung aber braucht (Regeln 1, 3 und 4). */
   private loadedMainPrice = signal<number | undefined>(undefined)
-  private loadedGroupPricing = signal<Record<string, 'SUM' | 'HIGHEST'>>({})
   productSelectItems = computed(() => this.allProducts().map(p => ({ id: p._id, label: p.name, sublabel: p.acronym })))
   /**
    * Steuer-Hinweise wie im Cloud-Katalog (core#1456): dieselbe Prüfung `checkMenuTax` über den Formularstand.
@@ -703,7 +715,6 @@ export class ProductFormComponent implements OnInit {
     if (groups.length === 0) return []
     const p = this.product()
     const catalog = new Map(this.allProducts().map(item => [item._id, item]))
-    const pricing = this.loadedGroupPricing()
     return checkMenuTax({
       menu: {
         _id: this.entityId() || 'new',
@@ -719,7 +730,7 @@ export class ProductFormComponent implements OnInit {
           minSelections: Number(g.minSelections) || 0,
           maxSelections: Number(g.maxSelections) || 1,
           freeQuantity: Number(g.freeQuantity) || 0,
-          ...(pricing[g.id] ? { pricingMode: pricing[g.id] } : {}),
+          ...(g.pricingMode ? { pricingMode: g.pricingMode } : {}),
           options: g.options.filter(o => o.productId).map(o => ({ productId: o.productId })),
         })),
       },
@@ -918,7 +929,6 @@ export class ProductFormComponent implements OnInit {
     })
     this.optionGroups.set([])
     this.loadedMainPrice.set(undefined)
-    this.loadedGroupPricing.set({})
     this.entityId.set('')
     this.externalId.set(null)
     this.collapsedGroups.set(new Set())
@@ -947,13 +957,11 @@ export class ProductFormComponent implements OnInit {
       })
       this.loadedMainPrice.set(typeof p.mainPrice === 'number' ? p.mainPrice : undefined)
       if (Array.isArray(p.optionGroups)) {
-        this.loadedGroupPricing.set(
-          Object.fromEntries(
-            p.optionGroups.filter((g: any) => g.id && g.pricingMode).map((g: any) => [g.id, g.pricingMode]),
-          ),
-        )
         this.optionGroups.set(
+          // Was das Formular nicht kennt (pricingMode, uiMode, priceOverride, künftige Felder), bleibt am Objekt und
+          // wird beim Speichern wieder mitgeschickt: `optionGroups` ersetzt die Edge-API als Ganzes (core#1461).
           p.optionGroups.map((g: any) => ({
+            ...g,
             id: g.id || uuidv7(),
             name: g.name || '',
             minSelections: g.minSelections ?? 0,
@@ -961,6 +969,7 @@ export class ProductFormComponent implements OnInit {
             freeQuantity: g.freeQuantity ?? 0,
             options: Array.isArray(g.options)
               ? g.options.map((o: any) => ({
+                  ...o,
                   productId: o.productId || '',
                   priceAdjustment: o.priceAdjustment ?? 0,
                   isDefault: o.isDefault ?? false,
@@ -1069,12 +1078,15 @@ export class ProductFormComponent implements OnInit {
         return
       }
       // Der Aufpreis der Quelle wandert nicht mit: Das Feld ist nicht mehr sichtbar, die Kasse liest es nicht (core#1459).
+      // Preis- und Anzeigemodus gehören zur Gruppe und reisen mit, sonst rechnet die Kopie anders als die Quelle (core#1461).
       const copied: OptionGroup[] = source.optionGroups.map((g: any) => ({
         id: uuidv7(),
         name: g.name || '',
         minSelections: g.minSelections ?? 0,
         maxSelections: g.maxSelections ?? 1,
         freeQuantity: g.freeQuantity ?? 0,
+        ...(g.pricingMode ? { pricingMode: g.pricingMode } : {}),
+        ...(g.uiMode ? { uiMode: g.uiMode } : {}),
         options: Array.isArray(g.options)
           ? g.options.map((o: any) => ({
               productId: o.productId || '',
@@ -1149,20 +1161,30 @@ export class ProductFormComponent implements OnInit {
 
       // OptionGroups serialisieren
       const groups = this.optionGroups()
-      data.optionGroups = groups.map(g => ({
-        id: g.id,
-        name: g.name,
-        minSelections: Number(g.minSelections) || 0,
-        maxSelections: Number(g.maxSelections) || 1,
-        freeQuantity: Number(g.freeQuantity) || 0,
-        options: g.options
-          .filter(o => o.productId)
-          .map(o => ({
-            productId: o.productId,
-            ...(Number(o.priceAdjustment) ? { priceAdjustment: Number(o.priceAdjustment) } : {}),
-            ...(o.isDefault ? { isDefault: true } : {}),
-          })),
-      }))
+      // Die Schlüssel des Formulars werden aus der Grundlage entfernt und dann wie bisher gesetzt, sonst überlebte ein
+      // abgehaktes „Standard“ oder ein auf 0 gesetzter Aufpreis über den geladenen Wert.
+      data.optionGroups = groups.map(g => {
+        const { id, name, minSelections, maxSelections, freeQuantity, options } = g
+        return {
+          ...withoutKeys(g, ['id', 'name', 'minSelections', 'maxSelections', 'freeQuantity', 'options']),
+          id,
+          name,
+          minSelections: Number(minSelections) || 0,
+          maxSelections: Number(maxSelections) || 1,
+          freeQuantity: Number(freeQuantity) || 0,
+          options: options
+            .filter(o => o.productId)
+            .map(o => {
+              const { productId, priceAdjustment, isDefault } = o
+              return {
+                ...withoutKeys(o, ['productId', 'priceAdjustment', 'isDefault']),
+                productId,
+                ...(Number(priceAdjustment) ? { priceAdjustment: Number(priceAdjustment) } : {}),
+                ...(isDefault ? { isDefault: true } : {}),
+              }
+            }),
+        }
+      })
 
       let createdId: string | undefined
       if (this.isNew()) {

@@ -545,18 +545,6 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                             [formField]="optField.productId"
                             placeholder="Produkt suchen..."
                           />
-                          <!-- Preisaufschlag -->
-                          <div class="flex items-center gap-1 shrink-0">
-                            <span class="text-ink-faint dark:text-line-strong text-xs">+&euro;</span>
-                            <input
-                              [formField]="optField.priceAdjustment"
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              class="w-20 bg-surface-input border border-line-soft
-                                   rounded-lg px-2 py-1.5 text-ink text-sm outline-none font-mono"
-                            />
-                          </div>
                           <!-- Standard -->
                           <label class="flex items-center gap-1 text-xs text-ink-faint shrink-0 cursor-pointer">
                             <input [formField]="optField.isDefault" type="checkbox" class="w-3 h-3 accent-ink" />
@@ -1079,6 +1067,7 @@ export class ProductFormComponent implements OnInit {
       if (!Array.isArray(source.optionGroups) || source.optionGroups.length === 0) {
         return
       }
+      // Der Aufpreis der Quelle wandert nicht mit: Das Feld ist nicht mehr sichtbar, die Kasse liest es nicht (core#1459).
       const copied: OptionGroup[] = source.optionGroups.map((g: any) => ({
         id: uuidv7(),
         name: g.name || '',
@@ -1088,7 +1077,7 @@ export class ProductFormComponent implements OnInit {
         options: Array.isArray(g.options)
           ? g.options.map((o: any) => ({
               productId: o.productId || '',
-              priceAdjustment: o.priceAdjustment ?? 0,
+              priceAdjustment: 0,
               isDefault: o.isDefault ?? false,
             }))
           : [],

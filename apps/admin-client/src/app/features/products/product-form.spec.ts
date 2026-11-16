@@ -225,6 +225,56 @@ describe('ProductFormComponent – Formular', () => {
   })
 })
 
+// core#1459: Die Kasse liest `priceAdjustment` an Optionen nicht. Das Feld „+€“ ist aus dem Formular entfernt; ein
+// gespeicherter Wert bleibt unsichtbar in den Daten und übersteht Laden und Speichern.
+describe('ProductFormComponent – kein Aufpreis an Optionen (core#1459)', () => {
+  const withAdjustment = (priceAdjustment: number) => ({
+    ...PRODUCT,
+    optionGroups: [{ ...PRODUCT.optionGroups[0], options: [{ productId: 'cola', priceAdjustment, isDefault: false }] }],
+  })
+
+  it('zeigt an den Optionen kein Aufpreis-Feld', async () => {
+    const { el } = await render('p-1', { product: withAdjustment(0.6) })
+    const row = el.querySelector('input[type="checkbox"]')!.closest('div.flex')!
+    expect(row.querySelector('input[type="number"]')).toBeNull()
+    expect(row.textContent).not.toContain('+€')
+  })
+
+  it('speichert einen vorhandenen Aufpreis unverändert mit', async () => {
+    const { type, submit, api } = await render('p-1', { product: withAdjustment(0.6) })
+    await type('#optGroupName-0', 'Getränk (0,5 l)')
+    await submit()
+
+    expect(api.patch.mock.calls[0][2].optionGroups[0].options).toEqual([{ productId: 'cola', priceAdjustment: 0.6 }])
+  })
+
+  it('schreibt an einer neuen Option keinen Aufpreis', async () => {
+    const { fixture, submit, api } = await render('p-1')
+    const component = fixture.componentInstance
+    component.addOption(component.optionGroups()[0])
+    component.optionGroups.update(groups =>
+      groups.map(g => ({
+        ...g,
+        options: g.options.map(o => (o.productId ? o : { ...o, productId: 'kuchen' })),
+      })),
+    )
+    await submit()
+
+    expect(api.patch.mock.calls[0][2].optionGroups[0].options).toEqual([{ productId: 'cola' }, { productId: 'kuchen' }])
+  })
+
+  it('überträgt beim Kopieren der Gruppen eines Produkts keinen Aufpreis', async () => {
+    const { fixture, submit, api } = await render('p-1', { product: withAdjustment(1.5) })
+    await fixture.componentInstance.copyGroupsFromProduct('p-1')
+    await submit()
+
+    const groups = api.patch.mock.calls[0][2].optionGroups
+    expect(groups).toHaveLength(2)
+    expect(groups[0].options).toEqual([{ productId: 'cola', priceAdjustment: 1.5 }])
+    expect(groups[1].options).toEqual([{ productId: 'cola' }])
+  })
+})
+
 // core#1456: Dieselbe Prüfung wie im Cloud-Katalog (`checkMenuTax`), im Produktformular des Edge-Admins. Sie
 // rechnet über den Formularstand und blockiert nie das Speichern.
 describe('ProductFormComponent – Steuer-Hinweise (core#1456)', () => {

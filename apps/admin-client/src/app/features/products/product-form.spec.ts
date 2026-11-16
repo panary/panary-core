@@ -355,11 +355,29 @@ describe('ProductFormComponent – Gruppenfelder bleiben erhalten (core#1461)', 
     expect(group.options[0]).not.toHaveProperty('priceOverride')
   })
 
-  // Bleibt grün, auch wenn die Zusatzfelder aus dem Hash fielen: `objectHash` sieht verschachtelte Felder heute gar
-  // nicht (core#1477). Der Test hält nur fest, dass die Zusatzfelder keine Dirty-Meldung auslösen.
+  // Die Zusatzfelder liegen schon beim Laden im Modell, bevor `originalHash` gesetzt wird: Sie lösen keine
+  // Dirty-Meldung aus, obwohl `objectHash` sie seit core#1477 mitzählt.
   it('wertet ein Produkt unverändert geöffnet nicht als geändert', async () => {
     const { fixture } = await render('p-1', { product: EXTRAS })
     expect(fixture.componentInstance.isDirty()).toBe(false)
+  })
+
+  // core#1477: `objectHash` sah nur Felder, die oben denselben Namen tragen. Optionen, Mengen und Standard-Häkchen
+  // der Gruppe änderten den Hash nicht, und der Dialog „Ungespeicherte Änderungen“ blieb aus.
+  it.each([
+    ['eine geänderte Mindestauswahl der Gruppe', (g: any) => ({ ...g, minSelections: 2 })],
+    [
+      'ein anderes Produkt in einer Option',
+      (g: any) => ({ ...g, options: [{ ...g.options[0], productId: 'kuchen' }, g.options[1]] }),
+    ],
+    [
+      'ein abgehaktes Standard an einer Option',
+      (g: any) => ({ ...g, options: [g.options[0], { ...g.options[1], isDefault: false }] }),
+    ],
+  ])('wertet %s als geändert', async (_name, change) => {
+    const { fixture } = await render('p-1', { product: EXTRAS })
+    fixture.componentInstance.optionGroups.update(groups => groups.map(change))
+    expect(fixture.componentInstance.isDirty()).toBe(true)
   })
 
   it('kopiert Preis- und Anzeigemodus der Quelle in eine neue Gruppe, aber keinen Preis an den Optionen', async () => {

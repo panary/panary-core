@@ -156,8 +156,9 @@ Menüs mit Beilage oder Getränk zu abweichendem Satz. Kein Backfill: Bereits ge
 Snapshot. Der Bon druckt `components[]` weiter nicht, Karte und Historie ebenso.
 Voraussetzung für die Betragsgleichheit ist höchstens eine Beilagen- und eine Getränkegruppe je Menü: Der
 Legacy-Slot hält nur die letzte Wahl, `recordSlotComponent` ersetzt nach `optionGroupId`, zwei Getränkegruppen
-ergäben also zwei Komponenten und einen höheren Betrag als der Slot. Diese Konfiguration fängt die Prüfung in
-core#1455 ab.
+ergäben also zwei Komponenten und einen höheren Betrag als der Slot. Die Prüfregeln aus
+[ADR 0072](0072-menue-steuerregeln-als-feste-pruefung.md) (core#1455) fangen diese Konfiguration nicht ab; eine
+achte Regel dafür braucht die Bestätigung von Michael.
 Die Zuordnung zu Beilage oder Getränk hängt am Gruppennamen. Eine anders benannte Gruppe bucht ihre Wahl
 als Modifier und bleibt am Satz der Zeile; die Prüfung solcher Konfigurationen ist core#1455.
 

@@ -46,7 +46,7 @@ interface CartSnapshot {
 }
 
 import { ProductGroup, ProductGroupService } from '@panary/product-groups/data-access'
-import { ItemType, ProductSchema } from '@panary/products/domain'
+import { ItemType, menuOptionGroupSlot, ProductSchema } from '@panary/products/domain'
 import { ProductService } from '@panary/products/data-access'
 import {
   calculateArticlePrice,
@@ -2668,17 +2668,13 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     const genericItem = this.#bundleFlow.toGenericLineItem(selected)
 
     // Speichern basierend auf Gruppen-Name
-    const groupName = (group.name || '').toLowerCase()
-    const isSlotGroup =
-      groupName.includes('beilage') ||
-      groupName.includes('side') ||
-      groupName.includes('getränk') ||
-      groupName.includes('drink')
-    if (groupName.includes('beilage') || groupName.includes('side')) {
+    const slot = menuOptionGroupSlot(group.name)
+    const isSlotGroup = slot !== null
+    if (slot === 'side') {
       dropComponentModifiers(lineItem, lineItem.menuSideDish, genericItem)
       lineItem.menuSideDish = genericItem
       this.#bundleFlow.recordSlotComponent(lineItem, selected, group)
-    } else if (groupName.includes('getränk') || groupName.includes('drink')) {
+    } else if (slot === 'drink') {
       dropComponentModifiers(lineItem, lineItem.menuDrink, genericItem)
       lineItem.menuDrink = genericItem
       this.#bundleFlow.recordSlotComponent(lineItem, selected, group)

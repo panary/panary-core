@@ -1,6 +1,11 @@
 import type { ProductSchema } from '@panary/products/domain'
 import type { OrderLineItem } from '@panary/orders/data-access'
-import { LineComponent, withFixedBundleMainComponent } from '@panary/orders/domain'
+import {
+  fromCents,
+  LineComponent,
+  menuComponentSurchargeOfChoiceCents,
+  withFixedBundleMainComponent,
+} from '@panary/orders/domain'
 
 /**
  * Katalog-Lookups des Bundle-Flows — als Funktionen injiziert, damit die Klasse
@@ -156,15 +161,46 @@ export class BundleFlow {
   }
 
   /**
+   * Aufschlag der Wahl in Euro brutto je Stück (core#1454): Preis der Wahl minus Preis der günstigsten Option
+   * derselben Pflichtgruppe, in einer freiwilligen Gruppe der volle Preis. Bezugsgröße ist die Gruppe des Menüs,
+   * nie ein Filialpreis (ADR 0071). Optionen, die der Katalog nicht auflöst, zählen nicht mit: Sonst setzte ein
+   * fehlendes Produkt die Messlatte auf 0 und jede Wahl bekäme ihren vollen Preis als Aufschlag.
+   */
+  surchargeOfChoice(
+    product: ProductSchema,
+    group: { options?: ReadonlyArray<{ productId?: string }>; minSelections?: number },
+  ): number {
+    const optionPrices = (group.options ?? [])
+      .map(option => (option.productId ? this.catalog.findProductById(option.productId) : undefined))
+      .filter((option): option is ProductSchema => !!option)
+      .map(option => option.price || 0)
+    return fromCents(
+      menuComponentSurchargeOfChoiceCents({
+        choicePrice: product.price || 0,
+        optionPrices,
+        minSelections: group.minSelections ?? 0,
+      }),
+    )
+  }
+
+  /**
    * Schreibt die Wahl aus einer Beilagen- oder Getränkegruppe als Komponente der Zeile (core#1450).
    * Die Engine versteuert eine Komponente zu ihrem EIGENEN Satz; ohne sie läuft das Getränk eines
    * 7-%-Menüs über den Satz der Zeile. Eine neue Wahl in derselben Gruppe ERSETZT den Eintrag mit
-   * gleicher `optionGroupId`: Ein angehängter zweiter Eintrag würde in der Engine doppelt gezählt.
+   * gleicher `optionGroupId`: Ein angehängter zweiter Eintrag würde in der Engine doppelt gezählt. Mit dem
+   * Eintrag verschwindet auch der Aufschlag der früheren Wahl; `surcharge` (Euro je Stück, core#1454) steht nur
+   * an der neuen Komponente, wenn er größer als 0 ist.
    * Die Legacy-Slots (`menuSideDish`/`menuDrink`) pflegt der Aufrufer weiter, sie speisen Verbrauch,
    * Bon-Gruppierung und alte Leser.
    */
-  recordSlotComponent(lineItem: OrderLineItem, product: ProductSchema, group: { id?: string; name?: string }): void {
+  recordSlotComponent(
+    lineItem: OrderLineItem,
+    product: ProductSchema,
+    group: { id?: string; name?: string },
+    surcharge = 0,
+  ): void {
     const component = this.toComponent(product, group)
+    if (surcharge > 0) component.surcharge = surcharge
     const current = lineItem.components ?? []
     const index = group?.id ? current.findIndex(c => c.optionGroupId === group.id) : -1
     lineItem.components = index >= 0 ? current.map((c, i) => (i === index ? component : c)) : [...current, component]

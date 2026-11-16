@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { menuComponentSurchargeLineCents, menuComponentSurchargePerUnitCents } from './menu-component-surcharge'
+import {
+  menuComponentSurchargeLineCents,
+  menuComponentSurchargeOfChoiceCents,
+  menuComponentSurchargePerUnitCents,
+} from './menu-component-surcharge'
 
 describe('menuComponentSurchargePerUnitCents (#1452)', () => {
   it('liefert den festgeschriebenen Aufschlag je Stück in Cents', () => {
@@ -64,5 +68,51 @@ describe('menuComponentSurchargeLineCents (#1452)', () => {
         { amount: 2, surcharge: 0.6 },
       ),
     ).toBe(0)
+  })
+})
+
+describe('menuComponentSurchargeOfChoiceCents (core#1454)', () => {
+  // Kötters Fritte: Getränkegruppe mit Cola 2,30 € und Weizenbier 2,90 €, Beilagengruppe mit Pommes 0,00 € und Kroketten 0,90 €.
+  const drinks = [2.3, 2.9]
+  const sides = [0, 0.9]
+
+  it('Pflichtgruppe: die günstigste Option trägt keinen Aufschlag, die teurere die Differenz', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 2.3, optionPrices: drinks, minSelections: 1 })).toBe(0)
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 2.9, optionPrices: drinks, minSelections: 1 })).toBe(60)
+  })
+
+  it('Pflichtgruppe mit Beilage zu 0,00 €: Kroketten tragen ihren vollen Preis', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 0, optionPrices: sides, minSelections: 1 })).toBe(0)
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 0.9, optionPrices: sides, minSelections: 1 })).toBe(90)
+  })
+
+  it('freiwillige Gruppe: nichts ist enthalten, der volle Preis der Wahl ist der Aufschlag', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 2.3, optionPrices: drinks, minSelections: 0 })).toBe(230)
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 2.9, optionPrices: drinks, minSelections: 0 })).toBe(290)
+  })
+
+  it('Gleichstand der Preise: kein Aufschlag in der Pflichtgruppe', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 2, optionPrices: [2, 2, 2], minSelections: 1 })).toBe(0)
+  })
+
+  it('Pflichtgruppe mit einer einzigen Option: 0', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 2.9, optionPrices: [2.9], minSelections: 1 })).toBe(0)
+  })
+
+  it('Pflichtgruppe ohne auflösbare Option: 0, nie ein Betrag aus dem Nichts', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 2.9, optionPrices: [], minSelections: 1 })).toBe(0)
+  })
+
+  it('rechnet in Cents, nicht in Gleitkomma (2,90 − 2,30 = 60, nicht 59)', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 0.7, optionPrices: [0.1, 0.7], minSelections: 1 })).toBe(60)
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 1.15, optionPrices: [0, 1.15], minSelections: 1 })).toBe(115)
+  })
+
+  it('ist nie negativ, auch wenn die Wahl günstiger als alle gelisteten Optionen ist', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 1, optionPrices: [2, 3], minSelections: 1 })).toBe(0)
+  })
+
+  it('ungültige Preise zählen als 0', () => {
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: Number.NaN, optionPrices: [2], minSelections: 0 })).toBe(0)
   })
 })

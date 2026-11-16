@@ -104,8 +104,12 @@ describe('menuComponentSurchargeOfChoiceCents (core#1454)', () => {
   })
 
   it('rechnet in Cents, nicht in Gleitkomma (2,90 − 2,30 = 60, nicht 59)', () => {
-    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 0.7, optionPrices: [0.1, 0.7], minSelections: 1 })).toBe(60)
-    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 1.15, optionPrices: [0, 1.15], minSelections: 1 })).toBe(115)
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 0.7, optionPrices: [0.1, 0.7], minSelections: 1 })).toBe(
+      60,
+    )
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: 1.15, optionPrices: [0, 1.15], minSelections: 1 })).toBe(
+      115,
+    )
   })
 
   it('ist nie negativ, auch wenn die Wahl günstiger als alle gelisteten Optionen ist', () => {
@@ -113,6 +117,8 @@ describe('menuComponentSurchargeOfChoiceCents (core#1454)', () => {
   })
 
   it('ungültige Preise zählen als 0', () => {
-    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: Number.NaN, optionPrices: [2], minSelections: 0 })).toBe(0)
+    expect(menuComponentSurchargeOfChoiceCents({ choicePrice: Number.NaN, optionPrices: [2], minSelections: 0 })).toBe(
+      0,
+    )
   })
 })

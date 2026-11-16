@@ -316,7 +316,10 @@ describe('BundleFlow.surchargeOfChoice / recordSlotComponent mit Aufschlag (core
 
   it('eine nicht auflösbare Option zählt nicht als Messlatte', () => {
     const f = flow()
-    const mitLuecke = { ...drinks, options: [{ productId: 'p-fehlt' }, { productId: 'p-cola' }, { productId: 'p-bier' }] }
+    const mitLuecke = {
+      ...drinks,
+      options: [{ productId: 'p-fehlt' }, { productId: 'p-cola' }, { productId: 'p-bier' }],
+    }
     expect(f.surchargeOfChoice(bier, mitLuecke)).toBe(0.6)
   })
 

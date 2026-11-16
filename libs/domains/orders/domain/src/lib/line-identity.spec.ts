@@ -190,4 +190,16 @@ describe('Zählweise und Menüs (Review #699)', () => {
     expect((line.components as Array<{ amount: number }>)[0].amount).toBe(1)
     expect((line.menuDrink as { amount: number }).amount).toBe(1)
   })
+
+  it('das abgespaltene Stück trägt den festgeschriebenen Aufschlag mit (core#1454)', () => {
+    const line = burger({
+      amount: 2,
+      isMenu: true,
+      components: [{ ...mod('cola'), surcharge: 0.6, role: 'drink' }] as never,
+      menuDrink: { ...mod('cola'), surcharge: 0.6 } as never,
+    })
+    const piece = splitOffPieces(line, 1, 'neu') as OrderLineItem
+    expect((piece.components as Array<{ surcharge?: number }>)[0].surcharge).toBe(0.6)
+    expect((piece.menuDrink as { surcharge?: number }).surcharge).toBe(0.6)
+  })
 })

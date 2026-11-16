@@ -363,6 +363,7 @@
     "TYPE_MODIFIER": "Extra",
     "TYPE_BUNDLE": "Menu",
     "NO_OPTION_GROUPS": "No option groups",
+    "CATALOG_LOAD_FAILED": "The product list could not be loaded. Options appear without names and tax hints are not shown. Reload the page or check the connection.",
     "TAX_HINTS_TITLE": "Tax hints for this menu",
     "TAX_SEVERITY": {
       "warnung": "Warning",

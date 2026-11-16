@@ -378,6 +378,16 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
               </div>
             </div>
 
+            @if (catalogLoadFailed()) {
+              <p
+                data-testid="catalog-load-failed"
+                class="rounded-xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/20
+                       p-3 text-xs text-red-800 dark:text-red-300"
+              >
+                {{ 'PRODUCTS.CATALOG_LOAD_FAILED' | translate }}
+              </p>
+            }
+
             @if (taxHints().length > 0) {
               <div
                 data-testid="tax-hints"
@@ -702,6 +712,8 @@ export class ProductFormComponent implements OnInit {
   allProducts = signal<MinimalProduct[]>([])
   /** Steuersätze der einen Filiale (`taxSettings`); leer, solange sie nicht geladen ist, dann entfällt Regel 5. */
   private locationTaxRates = signal<number[]>([])
+  /** Die Produktliste ließ sich nicht laden; Optionen bleiben unbenannt, die Steuer-Hinweise entfallen. */
+  catalogLoadFailed = signal(false)
   /** Felder, die das Formular nicht bearbeitet, die die Steuerprüfung aber braucht (Regeln 1, 3 und 4). */
   private loadedMainPrice = signal<number | undefined>(undefined)
   productSelectItems = computed(() => this.allProducts().map(p => ({ id: p._id, label: p.name, sublabel: p.acronym })))
@@ -712,7 +724,7 @@ export class ProductFormComponent implements OnInit {
    */
   private taxFindings = computed<MenuTaxFinding[]>(() => {
     const groups = this.optionGroups()
-    if (groups.length === 0) return []
+    if (groups.length === 0 || this.catalogLoadFailed()) return []
     const p = this.product()
     const catalog = new Map(this.allProducts().map(item => [item._id, item]))
     return checkMenuTax({
@@ -848,17 +860,30 @@ export class ProductFormComponent implements OnInit {
   async ngOnInit() {
     void this.cloudManaged.refresh()
     // Stammdaten einmalig laden
-    try {
-      const [groupResult, allProducts] = await Promise.all([
-        this.api.find<ProductGroup>('product-groups', { $limit: 250 }),
-        this.loadAllProducts(),
-      ])
-      this.productGroups.set(groupResult.data)
-      this.allProducts.set(allProducts)
-    } catch (e) {
-      console.error('Fehler beim Laden der Stammdaten:', e)
-    }
+    // Getrennt laden: scheitert die eine Abfrage, bleibt die andere Liste nutzbar (core#1485).
+    await Promise.all([this.loadProductGroups(), this.loadCatalog()])
     await this.loadLocationTaxRates()
+  }
+
+  private async loadProductGroups() {
+    try {
+      const groupResult = await this.api.find<ProductGroup>('product-groups', { $limit: 250 })
+      this.productGroups.set(groupResult.data)
+    } catch (e) {
+      console.error('Fehler beim Laden der Produktgruppen:', e)
+    }
+  }
+
+  private async loadCatalog() {
+    try {
+      this.allProducts.set(await this.loadAllProducts())
+      this.catalogLoadFailed.set(false)
+    } catch (e) {
+      // Ohne Katalog lässt sich weder eine Option benennen noch ein Steuersatz prüfen: Das Formular sagt es,
+      // statt jede Option als „nicht auflösbar“ zu melden.
+      this.catalogLoadFailed.set(true)
+      console.error('Fehler beim Laden der Produktliste:', e)
+    }
   }
 
   /** Der Edge kennt genau eine Filiale. Ohne sie bleibt die Liste leer, und Regel 5 entfällt statt zu raten. */

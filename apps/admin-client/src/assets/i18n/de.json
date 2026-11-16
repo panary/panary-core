@@ -363,6 +363,7 @@
     "TYPE_MODIFIER": "Extra",
     "TYPE_BUNDLE": "Menü",
     "NO_OPTION_GROUPS": "Keine Optionsgruppen",
+    "CATALOG_LOAD_FAILED": "Die Produktliste konnte nicht geladen werden. Optionen erscheinen ohne Namen, Steuer-Hinweise entfallen. Seite neu laden oder die Verbindung prüfen.",
     "TAX_HINTS_TITLE": "Steuer-Hinweise zu diesem Menü",
     "TAX_SEVERITY": {
       "warnung": "Warnung",

@@ -4,7 +4,9 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
+import { addFormats, Ajv } from '@feathersjs/schema'
 import { TranslateModule } from '@ngx-translate/core'
+import { productQuerySchema } from '@panary/products/domain'
 import { ConnectionService } from '@panary/shared/data-access'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -37,13 +39,23 @@ interface RenderOptions {
   catalog?: Array<Record<string, unknown>>
   /** `settings.taxSettings` der einzigen Filiale; ohne Angabe gibt es keine Filiale. */
   taxSettings?: Record<string, { taxRate: number; name: string }>
+  /** Antwort von `find('product-groups')`. */
+  productGroups?: Array<Record<string, unknown>>
+  /** `find('products')` scheitert, wie wenn der Edge die Anfrage mit 400 ablehnt (core#1485). */
+  failCatalog?: boolean
 }
 
 async function render(id: string, options: RenderOptions = {}) {
   const catalog = options.catalog ?? []
   const api = {
     find: vi.fn().mockImplementation(async (path: string) => {
-      if (path === 'products') return { data: catalog, total: catalog.length }
+      if (path === 'products') {
+        if (options.failCatalog) throw new Error('400 Bad Request')
+        return { data: catalog, total: catalog.length }
+      }
+      if (path === 'product-groups' && options.productGroups) {
+        return { data: options.productGroups, total: options.productGroups.length }
+      }
       if (path === 'locations' && options.taxSettings) {
         return { data: [{ _id: 'loc-1', settings: { taxSettings: options.taxSettings } }], total: 1 }
       }
@@ -545,5 +557,51 @@ describe('ProductFormComponent – Steuer-Hinweise (core#1456)', () => {
   it('lässt Regel 5 ohne geladene Filiale aus, statt jeden Satz zu bemängeln', async () => {
     const { el } = await render('p-1', { product: menu('Getränk', 'cola'), catalog: CATALOG })
     expect(hints(el)).toBeNull()
+  })
+})
+
+describe('ProductFormComponent – Katalog laden (core#1485)', () => {
+  const GROUPS = [{ _id: 'pg-1', name: 'Getränke' }]
+  const MENU = {
+    ...PRODUCT,
+    optionGroups: [
+      {
+        id: 'og-1',
+        name: 'Getränk',
+        minSelections: 1,
+        maxSelections: 1,
+        freeQuantity: 0,
+        options: [{ productId: 'cola', priceAdjustment: 0 }],
+      },
+    ],
+  }
+
+  // Der Edge validiert jede Anfrage gegen `productQuerySchema` (querySyntax, additionalProperties: false) und
+  // lehnt ein unbekanntes `$select`-Feld mit 400 ab. Die Mocks der übrigen Specs sehen das nicht: Dieser Test
+  // prüft die Anfrage des Formulars deshalb gegen dasselbe Schema und dieselbe AJV-Konfiguration wie der Edge.
+  it('fragt `products` nur mit Feldern, die das Query-Schema des Edge kennt', async () => {
+    const validate = addFormats(new Ajv({ coerceTypes: true }), ['uuid', 'date-time']).compile(productQuerySchema)
+    const { api } = await render('p-1', { product: MENU })
+    const queries = api.find.mock.calls.filter(([path]) => path === 'products').map(([, params]) => params)
+    expect(queries.length).toBeGreaterThan(0)
+    for (const query of queries) {
+      expect(validate(query), JSON.stringify([query, validate.errors])).toBe(true)
+    }
+  })
+
+  it('lädt die Produktgruppen weiter, wenn die Produktliste scheitert', async () => {
+    const { fixture } = await render('p-1', { product: MENU, productGroups: GROUPS, failCatalog: true })
+    expect(fixture.componentInstance.productGroups()).toEqual(GROUPS)
+  })
+
+  it('meldet den Ladefehler im Formular, statt jede Option als „nicht auflösbar“ zu melden', async () => {
+    const { el } = await render('p-1', { product: MENU, failCatalog: true })
+    expect(el.querySelector('[data-testid="catalog-load-failed"]')).not.toBeNull()
+    expect(el.querySelector('[data-testid="tax-hints"]')).toBeNull()
+  })
+
+  it('zeigt keinen Ladefehler, wenn die Produktliste kommt', async () => {
+    const { el } = await render('p-1', { product: MENU })
+    expect(el.querySelector('[data-testid="catalog-load-failed"]')).toBeNull()
   })
 })

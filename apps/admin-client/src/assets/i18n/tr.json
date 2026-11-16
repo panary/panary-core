@@ -364,6 +364,7 @@
     "TYPE_BUNDLE": "Menü",
     "NO_OPTION_GROUPS": "Seçenek grubu yok",
     "CATALOG_LOAD_FAILED": "Ürün listesi yüklenemedi. Seçenekler adsız görünür ve vergi uyarıları gösterilmez. Sayfayı yenileyin veya bağlantıyı kontrol edin.",
+    "OPTION_RATES_FAILED": "Seçeneklerin vergi oranları yüklenemedi. Vergi uyarıları gösterilmez. Sayfayı yenileyin veya bağlantıyı kontrol edin.",
     "TAX_HINTS_TITLE": "Bu menü için vergi uyarıları",
     "TAX_SEVERITY": {
       "warnung": "Uyarı",

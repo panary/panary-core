@@ -43,13 +43,22 @@ interface RenderOptions {
   productGroups?: Array<Record<string, unknown>>
   /** `find('products')` scheitert, wie wenn der Edge die Anfrage mit 400 ablehnt (core#1485). */
   failCatalog?: boolean
+  /** Die Abfrage der Steuersätze der Optionen scheitert. */
+  failRates?: boolean
 }
 
 async function render(id: string, options: RenderOptions = {}) {
   const catalog = options.catalog ?? []
   const api = {
-    find: vi.fn().mockImplementation(async (path: string) => {
+    find: vi.fn().mockImplementation(async (path: string, params?: unknown) => {
       if (path === 'products') {
+        // Die Sätze der Optionen kommen mit `_id: { $in }` ohne `$select`, die Produktliste mit `$select`.
+        const ids = (params as { _id?: { $in?: string[] } } | undefined)?._id?.$in
+        if (ids) {
+          if (options.failRates) throw new Error('500')
+          const rows = catalog.filter(item => ids.includes(item['_id'] as string))
+          return { data: rows, total: rows.length }
+        }
         if (options.failCatalog) throw new Error('400 Bad Request')
         return { data: catalog, total: catalog.length }
       }
@@ -581,9 +590,14 @@ describe('ProductFormComponent – Katalog laden (core#1485)', () => {
   // prüft die Anfrage des Formulars deshalb gegen dasselbe Schema und dieselbe AJV-Konfiguration wie der Edge.
   it('fragt `products` nur mit Feldern, die das Query-Schema des Edge kennt', async () => {
     const validate = addFormats(new Ajv({ coerceTypes: true }), ['uuid', 'date-time']).compile(productQuerySchema)
-    const { api } = await render('p-1', { product: MENU })
+    // Echte IDs: das Schema verlangt für `_id` das uuid-Format, die Kurz-IDs der übrigen Specs fielen durch.
+    const cola = '01927d4f-3c2e-7b6a-9a1f-1ce0a8a5d7e2'
+    const withUuids = { ...MENU, optionGroups: [{ ...MENU.optionGroups[0], options: [{ productId: cola }] }] }
+    const catalog = [{ _id: cola, name: 'Cola', acronym: 'CO', productType: 'PRODUCT', categoryIds: [], price: 0 }]
+    const { api } = await render('p-1', { product: withUuids, catalog })
     const queries = api.find.mock.calls.filter(([path]) => path === 'products').map(([, params]) => params)
-    expect(queries.length).toBeGreaterThan(0)
+    // Die Listenabfrage und die Abfrage der Sätze der Optionen.
+    expect(queries).toHaveLength(2)
     for (const query of queries) {
       expect(validate(query), JSON.stringify([query, validate.errors])).toBe(true)
     }
@@ -597,6 +611,18 @@ describe('ProductFormComponent – Katalog laden (core#1485)', () => {
   it('meldet den Ladefehler im Formular, statt jede Option als „nicht auflösbar“ zu melden', async () => {
     const { el } = await render('p-1', { product: MENU, failCatalog: true })
     expect(el.querySelector('[data-testid="catalog-load-failed"]')).not.toBeNull()
+    expect(el.querySelector('[data-testid="tax-hints"]')).toBeNull()
+  })
+
+  it('holt die Steuersätze der Optionen mit einer Abfrage auf genau diese IDs, ohne `$select`', async () => {
+    const { api } = await render('p-1', { product: MENU })
+    const rateQueries = api.find.mock.calls.filter(([path, params]) => path === 'products' && params?._id)
+    expect(rateQueries.map(([, params]) => params)).toEqual([{ _id: { $in: ['cola'] }, $limit: 1 }])
+  })
+
+  it('meldet, wenn die Steuersätze der Optionen nicht kommen, und zeigt dann keine Steuer-Hinweise', async () => {
+    const { el } = await render('p-1', { product: MENU, failRates: true })
+    expect(el.querySelector('[data-testid="option-rates-failed"]')).not.toBeNull()
     expect(el.querySelector('[data-testid="tax-hints"]')).toBeNull()
   })
 

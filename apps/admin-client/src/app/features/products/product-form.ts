@@ -58,10 +58,9 @@ interface MinimalProduct {
   acronym: string
   productType: string
   categoryIds: string[]
-  // Für die Steuerprüfung (core#1456); fehlt ein Feld, gilt der Kassen-Standard wie im Menü selbst.
+  // Für die Steuerprüfung (core#1456). Die Sätze stehen nicht hier: `taxInside`/`taxOutside` sind am Edge kein
+  // `$select`-Feld, sie kommen je Option über `loadOptionRates` (core#1485).
   price?: number
-  taxInside?: number
-  taxOutside?: number
 }
 
 /** Ein Befund der Steuerprüfung, mit den Namen aufbereitet, die der Hinweistext nennt. */
@@ -378,6 +377,15 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
               </div>
             </div>
 
+            @if (optionRatesFailed() && !catalogLoadFailed()) {
+              <p
+                data-testid="option-rates-failed"
+                class="rounded-xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/20
+                       p-3 text-xs text-red-800 dark:text-red-300"
+              >
+                {{ 'PRODUCTS.OPTION_RATES_FAILED' | translate }}
+              </p>
+            }
             @if (catalogLoadFailed()) {
               <p
                 data-testid="catalog-load-failed"
@@ -714,6 +722,15 @@ export class ProductFormComponent implements OnInit {
   private locationTaxRates = signal<number[]>([])
   /** Die Produktliste ließ sich nicht laden; Optionen bleiben unbenannt, die Steuer-Hinweise entfallen. */
   catalogLoadFailed = signal(false)
+  /** Steuersätze der Optionsprodukte, je Produkt-ID (core#1485). */
+  private optionRates = signal<Map<string, { taxInside?: number; taxOutside?: number }>>(new Map())
+  /** IDs, deren Abfrage beendet ist, ob mit oder ohne Treffer. */
+  private optionRatesSettled = signal<Set<string>>(new Set())
+  private optionRatesInFlight = new Set<string>()
+  optionRatesFailed = signal(false)
+  private optionProductIds = computed(() => [
+    ...new Set(this.optionGroups().flatMap(g => g.options.map(o => o.productId).filter(Boolean))),
+  ])
   /** Felder, die das Formular nicht bearbeitet, die die Steuerprüfung aber braucht (Regeln 1, 3 und 4). */
   private loadedMainPrice = signal<number | undefined>(undefined)
   productSelectItems = computed(() => this.allProducts().map(p => ({ id: p._id, label: p.name, sublabel: p.acronym })))
@@ -724,7 +741,10 @@ export class ProductFormComponent implements OnInit {
    */
   private taxFindings = computed<MenuTaxFinding[]>(() => {
     const groups = this.optionGroups()
-    if (groups.length === 0 || this.catalogLoadFailed()) return []
+    if (groups.length === 0 || this.catalogLoadFailed() || this.optionRatesFailed()) return []
+    // Solange die Sätze der Optionen unterwegs sind, wäre jede Option „unauflösbar“.
+    const settled = this.optionRatesSettled()
+    if (this.optionProductIds().some(id => !settled.has(id))) return []
     const p = this.product()
     const catalog = new Map(this.allProducts().map(item => [item._id, item]))
     return checkMenuTax({
@@ -748,8 +768,9 @@ export class ProductFormComponent implements OnInit {
       },
       resolveOption: id => {
         const item = catalog.get(id)
+        const rates = this.optionRates().get(id)
         return item
-          ? { _id: item._id, price: item.price ?? 0, taxInside: item.taxInside, taxOutside: item.taxOutside }
+          ? { _id: item._id, price: item.price ?? 0, taxInside: rates?.taxInside, taxOutside: rates?.taxOutside }
           : undefined
       },
       locationTaxRates: this.locationTaxRates(),
@@ -855,6 +876,11 @@ export class ProductFormComponent implements OnInit {
       const prodId = this.id()
       untracked(() => void this.loadProduct(prodId))
     })
+    // Eine neu gewählte Option bringt ihren Satz erst mit der Abfrage; die ID-Liste ist getrackt, der Ladeaufruf nicht (§2.1).
+    effect(() => {
+      const ids = this.optionProductIds()
+      untracked(() => void this.loadOptionRates(ids))
+    })
   }
 
   async ngOnInit() {
@@ -871,6 +897,36 @@ export class ProductFormComponent implements OnInit {
       this.productGroups.set(groupResult.data)
     } catch (e) {
       console.error('Fehler beim Laden der Produktgruppen:', e)
+    }
+  }
+
+  /**
+   * Holt die Steuersätze der Optionsprodukte ohne `$select`: `taxInside`/`taxOutside` gehören nicht zu
+   * `productQueryProperties`, der Edge lehnte die ganze Listenabfrage mit 400 ab (core#1485). Je ID nur einmal.
+   */
+  private async loadOptionRates(ids: string[]) {
+    const missing = ids.filter(id => !this.optionRatesSettled().has(id) && !this.optionRatesInFlight.has(id))
+    const CHUNK = 50
+    for (let i = 0; i < missing.length; i += CHUNK) {
+      const chunk = missing.slice(i, i + CHUNK)
+      chunk.forEach(id => this.optionRatesInFlight.add(id))
+      try {
+        const result = await this.api.find<{ _id: string; taxInside?: number; taxOutside?: number }>('products', {
+          _id: { $in: chunk },
+          $limit: chunk.length,
+        })
+        this.optionRates.update(rates => {
+          const next = new Map(rates)
+          for (const item of result.data) next.set(item._id, { taxInside: item.taxInside, taxOutside: item.taxOutside })
+          return next
+        })
+      } catch (e) {
+        this.optionRatesFailed.set(true)
+        console.error('Fehler beim Laden der Steuersätze der Optionen:', e)
+      } finally {
+        chunk.forEach(id => this.optionRatesInFlight.delete(id))
+        this.optionRatesSettled.update(settled => new Set([...settled, ...chunk]))
+      }
     }
   }
 
@@ -904,7 +960,7 @@ export class ProductFormComponent implements OnInit {
   /** Lädt alle Produkte seitenweise mit $select für minimalen Payload */
   private async loadAllProducts(): Promise<MinimalProduct[]> {
     const PAGE_SIZE = 250
-    const selectFields = ['_id', 'name', 'acronym', 'productType', 'categoryIds', 'price', 'taxInside', 'taxOutside']
+    const selectFields = ['_id', 'name', 'acronym', 'productType', 'categoryIds', 'price']
 
     // Erste Seite laden, um total zu erfahren
     const first = await this.api.find<MinimalProduct>('products', {
@@ -1225,8 +1281,6 @@ export class ProductFormComponent implements OnInit {
             productType: created.productType || 'PRODUCT',
             categoryIds: Array.isArray(created.categoryIds) ? created.categoryIds : [],
             price: created.price,
-            taxInside: created.taxInside,
-            taxOutside: created.taxOutside,
           },
         ])
       } else {
@@ -1242,8 +1296,6 @@ export class ProductFormComponent implements OnInit {
                   productType: this.product().productType,
                   categoryIds: this.product().categoryIds,
                   price: this.product().price ?? undefined,
-                  taxInside: this.product().taxInside ?? undefined,
-                  taxOutside: this.product().taxOutside ?? undefined,
                 }
               : p,
           ),

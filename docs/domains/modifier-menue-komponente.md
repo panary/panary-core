@@ -123,7 +123,13 @@ des Admin-Clients (de, en, tr). Grenzen:
 
 - Die Steuersätze der Filiale kommen aus `taxSettings` der einen Filiale des Edge. Ist sie nicht geladen, entfällt
   Regel 5 statt jeden Satz zu bemängeln.
-- Der Katalog wird mit Preis und Sätzen, aber ohne `optionGroups` der Options-Produkte geladen. Verschachtelte
+- Die Produktliste wird mit Preis, aber ohne `optionGroups` der Options-Produkte geladen. Verschachtelte
   Untergruppen sieht die Prüfung hier deshalb nicht, `checkMenuTax` im Cloud-Katalog schon.
+- **Die Steuersätze der Optionen kommen nicht aus der Produktliste.** `taxInside` und `taxOutside` gehören nicht zu
+  `productQueryProperties`: Ein `$select` darauf lehnt der Edge mit 400 ab, und das Formular blieb ohne Produktliste
+  und Produktgruppen ([core#1485](https://github.com/panary/panary-core/issues/1485)). Eine zweite Abfrage
+  `_id: { $in: [...] }` ohne `$select` holt sie je Option-Produkt einmal und bei neu gewählten Optionen nach. Solange
+  sie unterwegs ist, zeigt das Formular keine Hinweise. Scheitert eine der beiden Abfragen, steht an ihrer Stelle ein
+  Fehlerhinweis, und die Steuer-Hinweise entfallen. Das Query-Schema blieb unverändert.
 - `mainPrice` und der `pricingMode` der Gruppen bearbeitet das Formular nicht. Es merkt sich beim Laden die gespeicherten
   Werte, damit Regeln 1, 3 und 4 mit dem tatsächlichen Stand rechnen.

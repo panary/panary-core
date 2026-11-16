@@ -1,8 +1,8 @@
 ---
 type: Domain Concept
 title: Modifier je Menü-Komponente (componentExternalId)
-description: 'Wie ein Modifier, der im Bestelldialog zu einer Menü-Komponente gewählt wurde (Mayonnaise zur Pommes), diese Zuordnung als componentExternalId trägt, wie groupModifiersByComponent sie für Bon-Karte, Warenkorb, Historie und Druck auflöst und warum Preis, Steuer, Verbrauch und Bestandsbestellungen unverändert bleiben.'
-tags: [orders, pos, printing, sync]
+description: 'Wie ein Modifier, der im Bestelldialog zu einer Menü-Komponente gewählt wurde (Mayonnaise zur Pommes), diese Zuordnung als componentExternalId trägt, wie groupModifiersByComponent sie für Bon-Karte, Warenkorb, Historie und Druck auflöst und warum Preis, Steuer, Verbrauch und Bestandsbestellungen unverändert bleiben. Dazu die Prüfung der Steuer-Konfiguration eines Menüs und ihre Anzeige im Edge-Admin.'
+tags: [orders, pos, printing, sync, products, tax]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-26T21:50:00Z }
 ---

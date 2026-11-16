@@ -82,6 +82,8 @@ interface SetupOptions {
   minVersion?: string | null
   /** Antwort der Kassen-Abfrage beim Login: offene Kasse vorhanden, nicht, oder die Abfrage scheitert. */
   openCashSession?: boolean | 'fails'
+  /** Die Versionsbewertung selbst wirft (etwa weil der Health-Stand nicht lesbar ist). */
+  versionCheckThrows?: boolean
 }
 
 function setup(options: SetupOptions = {}) {
@@ -98,6 +100,7 @@ function setup(options: SetupOptions = {}) {
     edgeVersion = '26.11.19',
     minVersion = null,
     openCashSession = false,
+    versionCheckThrows = false,
   } = options
 
   const assignment = fakeAssignment(mode, assignedUserIds)
@@ -129,9 +132,10 @@ function setup(options: SetupOptions = {}) {
     if (openCashSession === 'fails') throw new Error('Abfrage fehlgeschlagen')
     return openCashSession
   })
-  const verdictFresh = vi.fn(async () =>
-    evaluatePosVersion({ posVersion, edgeVersion, requiredPosMinVersion: minVersion }),
-  )
+  const verdictFresh = vi.fn(async () => {
+    if (versionCheckThrows) throw new Error('Health nicht lesbar')
+    return evaluatePosVersion({ posVersion, edgeVersion, requiredPosMinVersion: minVersion })
+  })
 
   const clearConfig = vi.fn()
   const outboxPending = signal(pendingOutbox ?? 0)
@@ -835,6 +839,15 @@ describe('LoginComponent — Mindestversion (core#1441)', () => {
     expect(navigate).toHaveBeenCalledWith(['/dashboard'])
     // Ohne drohende Sperre kein Zusatzaufruf.
     expect(hasOpenSession).not.toHaveBeenCalled()
+  })
+
+  it('lässt den Login durch, wenn die Versionsbewertung selbst scheitert', async () => {
+    const { component, navigate } = loginAt({ ...below, versionCheckThrows: true })
+
+    await component.verifyPin()
+
+    expect(component.versionBlock()).toBeNull()
+    expect(navigate).toHaveBeenCalledWith(['/dashboard'])
   })
 
   it('lässt einen nicht prüfbaren POS-Stand durch (staging-<sha>)', async () => {

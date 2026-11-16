@@ -235,7 +235,7 @@ describe('ProductFormComponent – kein Aufpreis an Optionen (core#1459)', () =>
 
   it('zeigt an den Optionen kein Aufpreis-Feld', async () => {
     const { el } = await render('p-1', { product: withAdjustment(0.6) })
-    const row = el.querySelector('input[type="checkbox"]')!.closest('div.flex')!
+    const row = el.querySelector('app-searchable-select')!.closest('div.flex')!
     expect(row.querySelector('input[type="number"]')).toBeNull()
     expect(row.textContent).not.toContain('+€')
   })

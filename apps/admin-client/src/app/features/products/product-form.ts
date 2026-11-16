@@ -33,6 +33,7 @@ interface ProductGroup {
 
 interface OptionGroupOption {
   productId: string
+  // Kein Eingabefeld mehr, bleibt aber im Modell, damit ein gespeicherter Wert Laden und Speichern übersteht (core#1459).
   priceAdjustment: number
   isDefault: boolean
 }

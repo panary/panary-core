@@ -331,6 +331,8 @@ describe('ProductFormComponent – Gruppenfelder bleiben erhalten (core#1461)', 
     expect(group.options[0]).not.toHaveProperty('priceOverride')
   })
 
+  // Bleibt grün, auch wenn die Zusatzfelder aus dem Hash fielen: `objectHash` sieht verschachtelte Felder heute gar
+  // nicht (core#1477). Der Test hält nur fest, dass die Zusatzfelder keine Dirty-Meldung auslösen.
   it('wertet ein Produkt unverändert geöffnet nicht als geändert', async () => {
     const { fixture } = await render('p-1', { product: EXTRAS })
     expect(fixture.componentInstance.isDirty()).toBe(false)

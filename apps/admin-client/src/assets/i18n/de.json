@@ -362,7 +362,31 @@
     "TYPE_PRODUCT": "Produkt",
     "TYPE_MODIFIER": "Extra",
     "TYPE_BUNDLE": "Menü",
-    "NO_OPTION_GROUPS": "Keine Optionsgruppen"
+    "NO_OPTION_GROUPS": "Keine Optionsgruppen",
+    "TAX_HINTS_TITLE": "Steuer-Hinweise zu diesem Menü",
+    "TAX_SEVERITY": {
+      "warnung": "Warnung",
+      "hinweis": "Hinweis"
+    },
+    "TAX_FINDING": {
+      "EXTRA_GROUP_RATE_DIFFERS": "Die Gruppe „{{group}}“ bucht „{{product}}“ als Extra, und ein Extra läuft immer zum Steuersatz des Menüs, obwohl „{{product}}“ einen anderen Satz hat.",
+      "OPTION_WITHOUT_PRICE_OTHER_RATE": "„{{product}}“ in „{{group}}“ hat einen anderen Steuersatz als das Menü, aber keinen eigenen Preis. Dann bekommt der abweichende Satz keinen Anteil am Menü.",
+      "MAIN_WITHOUT_SHARE": "Beim Festpreis-Menü bleibt für das Hauptgericht kein Anteil übrig.",
+      "MAIN_PRICE_MISSING": "Beim Festpreis-Menü ist kein Preis des Hauptgerichts hinterlegt.",
+      "RATE_NOT_IN_LOCATION": "Der Satz {{rate}} % von „{{product}}“ kommt in den Steuersätzen der Filiale nicht vor.",
+      "RATE_MISSING_OR_ZERO": "„{{product}}“ hat keinen oder einen Steuersatz von 0. Die Kasse setzt dann 19 % bzw. 7 % ein.",
+      "OPTION_UNRESOLVED": "Eine Option in „{{group}}“ verweist auf ein Produkt, das es nicht mehr gibt oder das nicht geladen ist."
+    },
+    "TAX_RECOMMENDATION": {
+      "GROUP_AS_SIDE_OR_DRINK": "Empfehlung: Die Gruppe als Beilage oder Getränk benennen, damit die Kasse sie mit eigenem Satz bucht.",
+      "MOVE_OPTION_TO_OWN_SIDE_OR_DRINK_GROUP": "Empfehlung: Die Option in eine eigene Beilagen- oder Getränkegruppe verschieben.",
+      "ENTER_OPTION_PRICE": "Empfehlung: Beim Produkt einen Preis eintragen.",
+      "ENTER_MAIN_PRICE_OR_CHECK_FIXED_PRICE": "Empfehlung: Den Preis des Hauptgerichts eintragen oder den Festpreis prüfen.",
+      "ENTER_MAIN_PRICE": "Empfehlung: Den Preis des Hauptgerichts eintragen.",
+      "CHECK_LOCATION_TAX_RATES": "Empfehlung: Den Satz am Produkt oder die Steuersätze der Filiale prüfen.",
+      "ENTER_TAX_RATE_EXPLICITLY": "Empfehlung: Den Steuersatz ausdrücklich eintragen.",
+      "CHECK_OPTION_PRODUCT": "Empfehlung: Die Option prüfen oder entfernen."
+    }
   },
   "PRODUCT_GROUPS": {
     "TITLE": "Produktgruppen",

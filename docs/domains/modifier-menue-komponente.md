@@ -1,8 +1,8 @@
 ---
 type: Domain Concept
 title: Modifier je Menü-Komponente (componentExternalId)
-description: 'Wie ein Modifier, der im Bestelldialog zu einer Menü-Komponente gewählt wurde (Mayonnaise zur Pommes), diese Zuordnung als componentExternalId trägt, wie groupModifiersByComponent sie für Bon-Karte, Warenkorb, Historie und Druck auflöst und warum Preis, Steuer, Verbrauch und Bestandsbestellungen unverändert bleiben.'
-tags: [orders, pos, printing, sync]
+description: 'Wie ein Modifier, der im Bestelldialog zu einer Menü-Komponente gewählt wurde (Mayonnaise zur Pommes), diese Zuordnung als componentExternalId trägt, wie groupModifiersByComponent sie für Bon-Karte, Warenkorb, Historie und Druck auflöst und warum Preis, Steuer, Verbrauch und Bestandsbestellungen unverändert bleiben. Dazu die Prüfung der Steuer-Konfiguration eines Menüs und ihre Anzeige im Edge-Admin.'
+tags: [orders, pos, printing, sync, products, tax]
 status: stable
 generated: { by: claude-code/opus-5.5, at: 2026-10-26T21:50:00Z }
 ---
@@ -112,3 +112,18 @@ begründet, nicht in CI gemessen.
 Ob Beilage und Getränk eines Menüs als Komponente mit eigenem Satz oder als Extra am Satz der Zeile gebucht werden,
 entscheidet allein der Gruppenname (`menuOptionGroupSlot`, `@panary/products/domain`). `checkMenuTax` prüft die
 Konfiguration nach sieben festen Regeln gegen diese Rechnung: [ADR 0072](../adr/0072-menue-steuerregeln-als-feste-pruefung.md).
+
+### Anzeige im Edge-Admin (core#1456)
+
+Das Produktformular des Edge-Admins (`apps/admin-client/src/app/features/products/product-form.ts`) ruft `checkMenuTax`
+über den Formularstand auf und zeigt die Befunde als Hinweisblock über den Optionsgruppen. Der Block erscheint und
+verschwindet beim Bearbeiten (Gruppenname, Satz, Preis, Optionen), er blockiert nie das Speichern. Die Texte stehen je
+Befund-Code (`PRODUCTS.TAX_FINDING.*`) und Empfehlungsschlüssel (`PRODUCTS.TAX_RECOMMENDATION.*`) in den i18n-Dateien
+des Admin-Clients (de, en, tr). Grenzen:
+
+- Die Steuersätze der Filiale kommen aus `taxSettings` der einen Filiale des Edge. Ist sie nicht geladen, entfällt
+  Regel 5 statt jeden Satz zu bemängeln.
+- Der Katalog wird mit Preis und Sätzen, aber ohne `optionGroups` der Options-Produkte geladen. Verschachtelte
+  Untergruppen sieht die Prüfung hier deshalb nicht, `checkMenuTax` im Cloud-Katalog schon.
+- `mainPrice` und der `pricingMode` der Gruppen bearbeitet das Formular nicht. Es merkt sich beim Laden die gespeicherten
+  Werte, damit Regeln 1, 3 und 4 mit dem tatsächlichen Stand rechnen.

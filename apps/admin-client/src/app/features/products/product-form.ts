@@ -21,6 +21,7 @@ import { CloudManagedService } from '../../core/cloud-managed.service'
 import { objectHash } from '../../core/dirty-check'
 import { ConfirmDialogComponent } from '../../core/confirm-dialog'
 import { SearchableSelectComponent } from '../../shared/searchable-select'
+import { checkMenuTax, type MenuTaxFinding } from '@panary/products/domain'
 import { uuidv7 } from 'uuidv7'
 
 interface ProductGroup {
@@ -51,6 +52,18 @@ interface MinimalProduct {
   acronym: string
   productType: string
   categoryIds: string[]
+  // Für die Steuerprüfung (core#1456); fehlt ein Feld, gilt der Kassen-Standard wie im Menü selbst.
+  price?: number
+  taxInside?: number
+  taxOutside?: number
+}
+
+/** Ein Befund der Steuerprüfung, mit den Namen aufbereitet, die der Hinweistext nennt. */
+interface TaxHint {
+  key: string
+  finding: MenuTaxFinding
+  group: string
+  product: string
 }
 
 const INPUT = `w-full bg-surface-input border border-line-soft rounded-lg p-3
@@ -350,6 +363,37 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                 </button>
               </div>
             </div>
+
+            @if (taxHints().length > 0) {
+              <div
+                data-testid="tax-hints"
+                class="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20
+                       p-3 space-y-2"
+              >
+                <p class="text-xs font-medium text-amber-800 dark:text-amber-300">
+                  {{ 'PRODUCTS.TAX_HINTS_TITLE' | translate }}
+                </p>
+                <ul class="space-y-1.5">
+                  @for (hint of taxHints(); track hint.key) {
+                    <li
+                      [attr.data-testid]="'tax-hint-' + hint.finding.code"
+                      [attr.data-severity]="hint.finding.severity"
+                      class="text-xs text-ink"
+                    >
+                      <span class="font-medium">{{ 'PRODUCTS.TAX_SEVERITY.' + hint.finding.severity | translate }}</span
+                      >:
+                      {{
+                        'PRODUCTS.TAX_FINDING.' + hint.finding.code
+                          | translate: { group: hint.group, product: hint.product, rate: hint.finding.rate }
+                      }}
+                      <span class="text-ink-muted">{{
+                        'PRODUCTS.TAX_RECOMMENDATION.' + hint.finding.recommendation | translate
+                      }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
 
             @for (groupField of optionGroupsForm; track groupField; let gi = $index) {
               @let group = groupField().value();
@@ -654,7 +698,61 @@ export class ProductFormComponent implements OnInit {
   // OptionGroups + Produktkatalog
   optionGroups = signal<OptionGroup[]>([])
   allProducts = signal<MinimalProduct[]>([])
+  /** Steuersätze der einen Filiale (`taxSettings`); leer, solange sie nicht geladen ist, dann entfällt Regel 5. */
+  private locationTaxRates = signal<number[]>([])
+  /** Felder, die das Formular nicht bearbeitet, die die Steuerprüfung aber braucht (Regeln 1, 3 und 4). */
+  private loadedMainPrice = signal<number | undefined>(undefined)
+  private loadedGroupPricing = signal<Record<string, 'SUM' | 'HIGHEST'>>({})
   productSelectItems = computed(() => this.allProducts().map(p => ({ id: p._id, label: p.name, sublabel: p.acronym })))
+  /**
+   * Steuer-Hinweise wie im Cloud-Katalog (core#1456): dieselbe Prüfung `checkMenuTax` über den Formularstand.
+   * Sie blockiert nie das Speichern. Verschachtelte Untergruppen der Optionsprodukte sieht sie hier nicht, weil
+   * der Katalog ohne deren `optionGroups` geladen wird.
+   */
+  private taxFindings = computed<MenuTaxFinding[]>(() => {
+    const groups = this.optionGroups()
+    if (groups.length === 0) return []
+    const p = this.product()
+    const catalog = new Map(this.allProducts().map(item => [item._id, item]))
+    const pricing = this.loadedGroupPricing()
+    return checkMenuTax({
+      menu: {
+        _id: this.entityId() || 'new',
+        price: p.price ?? 0,
+        taxInside: p.taxInside ?? undefined,
+        taxOutside: p.taxOutside ?? undefined,
+        ...(p.productType === 'BUNDLE'
+          ? { bundlePricingMode: p.bundlePricingMode, mainPrice: this.loadedMainPrice() }
+          : {}),
+        optionGroups: groups.map(g => ({
+          id: g.id,
+          name: g.name,
+          minSelections: Number(g.minSelections) || 0,
+          maxSelections: Number(g.maxSelections) || 1,
+          freeQuantity: Number(g.freeQuantity) || 0,
+          ...(pricing[g.id] ? { pricingMode: pricing[g.id] } : {}),
+          options: g.options.filter(o => o.productId).map(o => ({ productId: o.productId })),
+        })),
+      },
+      resolveOption: id => {
+        const item = catalog.get(id)
+        return item
+          ? { _id: item._id, price: item.price ?? 0, taxInside: item.taxInside, taxOutside: item.taxOutside }
+          : undefined
+      },
+      locationTaxRates: this.locationTaxRates(),
+    })
+  })
+  taxHints = computed<TaxHint[]>(() => {
+    const groupNames = new Map(this.optionGroups().map(g => [g.id, g.name]))
+    const productNames = new Map(this.allProducts().map(item => [item._id, item.name]))
+    return this.taxFindings().map(finding => ({
+      key: [finding.code, finding.groupId, finding.productId, finding.rate].join('|'),
+      finding,
+      group: (finding.groupId && groupNames.get(finding.groupId)) || '',
+      product: productNames.get(finding.productId) || this.product().name || '',
+    }))
+  })
   collapsedGroups = signal<Set<string>>(new Set())
   activeCategoryPicker = signal<string | null>(null)
   pickerPos = signal<{ top: number; left: number }>({ top: 0, left: 0 })
@@ -760,12 +858,28 @@ export class ProductFormComponent implements OnInit {
     } catch (e) {
       console.error('Fehler beim Laden der Stammdaten:', e)
     }
+    await this.loadLocationTaxRates()
+  }
+
+  /** Der Edge kennt genau eine Filiale. Ohne sie bleibt die Liste leer, und Regel 5 entfällt statt zu raten. */
+  private async loadLocationTaxRates() {
+    try {
+      const result = await this.api.find<any>('locations', { $limit: 1 })
+      const taxSettings = result.data[0]?.settings?.taxSettings
+      if (!taxSettings || typeof taxSettings !== 'object') return
+      const rates = Object.values<any>(taxSettings)
+        .map(entry => entry?.taxRate)
+        .filter((rate): rate is number => typeof rate === 'number')
+      this.locationTaxRates.set([...new Set(rates)])
+    } catch (e) {
+      console.error('Fehler beim Laden der Steuersätze der Filiale:', e)
+    }
   }
 
   /** Lädt alle Produkte seitenweise mit $select für minimalen Payload */
   private async loadAllProducts(): Promise<MinimalProduct[]> {
     const PAGE_SIZE = 250
-    const selectFields = ['_id', 'name', 'acronym', 'productType', 'categoryIds']
+    const selectFields = ['_id', 'name', 'acronym', 'productType', 'categoryIds', 'price', 'taxInside', 'taxOutside']
 
     // Erste Seite laden, um total zu erfahren
     const first = await this.api.find<MinimalProduct>('products', {
@@ -814,6 +928,8 @@ export class ProductFormComponent implements OnInit {
       categoryIds: [],
     })
     this.optionGroups.set([])
+    this.loadedMainPrice.set(undefined)
+    this.loadedGroupPricing.set({})
     this.entityId.set('')
     this.externalId.set(null)
     this.collapsedGroups.set(new Set())
@@ -840,7 +956,13 @@ export class ProductFormComponent implements OnInit {
         bundlePricingMode: p.bundlePricingMode || 'ROLLUP',
         categoryIds: Array.isArray(p.categoryIds) ? p.categoryIds : [],
       })
+      this.loadedMainPrice.set(typeof p.mainPrice === 'number' ? p.mainPrice : undefined)
       if (Array.isArray(p.optionGroups)) {
+        this.loadedGroupPricing.set(
+          Object.fromEntries(
+            p.optionGroups.filter((g: any) => g.id && g.pricingMode).map((g: any) => [g.id, g.pricingMode]),
+          ),
+        )
         this.optionGroups.set(
           p.optionGroups.map((g: any) => ({
             id: g.id || uuidv7(),
@@ -1065,6 +1187,9 @@ export class ProductFormComponent implements OnInit {
             acronym: created.acronym,
             productType: created.productType || 'PRODUCT',
             categoryIds: Array.isArray(created.categoryIds) ? created.categoryIds : [],
+            price: created.price,
+            taxInside: created.taxInside,
+            taxOutside: created.taxOutside,
           },
         ])
       } else {
@@ -1079,6 +1204,9 @@ export class ProductFormComponent implements OnInit {
                   acronym: this.product().acronym,
                   productType: this.product().productType,
                   categoryIds: this.product().categoryIds,
+                  price: this.product().price ?? undefined,
+                  taxInside: this.product().taxInside ?? undefined,
+                  taxOutside: this.product().taxOutside ?? undefined,
                 }
               : p,
           ),

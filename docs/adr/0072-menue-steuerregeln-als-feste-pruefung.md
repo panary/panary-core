@@ -58,8 +58,8 @@ der `price` des Options-Produkts, weil die Kasse nur den liest.
 
 ## Konsequenzen
 
-- Die Funktion ist fest verdrahtet und deterministisch. Die Anzeige kommt mit panary/panary-core#1456 (Edge-Admin) und
-  panary/panary-cloud#2095, #2096 (Cloud-Katalog); die Cloud bekommt die Funktion erst mit einem core-Release und Pin-Bump.
+- Die Funktion ist fest verdrahtet und deterministisch. Die Anzeige im Edge-Admin steht seit panary/panary-core#1456,
+  im Cloud-Katalog kommt sie mit panary/panary-cloud#2095, #2096; die Cloud bekommt die Funktion erst mit einem core-Release und Pin-Bump.
 - Die Regeln erkennen **nicht**, ob ein Produkt den richtigen Satz trägt oder die Aufteilung nach Einzelpreisen für den
   Betrieb die richtige Methode ist. Das klärt die Steuerberatung des Betriebs.
 - **Nicht Teil der Regeln:** Zwei Beilagen- oder zwei Getränkegruppen im selben Menü. Der Legacy-Slot hält nur die letzte

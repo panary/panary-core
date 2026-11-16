@@ -362,7 +362,31 @@
     "TYPE_PRODUCT": "Product",
     "TYPE_MODIFIER": "Extra",
     "TYPE_BUNDLE": "Menu",
-    "NO_OPTION_GROUPS": "No option groups"
+    "NO_OPTION_GROUPS": "No option groups",
+    "TAX_HINTS_TITLE": "Tax hints for this menu",
+    "TAX_SEVERITY": {
+      "warnung": "Warning",
+      "hinweis": "Note"
+    },
+    "TAX_FINDING": {
+      "EXTRA_GROUP_RATE_DIFFERS": "The group \"{{group}}\" books \"{{product}}\" as an extra, and an extra always uses the tax rate of the menu, although \"{{product}}\" has a different rate.",
+      "OPTION_WITHOUT_PRICE_OTHER_RATE": "\"{{product}}\" in \"{{group}}\" has a different tax rate than the menu but no price of its own. The differing rate then gets no share of the menu.",
+      "MAIN_WITHOUT_SHARE": "In this fixed-price menu no share is left for the main dish.",
+      "MAIN_PRICE_MISSING": "This fixed-price menu has no price for the main dish.",
+      "RATE_NOT_IN_LOCATION": "The rate {{rate}} % of \"{{product}}\" is not among the tax rates of the location.",
+      "RATE_MISSING_OR_ZERO": "\"{{product}}\" has no tax rate or a rate of 0. The register then applies 19 % or 7 %.",
+      "OPTION_UNRESOLVED": "An option in \"{{group}}\" points to a product that no longer exists or is not loaded."
+    },
+    "TAX_RECOMMENDATION": {
+      "GROUP_AS_SIDE_OR_DRINK": "Recommendation: name the group as a side or drink so the register books it with its own rate.",
+      "MOVE_OPTION_TO_OWN_SIDE_OR_DRINK_GROUP": "Recommendation: move the option to its own side or drink group.",
+      "ENTER_OPTION_PRICE": "Recommendation: enter a price on the product.",
+      "ENTER_MAIN_PRICE_OR_CHECK_FIXED_PRICE": "Recommendation: enter the price of the main dish or check the fixed price.",
+      "ENTER_MAIN_PRICE": "Recommendation: enter the price of the main dish.",
+      "CHECK_LOCATION_TAX_RATES": "Recommendation: check the rate on the product or the tax rates of the location.",
+      "ENTER_TAX_RATE_EXPLICITLY": "Recommendation: enter the tax rate explicitly.",
+      "CHECK_OPTION_PRODUCT": "Recommendation: check or remove the option."
+    }
   },
   "PRODUCT_GROUPS": {
     "TITLE": "Product Groups",

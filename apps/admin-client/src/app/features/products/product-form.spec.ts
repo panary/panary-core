@@ -31,10 +31,25 @@ const PRODUCT = {
   ],
 }
 
-async function render(id: string) {
+interface RenderOptions {
+  product?: Record<string, unknown>
+  /** Antwort von `find('products')`: der Katalog für den Options-Picker und die Steuerprüfung. */
+  catalog?: Array<Record<string, unknown>>
+  /** `settings.taxSettings` der einzigen Filiale; ohne Angabe gibt es keine Filiale. */
+  taxSettings?: Record<string, { taxRate: number; name: string }>
+}
+
+async function render(id: string, options: RenderOptions = {}) {
+  const catalog = options.catalog ?? []
   const api = {
-    find: vi.fn().mockResolvedValue({ data: [], total: 0 }),
-    get: vi.fn().mockResolvedValue(structuredClone(PRODUCT)),
+    find: vi.fn().mockImplementation(async (path: string) => {
+      if (path === 'products') return { data: catalog, total: catalog.length }
+      if (path === 'locations' && options.taxSettings) {
+        return { data: [{ _id: 'loc-1', settings: { taxSettings: options.taxSettings } }], total: 1 }
+      }
+      return { data: [], total: 0 }
+    }),
+    get: vi.fn().mockResolvedValue(structuredClone(options.product ?? PRODUCT)),
     patch: vi.fn().mockResolvedValue({}),
     create: vi.fn().mockResolvedValue({ _id: 'p-new' }),
   }
@@ -207,5 +222,188 @@ describe('ProductFormComponent – Formular', () => {
     await submit()
 
     expect(emitted).toEqual([undefined])
+  })
+})
+
+// core#1456: Dieselbe Prüfung wie im Cloud-Katalog (`checkMenuTax`), im Produktformular des Edge-Admins. Sie
+// rechnet über den Formularstand und blockiert nie das Speichern.
+describe('ProductFormComponent – Steuer-Hinweise (core#1456)', () => {
+  const TAX_SETTINGS = { A: { taxRate: 19, name: 'Normal' }, B: { taxRate: 7, name: 'Ermäßigt' } }
+  const CATALOG = [
+    {
+      _id: 'cola',
+      name: 'Cola',
+      acronym: 'CO',
+      productType: 'PRODUCT',
+      categoryIds: [],
+      price: 0,
+      taxInside: 19,
+      taxOutside: 7,
+    },
+    {
+      _id: 'kuchen',
+      name: 'Kuchen',
+      acronym: 'KU',
+      productType: 'PRODUCT',
+      categoryIds: [],
+      price: 2,
+      taxInside: 7,
+      taxOutside: 7,
+    },
+  ]
+  const menu = (groupName: string, productId: string) => ({
+    ...PRODUCT,
+    taxInside: 19,
+    taxOutside: 7,
+    optionGroups: [
+      {
+        id: 'og-1',
+        name: groupName,
+        minSelections: 1,
+        maxSelections: 1,
+        freeQuantity: 0,
+        options: [{ productId, priceAdjustment: 0 }],
+      },
+    ],
+  })
+  const renderMenu = (groupName: string, productId: string) =>
+    render('p-1', { product: menu(groupName, productId), catalog: CATALOG, taxSettings: TAX_SETTINGS })
+  const hints = (el: HTMLElement) => el.querySelector('[data-testid="tax-hints"]')
+  const hintCodes = (el: HTMLElement) =>
+    Array.from(el.querySelectorAll('[data-testid^="tax-hint-"]')).map(n => n.getAttribute('data-testid'))
+
+  it('zeigt ohne Befund keinen Block', async () => {
+    const { el } = await renderMenu('Getränk', 'cola')
+    expect(hints(el)).toBeNull()
+  })
+
+  it('zeigt eine Warnung zum Extra mit abweichendem Satz, mit Gruppe, Option und Empfehlung', async () => {
+    const { el } = await renderMenu('Extras', 'kuchen')
+    expect(hints(el)).not.toBeNull()
+    expect(hintCodes(el)).toEqual(['tax-hint-EXTRA_GROUP_RATE_DIFFERS'])
+    const hint = el.querySelector('[data-testid="tax-hint-EXTRA_GROUP_RATE_DIFFERS"]')!
+    expect(hint.getAttribute('data-severity')).toBe('warnung')
+    // Ohne geladene Übersetzungen zeigt das Template die Schlüssel; die Namen reisen als Parameter mit.
+    expect(hint.textContent).toContain('PRODUCTS.TAX_FINDING.EXTRA_GROUP_RATE_DIFFERS')
+    expect(hint.textContent).toContain('PRODUCTS.TAX_RECOMMENDATION.GROUP_AS_SIDE_OR_DRINK')
+  })
+
+  it('nimmt den Block zurück, sobald die Gruppe zur Beilage wird, und bringt ihn mit dem Namen zurück', async () => {
+    const { el, type } = await renderMenu('Extras', 'kuchen')
+    expect(hints(el)).not.toBeNull()
+
+    await type('#optGroupName-0', 'Beilage')
+    expect(hints(el)).toBeNull()
+
+    await type('#optGroupName-0', 'Extras')
+    expect(hints(el)).not.toBeNull()
+  })
+
+  it('prüft den Satz des Menüs gegen die Filiale und reagiert auf die Eingabe', async () => {
+    const { el, type } = await renderMenu('Getränk', 'cola')
+    await type('#productTaxInside', '16')
+    expect(hintCodes(el)).toContain('tax-hint-RATE_NOT_IN_LOCATION')
+
+    await type('#productTaxInside', '19')
+    expect(hints(el)).toBeNull()
+  })
+
+  it('lässt das Speichern trotz Warnung zu', async () => {
+    const { el, saveButton, submit, api } = await renderMenu('Extras', 'kuchen')
+    expect(hints(el)).not.toBeNull()
+    expect(saveButton().disabled).toBe(false)
+
+    await submit()
+    expect(api.patch).toHaveBeenCalledTimes(1)
+  })
+
+  // Ohne geladene Übersetzungen zeigt das Template nur Schlüssel; die aufgelösten Namen prüft die Ableitung selbst.
+  it('löst Gruppe, Option und Satz für den Hinweistext auf', async () => {
+    const { fixture, type } = await renderMenu('Extras', 'kuchen')
+    expect(fixture.componentInstance.taxHints()).toEqual([
+      expect.objectContaining({
+        group: 'Extras',
+        product: 'Kuchen',
+        finding: expect.objectContaining({ code: 'EXTRA_GROUP_RATE_DIFFERS', groupId: 'og-1', productId: 'kuchen' }),
+      }),
+    ])
+
+    await type('#productTaxInside', '16')
+    const rate = fixture.componentInstance.taxHints().find(h => h.finding.code === 'RATE_NOT_IN_LOCATION')
+    expect(rate).toEqual(
+      expect.objectContaining({ product: 'Burger-Menü', group: '', finding: expect.objectContaining({ rate: 16 }) }),
+    )
+  })
+
+  // Das Formular bearbeitet `mainPrice` und den Preismodus der Gruppen nicht; es muss die geladenen Werte behalten.
+  describe('Festpreis-Menü', () => {
+    const fixedMenu = (extra: Record<string, unknown>) => ({
+      ...menu('Getränk', 'cola'),
+      productType: 'BUNDLE',
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      ...extra,
+    })
+    const codes = (fixture: { componentInstance: { taxHints: () => Array<{ finding: { code: string } }> } }) =>
+      fixture.componentInstance.taxHints().map(h => h.finding.code)
+
+    it('meldet ein Hauptgericht ohne Anteil, wenn mainPrice 0 geladen wurde', async () => {
+      const { fixture } = await render('p-1', {
+        product: fixedMenu({ mainPrice: 0 }),
+        catalog: CATALOG,
+        taxSettings: TAX_SETTINGS,
+      })
+      expect(codes(fixture)).toEqual(['MAIN_WITHOUT_SHARE'])
+    })
+
+    it('meldet den fehlenden mainPrice als Hinweis, solange der Festpreis nicht erreicht wird', async () => {
+      const { fixture } = await render('p-1', {
+        product: fixedMenu({}),
+        catalog: CATALOG,
+        taxSettings: TAX_SETTINGS,
+      })
+      expect(codes(fixture)).toEqual(['MAIN_PRICE_MISSING'])
+    })
+
+    it('prüft Regeln 3 und 4 nur bei Festpreis, nicht bei Rollup', async () => {
+      const { fixture } = await render('p-1', {
+        product: fixedMenu({ bundlePricingMode: 'ROLLUP', mainPrice: 0 }),
+        catalog: CATALOG,
+        taxSettings: TAX_SETTINGS,
+      })
+      expect(codes(fixture)).toEqual([])
+    })
+
+    it('behält den geladenen Preismodus der Gruppe: HIGHEST empfiehlt die eigene Gruppe statt Beilage/Getränk', async () => {
+      const withMode = (pricingMode?: string) => {
+        const m = menu('Extras', 'kuchen')
+        return { ...m, optionGroups: [{ ...m.optionGroups[0], ...(pricingMode ? { pricingMode } : {}) }] }
+      }
+      const sum = await render('p-1', { product: withMode(), catalog: CATALOG, taxSettings: TAX_SETTINGS })
+      expect(sum.fixture.componentInstance.taxHints()[0].finding.recommendation).toBe('GROUP_AS_SIDE_OR_DRINK')
+      TestBed.resetTestingModule()
+      const highest = await render('p-1', {
+        product: withMode('HIGHEST'),
+        catalog: CATALOG,
+        taxSettings: TAX_SETTINGS,
+      })
+      expect(highest.fixture.componentInstance.taxHints()[0].finding.recommendation).toBe(
+        'MOVE_OPTION_TO_OWN_SIDE_OR_DRINK_GROUP',
+      )
+    })
+  })
+
+  // Die Hinweise gelten Menüs. Ein einfaches Produkt mit fremdem Satz zeigt sie nicht.
+  it('zeigt ohne Optionsgruppen keinen Block, auch bei einem Satz, den die Filiale nicht kennt', async () => {
+    const { el } = await render('p-1', {
+      product: { ...menu('Getränk', 'cola'), taxInside: 16, optionGroups: [] },
+      catalog: CATALOG,
+      taxSettings: TAX_SETTINGS,
+    })
+    expect(hints(el)).toBeNull()
+  })
+
+  it('lässt Regel 5 ohne geladene Filiale aus, statt jeden Satz zu bemängeln', async () => {
+    const { el } = await render('p-1', { product: menu('Getränk', 'cola'), catalog: CATALOG })
+    expect(hints(el)).toBeNull()
   })
 })

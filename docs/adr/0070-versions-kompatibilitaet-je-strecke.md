@@ -242,11 +242,43 @@ im Issue). Reihenfolge nach Abhängigkeit:
   weiter. Bestands-Edges haben nach dem Update leere Felder, bis der erste Heartbeat die Werte bringt.
 - **Bereitstellung:** `GET /health` (öffentlich) nennt beide Werte als Text, fehlend = keine bekannt. Es sind reine
   Versionsangaben ohne Gerätedaten, die Auth-Lage ändert sich nicht. Der POS liest `requiredPosMinVersion` dort
-  (core#1441); die Prüfung im POS ist nicht Teil dieses Schritts.
+  (core#1441, siehe Nachtrag unten).
 - **Admin-Client:** Die Statuszeile zeigt „Edge unter Mindestversion", wenn die Edge-Version kleiner ist
   (`compareVersions`, volle Version, nicht nur der Monatsstand); nicht vergleichbare Versionen (`staging-<sha>`)
   zeigen nichts. Das Dashboard nennt beide Mindestversionen. Beides reine Auskunft: **der Edge sperrt nichts und
   stoppt den Sync nie.**
+
+### Nachtrag: Prüfung im POS (core#1441)
+
+- **Datenquelle ist der bestehende `/health`-Poll des `ConnectionService`** (60 s). Er liest zusätzlich `version`
+  (Edge) und `requiredPosMinVersion` in zwei Signale. Fehlt ein Feld oder ist es leer, wird der Wert `null`, der
+  alte Wert bleibt **nicht** stehen: Eine in der Cloud zurückgenommene Mindestversion muss den Login wieder freigeben.
+- **Bewertung als reine Funktion** (`evaluatePosVersion`, `libs/shared/data-access/src/lib/services/pos-version-policy.ts`),
+  bewusst nicht in `@panary/shared-common`: Das ist ein veröffentlichtes Paket, eine Änderung dort zöge die
+  Cloud-Pins mit. Zwei getrennte Aussagen:
+  - **Warnung** (`behindEdge`): `monthsBehind(edge, pos) >= 1`, also `M−1` oder älter. Nur ein Streifen oben in der
+    App (`app.ts`, eigener Streifen statt Cloud-Banner: Der zeigt genau eine Meldung und würde die
+    Versionswarnung verdrängen oder von Offline-Hinweisen verdeckt werden). Der Verkauf läuft weiter.
+  - **Sperre** (`belowMinimum`): `compareVersions(pos, requiredPosMinVersion) === -1`, volle Version mit Index, nie
+    nur der Monatsstand: Die Mindestversion ist ein exakter Stand.
+- **Was nicht prüfbar ist, sperrt und warnt nie:** fehlende Angabe (älterer Edge, noch kein Health-Roundtrip),
+  `staging-<sha>`, `0.0.0`, jeder Wert außerhalb von `YY.MM.INDEX`.
+- **Wo die Sperre sitzt, genau zwei Stellen:**
+  1. **Login** (`LoginComponent.verifyPin`, nach der richtigen PIN und **vor** dem erzwungenen PIN-Wechsel und
+     vor jeder Sitzung). Verweigert wird nur ohne offene Kasse des Kassierers: Wer nach dem Inaktivitäts-Logout
+     mitten in der Schicht wieder einsteigt, bleibt drin. Die Kasse wird nur nachgeschlagen, wenn überhaupt eine
+     Sperre droht, und mit dem Bediener-Token des **soeben** angemeldeten Kassierers (der Edge zeigt am Gerät nur
+     die Laden des Token-Inhabers). Scheitert die Abfrage, wird der Login durchgelassen.
+  2. **Start der Kassensitzung im Menüweg** (`PosDayActionsService.manageCashSession`, nur im Zweig ohne offene
+     eigene Lade). Vor beiden Entscheidungen holt der POS einen frischen `/health`-Stand.
+- **Der laufende Verkauf fragt die Version nie.** Die Kassen-Freigabe mitten im Bezahlen und der Outbox-Replay öffnen
+  die Kasse über `promptCashSessionAuthorization`, nicht über den Menüweg. Eine Spec liest die Quellen dieser Pfade
+  und scheitert, sobald sie die Versionspolitik anfassen.
+- **Auslegung für `orders-only`:** Dort gibt es keine Kassensitzung. Wörtlich nach Plan wird jeder Login unter der
+  Mindestversion verweigert, auch mitten im Tag. Das ist die Folge der manuellen Mindestversion (eine bewusste
+  Handlung in der Cloud) und nicht abgeschwächt.
+- **Zeitverzug:** Die Mindestversion erreicht den Edge nur über den Heartbeat (Standard alle 30 Minuten), den POS dann
+  über `/health`. Nach dem Setzen in der Cloud gilt sie am POS also erst nach dem nächsten Heartbeat.
 
 ## Referenzen
 

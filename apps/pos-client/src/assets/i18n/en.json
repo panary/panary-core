@@ -6,6 +6,10 @@
     "STAY": "Stay signed in",
     "DISCARDS_ORDER": "The open order will be discarded."
   },
+  "VERSION": {
+    "BEHIND_WARNING": "This app runs version {{current}}, the server runs {{edge}}. Please update soon.",
+    "BELOW_MINIMUM": "This app version ({{current}}) is too old. Version {{required}} or newer is required. Please update the app or contact your administrator."
+  },
   "POS_NAV": {
     "LABEL": "Main navigation",
     "KASSE": "Order",

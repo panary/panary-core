@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { Observer } from 'rxjs'
 import type { Params } from '@feathersjs/feathers'
-import { BaseService, ConnectionService, withPosOperatorToken } from '@panary/shared/data-access'
+import { BaseService, ConnectionService, posOperatorParams, withPosOperatorToken } from '@panary/shared/data-access'
 import {
   CashSession,
   CashSessionStatus,
@@ -78,6 +78,25 @@ export class CashSessionService extends BaseService<CashSession> {
     })
     const list = Array.isArray(res) ? res : (res?.data ?? [])
     return (list[0] as CashSession | undefined) ?? null
+  }
+
+  /**
+   * Hat dieser Kassierer irgendeine offene Kasse? Für den Login unter der Mindestversion (core#1441): Wer
+   * mitten in der Schicht wieder einsteigt, wird nicht ausgesperrt. Das Bediener-Token gehört dem Kassierer,
+   * der sich gerade angemeldet hat, nicht dem noch gespeicherten des vorigen Bedieners: Der Edge zeigt am Gerät
+   * nur die Laden des Token-Inhabers (#713). Ohne Token fragt der Aufruf ausdrücklich ohne eines.
+   */
+  async hasOpenSession(openedBy: string, operatorToken: string | null | undefined): Promise<boolean> {
+    const res = await this.find({
+      query: {
+        openedBy,
+        status: { $in: [...OPEN_CASH_SESSION_STATUSES] },
+        $limit: 1,
+        ...posOperatorParams(operatorToken).query,
+      },
+    })
+    const list = Array.isArray(res) ? res : (res?.data ?? [])
+    return list.length > 0
   }
 
   /**

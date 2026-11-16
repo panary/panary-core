@@ -278,6 +278,12 @@
               </p>
             }
 
+            @if (versionBlock(); as block) {
+              <p role="alert" data-testid="login-version-block" class="text-center text-red-500 text-sm mb-4">
+                {{ 'VERSION.BELOW_MINIMUM' | translate: block }}
+              </p>
+            }
+
             <lib-pin-pad
               [length]="pinLength"
               [value]="pinInput()"

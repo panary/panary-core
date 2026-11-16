@@ -6,6 +6,10 @@
     "STAY": "Oturumu açık tut",
     "DISCARDS_ORDER": "Açık sipariş iptal edilecek."
   },
+  "VERSION": {
+    "BEHIND_WARNING": "Bu uygulama {{current}} sürümünü çalıştırıyor, sunucu {{edge}} sürümünde. Lütfen yakında güncelleyin.",
+    "BELOW_MINIMUM": "Bu uygulama sürümü ({{current}}) çok eski. En az {{required}} sürümü gerekli. Lütfen uygulamayı güncelleyin veya yöneticinize başvurun."
+  },
   "POS_NAV": {
     "LABEL": "Ana gezinme",
     "KASSE": "Sipariş",

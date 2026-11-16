@@ -9,6 +9,9 @@ import {
   openManagerAuthorizeCashSessionDialog,
 } from '@panary/businessdays/feature-pos-closing-dialog'
 import { LocationService } from '@panary/locations/data-access'
+import { PosVersionPolicyService, versionBlocksStart } from '@panary/shared/data-access'
+import { NotificationService } from '@panary/shared/ui-notifications'
+import { TranslateService } from '@ngx-translate/core'
 import { PosWriteOffDialogComponent } from '@panary/write-offs/feature-pos-dialog'
 import type { PosNavAction } from './pos-navigation'
 import { PosStaffService } from './pos-staff.service'
@@ -32,6 +35,9 @@ export class PosDayActionsService {
   readonly #businessDays = inject(BusinessDayService)
   readonly #cashSessions = inject(CashSessionService)
   readonly #staff = inject(PosStaffService)
+  readonly #versionPolicy = inject(PosVersionPolicyService)
+  readonly #notifications = inject(NotificationService)
+  readonly #translate = inject(TranslateService)
 
   run(action: PosNavAction): void {
     switch (action) {
@@ -138,6 +144,11 @@ export class PosDayActionsService {
         return
       }
 
+      // Mindestversion (core#1441, ADR 0070): Nur dieser Menüweg startet eine Kassensitzung und darf wegen der
+      // Version verweigert werden. Die Eröffnung mitten im Verkauf (Bezahlen, Outbox-Replay) ruft
+      // `promptCashSessionAuthorization` und fragt die Version nie, ein laufender Verkauf scheitert nicht daran.
+      if (await this.#blockedByVersion()) return
+
       // Den Erfolg quittiert der Dialog selbst; an der Navigation hängt kein Zustand der Kasse.
       const cashierName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined
       openManagerAuthorizeCashSessionDialog(this.#dialog, {
@@ -147,6 +158,24 @@ export class PosDayActionsService {
         defaultOpeningFloatCents: location?.settings?.cashSessionSettings?.defaultOpeningFloatCents,
       })
     })()
+  }
+
+  /** Meldet die Sperre selbst. Nicht prüfbar heißt: nicht gesperrt (offene Kasse gibt es an dieser Stelle nicht). */
+  async #blockedByVersion(): Promise<boolean> {
+    try {
+      const verdict = await this.#versionPolicy.verdictFresh()
+      if (!versionBlocksStart(verdict, false)) return false
+      this.#notifications.error(
+        this.#translate.instant('VERSION.BELOW_MINIMUM', {
+          current: this.#versionPolicy.posVersion,
+          required: this.#versionPolicy.requiredPosMinVersion() ?? '',
+        }),
+        { sticky: true },
+      )
+      return true
+    } catch {
+      return false
+    }
   }
 
   #activeLocation(): ActiveLocation | undefined {

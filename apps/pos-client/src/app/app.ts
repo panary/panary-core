@@ -1,6 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
-import { type CloudBannerActionKind, CloudStatusBannerService, LanguageService } from '@panary/shared/data-access'
+import { TranslateModule } from '@ngx-translate/core'
+import {
+  type CloudBannerActionKind,
+  CloudStatusBannerService,
+  LanguageService,
+  PosVersionPolicyService,
+} from '@panary/shared/data-access'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { KioskService, UpdateService } from '@panary/shared/data-access-updater'
 import { DeviceConfigService } from '@panary/shared/data-access-config'
@@ -10,7 +16,7 @@ import { NotificationOutletComponent } from '@panary/shared/ui-notifications'
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterModule, CloudStatusBannerComponent, NotificationOutletComponent],
+  imports: [RouterModule, TranslateModule, CloudStatusBannerComponent, NotificationOutletComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Genau EIN priorisierter Cloud-Status-Banner (positioniert sich selbst,
@@ -19,6 +25,18 @@ import { NotificationOutletComponent } from '@panary/shared/ui-notifications'
          (kein RBAC-Write auf cloud-connection) → enableOfflineModeAction bleibt false. -->
     @if (!isSetupRoute()) {
       <lib-cloud-status-banner layout="strip" [banner]="banner()" (action)="onBannerAction($event)" />
+    }
+    <!-- Versionshinweis (core#1441, ADR 0070): Der POS liegt mindestens einen Monatsstand hinter dem Edge. Nur ein
+         Hinweis, nie eine Sperre: Der Verkauf läuft weiter. Eigener Streifen, nicht im Cloud-Banner: Der zeigt
+         genau eine Meldung und würde die Versionswarnung verdrängen oder von Offline-Hinweisen verdeckt werden. -->
+    @if (!isSetupRoute() && version.warn()) {
+      <div
+        role="status"
+        data-testid="pos-version-warning"
+        class="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-100"
+      >
+        {{ 'VERSION.BEHIND_WARNING' | translate: { current: version.posVersion, edge: version.edgeVersion() } }}
+      </div>
     }
     <!-- Meldungsebene (core#1026): alle NotificationService-Meldungen, oben mittig direkt unter
          dem Streifen. Außerhalb des Setup-Guards, damit auch dort Fehler sichtbar sind. -->
@@ -40,6 +58,7 @@ import { NotificationOutletComponent } from '@panary/shared/ui-notifications'
 export class AppComponent {
   #bannerService = inject(CloudStatusBannerService)
   #router = inject(Router)
+  protected readonly version = inject(PosVersionPolicyService)
 
   protected readonly banner = this.#bannerService.activeBanner
 

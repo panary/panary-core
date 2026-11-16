@@ -8,7 +8,14 @@ import { PosSessionService, type PosLogoutReason } from '@panary/auth/data-acces
 import { TranslateService } from '@ngx-translate/core'
 import { DeviceAssignmentService, DeviceOrderChannelService } from '@panary/devices/data-access'
 import { DeviceAccessMode, type DeviceAccessModeValue } from '@panary/devices/domain'
-import { ConnectionService, LanguageService, OFFLINE_OUTBOX } from '@panary/shared/data-access'
+import { CashSessionService } from '@panary/businessdays/data-access'
+import {
+  ConnectionService,
+  evaluatePosVersion,
+  LanguageService,
+  OFFLINE_OUTBOX,
+  PosVersionPolicyService,
+} from '@panary/shared/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { UpdateService } from '@panary/shared/data-access-updater'
@@ -67,6 +74,14 @@ interface SetupOptions {
   endReason?: PosLogoutReason | null
   /** Hat das vorige Sitzungsende einen offenen Dialog geschlossen (#941)? */
   endInterrupted?: boolean
+  /** Version dieses POS-Builds (core#1441). Standard: neu genug, dass keine Sperre greift. */
+  posVersion?: string
+  /** Edge-Version aus `/health`. */
+  edgeVersion?: string | null
+  /** Von Hand gesetzte POS-Mindestversion aus `/health`; `null` = keine. */
+  minVersion?: string | null
+  /** Antwort der Kassen-Abfrage beim Login: offene Kasse vorhanden, nicht, oder die Abfrage scheitert. */
+  openCashSession?: boolean | 'fails'
 }
 
 function setup(options: SetupOptions = {}) {
@@ -79,6 +94,10 @@ function setup(options: SetupOptions = {}) {
     pendingOutbox,
     endReason = null,
     endInterrupted = false,
+    posVersion = '26.11.19',
+    edgeVersion = '26.11.19',
+    minVersion = null,
+    openCashSession = false,
   } = options
 
   const assignment = fakeAssignment(mode, assignedUserIds)
@@ -106,6 +125,14 @@ function setup(options: SetupOptions = {}) {
     isConfiguredFor: () => true,
   }
 
+  const hasOpenSession = vi.fn(async () => {
+    if (openCashSession === 'fails') throw new Error('Abfrage fehlgeschlagen')
+    return openCashSession
+  })
+  const verdictFresh = vi.fn(async () =>
+    evaluatePosVersion({ posVersion, edgeVersion, requiredPosMinVersion: minVersion }),
+  )
+
   const clearConfig = vi.fn()
   const outboxPending = signal(pendingOutbox ?? 0)
 
@@ -129,6 +156,11 @@ function setup(options: SetupOptions = {}) {
       { provide: UpdateService, useValue: {} },
       { provide: APP_CONFIG, useValue: { appVersion: '0.0.0-test' } },
       { provide: TranslateService, useValue: { instant: (key: string) => key } },
+      { provide: CashSessionService, useValue: { hasOpenSession } },
+      {
+        provide: PosVersionPolicyService,
+        useValue: { posVersion, requiredPosMinVersion: () => minVersion, verdictFresh },
+      },
       {
         provide: PosSessionService,
         useValue: {
@@ -154,6 +186,7 @@ function setup(options: SetupOptions = {}) {
     find,
     navigate,
     orderChannel,
+    hasOpenSession,
     /**
      * Faehrt den echten Ladepfad (connect → warten → Zuweisung → Benutzer →
      * Einstiegsschritt). Bracket-Zugriff, weil `ngOnInit` das Promise nicht
@@ -725,6 +758,109 @@ describe('LoginComponent — Bediener-Token', () => {
     await component.verifyPin()
 
     expect(store.has('pos_operator_token')).toBe(false)
+  })
+})
+
+// Mindestversion (core#1441, ADR 0070): Der Login unter der von Hand gesetzten Mindestversion wird verweigert,
+// aber nur ohne offene Kasse, und nie, wenn der Stand nicht prüfbar ist.
+describe('LoginComponent — Mindestversion (core#1441)', () => {
+  function loginAt(options: SetupOptions, verifyPinResult: Record<string, unknown> = { _id: 'u-anna' }) {
+    const store = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+      removeItem: (key: string) => void store.delete(key),
+    })
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
+    const ctx = setup(options)
+    ;(ctx.connection.usersService as Record<string, unknown>)['verifyPin'] = vi.fn().mockResolvedValue(verifyPinResult)
+    ctx.component.selectedUser.set({ _id: 'u-anna', firstName: 'Anna', lastName: 'Alt', initials: 'AA' } as never)
+    ctx.component.pinInput.set('1234')
+    return { ...ctx, store }
+  }
+
+  const below = { posVersion: '26.8.1', minVersion: '26.11.1' }
+
+  it('verweigert den Login unter der Mindestversion ohne offene Kasse und nennt beide Versionen', async () => {
+    const { component, navigate, store } = loginAt({ ...below, openCashSession: false })
+
+    await component.verifyPin()
+
+    expect(component.versionBlock()).toEqual({ current: '26.8.1', required: '26.11.1' })
+    expect(navigate).not.toHaveBeenCalled()
+    // Keine Sitzung, kein Token: Wer abgewiesen wird, ist nicht angemeldet.
+    expect(store.has('pos_current_user')).toBe(false)
+    // Die PIN war richtig, also kein PIN-Fehler.
+    expect(component.pinError()).toBe(false)
+    expect(component.pinInput()).toBe('')
+  })
+
+  it('lässt den Login unter der Mindestversion mit offener Kasse durch (Wiedereinstieg mitten in der Schicht)', async () => {
+    const { component, navigate } = loginAt({ ...below, openCashSession: true })
+
+    await component.verifyPin()
+
+    expect(component.versionBlock()).toBeNull()
+    expect(navigate).toHaveBeenCalledWith(['/dashboard'])
+  })
+
+  it('fragt die Kasse mit dem Token des soeben angemeldeten Kassierers, nicht mit dem gespeicherten', async () => {
+    const { component, hasOpenSession } = loginAt(
+      { ...below, openCashSession: true },
+      { _id: 'u-anna', operatorToken: 'tok-anna', operatorTokenExpiresAt: '2099-01-01T00:00:00.000Z' },
+    )
+
+    await component.verifyPin()
+
+    expect(hasOpenSession).toHaveBeenCalledWith('u-anna', 'tok-anna')
+  })
+
+  it('lässt den Login durch, wenn die Kassen-Abfrage scheitert (nicht prüfbar)', async () => {
+    const { component, navigate } = loginAt({ ...below, openCashSession: 'fails' })
+
+    await component.verifyPin()
+
+    expect(component.versionBlock()).toBeNull()
+    expect(navigate).toHaveBeenCalledWith(['/dashboard'])
+  })
+
+  it('lässt den Login ohne Mindestversion immer durch, auch weit hinter dem Edge', async () => {
+    const { component, navigate, hasOpenSession } = loginAt({ posVersion: '26.1.1', minVersion: null })
+
+    await component.verifyPin()
+
+    expect(component.versionBlock()).toBeNull()
+    expect(navigate).toHaveBeenCalledWith(['/dashboard'])
+    // Ohne drohende Sperre kein Zusatzaufruf.
+    expect(hasOpenSession).not.toHaveBeenCalled()
+  })
+
+  it('lässt einen nicht prüfbaren POS-Stand durch (staging-<sha>)', async () => {
+    const { component, navigate } = loginAt({ posVersion: 'staging-ab12cd3', minVersion: '26.11.1' })
+
+    await component.verifyPin()
+
+    expect(navigate).toHaveBeenCalledWith(['/dashboard'])
+  })
+
+  it('verweigert auch vor dem erzwungenen PIN-Wechsel', async () => {
+    const { component } = loginAt({ ...below, openCashSession: false }, { _id: 'u-anna', mustChangePosPin: true })
+
+    await component.verifyPin()
+
+    expect(component.versionBlock()).not.toBeNull()
+    expect(component.currentStep()).not.toBe('change-pin')
+  })
+
+  it('nimmt die Meldung zurück, sobald eine neue Ziffer eingegeben wird', async () => {
+    const { component } = loginAt({ ...below, openCashSession: false })
+    await component.verifyPin()
+
+    component.addDigit('1')
+
+    expect(component.versionBlock()).toBeNull()
   })
 })
 

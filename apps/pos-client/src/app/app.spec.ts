@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router'
 import { provideHttpClient } from '@angular/common/http'
 import { signal } from '@angular/core'
 import { AppComponent } from './app'
-import { ConnectionService, LanguageService } from '@panary/shared/data-access'
+import { ConnectionService, LanguageService, PosVersionPolicyService } from '@panary/shared/data-access'
 import { ThemeServiceService } from '@panary/shared/data-access-theme'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -25,6 +25,10 @@ describe('AppComponent', () => {
             }),
             isAuthenticated: () => false,
           },
+        },
+        {
+          provide: PosVersionPolicyService,
+          useValue: { warn: signal(false), posVersion: '26.11.1', edgeVersion: signal<string | null>(null) },
         },
         {
           provide: LanguageService,

@@ -15,7 +15,14 @@ import { PosSessionService } from '@panary/auth/data-access'
 import { DeviceAssignmentService, DeviceOrderChannelService } from '@panary/devices/data-access'
 import { APP_CONFIG, DeviceConfigService } from '@panary/shared/data-access-config'
 // Direct import to avoid circular dependency with Admin's ConnectionService
-import { ConnectionService, OFFLINE_OUTBOX, storePosOperatorToken } from '@panary/shared/data-access'
+import {
+  ConnectionService,
+  OFFLINE_OUTBOX,
+  PosVersionPolicyService,
+  storePosOperatorToken,
+  versionBlocksStart,
+} from '@panary/shared/data-access'
+import { CashSessionService } from '@panary/businessdays/data-access'
 import { monogramStyle, POS_PIN_LENGTH, requiresPosPinChange } from '@panary/users/domain'
 import { TimeClockPanelComponent } from './time-clock-panel/time-clock-panel.component'
 import { StaffPickerComponent, type StaffPickerPerson } from './staff-picker/staff-picker.component'
@@ -100,6 +107,8 @@ export class LoginComponent implements OnInit {
   readonly #translateService = inject(TranslateService)
   readonly #outbox = inject(OFFLINE_OUTBOX, { optional: true })
   readonly #posSession = inject(PosSessionService)
+  readonly #versionPolicy = inject(PosVersionPolicyService)
+  readonly #cashSessions = inject(CashSessionService)
   readonly #destroyRef = inject(DestroyRef)
   readonly languages = LANGUAGES
   //#endregion
@@ -118,6 +127,12 @@ export class LoginComponent implements OnInit {
   readonly pinInput: WritableSignal<string> = signal('')
   readonly pinError: WritableSignal<boolean> = signal(false)
   readonly isLoading: WritableSignal<boolean> = signal(false)
+
+  /**
+   * Der Login wurde verweigert, weil dieser POS unter der von Hand gesetzten Mindestversion liegt (core#1441).
+   * Kein PIN-Fehler: Die PIN war richtig, also weder Vibration noch „falsche PIN".
+   */
+  readonly versionBlock: WritableSignal<{ current: string; required: string } | null> = signal(null)
   readonly errorMessage: WritableSignal<string | null> = signal(null)
   readonly errorKind: WritableSignal<LoginErrorKind> = signal('connection')
 
@@ -550,6 +565,7 @@ export class LoginComponent implements OnInit {
     if (this.pinInput().length < POS_PIN_LENGTH) {
       this.pinInput.update(current => current + digit)
       this.pinError.set(false)
+      this.versionBlock.set(null)
 
       if (this.pinInput().length === POS_PIN_LENGTH) {
         setTimeout(() => this.verifyPin(), 100)
@@ -560,6 +576,7 @@ export class LoginComponent implements OnInit {
   deleteDigit(): void {
     this.pinInput.update(current => current.slice(0, -1))
     this.pinError.set(false)
+    this.versionBlock.set(null)
   }
 
   async verifyPin(): Promise<void> {
@@ -572,6 +589,12 @@ export class LoginComponent implements OnInit {
       // Serverseitige PIN-Verifizierung via Custom-Methode
       const usersService = this.connectionService.usersService as any
       const verifiedUser = await usersService.verifyPin({ userId: user._id, pin: this.pinInput() })
+
+      // Mindestversion (core#1441, ADR 0070): vor dem PIN-Wechsel und vor jeder Sitzung, damit beide Wege gelten.
+      if (await this.#blockedByVersion(user._id, verifiedUser)) {
+        this.pinInput.set('')
+        return
+      }
 
       // Erzwungener PIN-Wechsel: Der Admin hat den PIN vergeben und kennt ihn
       // daher — bis zum Wechsel waere keine POS-Aktion eindeutig zurechenbar.
@@ -600,6 +623,31 @@ export class LoginComponent implements OnInit {
       }
     } finally {
       this.isLoading.set(false)
+    }
+  }
+
+  /**
+   * Verweigert den Login nur, wenn dieser POS unter der Mindestversion liegt und der Kassierer keine offene
+   * Kasse hat. Alles Unklare (Edge ohne Angabe, keine Verbindung, Abfrage scheitert) heißt „nicht prüfbar" und
+   * lässt den Login durch: Eine Versionsprüfung sperrt nie ein Gerät, dessen Stand sie nicht kennt.
+   */
+  async #blockedByVersion(userId: string, verifiedUser: unknown): Promise<boolean> {
+    try {
+      const verdict = await this.#versionPolicy.verdictFresh()
+      // Die Kasse wird nur nachgeschlagen, wenn überhaupt eine Sperre droht: Normalfall ohne Zusatzaufruf.
+      if (!verdict.belowMinimum) return false
+      const token = (verifiedUser as { operatorToken?: unknown } | null)?.operatorToken
+      const hasOpenCashSession = await this.#cashSessions
+        .hasOpenSession(userId, typeof token === 'string' ? token : null)
+        .catch(() => true)
+      if (!versionBlocksStart(verdict, hasOpenCashSession)) return false
+      this.versionBlock.set({
+        current: this.#versionPolicy.posVersion,
+        required: this.#versionPolicy.requiredPosMinVersion() ?? '',
+      })
+      return true
+    } catch {
+      return false
     }
   }
 

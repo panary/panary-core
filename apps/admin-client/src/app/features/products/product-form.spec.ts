@@ -275,6 +275,96 @@ describe('ProductFormComponent – kein Aufpreis an Optionen (core#1459)', () =>
   })
 })
 
+// core#1461: Das Formular schrieb `optionGroups` aus den bekannten Feldern neu und verlor dabei `pricingMode`
+// (Kasse: nur der teuerste Artikel zählt), `uiMode` und `priceOverride`. Es reicht alles durch, was es nicht kennt.
+describe('ProductFormComponent – Gruppenfelder bleiben erhalten (core#1461)', () => {
+  const EXTRAS = {
+    ...PRODUCT,
+    optionGroups: [
+      {
+        id: 'og-1',
+        name: 'Bleche',
+        minSelections: 1,
+        maxSelections: 3,
+        freeQuantity: 0,
+        pricingMode: 'HIGHEST',
+        uiMode: 'LIST',
+        futureFlag: true,
+        options: [
+          { productId: 'cola', priceOverride: 3, futureOptionFlag: 'x' },
+          { productId: 'kuchen', isDefault: true, priceAdjustment: 0.6 },
+        ],
+      },
+    ],
+  }
+
+  it('schickt nach einer Namensänderung alle Felder der Gruppe und ihrer Optionen unverändert mit', async () => {
+    const { type, submit, api } = await render('p-1', { product: EXTRAS })
+    await type('#optGroupName-0', 'Pizzableche')
+    await submit()
+
+    expect(api.patch.mock.calls[0][2].optionGroups).toStrictEqual([
+      {
+        id: 'og-1',
+        name: 'Pizzableche',
+        minSelections: 1,
+        maxSelections: 3,
+        freeQuantity: 0,
+        pricingMode: 'HIGHEST',
+        uiMode: 'LIST',
+        futureFlag: true,
+        options: [
+          { productId: 'cola', priceOverride: 3, futureOptionFlag: 'x' },
+          { productId: 'kuchen', isDefault: true, priceAdjustment: 0.6 },
+        ],
+      },
+    ])
+  })
+
+  it('erfindet an einer Gruppe ohne diese Felder keine', async () => {
+    const { submit, api } = await render('p-1')
+    await submit()
+
+    const [group] = api.patch.mock.calls[0][2].optionGroups
+    expect(group).not.toHaveProperty('pricingMode')
+    expect(group).not.toHaveProperty('uiMode')
+    expect(group.options[0]).not.toHaveProperty('priceOverride')
+  })
+
+  // Bleibt grün, auch wenn die Zusatzfelder aus dem Hash fielen: `objectHash` sieht verschachtelte Felder heute gar
+  // nicht (core#1477). Der Test hält nur fest, dass die Zusatzfelder keine Dirty-Meldung auslösen.
+  it('wertet ein Produkt unverändert geöffnet nicht als geändert', async () => {
+    const { fixture } = await render('p-1', { product: EXTRAS })
+    expect(fixture.componentInstance.isDirty()).toBe(false)
+  })
+
+  it('kopiert Preis- und Anzeigemodus der Quelle in eine neue Gruppe, aber keinen Preis an den Optionen', async () => {
+    const { fixture, submit, api } = await render('p-1', { product: EXTRAS })
+    await fixture.componentInstance.copyGroupsFromProduct('p-1')
+    await submit()
+
+    const [original, copy] = api.patch.mock.calls[0][2].optionGroups
+    expect(copy.id).not.toBe(original.id)
+    expect(copy).toEqual(expect.objectContaining({ pricingMode: 'HIGHEST', uiMode: 'LIST', name: 'Bleche' }))
+    expect(copy.options[0]).not.toHaveProperty('priceOverride')
+    expect(copy.options[0]).not.toHaveProperty('futureOptionFlag')
+  })
+
+  // Die Schlüssel des Formulars gelten, nicht die geladenen: ein abgehaktes „Standard“ und ein auf 0 gesetzter
+  // Aufpreis dürfen nicht über die Grundlage zurückkehren.
+  it('schreibt ein abgehaktes Standard und einen auf 0 gesetzten Aufpreis nicht wieder zurück', async () => {
+    const { fixture, submit, api } = await render('p-1', { product: EXTRAS })
+    fixture.componentInstance.optionGroups.update(groups =>
+      groups.map(g => ({ ...g, options: g.options.map(o => ({ ...o, isDefault: false, priceAdjustment: 0 })) })),
+    )
+    await submit()
+
+    const [, kuchen] = api.patch.mock.calls[0][2].optionGroups[0].options
+    expect(kuchen).not.toHaveProperty('isDefault')
+    expect(kuchen).not.toHaveProperty('priceAdjustment')
+  })
+})
+
 // core#1456: Dieselbe Prüfung wie im Cloud-Katalog (`checkMenuTax`), im Produktformular des Edge-Admins. Sie
 // rechnet über den Formularstand und blockiert nie das Speichern.
 describe('ProductFormComponent – Steuer-Hinweise (core#1456)', () => {

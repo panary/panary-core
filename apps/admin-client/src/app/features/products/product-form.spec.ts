@@ -4,7 +4,9 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
+import { addFormats, Ajv } from '@feathersjs/schema'
 import { TranslateModule } from '@ngx-translate/core'
+import { productQuerySchema } from '@panary/products/domain'
 import { ConnectionService } from '@panary/shared/data-access'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -37,13 +39,35 @@ interface RenderOptions {
   catalog?: Array<Record<string, unknown>>
   /** `settings.taxSettings` der einzigen Filiale; ohne Angabe gibt es keine Filiale. */
   taxSettings?: Record<string, { taxRate: number; name: string }>
+  /** Antwort von `find('product-groups')`. */
+  productGroups?: Array<Record<string, unknown>>
+  /** `find('products')` scheitert, wie wenn der Edge die Anfrage mit 400 ablehnt (core#1485). */
+  failCatalog?: boolean
+  /** Die Abfrage der Steuersätze der Optionen scheitert. */
+  failRates?: boolean
+  /** Die Abfrage der Sätze antwortet erst, wenn dieses Versprechen erfüllt ist. */
+  holdRates?: Promise<void>
 }
 
 async function render(id: string, options: RenderOptions = {}) {
   const catalog = options.catalog ?? []
   const api = {
-    find: vi.fn().mockImplementation(async (path: string) => {
-      if (path === 'products') return { data: catalog, total: catalog.length }
+    find: vi.fn().mockImplementation(async (path: string, params?: unknown) => {
+      if (path === 'products') {
+        // Die Sätze der Optionen kommen mit `_id: { $in }` ohne `$select`, die Produktliste mit `$select`.
+        const ids = (params as { _id?: { $in?: string[] } } | undefined)?._id?.$in
+        if (ids) {
+          await options.holdRates
+          if (options.failRates) throw new Error('500')
+          const rows = catalog.filter(item => ids.includes(item['_id'] as string))
+          return { data: rows, total: rows.length }
+        }
+        if (options.failCatalog) throw new Error('400 Bad Request')
+        return { data: catalog, total: catalog.length }
+      }
+      if (path === 'product-groups' && options.productGroups) {
+        return { data: options.productGroups, total: options.productGroups.length }
+      }
       if (path === 'locations' && options.taxSettings) {
         return { data: [{ _id: 'loc-1', settings: { taxSettings: options.taxSettings } }], total: 1 }
       }
@@ -545,5 +569,111 @@ describe('ProductFormComponent – Steuer-Hinweise (core#1456)', () => {
   it('lässt Regel 5 ohne geladene Filiale aus, statt jeden Satz zu bemängeln', async () => {
     const { el } = await render('p-1', { product: menu('Getränk', 'cola'), catalog: CATALOG })
     expect(hints(el)).toBeNull()
+  })
+})
+
+describe('ProductFormComponent – Katalog laden (core#1485)', () => {
+  const GROUPS = [{ _id: 'pg-1', name: 'Getränke' }]
+  const MENU = {
+    ...PRODUCT,
+    optionGroups: [
+      {
+        id: 'og-1',
+        name: 'Getränk',
+        minSelections: 1,
+        maxSelections: 1,
+        freeQuantity: 0,
+        options: [{ productId: 'cola', priceAdjustment: 0 }],
+      },
+    ],
+  }
+
+  // Der Edge validiert jede Anfrage gegen `productQuerySchema` (querySyntax, additionalProperties: false) und
+  // lehnt ein unbekanntes `$select`-Feld mit 400 ab. Die Mocks der übrigen Specs sehen das nicht: Dieser Test
+  // prüft die Anfrage des Formulars deshalb gegen dasselbe Schema und dieselbe AJV-Konfiguration wie der Edge.
+  it('fragt `products` nur mit Feldern, die das Query-Schema des Edge kennt', async () => {
+    const validate = addFormats(new Ajv({ coerceTypes: true }), ['uuid', 'date-time']).compile(productQuerySchema)
+    // Echte IDs: das Schema verlangt für `_id` das uuid-Format, die Kurz-IDs der übrigen Specs fielen durch.
+    const cola = '01927d4f-3c2e-7b6a-9a1f-1ce0a8a5d7e2'
+    const withUuids = { ...MENU, optionGroups: [{ ...MENU.optionGroups[0], options: [{ productId: cola }] }] }
+    const catalog = [{ _id: cola, name: 'Cola', acronym: 'CO', productType: 'PRODUCT', categoryIds: [], price: 0 }]
+    const { api } = await render('p-1', { product: withUuids, catalog })
+    const queries = api.find.mock.calls.filter(([path]) => path === 'products').map(([, params]) => params)
+    // Die Listenabfrage und die Abfrage der Sätze der Optionen.
+    expect(queries).toHaveLength(2)
+    for (const query of queries) {
+      expect(validate(query), JSON.stringify([query, validate.errors])).toBe(true)
+    }
+  })
+
+  it('lädt die Produktgruppen weiter, wenn die Produktliste scheitert', async () => {
+    const { fixture } = await render('p-1', { product: MENU, productGroups: GROUPS, failCatalog: true })
+    expect(fixture.componentInstance.productGroups()).toEqual(GROUPS)
+  })
+
+  it('meldet den Ladefehler im Formular, statt jede Option als „nicht auflösbar“ zu melden', async () => {
+    const { el } = await render('p-1', { product: MENU, failCatalog: true })
+    expect(el.querySelector('[data-testid="catalog-load-failed"]')).not.toBeNull()
+    expect(el.querySelector('[data-testid="tax-hints"]')).toBeNull()
+  })
+
+  it('holt die Steuersätze der Optionen mit einer Abfrage auf genau diese IDs, ohne `$select`', async () => {
+    const { api } = await render('p-1', { product: MENU })
+    const rateQueries = api.find.mock.calls.filter(([path, params]) => path === 'products' && params?._id)
+    expect(rateQueries.map(([, params]) => params)).toEqual([{ _id: { $in: ['cola'] }, $limit: 1 }])
+  })
+
+  it('meldet, wenn die Steuersätze der Optionen nicht kommen, und zeigt dann keine Steuer-Hinweise', async () => {
+    const { el } = await render('p-1', { product: MENU, failRates: true })
+    expect(el.querySelector('[data-testid="option-rates-failed"]')).not.toBeNull()
+    expect(el.querySelector('[data-testid="tax-hints"]')).toBeNull()
+  })
+
+  // Ohne die Wartebedingung meldete jede Option kurz „nicht auflösbar“, das Fehlerbild aus #1485.
+  it('zeigt keine Steuer-Hinweise, solange die Sätze der Optionen unterwegs sind', async () => {
+    let release!: () => void
+    const holdRates = new Promise<void>(resolve => (release = resolve))
+    const catalog = [{ _id: 'cola', name: 'Cola', acronym: 'CO', productType: 'PRODUCT', categoryIds: [], price: 0 }]
+    const { fixture, el } = await render('p-1', {
+      product: MENU,
+      catalog: [{ ...catalog[0], taxInside: 19, taxOutside: 7 }],
+      taxSettings: { A: { taxRate: 19, name: 'Normal' } },
+      holdRates,
+    })
+    expect(fixture.componentInstance.taxHints()).toEqual([])
+    expect(el.querySelector('[data-testid="tax-hints"]')).toBeNull()
+    release()
+    for (let i = 0; i < 3; i++) {
+      await new Promise(resolve => setTimeout(resolve))
+      await fixture.whenStable()
+    }
+    // Nach der Antwort gilt die Prüfung: Menü 19/7 mit Cola 19/7 bei Satz 7 nicht in der Filiale.
+    expect(fixture.componentInstance.taxHints().length).toBeGreaterThan(0)
+  })
+
+  it('holt den Satz einer später gewählten Option nach, und nur den dieser Option', async () => {
+    const catalog = [
+      { _id: 'cola', name: 'Cola', acronym: 'CO', productType: 'PRODUCT', categoryIds: [], price: 0, taxInside: 19 },
+      { _id: 'kuchen', name: 'Kuchen', acronym: 'KU', productType: 'PRODUCT', categoryIds: [], price: 2, taxInside: 7 },
+    ]
+    const { fixture, api } = await render('p-1', { product: MENU, catalog })
+    const component = fixture.componentInstance
+    component.optionGroups.update(groups =>
+      groups.map(g => ({
+        ...g,
+        options: [...g.options, { productId: 'kuchen', priceAdjustment: 0, isDefault: false }],
+      })),
+    )
+    for (let i = 0; i < 3; i++) {
+      await new Promise(resolve => setTimeout(resolve))
+      await fixture.whenStable()
+    }
+    const rateQueries = api.find.mock.calls.filter(([path, params]) => path === 'products' && params?._id)
+    expect(rateQueries.map(([, params]) => params._id.$in)).toEqual([['cola'], ['kuchen']])
+  })
+
+  it('zeigt keinen Ladefehler, wenn die Produktliste kommt', async () => {
+    const { el } = await render('p-1', { product: MENU })
+    expect(el.querySelector('[data-testid="catalog-load-failed"]')).toBeNull()
   })
 })

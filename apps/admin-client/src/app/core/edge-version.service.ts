@@ -21,10 +21,34 @@ export class EdgeVersionService {
 
   /** Die Version, oder `null`, wenn `/health` nicht antwortet oder kein `version` liefert. */
   async load(): Promise<string | null> {
-    const health = await lastValueFrom(
-      this.http.get<{ version?: unknown }>(`${API_BASE_URL}/health?t=${Date.now()}`),
-    ).catch(() => null)
-    const version = health?.version
-    return typeof version === 'string' && version !== '' ? version : null
+    return (await this.loadInfo())?.version ?? null
   }
+
+  /**
+   * Version und die zuletzt von der Cloud gemeldeten Mindestversionen (core#1440), oder `null`, wenn `/health`
+   * nicht antwortet oder keine Version liefert. Die Mindestversionen sind `null`, solange der Edge keine kennt;
+   * sie stehen dort auch bei Funkstille zur Cloud (letzter Stand).
+   */
+  async loadInfo(): Promise<EdgeVersionInfo | null> {
+    const health = await lastValueFrom(
+      this.http.get<{ version?: unknown; requiredEdgeMinVersion?: unknown; requiredPosMinVersion?: unknown }>(
+        `${API_BASE_URL}/health?t=${Date.now()}`,
+      ),
+    ).catch(() => null)
+    const version = text(health?.version)
+    if (version === null) return null
+    return {
+      version,
+      requiredEdgeMinVersion: text(health?.requiredEdgeMinVersion),
+      requiredPosMinVersion: text(health?.requiredPosMinVersion),
+    }
+  }
+}
+
+const text = (value: unknown): string | null => (typeof value === 'string' && value !== '' ? value : null)
+
+export interface EdgeVersionInfo {
+  version: string
+  requiredEdgeMinVersion: string | null
+  requiredPosMinVersion: string | null
 }

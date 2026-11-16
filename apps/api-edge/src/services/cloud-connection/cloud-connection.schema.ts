@@ -102,6 +102,9 @@ export const cloudConnectionPatchResolver = resolve<CloudConnection, HookContext
   foreignTenantRecordsAt: filterFromExternal,
   foreignTenantRecordsCount: filterFromExternal,
   foreignTenantRecordsLastTenantId: filterFromExternal,
+  // Mindestversionen (core#1440): Befund der Cloud, nur der Heartbeat schreibt sie.
+  requiredEdgeMinVersion: filterFromExternal,
+  requiredPosMinVersion: filterFromExternal,
   // `offlineOverrideActiveUntil` bleibt bewusst ausgenommen: der
   // OfflineOverrideService im Admin patcht es extern (Banner-Aktion
   // „Offline-Modus aktivieren"). Migration auf eine eigene Custom-Method ist

@@ -31,13 +31,22 @@ describe('Edge-Statuszeile: Tönung', () => {
   })
 })
 
+const info = (version: string, requiredEdgeMinVersion: string | null = null) => ({
+  version,
+  requiredEdgeMinVersion,
+  requiredPosMinVersion: null,
+})
+
 /** Statuszeile direkt instanziiert (Muster admin-layout.spec): geprüft wird der Zustand, den das Template bindet. */
 function setup(find: ReturnType<typeof vi.fn>) {
   vi.useFakeTimers()
   TestBed.configureTestingModule({
     providers: [
       { provide: ApiService, useValue: { find } },
-      { provide: EdgeVersionService, useValue: { load: vi.fn().mockResolvedValue('26.10.24') } },
+      {
+        provide: EdgeVersionService,
+        useValue: { loadInfo: vi.fn().mockResolvedValue(info('26.10.24')) },
+      },
       { provide: SyncProblemCountService, useValue: { count: signal(0) } },
       { provide: DeviceStatusService, useValue: { online: signal(null), total: signal(null) } },
     ],
@@ -86,14 +95,48 @@ describe('Edge-Statuszeile: Cloud-Abruf', () => {
   })
 })
 
+describe('Edge-Statuszeile: Mindestversion nachladen', () => {
+  function setupPoll(loadInfo: ReturnType<typeof vi.fn>) {
+    vi.useFakeTimers()
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ApiService, useValue: { find: vi.fn().mockResolvedValue({ data: [] }) } },
+        { provide: EdgeVersionService, useValue: { loadInfo } },
+        { provide: SyncProblemCountService, useValue: { count: signal(0) } },
+        { provide: DeviceStatusService, useValue: { online: signal(null), total: signal(null) } },
+      ],
+    })
+    const bar = TestBed.runInInjectionContext(() => new EdgeStatusBarComponent())
+    return () => (bar as unknown as { belowMinVersion: () => string | null }).belowMinVersion()
+  }
+
+  it('zeigt den Hinweis nach dem nächsten Takt, sobald ein Heartbeat die Mindestversion gebracht hat', async () => {
+    const loadInfo = vi.fn().mockResolvedValueOnce(info('26.10.5')).mockResolvedValue(info('26.10.5', '26.11.1'))
+    const below = setupPoll(loadInfo)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(below()).toBeNull()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(below()).toBe('26.11.1')
+  })
+
+  it('hält bei ausbleibender Antwort den letzten Stand (Hinweis bleibt)', async () => {
+    const loadInfo = vi.fn().mockResolvedValueOnce(info('26.10.5', '26.11.1')).mockResolvedValue(null)
+    const below = setupPoll(loadInfo)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(below()).toBe('26.11.1')
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(below()).toBe('26.11.1')
+  })
+})
+
 describe('Edge-Statuszeile: Version', () => {
-  async function render(version: string | null) {
-    const load = vi.fn().mockResolvedValue(version)
+  async function render(result: ReturnType<typeof info> | null) {
+    const loadInfo = vi.fn().mockResolvedValue(result)
     await TestBed.configureTestingModule({
       imports: [EdgeStatusBarComponent, TranslateModule.forRoot()],
       providers: [
         { provide: ApiService, useValue: { find: vi.fn().mockResolvedValue({ data: [] }) } },
-        { provide: EdgeVersionService, useValue: { load } },
+        { provide: EdgeVersionService, useValue: { loadInfo } },
         { provide: SyncProblemCountService, useValue: { count: signal(0) } },
         { provide: DeviceStatusService, useValue: { online: signal(null), total: signal(null) } },
       ],
@@ -101,17 +144,35 @@ describe('Edge-Statuszeile: Version', () => {
     const fixture = TestBed.createComponent(EdgeStatusBarComponent)
     await fixture.whenStable()
     fixture.detectChanges()
-    return { el: fixture.nativeElement as HTMLElement, load }
+    return { el: fixture.nativeElement as HTMLElement, loadInfo }
   }
 
   it('zeigt die Version aus dem EdgeVersionService', async () => {
-    const { el, load } = await render('26.11.2')
-    expect(load).toHaveBeenCalledTimes(1)
+    const { el, loadInfo } = await render(info('26.11.2'))
+    expect(loadInfo).toHaveBeenCalledTimes(1)
     expect(el.querySelector('li.font-mono')?.textContent?.trim()).toEqual('v26.11.2')
   })
 
   it('blendet den Eintrag aus, wenn keine Version bekannt ist', async () => {
     const { el } = await render(null)
     expect(el.querySelector('li.font-mono')).toBeNull()
+  })
+
+  it('zeigt den Hinweis, wenn der Edge unter der Mindestversion liegt', async () => {
+    const { el } = await render(info('26.10.5', '26.11.1'))
+    expect(el.querySelector('[data-testid="edge-below-min-version"]')).not.toBeNull()
+  })
+
+  it('zeigt keinen Hinweis bei Gleichstand, darüber, ohne Mindestversion oder nicht vergleichbar', async () => {
+    for (const [version, min] of [
+      ['26.11.1', '26.11.1'],
+      ['26.11.2', '26.11.1'],
+      ['26.10.5', null],
+      ['staging-abc123', '26.11.1'],
+    ] as const) {
+      TestBed.resetTestingModule()
+      const { el } = await render(info(version, min))
+      expect(el.querySelector('[data-testid="edge-below-min-version"]')).toBeNull()
+    }
   })
 })

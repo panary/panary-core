@@ -24,6 +24,9 @@ interface EdgeServerInfo {
   timestamp: string
   uptime: number
   version: string
+  /** Zuletzt von der Cloud gemeldete Mindestversionen (core#1440); fehlt = keine bekannt. */
+  requiredEdgeMinVersion?: string
+  requiredPosMinVersion?: string
   systemMode: string
   nodeVersion: string
   platform: string
@@ -287,11 +290,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   edgeInfo = signal<EdgeServerInfo | null>(null)
 
+  #minVersionText(min: string | undefined): string {
+    return min ? `v${min}` : this.#t.instant('DASHBOARD.MIN_VERSION_NONE')
+  }
+
   edgeRows = computed(() => {
     const info = this.edgeInfo()
     if (!info) return []
     return [
       { label: this.#t.instant('DASHBOARD.VERSION'), value: `v${info.version}` },
+      {
+        label: this.#t.instant('DASHBOARD.MIN_VERSION_EDGE'),
+        value: this.#minVersionText(info.requiredEdgeMinVersion),
+      },
+      { label: this.#t.instant('DASHBOARD.MIN_VERSION_POS'), value: this.#minVersionText(info.requiredPosMinVersion) },
       { label: this.#t.instant('DASHBOARD.UPTIME'), value: formatUptime(info.uptime) },
       { label: 'Node.js', value: info.nodeVersion },
       { label: this.#t.instant('DASHBOARD.PLATFORM'), value: info.platform },

@@ -45,6 +45,8 @@ interface RenderOptions {
   failCatalog?: boolean
   /** Die Abfrage der Steuersätze der Optionen scheitert. */
   failRates?: boolean
+  /** Die Abfrage der Sätze antwortet erst, wenn dieses Versprechen erfüllt ist. */
+  holdRates?: Promise<void>
 }
 
 async function render(id: string, options: RenderOptions = {}) {
@@ -55,6 +57,7 @@ async function render(id: string, options: RenderOptions = {}) {
         // Die Sätze der Optionen kommen mit `_id: { $in }` ohne `$select`, die Produktliste mit `$select`.
         const ids = (params as { _id?: { $in?: string[] } } | undefined)?._id?.$in
         if (ids) {
+          await options.holdRates
           if (options.failRates) throw new Error('500')
           const rows = catalog.filter(item => ids.includes(item['_id'] as string))
           return { data: rows, total: rows.length }
@@ -624,6 +627,49 @@ describe('ProductFormComponent – Katalog laden (core#1485)', () => {
     const { el } = await render('p-1', { product: MENU, failRates: true })
     expect(el.querySelector('[data-testid="option-rates-failed"]')).not.toBeNull()
     expect(el.querySelector('[data-testid="tax-hints"]')).toBeNull()
+  })
+
+  // Ohne die Wartebedingung meldete jede Option kurz „nicht auflösbar“, das Fehlerbild aus #1485.
+  it('zeigt keine Steuer-Hinweise, solange die Sätze der Optionen unterwegs sind', async () => {
+    let release!: () => void
+    const holdRates = new Promise<void>(resolve => (release = resolve))
+    const catalog = [{ _id: 'cola', name: 'Cola', acronym: 'CO', productType: 'PRODUCT', categoryIds: [], price: 0 }]
+    const { fixture, el } = await render('p-1', {
+      product: MENU,
+      catalog: [{ ...catalog[0], taxInside: 19, taxOutside: 7 }],
+      taxSettings: { A: { taxRate: 19, name: 'Normal' } },
+      holdRates,
+    })
+    expect(fixture.componentInstance.taxHints()).toEqual([])
+    expect(el.querySelector('[data-testid="tax-hints"]')).toBeNull()
+    release()
+    for (let i = 0; i < 3; i++) {
+      await new Promise(resolve => setTimeout(resolve))
+      await fixture.whenStable()
+    }
+    // Nach der Antwort gilt die Prüfung: Menü 19/7 mit Cola 19/7 bei Satz 7 nicht in der Filiale.
+    expect(fixture.componentInstance.taxHints().length).toBeGreaterThan(0)
+  })
+
+  it('holt den Satz einer später gewählten Option nach, und nur den dieser Option', async () => {
+    const catalog = [
+      { _id: 'cola', name: 'Cola', acronym: 'CO', productType: 'PRODUCT', categoryIds: [], price: 0, taxInside: 19 },
+      { _id: 'kuchen', name: 'Kuchen', acronym: 'KU', productType: 'PRODUCT', categoryIds: [], price: 2, taxInside: 7 },
+    ]
+    const { fixture, api } = await render('p-1', { product: MENU, catalog })
+    const component = fixture.componentInstance
+    component.optionGroups.update(groups =>
+      groups.map(g => ({
+        ...g,
+        options: [...g.options, { productId: 'kuchen', priceAdjustment: 0, isDefault: false }],
+      })),
+    )
+    for (let i = 0; i < 3; i++) {
+      await new Promise(resolve => setTimeout(resolve))
+      await fixture.whenStable()
+    }
+    const rateQueries = api.find.mock.calls.filter(([path, params]) => path === 'products' && params?._id)
+    expect(rateQueries.map(([, params]) => params._id.$in)).toEqual([['cola'], ['kuchen']])
   })
 
   it('zeigt keinen Ladefehler, wenn die Produktliste kommt', async () => {

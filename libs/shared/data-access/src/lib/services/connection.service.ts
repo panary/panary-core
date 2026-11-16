@@ -50,6 +50,8 @@ export type ServiceName = keyof ConnectionService
 const PAIRING_CONNECTED = 'connected'
 const PAIRING_DISCONNECTED = 'disconnected'
 
+const nonEmptyText = (value: unknown): string | null => (typeof value === 'string' && value !== '' ? value : null)
+
 /** Kasse mit Geräte-Zugang. Dieselbe Bedingung wählt den Socket-Zweig und die Fristen (panary/panary-core#1342). */
 const isDeviceStrategy = (deviceConfig: any): boolean => Boolean(deviceConfig?.deviceId && deviceConfig?.apiKey)
 
@@ -104,6 +106,10 @@ export class ConnectionService {
   // wirklich bekannt ist — sonst flackert bei jedem Seitenaufruf ein
   // "cloud-verwaltet"-Banner auf, das gleich wieder verschwindet.
   readonly #healthLoaded: WritableSignal<boolean> = signal(false)
+  // Version des Edge und von Hand gesetzte POS-Mindestversion aus /health (core#1441). Fehlt ein Feld, wird es
+  // `null` (kein Behalten des alten Werts): Eine geloeschte Mindestversion muss den Login wieder freigeben.
+  readonly #edgeVersion: WritableSignal<string | null> = signal(null)
+  readonly #requiredPosMinVersion: WritableSignal<string | null> = signal(null)
   readonly #tick: WritableSignal<number> = signal(0)
   #tickTimer: ReturnType<typeof setInterval> | null = null
 
@@ -333,6 +339,12 @@ export class ConnectionService {
    * duerfen vorher keine Sperre behaupten — der Zustand ist schlicht unbekannt.
    */
   readonly healthLoaded = computed(() => this.#healthLoaded())
+
+  /** Version des Edge-Servers aus `/health`; `null`, solange unbekannt (noch kein Roundtrip, aelterer Edge). */
+  readonly edgeVersion = computed(() => this.#edgeVersion())
+
+  /** Von Hand gesetzte Mindestversion fuer den POS (ADR 0070); `null` = keine gesetzt oder nicht bekannt. */
+  readonly requiredPosMinVersion = computed(() => this.#requiredPosMinVersion())
 
   /**
    * Aktuelles Tier-Modell des verbundenen Backends.
@@ -892,6 +904,8 @@ export class ConnectionService {
         this.#emergencyOverrideSince.set(
           typeof data.emergencyOverrideSince === 'string' ? data.emergencyOverrideSince : null,
         )
+        this.#edgeVersion.set(nonEmptyText(data.version))
+        this.#requiredPosMinVersion.set(nonEmptyText(data.requiredPosMinVersion))
         // Mandantensperre aus dem Pull des gekoppelten Edge (#1401); fehlt das Feld, bleibt der Zustand.
         this.#tenantSuspension.applyHealthSuspension(data.cloudTenantSuspension)
         this.#healthLoaded.set(true)

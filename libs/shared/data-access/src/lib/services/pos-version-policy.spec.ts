@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { evaluatePosVersion, versionBlocksStart } from './pos-version-policy'
+import { evaluatePosVersion, parseHealthVersions, versionBlocksStart } from './pos-version-policy'
 
 describe('evaluatePosVersion', () => {
   it('ohne Mindestversion ist der Start immer erlaubt', () => {
@@ -76,5 +76,26 @@ describe('versionBlocksStart', () => {
   it('lässt ohne Mindestversion immer durch', () => {
     const open = evaluatePosVersion({ posVersion: '26.8.1', edgeVersion: '26.11.19', requiredPosMinVersion: null })
     expect(versionBlocksStart(open, false)).toBe(false)
+  })
+})
+
+describe('parseHealthVersions', () => {
+  it('liest Edge-Version und Mindestversion', () => {
+    expect(parseHealthVersions({ version: '26.11.19', requiredPosMinVersion: '26.11.1' })).toEqual({
+      edgeVersion: '26.11.19',
+      requiredPosMinVersion: '26.11.1',
+    })
+  })
+
+  it('macht fehlende, leere und nicht-textuelle Felder zu null (kein Behalten des alten Werts)', () => {
+    for (const data of [
+      {},
+      null,
+      undefined,
+      { version: '', requiredPosMinVersion: '' },
+      { version: 5, requiredPosMinVersion: {} },
+    ]) {
+      expect(parseHealthVersions(data)).toEqual({ edgeVersion: null, requiredPosMinVersion: null })
+    }
   })
 })

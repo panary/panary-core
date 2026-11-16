@@ -49,3 +49,17 @@ export function evaluatePosVersion(input: PosVersionInput): PosVersionVerdict {
 export function versionBlocksStart(verdict: PosVersionVerdict, hasOpenCashSession: boolean): boolean {
   return verdict.belowMinimum && !hasOpenCashSession
 }
+
+/**
+ * Liest Edge-Version und Mindestversion aus der `/health`-Antwort. Alles außer einem nichtleeren Text ist `null`
+ * („nicht bekannt"): Ein fehlendes Feld lässt den alten Wert nicht stehen, sonst gälte eine in der Cloud
+ * zurückgenommene Mindestversion am POS weiter.
+ */
+export function parseHealthVersions(data: unknown): {
+  edgeVersion: string | null
+  requiredPosMinVersion: string | null
+} {
+  const source = (data ?? {}) as { version?: unknown; requiredPosMinVersion?: unknown }
+  const text = (value: unknown): string | null => (typeof value === 'string' && value !== '' ? value : null)
+  return { edgeVersion: text(source.version), requiredPosMinVersion: text(source.requiredPosMinVersion) }
+}

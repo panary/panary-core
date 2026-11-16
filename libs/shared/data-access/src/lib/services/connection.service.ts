@@ -7,6 +7,7 @@ import io, { Socket } from 'socket.io-client'
 import { Utils } from '@panary/shared/util-helpers'
 
 import { AppConfigService, DeviceConfigService } from '@panary/shared/data-access-config'
+import { parseHealthVersions } from './pos-version-policy'
 import { BusinessDaySchema } from '@panary/businessdays/domain'
 import { buildDeviceSocketAuth } from './device-socket-auth'
 import { matchesSocketIdentity, type SocketIdentity } from './socket-identity'
@@ -49,8 +50,6 @@ export type ServiceName = keyof ConnectionService
  */
 const PAIRING_CONNECTED = 'connected'
 const PAIRING_DISCONNECTED = 'disconnected'
-
-const nonEmptyText = (value: unknown): string | null => (typeof value === 'string' && value !== '' ? value : null)
 
 /** Kasse mit Geräte-Zugang. Dieselbe Bedingung wählt den Socket-Zweig und die Fristen (panary/panary-core#1342). */
 const isDeviceStrategy = (deviceConfig: any): boolean => Boolean(deviceConfig?.deviceId && deviceConfig?.apiKey)
@@ -904,8 +903,9 @@ export class ConnectionService {
         this.#emergencyOverrideSince.set(
           typeof data.emergencyOverrideSince === 'string' ? data.emergencyOverrideSince : null,
         )
-        this.#edgeVersion.set(nonEmptyText(data.version))
-        this.#requiredPosMinVersion.set(nonEmptyText(data.requiredPosMinVersion))
+        const versions = parseHealthVersions(data)
+        this.#edgeVersion.set(versions.edgeVersion)
+        this.#requiredPosMinVersion.set(versions.requiredPosMinVersion)
         // Mandantensperre aus dem Pull des gekoppelten Edge (#1401); fehlt das Feld, bleibt der Zustand.
         this.#tenantSuspension.applyHealthSuspension(data.cloudTenantSuspension)
         this.#healthLoaded.set(true)

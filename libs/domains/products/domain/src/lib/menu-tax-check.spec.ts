@@ -310,6 +310,16 @@ describe('Robustheit', () => {
     expect(check({ optionGroups: [group(1, 'Beilage', [11])] }, [a, b])).toEqual([])
   })
 
+  it('endet bei einem Zirkelbezug auch in der teuersten Kombination des Festpreis-Menüs', () => {
+    const a = product(11, 3, 7, 7, { optionGroups: [group(2, 'Beilage', [12])] })
+    const b = product(12, 2, 7, 7, { optionGroups: [group(3, 'Beilage', [11])] })
+    const findings = check(
+      { bundlePricingMode: 'FIXED_PROPORTIONAL', price: 20, optionGroups: [group(1, 'Beilage', [11])] },
+      [a, b],
+    )
+    expect(findings.map(f => f.rule)).toEqual([4])
+  })
+
   it('ein Menü ohne Gruppen hat keinen Befund', () => {
     expect(check({ optionGroups: undefined }, [])).toEqual([])
   })

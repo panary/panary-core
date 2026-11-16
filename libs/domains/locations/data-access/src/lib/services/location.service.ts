@@ -122,14 +122,6 @@ export class LocationService extends BaseService<Location> {
     return this.activeLocation()?.settings?.invoiceSettings?.textLine4 || ''
   }
 
-  get generalMenuDrinkPrice(): number {
-    return this.activeLocation()?.settings?.genericProductSettings?.generalDrinkPrice || 0
-  }
-
-  get generalMenuSideDishPrice(): number {
-    return this.activeLocation()?.settings?.genericProductSettings?.generalSideDishPrice || 0
-  }
-
   get genericUserSettings() {
     return this.activeLocation()?.settings?.genericUserSettings || undefined
   }

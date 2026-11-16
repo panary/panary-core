@@ -97,6 +97,14 @@ Zeile überhaupt zugeordnete Modifier trägt.
   Die Historie liest weiter das rohe `order.lineItems` (nicht `effectiveLineItems` wie „Offen“), bei
   gesplitteten Bestellungen weichen beide bewusst voneinander ab.
 
+- **Aufschlag beim Buchen** ([core#1454](https://github.com/panary/panary-core/issues/1454),
+  [ADR 0071](../adr/0071-menue-aufschlag-wird-beim-buchen-festgeschrieben.md) Punkt 6): `selectOptionGroupItem` stempelt
+  für Beilage und Getränk `surcharge` (Euro brutto je Stück) an den Legacy-Slot und an die Komponente in `components[]`.
+  Pflichtgruppe: Preis der Wahl minus günstigste Option der Gruppe (Cola 2,30 / Weizenbier 2,90 → 0 / 0,60), freiwillige
+  Gruppe: voller Preis. `BundleFlow.surchargeOfChoice` sammelt die Preise über den Katalog, die Rechnung steht in
+  `menuComponentSurchargeOfChoiceCents` (`@panary/orders/domain`). Bei `FIXED_PROPORTIONAL` wird nichts gestempelt; der
+  Betrag geht nie in Positionsbetrag oder Steuer ein.
+
 Nicht umgestellt (zeigen weiter flach): Split-Dialog.
 
 ## Sync und Cloud

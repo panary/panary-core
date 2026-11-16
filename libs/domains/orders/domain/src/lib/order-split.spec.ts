@@ -566,3 +566,20 @@ describe('planOrderSplit — Reinheit', () => {
     expect(order).toEqual(snapshot)
   })
 })
+
+describe('planOrderSplit — Aufschlag der Menü-Komponente (core#1454)', () => {
+  it('die Zielzeile trägt den festgeschriebenen Aufschlag an Slot und Komponente mit', () => {
+    const menue = makeLine(8.0, 1, 7, {
+      isMenu: true,
+      menuDrink: makeGeneric(2.9, 1, { surcharge: 0.6 } as Partial<GenericOrderLineItem>) as never,
+      components: [{ ...makeGeneric(2.9, 1), role: 'drink', surcharge: 0.6 }] as never,
+    })
+    const order = makeOrder([menue, makeLine(1.19, 1, 19)])
+
+    const plan = planOrderSplit(order, [{ lineItemRowId: menue._id }], PLAN)
+
+    const ziel = plan.targetLineItems[0]
+    expect((ziel.menuDrink as { surcharge?: number }).surcharge).toBe(0.6)
+    expect((ziel.components as Array<{ surcharge?: number }>)[0].surcharge).toBe(0.6)
+  })
+})

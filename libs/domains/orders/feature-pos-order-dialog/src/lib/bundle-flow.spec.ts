@@ -278,3 +278,66 @@ describe('BundleFlow.recordSlotComponent (core#1450)', () => {
     expect(li.components?.map(c => c._id)).toEqual(['p-pommes', 'p-wasser'])
   })
 })
+
+describe('BundleFlow.surchargeOfChoice / recordSlotComponent mit Aufschlag (core#1454)', () => {
+  // Kötters Fritte: Getränke Cola 2,30 / Weizenbier 2,90, Beilagen Pommes 0,00 / Kroketten 0,90.
+  const cola = product({ _id: 'p-cola', name: 'Cola', price: 2.3, taxInside: 19, taxOutside: 19 })
+  const bier = product({ _id: 'p-bier', name: 'Weizenbier', price: 2.9, taxInside: 19, taxOutside: 19 })
+  const pommes = product({ _id: 'p-pommes', name: 'Pommes', price: 0, taxInside: 7, taxOutside: 7 })
+  const kroketten = product({ _id: 'p-kroketten', name: 'Kroketten', price: 0.9, taxInside: 7, taxOutside: 7 })
+  const drinks = {
+    id: 'g-drinks',
+    name: 'Getränke',
+    minSelections: 1,
+    options: [{ productId: 'p-cola' }, { productId: 'p-bier' }],
+  }
+  const sides = {
+    id: 'g-sides',
+    name: 'Beilagen',
+    minSelections: 1,
+    options: [{ productId: 'p-pommes' }, { productId: 'p-kroketten' }],
+  }
+  const flow = () => new BundleFlow(catalog([cola, bier, pommes, kroketten]))
+
+  it('Pflichtgruppe: günstigste Option 0, teurere die Differenz in Euro', () => {
+    const f = flow()
+    expect(f.surchargeOfChoice(cola, drinks)).toBe(0)
+    expect(f.surchargeOfChoice(bier, drinks)).toBe(0.6)
+    expect(f.surchargeOfChoice(pommes, sides)).toBe(0)
+    expect(f.surchargeOfChoice(kroketten, sides)).toBe(0.9)
+  })
+
+  it('freiwillige Gruppe: der volle Preis der Wahl', () => {
+    const f = flow()
+    const optional = { ...drinks, minSelections: 0 }
+    expect(f.surchargeOfChoice(cola, optional)).toBe(2.3)
+    expect(f.surchargeOfChoice(bier, optional)).toBe(2.9)
+  })
+
+  it('eine nicht auflösbare Option zählt nicht als Messlatte', () => {
+    const f = flow()
+    const mitLuecke = {
+      ...drinks,
+      options: [{ productId: 'p-fehlt' }, { productId: 'p-cola' }, { productId: 'p-bier' }],
+    }
+    expect(f.surchargeOfChoice(bier, mitLuecke)).toBe(0.6)
+  })
+
+  it('recordSlotComponent stempelt den Aufschlag an die Komponente, ohne Aufschlag bleibt das Feld weg', () => {
+    const f = flow()
+    const li = lineItem({ modifiers: [] })
+    f.recordSlotComponent(li, bier, drinks, 0.6)
+    f.recordSlotComponent(li, pommes, sides)
+    expect(li.components?.find(c => c.optionGroupId === 'g-drinks')?.surcharge).toBe(0.6)
+    expect(li.components?.find(c => c.optionGroupId === 'g-sides')).not.toHaveProperty('surcharge')
+  })
+
+  it('eine neue Wahl ersetzt den Aufschlag der früheren, er bleibt nicht stehen', () => {
+    const f = flow()
+    const li = lineItem({ modifiers: [] })
+    f.recordSlotComponent(li, bier, drinks, 0.6)
+    f.recordSlotComponent(li, cola, drinks, 0)
+    expect(li.components).toHaveLength(1)
+    expect(li.components?.[0]).not.toHaveProperty('surcharge')
+  })
+})

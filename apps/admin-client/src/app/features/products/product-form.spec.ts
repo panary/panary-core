@@ -317,6 +317,16 @@ describe('ProductFormComponent – Steuer-Hinweise (core#1456)', () => {
     expect(api.patch).toHaveBeenCalledTimes(1)
   })
 
+  // Die Hinweise gelten Menüs. Ein einfaches Produkt mit fremdem Satz zeigt sie nicht.
+  it('zeigt ohne Optionsgruppen keinen Block, auch bei einem Satz, den die Filiale nicht kennt', async () => {
+    const { el } = await render('p-1', {
+      product: { ...menu('Getränk', 'cola'), taxInside: 16, optionGroups: [] },
+      catalog: CATALOG,
+      taxSettings: TAX_SETTINGS,
+    })
+    expect(hints(el)).toBeNull()
+  })
+
   it('lässt Regel 5 ohne geladene Filiale aus, statt jeden Satz zu bemängeln', async () => {
     const { el } = await render('p-1', { product: menu('Getränk', 'cola'), catalog: CATALOG })
     expect(hints(el)).toBeNull()

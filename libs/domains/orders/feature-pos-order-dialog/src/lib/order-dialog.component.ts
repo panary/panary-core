@@ -2670,14 +2670,21 @@ export class OrderDialogComponent implements OnInit, AfterViewInit, OnDestroy {
     // Speichern basierend auf Gruppen-Name
     const slot = menuOptionGroupSlot(group.name)
     const isSlotGroup = slot !== null
+    // Aufschlag der Wahl beim Buchen festschreiben (core#1454, ADR 0071): am Legacy-Slot und an der Komponente
+    // derselbe Wert. Bei FIXED_PROPORTIONAL ist alles im Festpreis enthalten, dort wird nichts gestempelt.
+    const surcharge =
+      isSlotGroup && parentProduct.bundlePricingMode !== 'FIXED_PROPORTIONAL'
+        ? this.#bundleFlow.surchargeOfChoice(selected, group)
+        : 0
+    if (surcharge > 0) genericItem.surcharge = surcharge
     if (slot === 'side') {
       dropComponentModifiers(lineItem, lineItem.menuSideDish, genericItem)
       lineItem.menuSideDish = genericItem
-      this.#bundleFlow.recordSlotComponent(lineItem, selected, group)
+      this.#bundleFlow.recordSlotComponent(lineItem, selected, group, surcharge)
     } else if (slot === 'drink') {
       dropComponentModifiers(lineItem, lineItem.menuDrink, genericItem)
       lineItem.menuDrink = genericItem
-      this.#bundleFlow.recordSlotComponent(lineItem, selected, group)
+      this.#bundleFlow.recordSlotComponent(lineItem, selected, group, surcharge)
     } else {
       // Soßen, Extras etc. als Modifier (freeQuantity berücksichtigen)
       const freeQty = group.freeQuantity || 0

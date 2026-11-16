@@ -4701,3 +4701,74 @@ describe('Menü-Auswahl schreibt components[] (core#1450)', () => {
     expect(line.modifiers).toHaveLength(1)
   })
 })
+
+describe('Menü-Auswahl schreibt den Aufschlag fest (core#1454)', () => {
+  const cola = () => product('p-cola', { name: 'Cola', price: 2.3, taxInside: 19, taxOutside: 19 })
+  const bier = () => product('p-bier', { name: 'Weizenbier', price: 2.9, taxInside: 19, taxOutside: 19 })
+  const gruppe = (minSelections: number) => ({
+    id: 'g-drink',
+    name: 'Getränk',
+    minSelections,
+    maxSelections: 1,
+    options: [{ productId: 'p-cola' }, { productId: 'p-bier' }],
+  })
+  const menue = (bundlePricingMode: string) =>
+    product('p-menu', { isMenu: true, price: 8, taxInside: 7, taxOutside: 7, bundlePricingMode } as never)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function waehle(component: any, parent: ProductSchema, group: any, selected: ProductSchema) {
+    component['_selectedProductIndex'] = 0
+    component['selectOptionGroupItem'](selected, group, parent)
+  }
+
+  function starte(bundlePricingMode: string) {
+    const { component } = setup({ catalog: [cola(), bier()] })
+    const parent = menue(bundlePricingMode)
+    component['increaseLineItem'](parent)
+    component['_selectedProductIndex'] = 0
+    return { component, parent }
+  }
+
+  it('Pflichtgruppe: die teurere Wahl trägt die Differenz an Slot und Komponente, die günstigste nichts', () => {
+    const { component, parent } = starte('ROLLUP')
+
+    waehle(component, parent, gruppe(1), bier())
+    const line = component['lineItems'][0]
+    expect(line.menuDrink.surcharge).toBe(0.6)
+    expect(line.components[0].surcharge).toBe(0.6)
+
+    waehle(component, parent, gruppe(1), cola())
+    expect(line.components).toHaveLength(1)
+    expect(line.menuDrink).not.toHaveProperty('surcharge')
+    expect(line.components[0]).not.toHaveProperty('surcharge')
+  })
+
+  it('freiwillige Gruppe: der volle Preis der Wahl ist der Aufschlag', () => {
+    const { component, parent } = starte('ROLLUP')
+
+    waehle(component, parent, gruppe(0), cola())
+
+    const line = component['lineItems'][0]
+    expect(line.menuDrink.surcharge).toBe(2.3)
+    expect(line.components[0].surcharge).toBe(2.3)
+  })
+
+  it('FIXED_PROPORTIONAL stempelt nichts: alles ist im Festpreis enthalten', () => {
+    const { component, parent } = starte('FIXED_PROPORTIONAL')
+
+    waehle(component, parent, gruppe(1), bier())
+
+    const line = component['lineItems'][0]
+    expect(line.menuDrink).not.toHaveProperty('surcharge')
+    expect(line.components.find((c: { role: string }) => c.role === 'drink')).not.toHaveProperty('surcharge')
+  })
+
+  it('der Aufschlag ändert den Zeilenbetrag nicht (reine Anzeige)', () => {
+    const { component, parent } = starte('ROLLUP')
+    const vorher = component['lineItems'][0].price
+
+    waehle(component, parent, gruppe(1), bier())
+
+    expect(component['lineItems'][0].price).toBe(vorher)
+  })
+})

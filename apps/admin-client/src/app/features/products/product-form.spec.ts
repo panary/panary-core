@@ -317,6 +317,81 @@ describe('ProductFormComponent – Steuer-Hinweise (core#1456)', () => {
     expect(api.patch).toHaveBeenCalledTimes(1)
   })
 
+  // Ohne geladene Übersetzungen zeigt das Template nur Schlüssel; die aufgelösten Namen prüft die Ableitung selbst.
+  it('löst Gruppe, Option und Satz für den Hinweistext auf', async () => {
+    const { fixture, type } = await renderMenu('Extras', 'kuchen')
+    expect(fixture.componentInstance.taxHints()).toEqual([
+      expect.objectContaining({
+        group: 'Extras',
+        product: 'Kuchen',
+        finding: expect.objectContaining({ code: 'EXTRA_GROUP_RATE_DIFFERS', groupId: 'og-1', productId: 'kuchen' }),
+      }),
+    ])
+
+    await type('#productTaxInside', '16')
+    const rate = fixture.componentInstance.taxHints().find(h => h.finding.code === 'RATE_NOT_IN_LOCATION')
+    expect(rate).toEqual(
+      expect.objectContaining({ product: 'Burger-Menü', group: '', finding: expect.objectContaining({ rate: 16 }) }),
+    )
+  })
+
+  // Das Formular bearbeitet `mainPrice` und den Preismodus der Gruppen nicht; es muss die geladenen Werte behalten.
+  describe('Festpreis-Menü', () => {
+    const fixedMenu = (extra: Record<string, unknown>) => ({
+      ...menu('Getränk', 'cola'),
+      productType: 'BUNDLE',
+      bundlePricingMode: 'FIXED_PROPORTIONAL',
+      ...extra,
+    })
+    const codes = (fixture: { componentInstance: { taxHints: () => Array<{ finding: { code: string } }> } }) =>
+      fixture.componentInstance.taxHints().map(h => h.finding.code)
+
+    it('meldet ein Hauptgericht ohne Anteil, wenn mainPrice 0 geladen wurde', async () => {
+      const { fixture } = await render('p-1', {
+        product: fixedMenu({ mainPrice: 0 }),
+        catalog: CATALOG,
+        taxSettings: TAX_SETTINGS,
+      })
+      expect(codes(fixture)).toEqual(['MAIN_WITHOUT_SHARE'])
+    })
+
+    it('meldet den fehlenden mainPrice als Hinweis, solange der Festpreis nicht erreicht wird', async () => {
+      const { fixture } = await render('p-1', {
+        product: fixedMenu({}),
+        catalog: CATALOG,
+        taxSettings: TAX_SETTINGS,
+      })
+      expect(codes(fixture)).toEqual(['MAIN_PRICE_MISSING'])
+    })
+
+    it('prüft Regeln 3 und 4 nur bei Festpreis, nicht bei Rollup', async () => {
+      const { fixture } = await render('p-1', {
+        product: fixedMenu({ bundlePricingMode: 'ROLLUP', mainPrice: 0 }),
+        catalog: CATALOG,
+        taxSettings: TAX_SETTINGS,
+      })
+      expect(codes(fixture)).toEqual([])
+    })
+
+    it('behält den geladenen Preismodus der Gruppe: HIGHEST empfiehlt die eigene Gruppe statt Beilage/Getränk', async () => {
+      const withMode = (pricingMode?: string) => {
+        const m = menu('Extras', 'kuchen')
+        return { ...m, optionGroups: [{ ...m.optionGroups[0], ...(pricingMode ? { pricingMode } : {}) }] }
+      }
+      const sum = await render('p-1', { product: withMode(), catalog: CATALOG, taxSettings: TAX_SETTINGS })
+      expect(sum.fixture.componentInstance.taxHints()[0].finding.recommendation).toBe('GROUP_AS_SIDE_OR_DRINK')
+      TestBed.resetTestingModule()
+      const highest = await render('p-1', {
+        product: withMode('HIGHEST'),
+        catalog: CATALOG,
+        taxSettings: TAX_SETTINGS,
+      })
+      expect(highest.fixture.componentInstance.taxHints()[0].finding.recommendation).toBe(
+        'MOVE_OPTION_TO_OWN_SIDE_OR_DRINK_GROUP',
+      )
+    })
+  })
+
   // Die Hinweise gelten Menüs. Ein einfaches Produkt mit fremdem Satz zeigt sie nicht.
   it('zeigt ohne Optionsgruppen keinen Block, auch bei einem Satz, den die Filiale nicht kennt', async () => {
     const { el } = await render('p-1', {

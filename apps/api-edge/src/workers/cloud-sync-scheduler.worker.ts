@@ -48,6 +48,7 @@ import {
   throwIfRateLimited,
 } from './sync-apply'
 import { collectDeviceCountsForHeartbeat } from './heartbeat-device-counts'
+import { persistMinVersions } from './heartbeat-min-versions'
 import { computeScheduledSlot } from './scheduled-slot'
 import { selectStaleUsersToArchive } from './stale-user-reconciliation'
 import {
@@ -1247,6 +1248,9 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
       ...(newExpiry ? { edgeTokenExpiresAt: newExpiry } : {}),
     })
   }
+  // Mindestversionen (core#1440): reine Auskunft, eigener fehler-isolierter Patch — nie ein Grund, den
+  // Heartbeat scheitern zu lassen.
+  await persistMinVersions(app, connection, body)
   if (body.clockSkewStatus === ClockSkewStatus.ERROR) {
     logger.warn({
       message: 'Clock-Skew zu hoch — Push pausiert',

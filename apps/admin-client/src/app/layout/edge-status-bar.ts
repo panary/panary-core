@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { compareVersions } from '@panary/shared-common'
 import { ApiService } from '../core/api.service'
 import { type CloudConnection, type CloudStatus, deriveCloudStatus } from '../core/cloud-status'
 import { DeviceStatusService } from '../core/device-status.service'
@@ -79,6 +80,14 @@ const CLOUD_POLL_MS = 60_000
           {{ 'NAV.DEVICE_BADGE' | translate: { online: deviceStatus.online(), total: deviceStatus.total() } }}
         </li>
       }
+      @if (belowMinVersion(); as min) {
+        <li class="flex items-center gap-1.5" data-testid="edge-below-min-version">
+          <span class="size-[7px] rounded-full" [class]="dot('warn')" aria-hidden="true"></span>
+          <span class="font-semibold text-shell-ink">{{
+            'NAV.STATUS_BELOW_MIN_VERSION' | translate: { version: min }
+          }}</span>
+        </li>
+      }
       @if (version()) {
         <li class="font-mono tabular-nums">v{{ version() }}</li>
       }
@@ -94,6 +103,17 @@ export class EdgeStatusBarComponent {
   /** `null` = noch unbekannt (erster Abruf läuft, oder er scheiterte bisher immer): Eintrag ausgeblendet. */
   protected readonly cloudStatus = signal<CloudStatus | null>(null)
   protected readonly version = signal<string | null>(null)
+  /** Zuletzt von der Cloud gemeldete Mindestversion für diesen Edge (core#1440); `null` = keine bekannt. */
+  private readonly requiredEdgeMinVersion = signal<string | null>(null)
+
+  /**
+   * Die Mindestversion, wenn der Edge darunter liegt, sonst `null`. Reine Auskunft, nie eine Sperre (ADR 0070).
+   * Ist eine Seite keine `YY.MM.INDEX`-Version, ist sie nicht vergleichbar und es gibt keinen Hinweis.
+   */
+  protected readonly belowMinVersion = computed(() => {
+    const min = this.requiredEdgeMinVersion()
+    return min !== null && compareVersions(this.version(), min) === -1 ? min : null
+  })
 
   protected readonly syncTone = computed(() => syncTone(this.syncProblems.count()))
   protected readonly deviceTone = computed(() =>
@@ -103,7 +123,11 @@ export class EdgeStatusBarComponent {
   constructor() {
     void this.loadVersion()
     void this.refreshCloudStatus()
-    const timer = setInterval(() => void this.refreshCloudStatus(), CLOUD_POLL_MS)
+    // Die Mindestversion ändert sich nach einem Heartbeat: im selben Takt wie der Cloud-Status nachfragen.
+    const timer = setInterval(() => {
+      void this.refreshCloudStatus()
+      void this.loadVersion()
+    }, CLOUD_POLL_MS)
     inject(DestroyRef).onDestroy(() => clearInterval(timer))
   }
 
@@ -112,7 +136,11 @@ export class EdgeStatusBarComponent {
   }
 
   private async loadVersion(): Promise<void> {
-    this.version.set(await this.edgeVersion.load())
+    const info = await this.edgeVersion.loadInfo()
+    // Keine Antwort ist kein neuer Zustand (Edge startet gerade neu): letzten Stand halten.
+    if (info === null) return
+    this.version.set(info.version)
+    this.requiredEdgeMinVersion.set(info.requiredEdgeMinVersion)
   }
 
   protected cloudLabelOf(status: CloudStatus): string {

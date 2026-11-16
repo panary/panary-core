@@ -36,4 +36,34 @@ describe('EdgeVersionService', () => {
     const { service } = setup(() => of({ status: 'ok' }))
     expect(await service.load()).toBeNull()
   })
+
+  it('loadInfo liefert die Mindestversionen aus /health', async () => {
+    const { service } = setup(() =>
+      of({ version: '26.11.2', requiredEdgeMinVersion: '26.11.1', requiredPosMinVersion: '26.10.3' }),
+    )
+    expect(await service.loadInfo()).toEqual({
+      version: '26.11.2',
+      requiredEdgeMinVersion: '26.11.1',
+      requiredPosMinVersion: '26.10.3',
+    })
+  })
+
+  it('loadInfo: ohne Mindestversionen in der Antwort sind beide null', async () => {
+    const { service } = setup(() => of({ version: '26.11.2' }))
+    expect(await service.loadInfo()).toEqual({
+      version: '26.11.2',
+      requiredEdgeMinVersion: null,
+      requiredPosMinVersion: null,
+    })
+  })
+
+  it('loadInfo: Nicht-Text und leerer Text zählen als „keine"', async () => {
+    const { service } = setup(() => of({ version: '26.11.2', requiredEdgeMinVersion: 5, requiredPosMinVersion: '' }))
+    expect(await service.loadInfo()).toMatchObject({ requiredEdgeMinVersion: null, requiredPosMinVersion: null })
+  })
+
+  it('loadInfo: liefert null, wenn /health scheitert', async () => {
+    const { service } = setup(() => throwError(() => new Error('offline')))
+    expect(await service.loadInfo()).toBeNull()
+  })
 })

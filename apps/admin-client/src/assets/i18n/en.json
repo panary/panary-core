@@ -90,6 +90,7 @@
     "STATUS_SYNC": "Sync",
     "STATUS_SYNC_OK": "all good",
     "STATUS_SYNC_PROBLEMS": "{{count}} open",
+    "STATUS_BELOW_MIN_VERSION": "Edge below minimum version {{version}}",
     "COLLAPSE": "Collapse navigation",
     "EXPAND": "Expand navigation"
   },
@@ -233,6 +234,9 @@
     "ACTIVE": "Active",
     "UNREACHABLE": "Unreachable",
     "VERSION": "Version",
+    "MIN_VERSION_EDGE": "Minimum version edge",
+    "MIN_VERSION_POS": "Minimum version POS",
+    "MIN_VERSION_NONE": "none",
     "UPTIME": "Uptime",
     "PLATFORM": "Platform",
     "MODE": "Mode",

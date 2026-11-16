@@ -227,6 +227,12 @@ export const cloudConnectionSchema = Type.Object(
     // von „irgendwas stimmt nicht" zur Ursache zu kommen (Cloud-Filterung oder
     // Edge-Token). Nullable, weil die Leerung sie mitnimmt.
     foreignTenantRecordsLastTenantId: Type.Optional(Type.Union([Type.String({ maxLength: 80 }), Type.Null()])),
+    // Mindestversionen aus der letzten erfolgreichen Heartbeat-Antwort (core#1440, ADR 0070). Von Hand in der
+    // Cloud gesetzt, nie abgeleitet. `null` = die Cloud nennt keine (oder ist älter und kennt das Feld nicht).
+    // Bei Funkstille bleibt der letzte Wert stehen, damit der Hinweis offline gilt. Reine Auskunft: gesperrt
+    // und gestoppt wird auf dieser Grundlage nie etwas.
+    requiredEdgeMinVersion: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+    requiredPosMinVersion: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
   },
   { $id: 'CloudConnection', additionalProperties: false },
 )
@@ -338,6 +344,9 @@ export const cloudConnectionPatchSchema = Type.Partial(
     'foreignTenantRecordsAt',
     'foreignTenantRecordsCount',
     'foreignTenantRecordsLastTenantId',
+    // Mindestversionen aus der Heartbeat-Antwort (core#1440) — nur vom Sync-Scheduler gesetzt
+    'requiredEdgeMinVersion',
+    'requiredPosMinVersion',
     // tenantId/locationId fuer den Re-Stamp-Flow im Bootstrap-Worker
     'tenantId',
     'locationId',

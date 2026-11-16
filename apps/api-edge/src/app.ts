@@ -159,6 +159,11 @@ app.use(async (ctx, next) => {
     // anderen Standort-Einstellungen gesperrt bleiben.
     let emergencyOverride = false
     let emergencyOverrideSince: string | undefined
+    // Mindestversionen aus der letzten Heartbeat-Antwort (core#1440, ADR 0070): nur Versionstexte, ohne
+    // Gerätedaten, deshalb wie `version` öffentlich. Der POS liest die POS-Mindestversion hier (offline am Edge),
+    // der Admin-Client beide für den Hinweis. `undefined` = keine bekannt.
+    let requiredEdgeMinVersion: string | undefined
+    let requiredPosMinVersion: string | undefined
     try {
       // Bevorzugt die CONNECTED-Zeile. Ein blindes `$limit: 1` konnte bei
       // Altlasten aus abgebrochenen Pairings eine beliebige liefern — und da
@@ -175,6 +180,8 @@ app.use(async (ctx, next) => {
         offlineOverrideActiveUntil = conn.offlineOverrideActiveUntil ?? undefined
         emergencyOverride = !!conn.emergencyOverride
         emergencyOverrideSince = conn.emergencyOverrideSince ?? undefined
+        requiredEdgeMinVersion = conn.requiredEdgeMinVersion ?? undefined
+        requiredPosMinVersion = conn.requiredPosMinVersion ?? undefined
         const expectation = computeSyncExpectation(conn)
         syncMode = expectation.mode
         nextExpectedSyncAt = expectation.nextExpectedSyncAt ?? undefined
@@ -262,6 +269,8 @@ app.use(async (ctx, next) => {
       offlineOverrideActiveUntil,
       emergencyOverride,
       emergencyOverrideSince,
+      requiredEdgeMinVersion,
+      requiredPosMinVersion,
       // Mandantensperre aus dem letzten Pull (#1401): fehlt = unbekannt, `null` = nicht gesperrt.
       // Verraet nur den Status, keine Mandanten-Daten.
       cloudTenantSuspension: tenantSuspensionForHealth(app, cloudPairingStatus === PairingStatus.CONNECTED),

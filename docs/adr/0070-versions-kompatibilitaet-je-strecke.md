@@ -226,6 +226,28 @@ im Issue). Reihenfolge nach Abhängigkeit:
   Entscheidung (Version im Setup-Modus freigeben oder dort keinen Hinweis zeigen) setzt dieser Schritt nichts
   um; das Issue bleibt offen.
 
+### Nachtrag: Edge wertet die Mindestversionen aus (core#1440)
+
+- **Speicher:** Zwei Spalten `requiredEdgeMinVersion` und `requiredPosMinVersion` (Text, höchstens 50 Zeichen,
+  nullable) an der `cloud-connection` (Edge-Migration `20261116130000_…`, ohne Domain-Import). Gesetzt werden sie
+  nur vom Heartbeat; extern gefiltert wie die übrigen Befunde der Cloud.
+- **Auswertung** in `runHeartbeat` (`heartbeat-min-versions.ts`), nach einer **erfolgreichen** Antwort, als eigener
+  fehler-isolierter Patch: Er wirft nie, zählt nie in `consecutiveHeartbeatFailures` und berührt den Notfall-Modus
+  nicht. Geschrieben wird nur bei Änderung.
+- **Fehlt ein Feld in einer erfolgreichen Antwort, wird der Wert gelöscht.** Das ist die Aussage „keine
+  Mindestversion": Hat Michael sie in der Cloud zurückgenommen, soll der Hinweis verschwinden; eine ältere Cloud
+  ohne die Felder verhält sich genauso. Der Cast der Antwort ist ungeprüft, deshalb zählt alles außer einem
+  nichtleeren Text bis 50 Zeichen als „keine".
+- **Cloud nicht erreichbar: der letzte Wert bleibt.** Ohne Antwort gibt es keinen Aufruf; der Hinweis gilt offline
+  weiter. Bestands-Edges haben nach dem Update leere Felder, bis der erste Heartbeat die Werte bringt.
+- **Bereitstellung:** `GET /health` (öffentlich) nennt beide Werte als Text, fehlend = keine bekannt. Es sind reine
+  Versionsangaben ohne Gerätedaten, die Auth-Lage ändert sich nicht. Der POS liest `requiredPosMinVersion` dort
+  (core#1441); die Prüfung im POS ist nicht Teil dieses Schritts.
+- **Admin-Client:** Die Statuszeile zeigt „Edge unter Mindestversion", wenn die Edge-Version kleiner ist
+  (`compareVersions`, volle Version, nicht nur der Monatsstand); nicht vergleichbare Versionen (`staging-<sha>`)
+  zeigen nichts. Das Dashboard nennt beide Mindestversionen. Beides reine Auskunft: **der Edge sperrt nichts und
+  stoppt den Sync nie.**
+
 ## Referenzen
 
 - panary/panary-core#1411 (Entscheidung), panary/panary-workbench#214 (Tag ≠ Rollout)

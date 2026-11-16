@@ -34,10 +34,19 @@ einen Nachdruck verfälscht, weil die Anzeige aus aktuellen Stammdaten statt aus
    General-Preis entfällt als Anzeigequelle.
 5. **Reihenfolge nach ADR 0070.** Die Cloud bekommt das Feld per Pin-Bump (panary/panary-cloud#2089), bevor eine
    Kasse es schreibt (panary/panary-core#1454).
+6. **Bezugsgröße ist die Auswahlgruppe des Menüs** (panary/panary-core#1454, entschieden am 2026-11-15). Der Aufschlag
+   einer Wahl ist in einer **Pflichtgruppe** (`minSelections ≥ 1`) ihr Preis minus der Preis der günstigsten Option
+   derselben Gruppe, in einer **freiwilligen Gruppe** (`minSelections: 0`) ihr voller Preis, denn dort ist nichts
+   im Menü enthalten. Beispiel: Cola 2,30 €, Weizenbier 2,90 € → Cola 0, Weizenbier 0,60 €. Gerechnet wird in Cents,
+   gespeichert als Euro brutto je Stück (`menuComponentSurchargeOfChoiceCents`). Optionen, die der Katalog nicht
+   auflöst, zählen nicht als Messlatte. Bei `FIXED_PROPORTIONAL` wird nichts gestempelt. Die Kasse schreibt den
+   Wert an Slot und Komponente derselben Zeile; eine neue Wahl in der Gruppe ersetzt beide samt altem Aufschlag.
+   Die `general*Price`-Getter der Filiale entfallen im Code (keine Leser mehr).
 
 ## Konsequenzen
 
-- Bis die Kasse das Feld schreibt, druckt der Bon an Menü-Komponenten keinen Betrag; die Summe stimmt weiter.
+- Ab core#1454 schreibt die Kasse das Feld; Bestellungen davor tragen es nicht und zeigen an Komponenten keinen Betrag.
+  Ändert jemand die Preise der Optionen, gilt das nur für neue Bestellungen.
 - Ein Nachdruck einer Bestandsbestellung zeigt an Komponenten keinen Betrag mehr, anders als ihr Originalbon.
 - Kasse (panary/panary-core#1453) und Cloud-Detail stellen auf dieselben Lesefunktionen um; bis dahin zeigen sie
   etwas anderes als der Bon.

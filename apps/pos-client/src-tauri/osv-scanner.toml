@@ -46,3 +46,13 @@ reason = "In zbus 6 aufgegangen; tauri-plugin-opener 2.7.2 (neueste 2.x) verlang
 id = "RUSTSEC-2026-0372"  # zvariant_derive unmaintained
 ignoreUntil = 2026-12-15
 reason = "In zbus 6 aufgegangen; tauri-plugin-opener 2.7.2 (neueste 2.x) verlangt zbus ^5.9. Nur Linux/BSD-Pfad, kein Linux-Build in build-pos.yml. Re-evaluieren, sobald opener zbus 6 erlaubt."
+
+# --- Befristet akzeptiert: chrono unmaintained (panary/panary-core#1497) -------
+# RUSTSEC-2026-0543 (2026-09-14, "chrono is unmaintained", alle Versionen, keine
+# gefixte Version) haelt den Scan auf main seit dem 2026-11-17 rot. Reine
+# Unmaintained-Meldung, keine bekannte Schwachstelle.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"  # chrono 0.4.44 unmaintained
+ignoreUntil = 2026-12-15
+reason = "Kein Fix: alle chrono-Versionen betroffen, Alternativen jiff und time. Gemessen 2026-11-18: chrono steht nur als optionale Abhaengigkeit (Feature chrono_0_4) von serde_with 3.21.0 im Cargo.lock (einziger Parent, selbst nur ueber tauri-utils); aktiv sind dort allein alloc, default, macros und std (`cargo metadata --locked`), und `cargo tree -i chrono --locked --target all -e all` (auch mit --all-features) findet keinen Pfad vom POS-Crate. chrono wird also in keinem Ziel kompiliert und steckt in keinem ausgelieferten Artefakt. Ein Bump scheidet aus (keine Fix-Version), ein Entfernen aus dem Lockfile ebenso: Cargo fuehrt die optionalen Abhaengigkeiten eines Pakets dort mit. Eingetragen 2026-11-18 (panary/panary-core#1497, docs/security/osv-befund-2026-11-18-picomatch-chrono.md); Wiedervorlage zum Ablauf: pruefen, ob serde_with chrono nicht mehr als optionale Abhaengigkeit fuehrt oder chrono wieder gepflegt wird, dann Eintrag entfernen (der Scanner meldet ihn dann als unused)."

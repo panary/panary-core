@@ -302,8 +302,6 @@ export const securityPolicySchema = Type.Object(
   {
     mfaRequired: Type.Optional(Type.Boolean()),
     mfaGracePeriodDays: Type.Optional(Type.Number({ minimum: 0, maximum: 90 })),
-    passwordMinLength: Type.Optional(Type.Number({ minimum: 8, maximum: 64 })),
-    sessionMaxAgeHours: Type.Optional(Type.Number({ minimum: 1, maximum: 720 })),
   },
   { $id: 'TenantSecurityPolicy', additionalProperties: false },
 )

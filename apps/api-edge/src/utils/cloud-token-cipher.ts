@@ -12,20 +12,40 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
  * Master-Key kommt aus `EDGE_TOKEN_ENCRYPTION_KEY` (env). Mindestens
  * 32 Zeichen empfohlen — wird via SHA-256 auf 32 Bytes (AES-256) abgeleitet.
  * Fehlt der Key, gibt der Cipher einen No-Op zurueck und loggt eine
- * Warnung, damit Dev-Setups nicht hart brechen.
+ * Warnung, damit Dev-Setups nicht hart brechen. Der Boot meldet den Zustand
+ * zusaetzlich laut (`cloud-token-boot-migration.ts`, panary/panary-core#1498).
  */
 
 const ENCRYPTION_PREFIX = 'enc:v1:'
 const ALGORITHM = 'aes-256-gcm' as const
 const IV_BYTES = 12
 
+/** Der Cipher akzeptiert Schluessel ab 8 Zeichen; der Installer erzeugt 44. */
+export const TOKEN_KEY_MIN_LENGTH = 8
+/** Empfohlene Mindestlaenge — darunter gilt der Schluessel als schwach, wird aber nie ersetzt. */
+export const TOKEN_KEY_RECOMMENDED_LENGTH = 32
+
 let cachedKey: Buffer | null = null
 let warnedMissingKey = false
+
+export type TokenKeyStatus = 'missing' | 'weak' | 'ok'
+
+/**
+ * Zustand des Schluessels in der Umgebung, ohne Cache und ohne Warnung — der
+ * Boot braucht die Unterscheidung `weak` (8–31 Zeichen) von `ok`, der Cipher
+ * selbst nicht. Der Wert wird nie zurueckgegeben, nur seine Laenge bewertet.
+ */
+export const getTokenKeyStatus = (): { status: TokenKeyStatus; length: number } => {
+  const raw = process.env['EDGE_TOKEN_ENCRYPTION_KEY']
+  const length = typeof raw === 'string' ? raw.length : 0
+  if (length < TOKEN_KEY_MIN_LENGTH) return { status: 'missing', length }
+  return { status: length < TOKEN_KEY_RECOMMENDED_LENGTH ? 'weak' : 'ok', length }
+}
 
 const deriveKey = (): Buffer | null => {
   if (cachedKey) return cachedKey
   const raw = process.env['EDGE_TOKEN_ENCRYPTION_KEY']
-  if (typeof raw !== 'string' || raw.length < 8) {
+  if (typeof raw !== 'string' || raw.length < TOKEN_KEY_MIN_LENGTH) {
     if (!warnedMissingKey) {
       // eslint-disable-next-line no-console
       console.warn(

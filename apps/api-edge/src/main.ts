@@ -339,6 +339,18 @@ async function main() {
     }
     // -----------------------------------------------------------------------
 
+    // --- cloudToken at-rest: Klartext nachverschluesseln, Schluessel pruefen (#1498) ---
+    // Muss VOR Bootstrap-Resume und Sync-Scheduler laufen: Beide lesen den Token, und die
+    // Heartbeat-Rotation darf keinen frischen Token mit dem hier gelesenen alten ueberschreiben.
+    // Meldet nur, bricht nie ab — das Erzwingen des Schluessels ist panary/panary-core#1499.
+    try {
+      const { runCloudTokenBootMigration } = await import('./utils/cloud-token-boot-migration.js')
+      await runCloudTokenBootMigration(app)
+    } catch (err) {
+      logger.error('cloudToken-Boot-Lauf fehlgeschlagen.', err)
+    }
+    // -----------------------------------------------------------------------
+
     // --- Bootstrap-Resume: nach Edge-Restart abgebrochene Bootstraps fortsetzen (M7.8) ---
     try {
       const { resumePendingBootstraps } = await import('./workers/cloud-bootstrap-runner.worker.js')

@@ -33,7 +33,7 @@ als Klartext in der `.env` neben der Compose-Datei. Das ist eine Zwischenstufe b
 | --- | --- |
 | Erstinstallation per `install.sh` | erzeugt `openssl rand -base64 32` (44 Zeichen), schreibt ihn in die `.env` **und** reicht ihn im Compose-Dienst `panary-edge` durch |
 | Erneuter Installer-Lauf, `.env` ohne Schlüssel | erzeugt ihn nach, schreibt Compose neu, `docker compose up -d` startet den Container mit Schlüssel |
-| Erneuter Installer-Lauf, `.env` mit Schlüssel | **ersetzt ihn nie** — auch nicht, wenn er kürzer als 32 Zeichen ist (dann nur ein Hinweis) |
+| Erneuter Installer-Lauf, `.env` mit Schlüssel | **ersetzt ihn nie** — auch nicht, wenn er kürzer als 32 Zeichen ist (dann nur ein Hinweis). Einzige Ausnahme: unter 8 Zeichen lehnt der Edge den Wert ab und verschlüsselt nichts damit, dort erzeugt der Installer einen neuen |
 | `tools/docker/docker-compose.edge.yml` und `…edge.dev.yml` | verlangen `FEATHERS_SECRET` und `EDGE_TOKEN_ENCRYPTION_KEY` aus Shell oder `.env` (`${…:?}`); kein fester Wert im Repo |
 | Watchtower-Update ohne Installer-Lauf | **bringt keinen Schlüssel** — Watchtower tauscht nur das Image, `.env` und Compose bleiben unberührt |
 

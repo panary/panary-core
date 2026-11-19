@@ -276,9 +276,10 @@ fi
 # panary/panary-core#1498). Anders als beim JWT-Secret wird ein vorhandener Wert NIE ersetzt — auch nicht,
 # wenn er kurz ist: Ein neuer Schluessel machte den bereits verschluesselten Token unlesbar, und der Edge
 # muesste neu gekoppelt werden. Erzeugt wird nur, wenn gar keiner da ist.
-if [ -z "${EDGE_TOKEN_ENCRYPTION_KEY}" ]; then
+# Unter 8 Zeichen lehnt der Edge den Wert ab und verschluesselt nichts damit — ersetzen kostet dort keine Daten.
+if [ -z "${EDGE_TOKEN_ENCRYPTION_KEY}" ] || [ ${#EDGE_TOKEN_ENCRYPTION_KEY} -lt 8 ]; then
   if [ -f "$ENV_FILE" ]; then
-    echo -e "${YELLOW}→ Kein Token-Schluessel in der bestehenden .env — er wird neu erzeugt.${NC}"
+    echo -e "${YELLOW}→ Kein brauchbarer Token-Schluessel in der bestehenden .env — er wird neu erzeugt.${NC}"
   else
     echo -e "${BLUE}→ Generiere Token-Schluessel...${NC}"
   fi

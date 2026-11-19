@@ -242,6 +242,9 @@ ENV_FILE="${INSTALL_DIR}/.env"
 # Default staerbe der Installer, bevor er das Secret erzeugt. Seit
 # panary/panary-core#323 waere der Edge danach gar nicht mehr startfaehig.
 FEATHERS_SECRET="${FEATHERS_SECRET:-}"
+# Gleiches fuer den Token-Schluessel (panary/panary-core#1498): Auf einer Erstinstallation und auf jeder
+# .env aus der Zeit davor ist er ungebunden.
+EDGE_TOKEN_ENCRYPTION_KEY="${EDGE_TOKEN_ENCRYPTION_KEY:-}"
 
 if [ -f "$ENV_FILE" ]; then
   echo -e "${GREEN}✓${NC} Bestehende .env gefunden — Secret wird beibehalten."
@@ -250,6 +253,7 @@ if [ -f "$ENV_FILE" ]; then
   # Nur ueberschreiben wenn explizit per Argument gesetzt. Der Default wiederholt
   # sich, weil eine aeltere .env die Zeile gar nicht enthalten kann.
   FEATHERS_SECRET="${FEATHERS_SECRET:-}"
+  EDGE_TOKEN_ENCRYPTION_KEY="${EDGE_TOKEN_ENCRYPTION_KEY:-}"
 fi
 
 # Seit panary/panary-core#323 bricht der Edge ohne ausreichendes Secret beim Boot
@@ -268,10 +272,27 @@ if [ -z "${FEATHERS_SECRET}" ] || [ "${FEATHERS_SECRET}" = "CHANGE_ME_IN_PRODUCT
   FEATHERS_SECRET=$(openssl rand -base64 32)
 fi
 
+# Schluessel, mit dem der Edge den Cloud-Token in der Datenbank verschluesselt (AES-256-GCM,
+# panary/panary-core#1498). Anders als beim JWT-Secret wird ein vorhandener Wert NIE ersetzt — auch nicht,
+# wenn er kurz ist: Ein neuer Schluessel machte den bereits verschluesselten Token unlesbar, und der Edge
+# muesste neu gekoppelt werden. Erzeugt wird nur, wenn gar keiner da ist.
+# Unter 8 Zeichen lehnt der Edge den Wert ab und verschluesselt nichts damit — ersetzen kostet dort keine Daten.
+if [ -z "${EDGE_TOKEN_ENCRYPTION_KEY}" ] || [ ${#EDGE_TOKEN_ENCRYPTION_KEY} -lt 8 ]; then
+  if [ -f "$ENV_FILE" ]; then
+    echo -e "${YELLOW}→ Kein brauchbarer Token-Schluessel in der bestehenden .env — er wird neu erzeugt.${NC}"
+  else
+    echo -e "${BLUE}→ Generiere Token-Schluessel...${NC}"
+  fi
+  EDGE_TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
+elif [ ${#EDGE_TOKEN_ENCRYPTION_KEY} -lt 32 ]; then
+  echo -e "${YELLOW}→ Der vorhandene Token-Schluessel ist kurz (${#EDGE_TOKEN_ENCRYPTION_KEY} Zeichen) — er wird beibehalten.${NC}"
+fi
+
 cat > "$ENV_FILE" <<EOF
 # Panary Edge Server — Konfiguration
 # Generiert am $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 FEATHERS_SECRET=${FEATHERS_SECRET}
+EDGE_TOKEN_ENCRYPTION_KEY=${EDGE_TOKEN_ENCRYPTION_KEY}
 PANARY_PORT=${PORT}
 PANARY_TAG=${TAG}
 PANARY_UID=$(id -u ${REAL_USER})
@@ -318,6 +339,8 @@ services:
     environment:
       - NODE_ENV=production
       - FEATHERS_SECRET=${FEATHERS_SECRET}
+      # Ohne diese Zeile laege der Schluessel in der .env, kaeme aber nie im Container an.
+      - EDGE_TOKEN_ENCRYPTION_KEY=${EDGE_TOKEN_ENCRYPTION_KEY}
       # Ohne Port-Mapping muss der Prozess selbst auf dem Zielport lauschen.
       - PORT=${PANARY_PORT:-3030}
     restart: unless-stopped

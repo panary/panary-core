@@ -115,3 +115,13 @@ stehen, statt sich anzubieten.
 - **Die Config→ENV-Übertragung ersatzlos streichen.** Kein Code im Repo braucht sie heute —
   die Setup-Felder werden direkt gelesen. Verworfen, weil handgepflegte Konfigurationen im
   Feld sie nutzen könnten und ein ersatzloser Wegfall dort still wirkte.
+
+## Nachtrag 2026-11-19 — der Token-Schlüssel folgt nicht diesem Muster
+
+[#1498](https://github.com/panary/panary-core/issues/1498) bringt `EDGE_TOKEN_ENCRYPTION_KEY` auf jede Edge
+(ADR 0109 in panary/panary-cloud). Das Muster des `FEATHERS_SECRET` trägt dort nicht: Den Secret hat der
+Installer immer erzeugt, der Schlüssel fehlt auf **jeder** installierten Edge, und ein neuer Schlüssel zerstört
+Daten statt Sitzungen zu entwerten. Deshalb gilt für ihn ein Zweischritt — erst Verteilen und Warnen (Teil A),
+dann Erzwingen (Teil B, [#1499](https://github.com/panary/panary-core/issues/1499)) —, und der Installer
+ersetzt einen vorhandenen Wert nie. `EDGE_TOKEN_ENCRYPTION_KEY` bleibt auf der Denyliste der Config-Allowlist.
+Siehe [Edge ohne Token-Schlüssel](../infrastructure/edge-token-schluessel.md).

@@ -38,6 +38,10 @@ services:
       # der Shell oder einer .env neben dieser Datei, erzeugt z. B. mit
       # `openssl rand -base64 32` — genau wie install.sh es beim Kunden tut.
       - FEATHERS_SECRET=${FEATHERS_SECRET:?FEATHERS_SECRET muss gesetzt sein (openssl rand -base64 32)}
+      # Schluessel fuer den cloudToken in der Datenbank (#1498, ADR 0109 in panary-cloud). Wie das
+      # Secret aus Shell oder .env neben dieser Datei — nie als fester Wert im oeffentlichen Repo.
+      # Einmal erzeugen und behalten: Ein neuer Schluessel macht den verschluesselten Token unlesbar.
+      - EDGE_TOKEN_ENCRYPTION_KEY=${EDGE_TOKEN_ENCRYPTION_KEY:?EDGE_TOKEN_ENCRYPTION_KEY muss gesetzt sein (openssl rand -base64 32)}
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3030/health']

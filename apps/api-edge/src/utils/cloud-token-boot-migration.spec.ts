@@ -157,11 +157,7 @@ describe('runCloudTokenBootMigration', () => {
   })
 
   it('ueberspringt Zeilen ohne Token', async () => {
-    const { app, patch } = makeApp([
-      { _id: 'c1', cloudToken: null },
-      { _id: 'c2', cloudToken: '' },
-      { _id: 'c3' },
-    ])
+    const { app, patch } = makeApp([{ _id: 'c1', cloudToken: null }, { _id: 'c2', cloudToken: '' }, { _id: 'c3' }])
 
     const result = await runCloudTokenBootMigration(app)
 

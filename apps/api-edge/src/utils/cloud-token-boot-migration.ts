@@ -134,7 +134,8 @@ export const runCloudTokenBootMigration = async (app: FeathersApp): Promise<Clou
     } catch (err) {
       result.failed++
       logger.error({
-        message: 'cloudToken konnte nicht nachverschluesselt werden — er bleibt im Klartext, naechster Boot versucht es erneut',
+        message:
+          'cloudToken konnte nicht nachverschluesselt werden — er bleibt im Klartext, naechster Boot versucht es erneut',
         event: 'bootstrap.token_encrypt_failed',
         connectionId: row._id,
         errorMessage: err instanceof Error ? err.message : String(err),

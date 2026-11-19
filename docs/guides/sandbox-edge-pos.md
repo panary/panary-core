@@ -35,7 +35,7 @@ und POS laufen gekoppelt neben dem eigenen Dev-Stack. Den Cloud-Teil beschreibt
 - Der Admin-Client braucht keine eigene Konfiguration: Unter `/admin/` leitet er die API-Adresse aus dem
   eigenen Origin ab (`resolveApiUrl`). Er muss nur einmal gebaut sein (`nx build admin-client`).
 
-Weitere Edge-Variablen für die Sandbox: `FEATHERS_SECRET`, `EDGE_TOKEN_ENCRYPTION_KEY`,
+Weitere Edge-Variablen für die Sandbox: `FEATHERS_SECRET`, `EDGE_TOKEN_ENCRYPTION_KEY` (ohne ihn startet der Edge, speichert den Cloud-Token aber im Klartext und warnt; Teil B erzwingt ihn, [Guide](../infrastructure/edge-token-schluessel.md)),
 `SQLITE_PATH` und `PANARY_CONFIG_PATH` auf ein eigenes Datenverzeichnis — nie `data/` des Haupt-Checkouts.
 Liegt dort eine `panary.config.json` mit `adminEmail`/`adminPassword`/`locationName`, überspringt der Edge
 den Setup-Modus und legt Admin, Tenant und Filiale selbst an.

@@ -5,7 +5,7 @@ description: 'Härtung sensibler Datenbankfelder in Phase 1: POS-PIN als bcrypt-
 tags: [security, users, apikeys, cloud-connection, customers, corporate-customers]
 status: stable
 generated: { by: claude-code/historic, at: 2026-04-07T00:00:00Z }
-updated: { by: claude-code/opus-5, at: 2026-09-20T08:20:00Z }
+updated: { by: claude-code/sonnet-5.5, at: 2026-11-19T22:30:00Z }
 ---
 
 # Sicherheitshärtung: Sensible Daten (Phase 1)
@@ -72,3 +72,13 @@ Mehrere sensible Felder wurden im Klartext in SQLite gespeichert. Vor der geplan
 > und speichert weiter Klartext, damit Dev-Setups nicht hart brechen. „Verschlüsselt" gilt
 > also genau für Installationen, in denen diese Variable gesetzt ist; ob sie es auf einem
 > konkreten Edge ist, beweist dieses Dokument nicht.
+>
+> **Nachtrag 2026-11-19 ([#1498](https://github.com/panary/panary-core/issues/1498)):** Über
+> `get.panary.cloud` installierte Edges hatten den Schlüssel bis dahin **nie** — weder `.env` noch
+> Compose kannten ihn. Seitdem erzeugt der Installer ihn (und ersetzt einen vorhandenen nie), reicht ihn an
+> den Container durch, und der Edge verschlüsselt einen vorhandenen Klartext-Token beim Boot nach
+> (`cloud-token-boot-migration.ts`). Fehlt der Schlüssel weiterhin, **startet der Edge** und warnt laut
+> (`bootstrap.token_key_missing`); das Erzwingen ist [#1499](https://github.com/panary/panary-core/issues/1499).
+> Ob ein konkreter Edge verschlüsselt, zeigt `docker logs panary-edge | grep token_key` bzw. ein Token mit
+> `enc:v1:`-Prefix in `cloud-connection`. Siehe
+> [Edge ohne Token-Schlüssel](../infrastructure/edge-token-schluessel.md).

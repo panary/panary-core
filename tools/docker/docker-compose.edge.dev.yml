@@ -32,4 +32,10 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3031
+      # Beide Pflicht (ADR 0018: Prod- und Dev-Compose bleiben gleich). Das Secret fehlte hier bisher —
+      # der Container brach beim Boot ab (#323). Werte aus Shell oder .env neben dieser Datei, erzeugt
+      # mit `openssl rand -base64 32`; nie als fester Wert im oeffentlichen Repo. Der Token-Schluessel
+      # (#1498) wird einmal erzeugt und behalten: Ein neuer macht den verschluesselten Token unlesbar.
+      - FEATHERS_SECRET=${FEATHERS_SECRET:?FEATHERS_SECRET muss gesetzt sein (openssl rand -base64 32)}
+      - EDGE_TOKEN_ENCRYPTION_KEY=${EDGE_TOKEN_ENCRYPTION_KEY:?EDGE_TOKEN_ENCRYPTION_KEY muss gesetzt sein (openssl rand -base64 32)}
     restart: 'no'

@@ -115,7 +115,7 @@ describe('runCloudTokenBootMigration', () => {
     expect(result).toMatchObject({ keyStatus: 'missing', unreadable: 1 })
     expect(patch).not.toHaveBeenCalled()
     expect(events(error)).toEqual(['bootstrap.token_key_mismatch'])
-    expect((error.mock.calls[0][0] as { message: string }).message).toMatch(/Schluessel fehlt/)
+    expect((error.mock.calls[0][0] as { message: string }).message).toMatch(/EDGE_TOKEN_ENCRYPTION_KEY fehlt/)
   })
 
   it('laesst Klartext ohne Schluessel stehen und warnt mit Behebungsweg', async () => {

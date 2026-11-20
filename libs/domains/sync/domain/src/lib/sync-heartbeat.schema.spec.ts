@@ -4,7 +4,7 @@ import { Ajv, addFormats } from '@feathersjs/schema'
 import type { FormatsPluginOptions } from '@feathersjs/schema'
 import { getValidator } from '@feathersjs/typebox'
 
-import { syncHeartbeatResponseSchema } from './sync-heartbeat.schema'
+import { syncHeartbeatRequestSchema, syncHeartbeatResponseSchema } from './sync-heartbeat.schema'
 
 // Mit derselben AJV-Konfiguration wie der Feathers-`dataValidator`: `Value.Check` scheitert an StringEnum
 // (Type.Unsafe), und `clockSkewStatus` ist ein Pflichtfeld der Antwort. Muster: device.schema.spec.ts.
@@ -48,5 +48,32 @@ describe('syncHeartbeatResponseSchema — Mindestversionen (#1437)', () => {
 
   it('bleibt geschlossen: ein unbekanntes Feld wird weiter abgelehnt', async () => {
     expect(await ok({ ...basis, requiredMinVersion: '26.9.1' })).toBe(false)
+  })
+})
+
+// Zustand des Token-Schluessels (core#1508): nur ein Enum, nie ein Wert. Auf dem Heartbeat-Pfad ist das Schema kein
+// Laufzeit-Gate, der Spec sichert Feldname und Literale gegen `TokenKeyStatus` in api-edge.
+describe('syncHeartbeatRequestSchema — tokenKey (#1508)', () => {
+  const validateRequest = getValidator(syncHeartbeatRequestSchema, addFormats(new Ajv({}), formats))
+  const requestOk = async (data: unknown): Promise<boolean> => {
+    try {
+      await validateRequest(data)
+      return true
+    } catch {
+      return false
+    }
+  }
+  const basis = { edgeTimestamp: '2026-11-20T10:00:00.000Z', edgeClockMonotonicMs: 1000 }
+
+  it('bleibt ohne tokenKey gueltig (Alt-Edges)', async () => {
+    expect(await requestOk(basis)).toBe(true)
+  })
+
+  it.each(['missing', 'weak', 'ok'])('akzeptiert tokenKey %s', async wert => {
+    expect(await requestOk({ ...basis, tokenKey: wert })).toBe(true)
+  })
+
+  it.each(['strong', 'OK', '', 32, null])('lehnt den Wert %j ab', async wert => {
+    expect(await requestOk({ ...basis, tokenKey: wert })).toBe(false)
   })
 })

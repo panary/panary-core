@@ -90,6 +90,17 @@ export const syncHeartbeatRequestSchema = Type.Object(
         { additionalProperties: false },
       ),
     ),
+    // Zustand des EDGE_TOKEN_ENCRYPTION_KEY (core#1508): nur der Zustand, nie der Wert, nie seine Laenge
+    // und kein Hash. `missing` unter 8 Zeichen, `weak` unter 32, sonst `ok`.
+    //
+    // Ungepruefte Selbstauskunft der Edge (`trustTier: unverified`): Eine Edge kann auch `ok` behaupten.
+    // Der Wert ist ein Messwert fuer core#1499 (wie viele Edges laufen noch ohne Schluessel) und KEIN
+    // Gate — er sperrt und gibt nichts frei (wie `outboxBacklog` und `foreignTenantRecords`).
+    //
+    // ⚠️ Auch hier KEIN Laufzeit-Gate: Die Cloud liest den Wert aus dem rohen Body, ein 400 auf diesem
+    // Pfad kippt die Flotte in den Notfall-Modus. Alt-Edges senden das Feld nie, eine Cloud ohne diesen
+    // Stand verwirft es still.
+    tokenKey: Type.Optional(StringEnum(['missing', 'weak', 'ok'])),
   },
   { $id: 'SyncHeartbeatRequest', additionalProperties: false },
 )

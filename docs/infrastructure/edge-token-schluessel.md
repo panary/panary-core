@@ -4,10 +4,13 @@ title: Edge ohne Token-Schlüssel — EDGE_TOKEN_ENCRYPTION_KEY auf jede Edge br
 description: Der Edge verschlüsselt den Cloud-Token in SQLite nur mit EDGE_TOKEN_ENCRYPTION_KEY; dieser Guide nennt, wie der Installer den Schlüssel erzeugt, was der Boot-Lauf nachverschlüsselt und meldet, und wie eine Feld-Edge ohne Installer-Lauf zu einem Schlüssel kommt.
 tags: [api-edge, security, boot, infra, deployment, cloud-connection]
 status: stable
-generated: { by: claude-code/sonnet-5.5, at: 2026-11-19T22:30:00.000Z }
+generated: { by: claude-code/sonnet-5.5, at: 2026-11-20T11:45:00.000Z }
 sources:
   - { id: issue-1498, resource: 'https://github.com/panary/panary-core/issues/1498', title: 'Edge-Token-Schlüssel auf jede Edge bringen (Teil A)' }
   - { id: issue-1499, resource: 'https://github.com/panary/panary-core/issues/1499', title: 'Edge-Token-Schlüssel erzwingen (Teil B)' }
+  - { id: issue-1499-entscheidung, resource: 'https://github.com/panary/panary-core/issues/1499', title: 'Kommentar vom 2026-11-19: A jetzt, C vor Teil B' }
+  - { id: issue-1508, resource: 'https://github.com/panary/panary-core/issues/1508', title: 'Zustand des Edge-Token-Schlüssels im Heartbeat melden' }
+  - { id: heartbeat-token-key, resource: apps/api-edge/src/workers/heartbeat-token-key.ts, title: Heartbeat-Block für den Schlüsselzustand }
   - { id: install-sh, resource: tools/hosting/get.panary.cloud/install.sh, title: Edge-Installationsskript }
   - { id: boot-migration, resource: apps/api-edge/src/utils/cloud-token-boot-migration.ts, title: Boot-Lauf für den cloudToken }
   - { id: cipher, resource: apps/api-edge/src/utils/cloud-token-cipher.ts, title: AES-256-GCM-Cipher für den cloudToken }
@@ -16,8 +19,8 @@ sources:
 # Edge ohne Token-Schlüssel — `EDGE_TOKEN_ENCRYPTION_KEY`
 
 Schwester-Guide zu [Edge startet nicht — `FEATHERS_SECRET`](edge-feathers-secret-pflicht.md). Der
-Unterschied ist der Kern: **Der Edge startet auch ohne diesen Schlüssel.** Er warnt nur — das
-Erzwingen ist Teil B ([#1499](https://github.com/panary/panary-core/issues/1499)).
+Unterschied ist der Kern: **Der Edge startet auch ohne diesen Schlüssel.** Er warnt nur und meldet den Schlüsselzustand
+an die Cloud — das Erzwingen ist Teil B ([#1499](https://github.com/panary/panary-core/issues/1499)).
 
 ## Was der Schlüssel schützt
 
@@ -76,11 +79,39 @@ Re-Pairing der Edge — der verschlüsselte Token ist ohne ihn nicht zu retten.
 ## Feld-Edges ohne Installer-Lauf — Entscheidung für Teil B
 
 Edges, die seit dem Update nur per Watchtower laufen, haben **keinen** Schlüssel und bekommen keinen, solange
-niemand den Installer ausführt. Teil A löst das nicht, es macht es sichtbar: ab diesem Stand steht beim Boot
-eine laute Warnung mit dem Behebungsweg im Container-Log. Wie Teil B damit umgeht, entscheidet Michael vor dem
-Erzwingen; die Optionen und die Empfehlung stehen im Kommentar zu
-[#1498](https://github.com/panary/panary-core/issues/1498). Ein erzwingender Guard im selben Release wie Teil A
-wäre ein Kassenausfall auf jeder Feld-Edge ohne neuen Installer-Lauf gewesen.
+niemand den Installer ausführt. Michael hat am 2026-11-19 im Kommentar zu
+[#1499](https://github.com/panary/panary-core/issues/1499) entschieden: **A jetzt, C vor Teil B.**
+
+- **A** (Teil A, [#1498](https://github.com/panary/panary-core/issues/1498)): Der Edge startet weiter, warnt aber
+  laut mit dem Behebungsweg im Container-Log. Kein Zwang. Ein erzwingender Guard im selben Release wäre ein
+  Kassenausfall auf jeder Feld-Edge ohne neuen Installer-Lauf gewesen.
+- **C** ([#1508](https://github.com/panary/panary-core/issues/1508), dieser Stand): Die Edge meldet den Zustand
+  ihres Schlüssels im Heartbeat, die Cloud zeigt, welche Edges noch ohne Schlüssel laufen. Erst mit dieser Messung,
+  oder nach einer ausdrücklich beschlossenen Frist, darf #1499 erzwingen.
+- Schlüssel mit 8 bis 31 Zeichen bleiben gültig und werden nie ersetzt. Sie gelten nur als `weak`.
+
+## Sichtbarkeit in der Cloud
+
+Jeder Heartbeat trägt `tokenKey: 'missing' | 'weak' | 'ok'`
+([`workers/heartbeat-token-key.ts`](../../apps/api-edge/src/workers/heartbeat-token-key.ts), abgeleitet aus
+`getTokenKeyStatus()`): `missing` unter 8 Zeichen, `weak` unter 32, sonst `ok`.
+
+- **Nur der Zustand.** Weder der Schlüssel noch seine Länge noch ein Hash verlassen die Edge.
+- **Ungeprüfte Selbstauskunft.** Eine Edge kann auch `ok` behaupten. Der Wert ist ein Messwert für #1499 und kein
+  Gate: Er sperrt und gibt nichts frei.
+- **Failure-Isolation.** Der Helper wirft nie und liefert im Zweifel `{}`, denn ein Fehler im Heartbeat zählt zu den
+  drei Fehlversuchen bis zum Notfall-Modus der Edge.
+- **Kein Laufzeit-Gate, keine Reihenfolge.** Das Feld ist optional im Schema. Die Cloud liest Heartbeat-Felder aus
+  dem rohen Body und verwirft unbekannte still. Core und Cloud dürfen deshalb in beliebiger Reihenfolge gemergt
+  werden, einen Pin-Bump braucht es nicht.
+- **Alt-Edges senden das Feld nie.** Ob Feld-Edges den Stand wirklich ziehen, zeigt erst der Rollout eines
+  `v*`-Release.
+
+Zwei Fälle melden sich gar nicht: Ein **anderer Schlüssel** als beim Verschlüsseln (`mismatch`) und ein
+**verschlüsselter Token bei fehlendem Schlüssel** lassen `decryptCloudToken` im Heartbeat werfen, bevor der Body
+entsteht. Nach drei Fehlschlägen greift der Notfall-Modus, in der Cloud erscheinen solche Edges als stumm bzw.
+„unbekannt/veraltet", nicht als `missing`. `missing` zählt also nur Edges mit Klartext-Token. Ein vierter Wert im
+Heartbeat wäre wirkungslos.
 
 ## Nicht abgedeckt
 

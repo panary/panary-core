@@ -49,6 +49,7 @@ import {
 } from './sync-apply'
 import { collectDeviceCountsForHeartbeat } from './heartbeat-device-counts'
 import { persistMinVersions } from './heartbeat-min-versions'
+import { buildTokenKeyHeartbeatBlock } from './heartbeat-token-key'
 import { computeScheduledSlot } from './scheduled-slot'
 import { selectStaleUsersToArchive } from './stale-user-reconciliation'
 import {
@@ -1195,6 +1196,8 @@ const runHeartbeat = async (app: Application, connection: CloudConnection): Prom
       edgeVersion: APP_VERSION,
       ...(deviceConnections ? { deviceConnections } : {}),
       ...(foreignTenantRecords ? { foreignTenantRecords } : {}),
+      // Zustand des Token-Schluessels (core#1508), nie der Wert — wirft nie.
+      ...buildTokenKeyHeartbeatBlock(),
     }),
     timeoutMs: HEARTBEAT_TIMEOUT_MS,
   })

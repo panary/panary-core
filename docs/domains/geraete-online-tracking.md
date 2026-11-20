@@ -119,6 +119,10 @@ Report nie als `0`.
 Entscheidung, Begruendung und Sicherheitskontext:
 `panary-cloud/docs/adr/0030-edge-geraetezaehlung-ueber-heartbeat.md`.
 
+Derselbe Heartbeat trägt seit [#1508](https://github.com/panary/panary-core/issues/1508) den Zustand des
+Token-Schlüssels (`tokenKey: 'missing' | 'weak' | 'ok'`, nie der Wert), gleichfalls fehler-isoliert. Details:
+[Edge ohne Token-Schlüssel](../infrastructure/edge-token-schluessel.md#sichtbarkeit-in-der-cloud).
+
 ## Verwandt
 - Cloud-Pendant: `panary-cloud/docs/architecture/geraete-online-tracking.md`
 - [Cloud-Status-Badge](../architecture/cloud-status-badge.md)

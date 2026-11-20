@@ -185,6 +185,34 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
     })
   })
 
+  // panary/panary-core#1511: mit Flag storefrontDraftSeparation liest die Vorschau den Entwurf nur mit Token.
+  // Support darf es erzeugen (Entscheidung 2026-11-20), Mitarbeiter und Geraete bewusst nicht.
+  describe('STOREFRONT_PREVIEW_TOKEN — Vorschau mit Entwurf', () => {
+    it('CREATE fuer ADMIN/SUPPORT/OWNER/MANAGER', () => {
+      for (const role of [
+        UserSystemRole.PLATFORM_ADMIN,
+        UserSystemRole.PLATFORM_SUPPORT,
+        UserSystemRole.TENANT_OWNER,
+        UserSystemRole.TENANT_MANAGER,
+      ]) {
+        expect(roleActions(role, AppResource.STOREFRONT_PREVIEW_TOKEN)).toEqual([AppAction.CREATE])
+      }
+    })
+
+    it('TENANT_STAFF, Techniker und Geraete haben keinen Zugriff', () => {
+      for (const role of [
+        UserSystemRole.TENANT_STAFF,
+        UserSystemRole.TENANT_TECHNICIAN,
+        UserSystemRole.DEVICE_POS,
+        UserSystemRole.DEVICE_KDS,
+        UserSystemRole.DEVICE_TABLET,
+        UserSystemRole.DEVICE_KIOSK,
+      ]) {
+        expect(roleCan(role, AppResource.STOREFRONT_PREVIEW_TOKEN, AppAction.CREATE)).toBe(false)
+      }
+    })
+  })
+
   describe('PLATFORM_USERS — Plattform-Personal-Anlage', () => {
     it('PLATFORM_OWNER hat MANAGE', () => {
       expect(roleCan(UserSystemRole.PLATFORM_OWNER, AppResource.PLATFORM_USERS, AppAction.CREATE)).toBe(true)

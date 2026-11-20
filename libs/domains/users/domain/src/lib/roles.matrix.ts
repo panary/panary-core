@@ -261,6 +261,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOREFRONT_PUBLISH, action: AppAction.READ },
     // Publish-Historie (panary/panary-core#437): Support liest den Versionsverlauf mit.
     { resource: AppResource.STOREFRONT_PUBLISH_META, action: AppAction.READ },
+    // Vorschau-Token (panary/panary-core#1511, ADR 0108 Schritt 4): Support sieht die Entwurfs-Vorschau
+    // wie Owner/Manager, sonst bekaeme er mit Flag storefrontDraftSeparation nur die 401-Meldung.
+    // TENANT_STAFF bleibt bewusst ohne Eintrag (Michaels Entscheidung 2026-11-20).
+    { resource: AppResource.STOREFRONT_PREVIEW_TOKEN, action: AppAction.CREATE },
     // Ankuendigungen der Startseite (panary/panary-core#601): Support liest mit, Pflege bei OWNER/ADMIN.
     { resource: AppResource.ANNOUNCEMENTS, action: AppAction.READ },
     // Custom-Theme-Anfragen: Support liest mit (Ticket-Diagnose), kein Status-Workflow.

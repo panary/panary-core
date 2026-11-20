@@ -52,7 +52,8 @@ describe('syncHeartbeatResponseSchema — Mindestversionen (#1437)', () => {
 })
 
 // Zustand des Token-Schluessels (core#1508): nur ein Enum, nie ein Wert. Auf dem Heartbeat-Pfad ist das Schema kein
-// Laufzeit-Gate, der Spec sichert Feldname und Literale gegen `TokenKeyStatus` in api-edge.
+// Laufzeit-Gate, der Spec sichert die drei Literale im Schema. Die Gegenrichtung (Edge sendet nur Literale, die das
+// Schema kennt) sichert der `Pick<SyncHeartbeatRequest, 'tokenKey'>`-Rueckgabetyp in api-edge zur Compile-Zeit.
 describe('syncHeartbeatRequestSchema — tokenKey (#1508)', () => {
   const validateRequest = getValidator(syncHeartbeatRequestSchema, addFormats(new Ajv({}), formats))
   const requestOk = async (data: unknown): Promise<boolean> => {

@@ -267,7 +267,8 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.STOREFRONT_PREVIEW_TOKEN, action: AppAction.CREATE },
     // Storefront-Bereich lesen (panary/panary-core#1514, panary-cloud#2244; Michael 2026-11-21): Die Cloud-Route
     // /storefront verlangt STOREFRONT_PAGES, und die Uebersicht laedt STOREFRONT_CONFIG — ohne sie zeigt die
-    // Vorschau-Karte kein iframe. Nur READ: Seiten und Design aendert Support nicht.
+    // Vorschau-Karte kein iframe. Nur READ: Seiten und Design aendert Support nicht. PLATFORM_ADMIN bewusst ohne
+    // (nicht beauftragt, siehe core#1514).
     { resource: AppResource.STOREFRONT_PAGES, action: AppAction.READ },
     { resource: AppResource.STOREFRONT_CONFIG, action: AppAction.READ },
     // Ankuendigungen der Startseite (panary/panary-core#601): Support liest mit, Pflege bei OWNER/ADMIN.

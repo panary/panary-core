@@ -213,6 +213,24 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
     })
   })
 
+  // panary/panary-core#1514 (panary/panary-cloud#2244): Die Cloud-Route /storefront verlangt STOREFRONT_PAGES, und die
+  // Übersicht lädt STOREFRONT_CONFIG (ohne sie bleibt die Vorschau-Karte leer). Support liest beides, schreibt nichts.
+  describe('PLATFORM_SUPPORT — Storefront-Bereich lesen', () => {
+    for (const resource of [AppResource.STOREFRONT_PAGES, AppResource.STOREFRONT_CONFIG]) {
+      it(`nur READ auf ${resource}`, () => {
+        expect(roleActions(UserSystemRole.PLATFORM_SUPPORT, resource)).toEqual([AppAction.READ])
+      })
+    }
+
+    it('kein Schreibrecht auf Seiten und Config', () => {
+      for (const resource of [AppResource.STOREFRONT_PAGES, AppResource.STOREFRONT_CONFIG]) {
+        for (const action of [AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
+          expect(roleCan(UserSystemRole.PLATFORM_SUPPORT, resource, action)).toBe(false)
+        }
+      }
+    })
+  })
+
   describe('PLATFORM_USERS — Plattform-Personal-Anlage', () => {
     it('PLATFORM_OWNER hat MANAGE', () => {
       expect(roleCan(UserSystemRole.PLATFORM_OWNER, AppResource.PLATFORM_USERS, AppAction.CREATE)).toBe(true)

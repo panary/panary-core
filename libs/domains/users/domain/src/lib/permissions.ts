@@ -304,14 +304,16 @@ export const AppResource = {
   /** Cloud-only: Storefront-Seiten (eine Seite = geordnete Liste von
    *  Section-Instanzen; Shopify-„Seite"-Pendant). CREATE/UPDATE/DELETE:
    *  TENANT_OWNER + TENANT_MANAGER (Pflege des oeffentlichen Auftritts).
-   *  READ: zusaetzlich TENANT_STAFF — Seiten ansehen, aber nicht bearbeiten.
+   *  READ: zusaetzlich TENANT_STAFF — Seiten ansehen, aber nicht bearbeiten —
+   *  und PLATFORM_SUPPORT (panary-cloud#2244, nur lesend).
    *  Ohne STAFF-READ liefert die Seiten-Liste 403 fuer Staff. */
   STOREFRONT_PAGES: 'storefront-pages',
 
   /** Cloud-only: Storefront-Konfiguration (eine pro Location: Zugriff, SEO/
    *  Social, automatische Weiterleitung, Spamschutz, Crawler-Zugriff + aktives
    *  Theme; Shopify-„Konfigurationen"-Pendant). READ/UPDATE: TENANT_OWNER +
-   *  TENANT_MANAGER. READ: zusaetzlich TENANT_STAFF. */
+   *  TENANT_MANAGER. READ: zusaetzlich TENANT_STAFF und PLATFORM_SUPPORT
+   *  (panary-cloud#2244, nur lesend). */
   STOREFRONT_CONFIG: 'storefront-config',
 
   /** Cloud-only, GLOBAL (nicht tenant-scoped): plattform-kuratierter Theme-

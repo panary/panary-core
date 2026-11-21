@@ -160,8 +160,8 @@ Grenzen der Tabelle:
 | `external/vies-lookup` | M | M | – | – | – | – | – | – | – | – | – |
 | `tenant-branding-asset` | M | M | R | M | R | R | R | – | – | – | – |
 | `storefront-asset` | – | – | – | M | CRD | CRD | R | – | – | – | – |
-| `storefront-pages` | – | – | – | M | CRUD | – | R | – | – | – | – |
-| `storefront-config` | – | – | – | M | RU | – | R | – | – | – | – |
+| `storefront-pages` | – | – | R | M | CRUD | – | R | – | – | – | – |
+| `storefront-config` | – | – | R | M | RU | – | R | – | – | – | – |
 | `storefront-theme-catalog` | – | M | – | R | R | – | R | – | – | – | – |
 | `storefront-publish` | – | CR | R | CR | CR | – | – | – | – | – | – |
 | `storefront-publish-brand` | – | C | – | C | C | – | – | – | – | – | – |

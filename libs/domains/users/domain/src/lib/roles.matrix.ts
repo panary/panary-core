@@ -271,6 +271,10 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     // (nicht beauftragt, siehe core#1514).
     { resource: AppResource.STOREFRONT_PAGES, action: AppAction.READ },
     { resource: AppResource.STOREFRONT_CONFIG, action: AppAction.READ },
+    // Filialen lesen (panary/panary-core#1516, panary-cloud#2253; Michael 2026-11-22): Die Admin-Oberflaeche laedt unter
+    // Fernzugriff die Filialliste (Kopf, /storefront-Einstieg); ohne LOCATIONS READ bleibt sie leer und der Storefront-
+    // Bereich ist ohne direkte URL nicht erreichbar. Nur READ — die Filialdaten enthalten Rechnungsdaten (u. a. iban).
+    { resource: AppResource.LOCATIONS, action: AppAction.READ },
     // Ankuendigungen der Startseite (panary/panary-core#601): Support liest mit, Pflege bei OWNER/ADMIN.
     { resource: AppResource.ANNOUNCEMENTS, action: AppAction.READ },
     // Custom-Theme-Anfragen: Support liest mit (Ticket-Diagnose), kein Status-Workflow.

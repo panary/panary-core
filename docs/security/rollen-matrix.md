@@ -67,7 +67,7 @@ Grenzen der Tabelle:
 | `discount-code-redemptions` | – | – | – | CR | CR | CR | – | – | – | – | – |
 | `discount-code-redeem` | – | – | – | CR | CR | CR | CR | CR | – | CR | – |
 | `inventory` | – | – | – | – | – | – | – | – | – | – | – |
-| `locations` | – | R | – | M | R | M | R | R | – | R | – |
+| `locations` | – | R | R | M | R | M | R | R | – | R | – |
 | `system` | M | M | R | – | – | M | – | – | – | – | – |
 | `customers` | – | – | – | M | M | M | CR | CRU | – | – | – |
 | `order-interactions` | – | – | – | M | M | M | CR | M | – | CR | – |

@@ -246,7 +246,11 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
   })
 
   describe('TENANT_GRANTS — Fernzugriff freigeben nur der Inhaber (core#1500)', () => {
-    const platformRoles = [UserSystemRole.PLATFORM_OWNER, UserSystemRole.PLATFORM_ADMIN, UserSystemRole.PLATFORM_SUPPORT]
+    const platformRoles = [
+      UserSystemRole.PLATFORM_OWNER,
+      UserSystemRole.PLATFORM_ADMIN,
+      UserSystemRole.PLATFORM_SUPPORT,
+    ]
 
     for (const role of platformRoles) {
       it(`${role} hat nur READ auf tenant-grants`, () => {
@@ -258,9 +262,7 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
       expect(
         RolePermissions[UserSystemRole.TENANT_OWNER].some(
           rule =>
-            typeof rule !== 'string' &&
-            rule.resource === AppResource.TENANT_GRANTS &&
-            rule.action === AppAction.MANAGE,
+            typeof rule !== 'string' && rule.resource === AppResource.TENANT_GRANTS && rule.action === AppAction.MANAGE,
         ),
       ).toBe(true)
     })

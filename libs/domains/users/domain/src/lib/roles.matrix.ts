@@ -57,7 +57,9 @@ export const RolePermissions: Record<UserSystemRole, PermissionRule[]> = {
     { resource: AppResource.PLATFORM_CONFIG, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_PUSH_SUBSCRIPTION, action: AppAction.MANAGE },
     { resource: AppResource.PLATFORM_CLOUD_CONNECTIONS, action: AppAction.READ },
-    { resource: AppResource.TENANT_GRANTS, action: AppAction.MANAGE },
+    // Fernzugriff-Freigaben: nur lesen (Chip in der Mandanten-Liste). Freigeben, entziehen und
+    // Code erzeugen darf allein der TENANT_OWNER des Mandanten (panary/panary-core#1500).
+    { resource: AppResource.TENANT_GRANTS, action: AppAction.READ },
     // Globale Identitaets-Collection (E-Mail-Login). Owner verwaltet Accounts
     // plattformweit (Dienstleister-Einladungen, Passwort-Reset-Support).
     { resource: AppResource.ACCOUNTS, action: AppAction.MANAGE },

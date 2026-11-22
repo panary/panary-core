@@ -194,7 +194,7 @@ Grenzen der Tabelle:
 | `platform-config` | M | R | R | – | – | – | – | – | – | – | – |
 | `platform-push-subscription` | M | M | M | – | – | – | – | – | – | – | – |
 | `platform-cloud-connections` | R | R | R | – | – | – | – | – | – | – | – |
-| `tenant-grants` | M | R | R | M | – | – | – | – | – | – | – |
+| `tenant-grants` | R | R | R | M | – | – | – | – | – | – | – |
 | `accounts` | M | M | R | – | – | – | – | – | – | – | – |
 | `account-invitations` | – | – | – | M | – | M | – | – | – | – | – |
 | `password-reset` | – | – | – | – | – | – | – | – | – | – | – |

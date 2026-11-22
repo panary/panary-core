@@ -231,6 +231,20 @@ describe('RolePermissions — Phase 6 (BRAND + RESERVATION)', () => {
     })
   })
 
+  // panary/panary-core#1516 (panary/panary-cloud#2253): Ohne LOCATIONS READ lädt die Admin-Oberfläche unter Fernzugriff
+  // keine Filialen — der Kopf bietet keine an, und /storefront zeigt „keine Filiale freigegeben“.
+  describe('PLATFORM_SUPPORT — Filialen lesen', () => {
+    it('nur READ auf locations', () => {
+      expect(roleActions(UserSystemRole.PLATFORM_SUPPORT, AppResource.LOCATIONS)).toEqual([AppAction.READ])
+    })
+
+    it('kein Schreibrecht auf locations', () => {
+      for (const action of [AppAction.CREATE, AppAction.UPDATE, AppAction.DELETE]) {
+        expect(roleCan(UserSystemRole.PLATFORM_SUPPORT, AppResource.LOCATIONS, action)).toBe(false)
+      }
+    })
+  })
+
   describe('PLATFORM_USERS — Plattform-Personal-Anlage', () => {
     it('PLATFORM_OWNER hat MANAGE', () => {
       expect(roleCan(UserSystemRole.PLATFORM_OWNER, AppResource.PLATFORM_USERS, AppAction.CREATE)).toBe(true)

@@ -412,8 +412,9 @@ const LABEL_SM = 'text-xs text-ink-faint uppercase tracking-wider'
                       [attr.data-severity]="hint.finding.severity"
                       class="text-xs text-ink"
                     >
-                      <span class="font-medium">{{ 'PRODUCTS.TAX_SEVERITY.' + hint.finding.severity | translate }}</span
-                      >:
+                      <span class="font-medium">{{
+                        'PRODUCTS.TAX_SEVERITY.' + hint.finding.severity | translate
+                      }}</span>:
                       {{
                         'PRODUCTS.TAX_FINDING.' + hint.finding.code
                           | translate: { group: hint.group, product: hint.product, rate: hint.finding.rate }

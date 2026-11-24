@@ -357,8 +357,7 @@ const directionLabel = (dir: InitialDirection): string => {
                         <p class="text-sm text-amber-800 dark:text-amber-300">
                           ⚠ Inventardaten konnten nicht geladen werden. Die Cloud antwortet, aber liefert keinen
                           Bestandsvergleich — Bootstrap ist trotzdem moeglich. Empfohlene Sync-Richtung:
-                          <span class="font-medium">{{ pf.suggestedDirection }}</span
-                          >.
+                          <span class="font-medium">{{ pf.suggestedDirection }}</span>.
                         </p>
                       </div>
                     }

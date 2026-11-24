@@ -45,8 +45,9 @@ osv-scanner meldete den Eintrag deshalb als „unused ignore".
   `minimumReleaseAge`, die 7 Tage gelten über den Dependabot-Cooldown und die Supply-Chain-Regel. Der rustls-Bump vom
   [2026-09-15](osv-befund-2026-09-15.md) zog einen Fix nach einem Tag ein. Hier ist der Pfad nicht erreichbar, deshalb
   besteht kein Anlass für die Ausnahme.
-* **picomatch:** Ignore entfernt, mit Vermerk im Kopf von `osv-scanner.toml`. Das Gegenstück in panary-cloud trägt den
-  Eintrag noch und bekommt ein eigenes Issue.
+* **picomatch:** Ignore entfernt, mit Vermerk im Kopf von `osv-scanner.toml`. Das Gegenstück in panary-cloud entfernt
+  [panary-cloud#2174](https://github.com/panary/panary-cloud/issues/2174) (PR
+  [panary-cloud#2260](https://github.com/panary/panary-cloud/pull/2260)).
 
 ## Verifikation
 
@@ -60,7 +61,7 @@ Scan des Root-Lockfiles mit der bisherigen `osv-scanner.toml` meldete den picoma
 
 ## Wiedervorlage
 
-Ab dem **2026-11-30** (beide Fixes reif):
+[#1522](https://github.com/panary/panary-core/issues/1522). Ab dem **2026-11-30** (beide Fixes reif):
 
 ```bash
 cd apps/pos-client/src-tauri

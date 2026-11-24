@@ -62,3 +62,9 @@ Zum Ablauf am 2026-12-15, spätestens sobald die picomatch-Advisory eine `first_
 heben und den Eintrag entfernen. Für chrono prüfen, ob `serde_with` chrono nicht mehr als optionale Abhängigkeit
 führt oder chrono wieder gepflegt wird; sonst erneut messen, ob ein Pfad vom POS-Crate entstanden ist, und die Frist
 mit neuer Begründung verlängern. Ein Eintrag, den der Scanner als „unused" meldet, gehört entfernt.
+
+## Nachtrag 2026-11-24 — picomatch-Advisory zurückgezogen
+
+GHSA-fc5q-39xc-vjpf ist seit dem 2026-11-19 als „not a security issue" zurückgezogen. osv-scanner meldete den
+Eintrag als „unused ignore", er ist entfernt ([#1519](https://github.com/panary/panary-core/issues/1519),
+[OSV-Befund 2026-11-24](osv-befund-2026-11-24-url-cookie.md)). Der chrono-Eintrag bleibt.

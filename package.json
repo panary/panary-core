@@ -76,7 +76,7 @@
     "@angular/platform-browser": "22.2.6",
     "@angular/router": "22.2.6",
     "@capacitor/android": "^8.5.3",
-    "@capacitor/cli": "^8.5.3",
+    "@capacitor/cli": "^8.6.2",
     "@capacitor/core": "^8.5.3",
     "@capacitor/filesystem": "^8.1.5",
     "@capacitor/share": "^8.0.3",

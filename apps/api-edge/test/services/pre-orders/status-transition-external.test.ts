@@ -156,7 +156,7 @@ describe('pre-orders patch — Statusübergänge extern (#1532)', () => {
     expect((await status(po._id)).status).toBe('converted')
   })
 
-  it('weist externes status: converted ab pending ab', async () => {
+  it('weist externes status: converted ab, auch von pending aus', async () => {
     const po = await anlegen('pending')
     await expect(patchExtern(po._id, { status: 'converted' })).rejects.toMatchObject({ code: 400 })
     expect((await status(po._id)).status).toBe('pending')
@@ -180,7 +180,9 @@ describe('pre-orders patch — Statusübergänge extern (#1532)', () => {
 
   it('lässt interne Patches durch (convert, Sync-Apply)', async () => {
     const po = await anlegen('cancelled')
-    await app.service('pre-orders').patch(po._id, { status: 'pending' } as never, { ...internal, fromSync: true } as never)
+    await app
+      .service('pre-orders')
+      .patch(po._id, { status: 'pending' } as never, { ...internal, fromSync: true } as never)
     expect((await status(po._id)).status).toBe('pending')
 
     await app

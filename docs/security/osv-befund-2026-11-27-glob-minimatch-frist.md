@@ -32,7 +32,7 @@ Pendant in panary-cloud mit derselben Frist; dort ist zusätzlich die Astro-Adap
 ## Was sich upstream bewegt hat
 
 - nx 24.0.7 (2026-11-25) und 24.1.0 (2026-11-27) ziehen minimatch 11.0.8. Der nx-Teil ist damit lösbar, aber nur über das
-  Major-Update nx 23 → 24 mit Angular-Lockstep (eigenes Issue). Die Karenz endet am 2026-12-02 bzw. 2026-12-04.
+  Major-Update nx 23 → 24 in beiden Repos (eigenes Issue). `@nx/angular` 24.1.0 akzeptiert Angular 20 bis 22, ein Angular-Sprung ist dafür nicht nötig. Die Karenz endet am 2026-12-02 bzw. 2026-12-04.
 - `@typescript-eslint/typescript-estree` 8.74 verlangt `minimatch ^11.0.1`.
 - Weiter blockierend: mocha 12.0.3 und test-exclude 8.0.0 hängen an glob 13 bzw. `minimatch ^10.2.2`, die neueste
   Fassung `@jest/reporters` 30.5.2 zieht glob 13. Der glob-Fix liegt nur in Major 14 (aktuell 14.0.6).
@@ -44,7 +44,7 @@ Build-Konfiguration, nie aus fremdem Input.
 ## Entscheidung
 
 Frist beider Einträge bis 2027-01-08 verlängert, Begründung mit den Zahlen oben erneuert. Sechs Wochen reichen für das
-nx-24-Update samt Angular-Lockstep und eine erneute Messung von mocha, test-exclude und jest. Entfernt werden die
+nx-24-Update in beiden Repos und eine erneute Messung von mocha, test-exclude und jest. Entfernt werden die
 Einträge, sobald nx minimatch >= 11.0.1 zieht und kein Konsument mehr glob < 14 auflöst.
 
 ## Messung nach der Änderung

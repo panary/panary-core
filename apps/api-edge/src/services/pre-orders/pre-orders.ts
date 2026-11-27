@@ -32,6 +32,7 @@ import {
 import { DineLocation, OrderChannel, OrderStatus, PaymentState } from '@panary/orders/domain'
 import type { PreOrder, PreOrderService } from './pre-orders.class'
 import { validatePreOrderOpeningHours } from './validate-opening-hours.hook'
+import { guardPreOrderStatusTransition } from './guard-status-transition.hook'
 import { leadMinutesUntil } from './scheduled-lead-time'
 import { assertCallerOwnsRecord, ensureIndexes, logger } from '@panary/shared-backend'
 
@@ -201,6 +202,7 @@ export const preOrders = (app: Application) => {
       patch: [
         validateData(preOrderPatchValidator),
         schemaHooks.resolveData(preOrderPatchResolver),
+        guardPreOrderStatusTransition,
         ...jsonHooks.before,
       ],
       remove: [],

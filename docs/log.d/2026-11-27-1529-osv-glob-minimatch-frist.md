@@ -1,0 +1,2 @@
+* **Creation**: [OSV-Befund 2026-11-27](../security/osv-befund-2026-11-27-glob-minimatch-frist.md) — Ausnahmen für glob (`GHSA-3g3m-2fjr-6pw4`) und minimatch (`GHSA-g3hv-75wg-m249`) bis 2027-01-08 verlängert, Begründung erneuert: nx 24 zieht minimatch 11, mocha, test-exclude und die jest-Pakete hängen weiter an glob < 14 (cloud-Pendant: Astro-Adapter-Bump und dieselbe Verlängerung).
+* **Update**: [Sicherheit](../security/index.md) — Eintrag zum Befund.

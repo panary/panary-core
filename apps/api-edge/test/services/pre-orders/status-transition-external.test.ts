@@ -140,7 +140,7 @@ describe('pre-orders patch — Statusübergänge extern (#1532)', () => {
   it('erlaubt einen Patch ohne Statuswechsel (pending → pending und ohne status)', async () => {
     const po = await anlegen('pending')
     await patchExtern(po._id, { status: 'pending' })
-    await patchExtern(po._id, { notes: 'Bitte ohne Zwiebeln' })
+    await patchExtern(po._id, { note: 'Bitte ohne Zwiebeln' })
     expect((await status(po._id)).status).toBe('pending')
   })
 

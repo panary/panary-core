@@ -12,9 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # pnpm installieren — fest gepinnt (synchron zum packageManager-Feld);
-# pnpm@latest würde inzwischen auf pnpm 11 springen (ungetesteter Major)
+# pnpm@latest würde ungeprüft auf die nächste Version springen
 # Node 25+ liefert corepack nicht mehr mit (Node-26-Umstieg) — pnpm daher per npm, gleiche Version.
-RUN npm install -g pnpm@10.34.3
+RUN npm install -g pnpm@12.22.0
 
 WORKDIR /build
 

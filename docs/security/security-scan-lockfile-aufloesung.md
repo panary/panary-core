@@ -39,8 +39,8 @@ davon, aus welchem Verzeichnis der Scan lief.
 
 ## Warum die Versionen auseinanderlaufen
 
-Nicht durch Zufall, sondern durch `pnpm.overrides`. Die Override-Liste in
-`panary-core/package.json` setzt Mindestversionen, die der Workbench-Root nicht kennt —
+Nicht durch Zufall, sondern durch die Overrides von core. Die Override-Liste (bis 2026-11-28 in
+`panary-core/package.json`, seitdem in `panary-core/pnpm-workspace.yaml`, panary/panary-core#1535) setzt Mindestversionen, die der Workbench-Root nicht kennt —
 seine eigene Liste ist leer:
 
 | Paket | core (committet) | Workbench-Root | Advisory |

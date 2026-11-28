@@ -78,10 +78,22 @@ jobs:
           if (-not (Test-Path pnpm-workspace.yaml)) {
             Write-Error "pnpm-workspace.yaml fehlt im Repo"; exit 1
           }
-          if (Select-String -Path pnpm-workspace.yaml -Pattern '^(packages|onlyBuiltDependencies):' -Quiet) {
-            Write-Error "pnpm-workspace.yaml traegt bereits packages:/onlyBuiltDependencies: — dieser Step wuerde doppelte YAML-Keys erzeugen. Step und Repo-Datei abgleichen."
+          if (Select-String -Path pnpm-workspace.yaml -Pattern '^(packages|onlyBuiltDependencies|linkWorkspacePackages|preferWorkspacePackages|autoInstallPeers|strictPeerDependencies):' -Quiet) {
+            Write-Error "pnpm-workspace.yaml traegt bereits einen der angehaengten Keys oder das seit pnpm 11 ungueltige onlyBuiltDependencies: — dieser Step wuerde doppelte YAML-Keys erzeugen. Step und Repo-Datei abgleichen."
             exit 1
           }
+          # Build-Freigaben an Ort und Stelle umstellen: Die Repo-Datei fuehrt
+          # `allowBuilds:` (pnpm 11+, panary/panary-core#1535); ein zweiter Block waere
+          # ein doppelter YAML-Key. Gleiche Logik wie tools/docker/prepare-edge-context.sh.
+          $ws = Get-Content pnpm-workspace.yaml
+          foreach ($pkg in @('@swc/core', 'esbuild', 'nx')) {
+            $off = "  '$pkg': false"
+            if (-not ($ws -ccontains $off)) {
+              Write-Error "allowBuilds-Eintrag '$pkg': false fehlt in pnpm-workspace.yaml — Step und Repo-Datei abgleichen."; exit 1
+            }
+            $ws = $ws | ForEach-Object { if ($_ -ceq $off) { "  '$pkg': true" } else { $_ } }
+          }
+          $ws | Out-File -Encoding utf8 pnpm-workspace.yaml
           @"
 
           # --- vom CI angehaengt (release-pos.yml) ---
@@ -95,26 +107,22 @@ jobs:
             # Analog zu build-edge-docker.yml.
             - 'libs/shared'
             - 'libs/shared/*'
-          onlyBuiltDependencies:
-            - '@swc/core'
-            - 'better-sqlite3'
-            - 'esbuild'
-            - 'nx'
+          # Workspace-Linking — sonst zieht pnpm @panary/* aus npm.pkg.github.com
+          # (ERR_PNPM_FETCH_401 ohne Auth-Token). Seit pnpm 11 nur noch hier
+          # gelesen, nicht mehr aus .npmrc (panary/panary-core#1535).
+          linkWorkspacePackages: deep
+          preferWorkspacePackages: true
+          autoInstallPeers: true
+          strictPeerDependencies: false
           "@ | Out-File -Append -Encoding utf8 pnpm-workspace.yaml
-          # .npmrc fuer Workspace-Linking — sonst zieht pnpm @panary/*
-          # aus npm.pkg.github.com (ERR_PNPM_FETCH_401 ohne Auth-Token).
-          @"
-          link-workspace-packages=deep
-          prefer-workspace-packages=true
-          auto-install-peers=true
-          strict-peer-dependencies=false
-          "@ | Out-File -Encoding utf8 .npmrc
+          # .npmrc leeren: pnpm soll @panary/* ausschliesslich aus dem Workspace nehmen.
+          "# vom CI geleert (release-pos.yml)" | Out-File -Encoding utf8 .npmrc
           # Anders als build-edge-docker.yml wird das Lockfile hier UNBEDINGT
           # geloescht → vollstaendige Neuaufloesung. Dabei darf pnpm frei auf
           # reife Versionen ausweichen, die 7-Tage-Karenz aus
           # pnpm-workspace.yaml bleibt also aktiv (verifiziert 2026-07-22).
           # Bricht ein Release mit ERR_PNPM_NO_MATURE_MATCHING_VERSION ab, zeigt
-          # ein `pnpm.overrides`-Eintrag in package.json auf eine Version, die
+          # ein `overrides`-Eintrag in pnpm-workspace.yaml auf eine Version, die
           # juenger als 7 Tage ist → Paket befristet in
           # `minimumReleaseAgeExclude` aufnehmen (siehe
           # docs/adr/0012-pnpm-supply-chain-haertung.md).
@@ -412,10 +420,16 @@ jobs:
           if [ ! -f pnpm-workspace.yaml ]; then
             echo "pnpm-workspace.yaml fehlt im Repo"; exit 1
           fi
-          if grep -qE '^(packages|onlyBuiltDependencies):' pnpm-workspace.yaml; then
-            echo "pnpm-workspace.yaml traegt bereits packages:/onlyBuiltDependencies: — dieser Step wuerde doppelte YAML-Keys erzeugen. Step und Repo-Datei abgleichen."
+          if grep -qE '^(packages|onlyBuiltDependencies|linkWorkspacePackages|preferWorkspacePackages|autoInstallPeers|strictPeerDependencies):' pnpm-workspace.yaml; then
+            echo "pnpm-workspace.yaml traegt bereits einen der angehaengten Keys oder das seit pnpm 11 ungueltige onlyBuiltDependencies: — dieser Step wuerde doppelte YAML-Keys erzeugen. Step und Repo-Datei abgleichen."
             exit 1
           fi
+          # Build-Freigaben an Ort und Stelle umstellen (siehe Windows-Job oben).
+          for pkg in '@swc/core' 'esbuild' 'nx'; do
+            grep -qxF "  '${pkg}': false" pnpm-workspace.yaml || {
+              echo "allowBuilds-Eintrag '${pkg}': false fehlt in pnpm-workspace.yaml — Step und Repo-Datei abgleichen."; exit 1; }
+            sed -i.bak "s|^  '${pkg}': false\$|  '${pkg}': true|" pnpm-workspace.yaml && rm -f pnpm-workspace.yaml.bak
+          done
           cat >> pnpm-workspace.yaml <<'YAML'
 
           # --- vom CI angehaengt (release-pos.yml, Job release-macos) ---
@@ -424,18 +438,12 @@ jobs:
             - 'libs/domains/*'
             - 'libs/shared'
             - 'libs/shared/*'
-          onlyBuiltDependencies:
-            - '@swc/core'
-            - 'better-sqlite3'
-            - 'esbuild'
-            - 'nx'
+          linkWorkspacePackages: deep
+          preferWorkspacePackages: true
+          autoInstallPeers: true
+          strictPeerDependencies: false
           YAML
-          cat > .npmrc <<'NPMRC'
-          link-workspace-packages=deep
-          prefer-workspace-packages=true
-          auto-install-peers=true
-          strict-peer-dependencies=false
-          NPMRC
+          printf '# vom CI geleert (release-pos.yml, Job release-macos)\n' > .npmrc
           pnpm install --lockfile-only
 
       - name: Install Dependencies

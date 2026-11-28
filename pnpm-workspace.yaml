@@ -23,17 +23,26 @@
 #   2. Standalone-CI — kein Workspace, nur das Root-Paket + Symlinks aus
 #      `link-core-packages.sh`. Die Settings hier greifen.
 #   3. Edge-Docker / POS-Windows-Release — die Workflows haengen ihre
-#      `packages:`/`onlyBuiltDependencies:`-Bloecke an DIESE Datei an
+#      `packages:`-Bloecke an DIESE Datei an und stellen `allowBuilds` um
 #      (frueher: ueberschrieben, wodurch die Haertung still verloren ging).
 #      Beim Anpassen synchron halten. Fuer das Edge-Image haengt
 #      tools/docker/prepare-edge-context.sh an (genutzt von build-edge-docker.yml
 #      und edge-image-check.yml) und setzt die Karenz fuer seinen Lockfile-Schritt
 #      zusaetzlich per `--config.minimumReleaseAge=0` aus — Begruendung dort.
 #
-# `pnpm.overrides` und `pnpm.onlyBuiltDependencies` bleiben bewusst in der
-# package.json: Dependabot pflegt die Override-Liste dort, und ein Umzug
-# wuerde den Lockfile-Config-Hash aendern. pnpm liest beide Quellen — ein
-# `overrides:`-Key hier wuerde die package.json-Variante still ueberstimmen.
+# `overrides` und `allowBuilds` stehen seit 2026-11-28 HIER (unten), nicht mehr
+# in package.json → `pnpm.*`: pnpm 11+ liest das Feld `pnpm` in package.json
+# nicht mehr und meldet es nur als Warnung — ein Standalone-Install mit
+# `--no-frozen-lockfile` liefe sonst still ohne die Floors
+# (panary/panary-core#1535, Nachtrag in docs/adr/0012-pnpm-supply-chain-haertung.md).
+# Der Umzug laesst den Lockfile-Config-Hash unveraendert (gleiche Werte, gleiche
+# Reihenfolge; gemessen mit `pnpm install --frozen-lockfile` unter pnpm 12.22.0).
+# `onlyBuiltDependencies` gibt es seit pnpm 11 nicht mehr: `allowBuilds` traegt
+# jedes Paket mit Install-Script ausdruecklich als true/false, ein fehlender
+# Eintrag bricht den Install mit ERR_PNPM_IGNORED_BUILDS ab.
+# Die Workflows oben (Punkt 3) stellen nur Werte in `allowBuilds` um und haengen
+# `packages:` plus die Workspace-Linking-Keys an; `.npmrc` traegt seit pnpm 11
+# nur noch Registry und Auth.
 
 # --- Karenz fuer frisch veroeffentlichte Versionen (7 Tage = 10080 Min.) ---
 # Kompromittierte Pakete werden meist innerhalb dieser Frist entdeckt. Greift
@@ -53,7 +62,7 @@ minimumReleaseAgeExclude:
   # 2026-09-30 14:08 UTC → reif seit 2026-10-07 14:08 UTC; OSV-Befund 2026-10-07).
   # Entfernt am 2026-09-08, weil reif geworden: 'qs' (6.16.0, publiziert
   # 2026-08-29 23:50 UTC → reif seit 2026-09-05 23:50 UTC; OSV-Befund 2026-09-04).
-  # Ein Paket gehoert nur so lange hierher, wie sein package.json-Override auf
+  # Ein Paket gehoert nur so lange hierher, wie sein Override (unten) auf
   # eine Version zeigt, die die Karenz noch blockiert — sonst scheitert jede
   # vollstaendige Neuaufloesung (Edge-Docker, POS-Windows-Release) mit
   # ERR_PNPM_NO_MATURE_MATCHING_VERSION (empirisch verifiziert 2026-07-25).
@@ -65,7 +74,7 @@ minimumReleaseAgeExclude:
   # 2026-09-11 10:24 UTC → reif seit 2026-09-18 10:24 UTC). Erste Version
   # ausserhalb der Advisory-Range von GHSA-vwc7-r8mq-g2x9 (0.5.9-0.6.0), mit dem
   # Symlink-Guard `assertPathSafe` in util/utils.js. Der Override `^0.6.1` in
-  # package.json BLEIBT — er ist der Floor, der Eintrag hier war nur die Karenz.
+  # `overrides` BLEIBT — er ist der Floor, der Eintrag hier war nur die Karenz.
   # Nachtrag in docs/security/osv-befund-2026-09-10.md. Pendant in panary-cloud.
   #
   # Entfernt am 2026-08-11, weil reif geworden: 'fast-uri' (3.1.5, publiziert
@@ -113,9 +122,104 @@ trustPolicyExclude:
   # 30 Tage lang als Downgrade gegenueber 8.3.0 (ERR_PNPM_TRUST_DOWNGRADE,
   # pos-v26.9.1 am 2026-09-11). Ein kuenftiger 7.4.x-Patch loest dasselbe fuer
   # seine ersten 30 Tage wieder aus.
-  # 🚫 Der Override `webpack-dev-middleware: ^7.4.6` in der package.json BLEIBT —
+  # 🚫 Der Override `webpack-dev-middleware: ^7.4.6` unter `overrides` BLEIBT —
   # ohne ihn weicht pnpm still auf die verwundbare 7.4.5 aus. 7.4.6 ist ein
   # Path-Traversal-Fix (Containment-Pruefung in getFilenameFromUrl.js, Variante
   # von GHSA-wr3j-pwj9-hqq6: `/assets../secret` bricht ohne Trailing-Slash am
   # publicPath aus dem Output-Root aus). Ohne CVE/GHSA-ID, kein Scanner meldet
   # 7.4.5 — der Override ist das einzige Werkzeug, das sie wegschliesst.
+
+# --- Overrides (Sicherheits-Floors) ---------------------------------------
+# Seit pnpm 11 liest pnpm das Feld `pnpm` in package.json nicht mehr; die Liste
+# stand bis 2026-11-28 dort (panary/panary-core#1535, Nachtrag in ADR 0012).
+# Floors hier pflegen, nicht in package.json.
+overrides:
+  '@hexagon/base64': '1.1.28'
+  '@levischuck/tiny-cbor': '0.2.11'
+  '@peculiar/asn1-android': '2.6.0'
+  '@peculiar/asn1-ecc': '2.6.1'
+  '@peculiar/asn1-rsa': '2.6.1'
+  '@peculiar/asn1-schema': '2.6.0'
+  '@peculiar/asn1-x509': '2.6.1'
+  '@peculiar/x509': '1.14.3'
+  'asn1js': '3.0.10'
+  'axios': '^1.20.0'
+  'esbuild': '^0.28.1'
+  'serialize-javascript': '^7.1.3'
+  'diff': '^8.0.4'
+  'fast-uri': '^3.1.9'
+  'body-parser@2': '^2.4.0'
+  'ip-address': '^10.7.4'
+  '@babel/plugin-transform-modules-systemjs': '^7.29.4'
+  'brace-expansion': '^5.0.12'
+  'yaml': '^2.8.3'
+  'follow-redirects': '^1.16.2'
+  'launch-editor': '^2.14.2'
+  'uuid': '^14.0.2'
+  'ws': '^8.20.1'
+  'qs': '^6.16.1'
+  'browserslist': '^4.28.7'
+  'tmp': '^0.2.6'
+  'shell-quote': '^1.11.0'
+  'source-map-js': '^1.2.2'
+  '@modelcontextprotocol/sdk': '^1.32.0'
+  'postcss': '^8.5.23'
+  'nanoid': '^3.3.17'
+  'minimatch@3': '^3.1.4'
+  'minimatch@9': '^9.0.7'
+  'tar': '^7.5.21'
+  'lodash': '^4.18.0'
+  'socket.io-parser': '^4.2.7'
+  'picomatch@2': '^2.3.2'
+  'ajv@8': '^8.18.0'
+  '@tootallnate/once': '^2.0.1'
+  'koa@3': '^3.1.2'
+  'js-yaml': '^4.3.2'
+  'vite': '^8.3.4'
+  '@vitest/mocker': '^4.1.12'
+  'webpack-dev-middleware': '^7.4.6'
+  'webpack-dev-server': '^5.2.6'
+  'http-proxy-middleware': '^3.0.7'
+  'undici': '^7.30.1'
+  'zod@4': '^4.6.6'
+  '@babel/core': '^7.29.6'
+  'form-data': '^4.0.6'
+  'piscina': '^5.3.2'
+  'adm-zip': '^0.6.1'
+  'svgo': '^4.1.0'
+  'smol-toml': '^1.9.0'
+  'immutable': '^5.1.8'
+  '@hono/node-server': '^2.0.10'
+  'hono': '^4.13.16'
+  'engine.io': '^6.6.10'
+  'moment': '^2.31.0'
+  '@tauri-apps/api': '~2.12.1'
+
+# --- Build-Scripts (pnpm 11+: allowBuilds, strictDepBuilds als Default) ----
+# Nur better-sqlite3 baut (native Bindung fuer api-edge). Die uebrigen Pakete mit
+# Install-Scripts sind ausdruecklich gesperrt, wie unter pnpm 10 ("Ignored build
+# scripts"); ohne Eintrag bricht pnpm 11+ den Install ab.
+allowBuilds:
+  'better-sqlite3': true
+  '@parcel/watcher': false
+  '@scarf/scarf': false
+  '@swc/core': false
+  'esbuild': false
+  'lefthook': false
+  'lmdb': false
+  'msgpackr-extract': false
+  'nx': false
+  'unrs-resolver': false
+
+# --- Kein Boot-Dokument im Lockfile (pnpm 11+) ------------------------------
+# Ohne diesen Key schreibt pnpm 12 bei gesetztem `packageManager` ein
+# zusaetzliches erstes YAML-Dokument (`packageManagerDependencies`, die
+# @pnpm/exe.*-Binaries) vor das eigentliche Lockfile. osv-scanner 2.3.8 liest
+# nur dieses erste Dokument: gemessen 16 statt 1768 Pakete — der Security-Scan
+# waere still blind geworden (panary/panary-core#1535). Mit `ignore` bleibt das
+# Lockfile byte-gleich zum pnpm-10-Stand. Preis: pnpm prueft und wechselt die
+# eigene Version nicht mehr anhand von `packageManager`; den Pin setzen in der CI
+# pnpm/action-setup (liest `packageManager`) und in Dockerfile.edge das
+# `npm install -g pnpm@…`. Entfernen erst, wenn osv-scanner und Dependabot das
+# Mehr-Dokument-Lockfile nachweislich vollstaendig lesen.
+pmOnFail: ignore

@@ -82,8 +82,8 @@ jobs:
       - name: Derive affected SHAs
         uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5
 
-      # `--no-frozen-lockfile` ist Bestand, nicht mehr Notwendigkeit: Das committete
-      # pnpm-lock.yaml ist standalone aufgeloest (nur Importer `.`, die 60 Overrides
+      # `--no-frozen-lockfile` ist Bestand, nicht mehr Notwendigkeit: Das im Repo committete
+      # pnpm-lock.yaml (lokal im Haupt-Checkout ein Symlink ins Workbench-Root) ist standalone aufgeloest (nur Importer `.`, die 60 Overrides
       # aus pnpm-workspace.yaml) und kein Snapshot des Workbench-Root-Lockfiles —
       # `pnpm install --frozen-lockfile` laeuft dagegen durch (gemessen 2026-11-28,
       # pnpm 12.22.0, panary/panary-core#1535). Umstellen auf frozen ist ein eigener Schritt.

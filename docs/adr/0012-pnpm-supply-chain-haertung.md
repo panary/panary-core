@@ -134,7 +134,7 @@ alle drei wären wirkungslos gewesen. Der Pin ist deshalb Teil dieser Änderung
 
 Die beiden Release-Workflows schrieben die Datei bisher inline **neu**. Das
 hätte die Härtung stillschweigend weggeworfen, sobald sie im Repo liegt. Sie
-hängen ihre `packages:`/`onlyBuiltDependencies:`-Blöcke jetzt **an** und prüfen
+hängen ihre `packages:`-Blöcke jetzt **an** (seit panary/panary-core#1535 zusätzlich die Workspace-Linking-Keys; `allowBuilds` stellen sie an Ort und Stelle um) und prüfen
 vorher, dass die Datei existiert und die Keys noch nicht trägt (YAML verbietet
 Duplikate).
 

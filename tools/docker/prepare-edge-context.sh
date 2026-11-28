@@ -37,10 +37,21 @@ if [ -L pnpm-lock.yaml ]; then rm pnpm-lock.yaml; fi
 # Sicherung: die committete Datei MUSS existieren und darf die
 # angehaengten Keys noch nicht enthalten (YAML verbietet Duplikate).
 test -f pnpm-workspace.yaml || { echo "::error::pnpm-workspace.yaml fehlt im Repo"; exit 1; }
-if grep -qE '^(packages|onlyBuiltDependencies):' pnpm-workspace.yaml; then
-  echo "::error::pnpm-workspace.yaml traegt bereits packages:/onlyBuiltDependencies: — dieses Skript wuerde doppelte YAML-Keys erzeugen. Skript und Repo-Datei abgleichen."
+if grep -qE '^(packages|onlyBuiltDependencies|linkWorkspacePackages|preferWorkspacePackages|autoInstallPeers|strictPeerDependencies):' pnpm-workspace.yaml; then
+  echo "::error::pnpm-workspace.yaml traegt bereits einen der angehaengten Keys (packages/linkWorkspacePackages/…) oder das seit pnpm 11 ungueltige onlyBuiltDependencies: — dieses Skript wuerde doppelte YAML-Keys erzeugen. Skript und Repo-Datei abgleichen."
   exit 1
 fi
+# Build-Freigaben: Die Repo-Datei fuehrt `allowBuilds:` (pnpm 11+, panary/panary-core#1535)
+# mit better-sqlite3 als einzigem `true`. Das Image baut zusaetzlich @swc/core, esbuild und
+# nx — die Werte werden an Ort und Stelle umgestellt, ein zweiter `allowBuilds:`-Block waere
+# ein doppelter YAML-Key. Fehlt eine Zeile, bricht das Skript ab statt still weniger zu bauen.
+for pkg in '@swc/core' 'esbuild' 'nx'; do
+  grep -qxF "  '${pkg}': false" pnpm-workspace.yaml || {
+    echo "::error::allowBuilds-Eintrag '${pkg}': false fehlt in pnpm-workspace.yaml — Skript und Repo-Datei abgleichen."
+    exit 1
+  }
+  sed -i.bak "s|^  '${pkg}': false\$|  '${pkg}': true|" pnpm-workspace.yaml && rm -f pnpm-workspace.yaml.bak
+done
 cat >> pnpm-workspace.yaml <<'EOF'
 
 # --- vom CI angehaengt (tools/docker/prepare-edge-context.sh) ---
@@ -53,20 +64,17 @@ packages:
   # zu fetchen → ERR_PNPM_FETCH_404 (so geschehen bei v26.7.5).
   - 'libs/shared'
   - 'libs/shared/*'
-onlyBuiltDependencies:
-  - '@swc/core'
-  - 'better-sqlite3'
-  - 'esbuild'
-  - 'nx'
+# Workspace-Linking — sonst zieht pnpm @panary/* aus npm.pkg.github.com
+# (ERR_PNPM_FETCH_401 ohne Auth-Token). Seit pnpm 11 liest pnpm diese Keys
+# nur noch hier, nicht mehr aus .npmrc (panary/panary-core#1535).
+linkWorkspacePackages: deep
+preferWorkspacePackages: true
+autoInstallPeers: true
+strictPeerDependencies: false
 EOF
-# .npmrc fuer Workspace-Linking — sonst zieht pnpm @panary/*
-# aus npm.pkg.github.com (ERR_PNPM_FETCH_401 ohne Auth-Token).
-cat > .npmrc <<'EOF'
-link-workspace-packages=deep
-prefer-workspace-packages=true
-auto-install-peers=true
-strict-peer-dependencies=false
-EOF
+# .npmrc leeren: Die Repo-Datei setzt die @panary-Registry, im Image soll
+# pnpm @panary/* aber ausschliesslich aus dem Workspace nehmen.
+printf '# vom CI geleert (tools/docker/prepare-edge-context.sh)\n' > .npmrc
 # Echte Lockfile generieren (Inhalt landet via COPY im Image und wird
 # darin von `pnpm install` konsumiert).
 #

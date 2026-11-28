@@ -70,11 +70,11 @@ jobs:
           TAG_NAME: ${{ github.ref_name }}
         run: node tools/scripts/publishable-manifests.mjs --check "$TAG_NAME"
 
-      # `--no-frozen-lockfile`: das committete pnpm-lock.yaml ist im Workbench-Setup
-      # ein Snapshot des geteilten Root-Lockfiles (Symlink + skip-worktree). Dessen
-      # `overrides` sind die Vereinigung beider Repos und matchen die Standalone-
-      # package.json-overrides nicht — frozen bräche mit ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
-      # ab. Konsistent zu ci.yml.
+      # `--no-frozen-lockfile` ist Bestand, nicht mehr Notwendigkeit: Das committete
+      # pnpm-lock.yaml ist standalone aufgeloest (nur Importer `.`, die 60 Overrides
+      # aus pnpm-workspace.yaml) und kein Snapshot des Workbench-Root-Lockfiles —
+      # `pnpm install --frozen-lockfile` laeuft dagegen durch (gemessen 2026-11-28,
+      # pnpm 12.22.0, panary/panary-core#1535). Umstellen auf frozen ist ein eigener Schritt.
       - name: Install Dependencies
         run: pnpm install --no-frozen-lockfile
 

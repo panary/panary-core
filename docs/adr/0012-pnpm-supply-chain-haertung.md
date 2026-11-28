@@ -97,6 +97,14 @@ Root-Settings; der Workbench-Root trägt denselben Satz.
 
 ### Warum `pnpm.overrides` in der package.json bleibt
 
+> **Abgelöst am 2026-11-28 (panary/panary-core#1535):** pnpm 11+ liest das Feld `pnpm` in `package.json` nicht
+> mehr. `overrides` und die Build-Freigaben (`allowBuilds`, Nachfolger von `onlyBuiltDependencies`) stehen seitdem in
+> der `pnpm-workspace.yaml`. Der Umzug ließ den Lockfile-Config-Hash unverändert (gleiche Werte, gleiche
+> Reihenfolge; `--frozen-lockfile` unter pnpm 12.22.0 grün). Dependabot pflegte die Liste in `package.json`
+> nachweislich einmal (uuid, `06c2adb6`); ob er die YAML-Liste pflegt, ist offen. Die angehängten CI-Blöcke
+> (Tabelle unten) stellen jetzt `allowBuilds` um statt `onlyBuiltDependencies` anzuhängen. Details und Messungen:
+> [pnpm 12 — Umstieg](../infrastructure/pnpm-12-umstieg.md). Der Abschnitt bleibt als Begründung für den Stand bis dahin.
+
 Dependabot pflegt die Override-Liste dort, und ein Umzug änderte den
 Lockfile-Config-Hash. pnpm liest beide Quellen — ein `overrides:`-Key in der
 `pnpm-workspace.yaml` würde die package.json-Variante still überstimmen.
